@@ -276,3 +276,279 @@ fn waiting_for_the_pairing_root_opens_the_device_hardware_once() {
     });
     env.finish();
 }
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn one_invitation_binds_a_new_login_then_enrolls_its_device() {
+    let mut env = Env::start("invited-login", "");
+    let (same, _) = env.desktop("same-login");
+    let (other, _) = env.desktop("other-account");
+    let (a, phone, http) = (&env.a, &env.b, &env.http);
+    a.login(http, 41).unwrap();
+    let account = a.run(&["account", "create"])["account"].clone();
+    a.run(&["vault", "add", "--title", "desktop vault"]);
+    a.run(&["sync"]);
+    let invitation = a
+        .rpc(http, "device/pair_invite", json!({"with_login":true}))
+        .unwrap();
+    let token = &invitation["token"];
+    assert!(token.as_str().unwrap().starts_with("dmsg-device-invite/3:"));
+    let read = |who: &Desktop| {
+        who.rpc(http, "device/join_invitation", json!({"invitation":token}))
+            .unwrap()
+    };
+    let principal = login_principal(42);
+    let send = |bind| {
+        phone
+            .rpc(
+                http,
+                "device/join_invitation",
+                json!({"invitation":token,"principal":principal,"bind_login":bind}),
+            )
+            .unwrap()
+    };
+    let candidate = || {
+        a.rpc(
+            http,
+            "device/pair_invite_status",
+            json!({"id":invitation["id"]}),
+        )
+        .unwrap()["candidate"]
+            .clone()
+    };
+
+    assert_eq!(read(phone)["stage"], "sign_in");
+    assert_eq!(phone.login(http, 42).unwrap()["state"], "no_account");
+    let preview = read(phone);
+    assert_eq!(preview["account"], account);
+    assert_eq!(preview["stage"], "bind_login");
+    assert_eq!(send(false)["stage"], "bind_login");
+    assert!(candidate().is_null());
+    other.login(http, 43).unwrap();
+    let separate = other.run(&["account", "create"])["account"].clone();
+    assert_eq!(read(&other)["stage"], "other_account");
+    assert_eq!(read(&other)["current_account"], separate);
+    same.login(http, 41).unwrap();
+    assert_eq!(read(&same)["stage"], "device");
+
+    let first = send(true);
+    assert_eq!(first["stage"], "waiting_login");
+    assert_eq!(send(false), first);
+    assert_eq!(
+        &phone
+            .rpc(http, "device/saved_invitation", Value::Null)
+            .unwrap(),
+        token
+    );
+    let login = candidate();
+    assert_eq!(login["code"], first["code"]);
+    assert_eq!(login["principal"], principal);
+    let request = a
+        .rpc(
+            http,
+            "account/bind_approve",
+            json!({"token":login["token"],"principal":principal}),
+        )
+        .unwrap();
+    assert_eq!(a.decide(http, &request, true).unwrap()["state"], "done");
+    let until = Instant::now() + Duration::from_secs(35);
+    let second = loop {
+        let view = send(false);
+        if view["stage"] == "waiting_device" {
+            break view;
+        }
+        assert!(Instant::now() < until, "{view}");
+        std::thread::sleep(Duration::from_millis(250));
+    };
+    assert_eq!(second["code"], first["code"]);
+    let device = candidate();
+    assert_eq!(device["code"], first["code"]);
+    assert_eq!(device["device_id"], login["device_id"]);
+    assert_eq!(a.run(&["device", "list"]).as_array().unwrap().len(), 1);
+    assert_eq!(a.approve_pairing(http, &device)["state"], "done");
+    assert_eq!(
+        phone
+            .rpc(http, "session/unlock", json!({"pairing_poll":true}))
+            .unwrap()["account"],
+        account
+    );
+    phone.run(&["sync"]);
+    assert!(titles(phone).contains(&"desktop vault".to_owned()));
+    assert_eq!(other.run(&["status"])["account"], separate);
+    // Use the other account for a separate two-device pair within the Free quota.
+    same.login(http, 43).unwrap();
+    let direct = other
+        .rpc(http, "device/pair_invite", json!({"with_login":true}))
+        .unwrap();
+    let submitted = same
+        .rpc(
+            http,
+            "device/join_invitation",
+            json!({"invitation":direct["token"],"principal":login_principal(43)}),
+        )
+        .unwrap();
+    assert_eq!(submitted["stage"], "waiting_device");
+    let device = other
+        .rpc(
+            http,
+            "device/pair_invite_status",
+            json!({"id":direct["id"]}),
+        )
+        .unwrap()["candidate"]
+        .clone();
+    assert_eq!(device["code"], submitted["code"]);
+    assert_eq!(other.approve_pairing(http, &device)["state"], "done");
+    assert_eq!(same.run(&["unlock"])["account"], separate);
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn mobile_approves_a_desktop_with_a_new_login() {
+    phone_to_desktop(false);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn phone_camera_scans_both_requests_on_a_new_desktop() {
+    phone_to_desktop(true);
+}
+
+fn scan_view_qr(view: &Value) -> String {
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(
+            view["qr"]
+                .as_str()
+                .unwrap()
+                .strip_prefix("data:image/png;base64,")
+                .unwrap(),
+        )
+        .unwrap();
+    let token = dmsg_client::qr::scan(&png).unwrap();
+    assert_eq!(token, view["token"]);
+    token
+}
+
+fn phone_to_desktop(phone_scans: bool) {
+    use dmsg_client::{Client, testing, vault::Item};
+    use dmsg_mobile::{MobileEngine, OperationToken};
+    let env = Env::start("phone-invites-desktop", "");
+    let desktop = &env.b;
+    let mut config = testing::config(false);
+    config.ic_host = env.deployment.gateway.trim_end_matches('/').into();
+    config.handle = env.deployment.handle;
+    config.user_homes = vec![env.deployment.user];
+    config.root_key = Some(hex::decode(&env.deployment.root_key_hex).unwrap());
+    config.relay = env.relay.clone();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let (phone, account) = rt.block_on(async {
+        let mut client = Client::open(config, &env.dir.join("phone"), None).unwrap();
+        client.require_prepared_approval();
+        let login = testing::login(&mut client, 51).await;
+        client.login(login).await.unwrap();
+        let (created, _) = client.initialize_account().await.unwrap();
+        client
+            .vault_add_all(vec![Item::new("note", "from the phone", now_ms())])
+            .unwrap();
+        client.sync().await.unwrap();
+        (
+            MobileEngine::integration_fixture(client, env.dir.join("phone-staging")),
+            created.id.to_string(),
+        )
+    });
+    let scoped = || phone.scoped(phone.control_generation()).unwrap();
+    let value = |snapshot: dmsg_mobile::ObjectSnapshot| {
+        serde_json::from_str::<Value>(&snapshot.json).unwrap()
+    };
+    let decide = |review: Value| {
+        let done = rt
+            .block_on(scoped().decide(
+                review["id"].as_str().unwrap().into(),
+                review["digest"].as_str().unwrap().into(),
+                true,
+                OperationToken::new(),
+            ))
+            .unwrap();
+        assert_eq!(value(done)["state"], "done");
+    };
+    desktop.login(&env.http, 52).unwrap();
+    let mut invite_id = None;
+    let mut shown_code = None;
+    let (raw, invitation) = if phone_scans {
+        let binding = desktop
+            .rpc(
+                &env.http,
+                "account/bind_request",
+                json!({"account":account}),
+            )
+            .unwrap();
+        (scan_view_qr(&binding), None)
+    } else {
+        let invite = value(rt.block_on(scoped().start_account_invitation()).unwrap());
+        let id = invite["id"].as_str().unwrap().to_string();
+        let token = scan_view_qr(&invite);
+        let args = json!({"invitation":token,"principal":login_principal(52),"bind_login":true});
+        let first = desktop
+            .rpc(&env.http, "device/join_invitation", args.clone())
+            .unwrap();
+        assert_eq!(first["stage"], "waiting_login");
+        let status = value(
+            rt.block_on(scoped().account_invitation_status(id.clone()))
+                .unwrap(),
+        );
+        let candidate = &status["candidate"];
+        assert_eq!(candidate["code"], first["code"]);
+        invite_id = Some(id);
+        shown_code = Some(first["code"].clone());
+        (candidate["token"].as_str().unwrap().to_string(), Some(args))
+    };
+    let scanned = value(
+        rt.block_on(scoped().inspect_pairing_request(raw.clone()))
+            .unwrap(),
+    );
+    assert_eq!(scanned["kind"], "login_binding");
+    assert_eq!(scanned["principal"], login_principal(52));
+    decide(value(rt.block_on(scoped().review_binding(raw)).unwrap()));
+    let device = if let Some(args) = invitation {
+        eventually(30, || {
+            (desktop
+                .rpc(&env.http, "device/join_invitation", args.clone())
+                .unwrap()["stage"]
+                == "waiting_device")
+                .then_some(())
+        });
+        let status = value(
+            rt.block_on(scoped().account_invitation_status(invite_id.clone().unwrap()))
+                .unwrap(),
+        );
+        let device = status["candidate"].clone();
+        assert_eq!(device["code"], shown_code.unwrap());
+        device
+    } else {
+        assert_eq!(
+            desktop
+                .rpc(&env.http, "account/bind_accept", json!({"account":account}))
+                .unwrap()["state"],
+            "pairing_required"
+        );
+        let device = desktop.run(&["device", "pair-request"]);
+        let raw = scan_view_qr(&device);
+        let preview = value(rt.block_on(scoped().inspect_pairing_request(raw)).unwrap());
+        assert_eq!(preview["device_id"], device["device_id"]);
+        device
+    };
+    decide(value(
+        rt.block_on(scoped().approve_pairing_request(
+            device["token"].as_str().unwrap().into(),
+            device["device_id"].as_str().unwrap().into(),
+        ))
+        .unwrap(),
+    ));
+    assert_eq!(desktop.run(&["unlock"])["account"], account);
+    desktop.run(&["sync"]);
+    assert!(titles(desktop).contains(&"from the phone".to_string()));
+    if let Some(id) = invite_id {
+        rt.block_on(scoped().cancel_account_invitation(id)).unwrap();
+    }
+    env.finish();
+}

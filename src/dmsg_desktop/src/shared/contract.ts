@@ -62,7 +62,7 @@ export interface DesktopBridge {
   /** Ask the OS for camera access from the main window's scan action. */
   cameraAccess(): Promise<boolean>
   /** Scan only an image chosen in the OS picker or on the clipboard. */
-  deviceQrImage(source: 'file' | 'clipboard'): Promise<unknown>
+  deviceQrImage(source: 'file' | 'clipboard', invitation?: boolean): Promise<unknown>
   /** OS support is distinct from permission; unqueryable permission stays system-managed. */
   notificationPermission(): Promise<NoticePermission>
   /** Open the fixed OS notifications settings page. */

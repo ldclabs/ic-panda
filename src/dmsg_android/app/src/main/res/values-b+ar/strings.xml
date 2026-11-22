@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"جارٍ نقل الكتل المشفّرة"</string>
     <string name="cipher_transfer_title" formatted="false">"عمليات النقل المشفّرة"</string>
     <string name="customize_fields" formatted="false">"تخصيص الحقول"</string>
+    <string name="device_content_signing" formatted="false">"توقيع المحتوى"</string>
     <string name="empty_folder" formatted="false">"لا توجد ملفات في هذا المجلد"</string>
     <string name="file_moved_to_trash" formatted="false">"تم النقل إلى سلة المهملات"</string>
     <string name="file_name_rule" formatted="false">"استخدم اسماً من 1 إلى 255 حرفاً دون شرطات مائلة أو أحرف تحكم."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"الجهاز"</string>
     <string name="history_fields" formatted="false">"الحقول"</string>
     <string name="import_local_account" formatted="false">"استيراد من الحساب المحلي"</string>
+    <string name="join_code" formatted="false">"رمز المطابقة"</string>
+    <string name="join_compare_hint" formatted="false">"تأكد من تطابق الرمزين على الجهازين قبل الموافقة."</string>
+    <string name="join_confirm" formatted="false">"استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز"</string>
+    <string name="join_create" formatted="false">"إنشاء حساب مستقل"</string>
+    <string name="join_identity" formatted="false">"هوية تسجيل الدخول"</string>
+    <string name="join_other" formatted="false">"يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى."</string>
+    <string name="join_scan_hint" formatted="false">"امسح الرمز الموجود على جهاز مصرح له لفتح حسابه."</string>
+    <string name="join_show_hint" formatted="false">"اختر فتح حساب موجود على الجهاز الجديد، ثم امسح هذا الرمز."</string>
+    <string name="join_wait_device" formatted="false">"بانتظار الموافقة على الجهاز"</string>
+    <string name="join_wait_login" formatted="false">"بانتظار الموافقة على تسجيل الدخول"</string>
     <string name="language_search" formatted="false">"البحث عن لغة"</string>
     <string name="links_created_progress" formatted="true">"تم إنشاء %1$s من %2$s"</string>
     <string name="local_password" formatted="false">"كلمة المرور المحلية"</string>

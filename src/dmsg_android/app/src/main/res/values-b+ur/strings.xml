@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"رمز شدہ بلاکس منتقل ہو رہے ہیں"</string>
     <string name="cipher_transfer_title" formatted="false">"رمز شدہ منتقلیاں"</string>
     <string name="customize_fields" formatted="false">"فیلڈز حسب ضرورت بنائیں"</string>
+    <string name="device_content_signing" formatted="false">"مواد پر دستخط"</string>
     <string name="empty_folder" formatted="false">"اس فولڈر میں کوئی فائل نہیں"</string>
     <string name="file_moved_to_trash" formatted="false">"ردی کی ٹوکری میں منتقل ہو گیا"</string>
     <string name="file_name_rule" formatted="false">"۱–۲۵۵ حروف کا نام استعمال کریں جس میں سلیش یا کنٹرول حروف نہ ہوں۔"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"آلہ"</string>
     <string name="history_fields" formatted="false">"فیلڈز"</string>
     <string name="import_local_account" formatted="false">"مقامی اکاؤنٹ سے درآمد کریں"</string>
+    <string name="join_code" formatted="false">"توثیقی کوڈ"</string>
+    <string name="join_compare_hint" formatted="false">"منظوری سے پہلے دیکھیں کہ دونوں آلات پر ایک ہی کوڈ دکھائی دے رہا ہے۔"</string>
+    <string name="join_confirm" formatted="false">"اس اکاؤنٹ کے لیے یہ لاگ ان استعمال کریں اور یہ آلہ شامل کریں"</string>
+    <string name="join_create" formatted="false">"علیحدہ اکاؤنٹ بنائیں"</string>
+    <string name="join_identity" formatted="false">"لاگ ان شناخت"</string>
+    <string name="join_other" formatted="false">"یہ لاگ ان دوسرے اکاؤنٹ سے منسلک ہے۔ کوئی اور لاگ ان منتخب کریں۔"</string>
+    <string name="join_scan_hint" formatted="false">"اکاؤنٹ کھولنے کے لیے مجاز آلے پر دکھایا گیا کوڈ اسکین کریں۔"</string>
+    <string name="join_show_hint" formatted="false">"نئے آلے پر موجودہ اکاؤنٹ کھولنے کا اختیار منتخب کریں اور یہ کوڈ اسکین کریں۔"</string>
+    <string name="join_wait_device" formatted="false">"آلے کی منظوری کا انتظار ہے"</string>
+    <string name="join_wait_login" formatted="false">"لاگ ان کی منظوری کا انتظار ہے"</string>
     <string name="language_search" formatted="false">"زبان تلاش کریں"</string>
     <string name="links_created_progress" formatted="true">"%2$s میں سے %1$s بن گئے"</string>
     <string name="local_password" formatted="false">"مقامی پاس ورڈ"</string>

@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Đang truyền các khối đã mã hóa"</string>
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>
     <string name="customize_fields" formatted="false">"Tùy chỉnh trường"</string>
+    <string name="device_content_signing" formatted="false">"Ký nội dung"</string>
     <string name="empty_folder" formatted="false">"Không có tệp trong thư mục này"</string>
     <string name="file_moved_to_trash" formatted="false">"Đã chuyển vào Thùng rác"</string>
     <string name="file_name_rule" formatted="false">"Dùng tên dài 1–255 ký tự, không chứa dấu gạch chéo hoặc ký tự điều khiển."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Thiết bị"</string>
     <string name="history_fields" formatted="false">"Trường"</string>
     <string name="import_local_account" formatted="false">"Nhập từ tài khoản cục bộ"</string>
+    <string name="join_code" formatted="false">"Mã đối chiếu"</string>
+    <string name="join_compare_hint" formatted="false">"Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không."</string>
+    <string name="join_confirm" formatted="false">"Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này"</string>
+    <string name="join_create" formatted="false">"Tạo tài khoản riêng"</string>
+    <string name="join_identity" formatted="false">"Danh tính đăng nhập"</string>
+    <string name="join_other" formatted="false">"Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác."</string>
+    <string name="join_scan_hint" formatted="false">"Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó."</string>
+    <string name="join_show_hint" formatted="false">"Trên thiết bị mới, chọn Mở tài khoản hiện có rồi quét mã này."</string>
+    <string name="join_wait_device" formatted="false">"Đang chờ duyệt thiết bị"</string>
+    <string name="join_wait_login" formatted="false">"Đang chờ duyệt cách đăng nhập"</string>
     <string name="language_search" formatted="false">"Tìm ngôn ngữ"</string>
     <string name="links_created_progress" formatted="true">"Đã tạo %1$s trên %2$s"</string>
     <string name="local_password" formatted="false">"Mật khẩu cục bộ"</string>

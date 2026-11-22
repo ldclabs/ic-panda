@@ -3576,5 +3576,25 @@
 	<string>চাবি নিবন্ধনের পর যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>অনুরোধটি পর্যালোচনা করতে প্রশাসক ডিভাইস দিয়ে এই কোড স্ক্যান করুন।</string>
+	<key>Close</key>
+	<string>বন্ধ করুন</string>
+	<key>Comparison code</key>
+	<string>মেলানোর কোড</string>
+	<key>Create a separate account</key>
+	<string>আলাদা অ্যাকাউন্ট তৈরি করুন</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>অ্যাকাউন্ট খুলতে অনুমোদিত ডিভাইসে দেখানো কোড স্ক্যান করুন।</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>এই লগইন অন্য একটি অ্যাকাউন্টের। অন্য লগইন বেছে নিন।</string>
+	<key>Use this login for this account and add this device</key>
+	<string>এই অ্যাকাউন্টে এই লগইন ব্যবহার করুন এবং ডিভাইসটি যোগ করুন</string>
+	<key>Waiting for device approval</key>
+	<string>ডিভাইসের অনুমোদনের অপেক্ষায়</string>
+	<key>Waiting for login approval</key>
+	<string>লগইনের অনুমোদনের অপেক্ষায়</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>নতুন ডিভাইসে বিদ্যমান অ্যাকাউন্ট খোলার বিকল্পটি বেছে নিয়ে এই কোডটি স্ক্যান করুন।</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>অনুমোদনের আগে দুই ডিভাইসে দেখানো কোড মিলিয়ে নিন।</string>
 </dict>
 </plist>

@@ -18,6 +18,7 @@ fn receiver(client: &Client) -> Receiver {
             expires_at: now_ms() + LIFETIME,
             key: Hash::new([71; 32]),
             submit_token: Hash::new([72; 32]),
+            binding: None,
         },
         generation: client.session_generation,
     }

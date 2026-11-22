@@ -3576,5 +3576,25 @@
 	<string>หลังจากลงทะเบียนกุญแจแล้ว ให้รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>ใช้อุปกรณ์ของผู้ดูแลระบบสแกนรหัสนี้เพื่อตรวจสอบคำขอ</string>
+	<key>Close</key>
+	<string>ปิด</string>
+	<key>Comparison code</key>
+	<string>รหัสเปรียบเทียบ</string>
+	<key>Create a separate account</key>
+	<string>สร้างบัญชีแยกต่างหาก</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>สแกนรหัสบนอุปกรณ์ที่ได้รับอนุญาตเพื่อเปิดบัญชีนั้น</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>วิธีเข้าสู่ระบบนี้ผูกกับบัญชีอื่น โปรดเลือกวิธีอื่น</string>
+	<key>Use this login for this account and add this device</key>
+	<string>ใช้วิธีเข้าสู่ระบบนี้กับบัญชีและเพิ่มอุปกรณ์นี้</string>
+	<key>Waiting for device approval</key>
+	<string>กำลังรออนุมัติอุปกรณ์</string>
+	<key>Waiting for login approval</key>
+	<string>กำลังรออนุมัติวิธีเข้าสู่ระบบ</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>บนอุปกรณ์ใหม่ ให้เลือกเปิดบัญชีที่มีอยู่แล้วสแกนรหัสนี้</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>ตรวจสอบว่ารหัสบนอุปกรณ์ทั้งสองตรงกันก่อนอนุมัติ</string>
 </dict>
 </plist>

@@ -9,6 +9,7 @@
   import { locale, t, type Label } from '../i18n/index.svelte'
   import { onChange } from '../rpc'
   import { temporaryFailure } from '../failure'
+  import { accountJoinRequested } from './session'
   import { checkLogin, closeLogin, login, reopenLogin, startLogin } from './login.svelte'
 
   /**
@@ -41,12 +42,12 @@
   {#if login.phase === 'choose'}
     <div class="grid gap-5" data-testid="passkey-choices">
       <div class="grid justify-items-start gap-2.5">
-        <p class="text-[13px] leading-relaxed text-muted">{t(login.bind ? 'passkeyBindingHint' : 'passkeyExistingHint')}</p>
+        <p class="text-[13px] leading-relaxed text-muted">{t(login.bind || $accountJoinRequested ? 'passkeyBindingHint' : 'passkeyExistingHint')}</p>
         <button class={buttonClass('primary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'login')} data-testid="passkey-login"><Icon name="key" />{t('passkeyExistingTitle')}</button>
       </div>
       <div class="grid justify-items-start gap-2.5 border-t border-line pt-5">
         <h3 class="text-[14px] font-semibold">{t('createPasskey')}</h3>
-        {#if !login.bind}<p class="text-[13px] leading-relaxed text-muted">{t('passkeyCreateHint')}</p>{/if}
+        {#if !login.bind && !$accountJoinRequested}<p class="text-[13px] leading-relaxed text-muted">{t('passkeyCreateHint')}</p>{/if}
         <button class={buttonClass('secondary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'register')} data-testid="passkey-create"><Icon name="add" />{t('createPasskey')}</button>
       </div>
     </div>

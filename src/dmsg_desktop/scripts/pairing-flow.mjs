@@ -295,6 +295,94 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await close()
   next = null
 
+  // A login proof and the later device proof share one invitation and comparison code.
+  await main.evaluate(async () => { await window.dmsg.setLocale('en') })
+  const loginCandidate = { kind: 'login_binding', token: 'invited-login', principal: 'new-principal', device_id: '34'.repeat(32), code: '1234 ABCD', expires_at: Date.now() + 240000 }
+  const originalShow = methods['approval/show']
+  const originalBind = methods['account/bind_approve']
+  const receiptId = '91'.repeat(32)
+  let approvedLogin = false
+  methods['account/bind_approve'] = p => {
+    assert.equal(p.token, loginCandidate.token); assert.equal(p.principal, loginCandidate.principal)
+    return created(receiptId, 'account', { change:'bind_login', principal:p.principal })
+  }
+  methods['approval/show'] = p => {
+    const result = originalShow(p)
+    return p.id === receiptId && approvedLogin ? {...result,state:'done'} : result
+  }
+  next = loginCandidate
+  await open()
+  await main.getByTestId('device-pair-preview').getByText(loginCandidate.code).waitFor()
+  await main.getByTestId('device-pair-review').click()
+  await waitFor(() => last('account/bind_approve')?.params.token === loginCandidate.token)
+  const inviteCount = count('device/pair_invite')
+  approvedLogin = true
+  next = {...preview('device-after-binding'),code:loginCandidate.code}
+  await main.getByTestId('device-pair-preview').getByText(loginCandidate.code).waitFor()
+  assert.equal(count('device/pair_invite'), inviteCount)
+  await main.getByTestId('device-pair-review').click()
+  await waitFor(() => last('device/approve')?.params.token === 'device-after-binding')
+  next = null
+  methods['approval/show'] = originalShow
+  methods['account/bind_approve'] = originalBind
+
+  // On the joining desktop, typing or previewing never submits a binding.
+  methods['device/moved_list'] = () => []
+  methods['device/saved_invitation'] = () => null
+  const target = '040g2081040g2081040g'
+  methods['device/join_invitation'] = p => ({
+    account: target, principal: 'new-principal', code:loginCandidate.code, expires_at:Date.now()+240000,
+    stage: p.invitation === 'other-login' ? 'other_account' : p.principal ? 'waiting_login' : 'bind_login',
+  })
+  setSession('no_account'); emit('session/changed')
+  const openJoin = main.getByTestId('open-account-invite')
+  await openJoin.click()
+  const wizard = main.getByTestId('join-account-invitation')
+  const input = wizard.getByTestId('join-invitation-token')
+  await input.fill('unbound-login')
+  await wizard.getByRole('button',{name:'Review',exact:true}).click()
+  assert.equal(last('device/join_invitation').params.principal,undefined)
+  await wizard.getByText(target).waitFor()
+  for (const [locale, appearance, width, height] of [['zh','light',1180,760], ['zh','dark',760,540], ['fr','light',760,540], ['ar','dark',760,540]]) {
+    await window.evaluate((window, [w,h]) => window.setContentSize(w,h), [width,height])
+    await main.evaluate(async ({locale,appearance}) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(appearance) }, {locale,appearance})
+    await main.waitForSelector(`html[lang|="${locale}"]`)
+    assert.ok(await wizard.evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    await main.screenshot({ path:join(shots,`account-invitation-${locale}-${appearance}-${width}.png`), animations:'disabled' })
+  }
+  await main.evaluate(async () => { await window.dmsg.setLocale('en') })
+
+  await wizard.getByText('Use this login for this account and add this device').click()
+  await wizard.getByText('Waiting for login approval').waitFor()
+  assert.equal(last('device/join_invitation').params.bind_login,true)
+  await wizard.getByTestId('dialog-close').click()
+  const previousScan = methods['device/pair_scan']
+  methods['device/pair_scan'] = params => {
+    assert.equal(params.invitation, true)
+    assert.equal(params.image, vector.qr.split(',')[1])
+    return { token:vector.token, stage:'device', principal:'new-principal', account:target, expires_at:Date.now()+120000 }
+  }
+  writeFileSync(imagePath, Buffer.from(vector.qr.split(',')[1], 'base64'))
+  await openJoin.click()
+  await app.evaluate((_electron, path) => globalThis.__open.push(path), imagePath)
+  await wizard.getByRole('button',{name:'QR code from an image'}).click()
+  await wizard.getByText(target).waitFor()
+  await wizard.getByTestId('dialog-close').click()
+  methods['device/pair_scan'] = previousScan
+  await openJoin.click(); await input.fill('other-login')
+  await wizard.getByRole('button',{name:'Review',exact:true}).click()
+  await wizard.getByText('This login belongs to another account. Choose a different login.').waitFor()
+  await wizard.getByTestId('dialog-close').click()
+
+  // Without a desktop camera, the authorized phone can scan the desktop display.
+  methods['account/bind_request'] = () => ({ token:'binding-for-phone', qr:vector.qr })
+  await openJoin.click()
+  await wizard.getByTestId('join-show-request').click()
+  await main.getByTestId('bind-account').fill(target)
+  await main.getByTestId('join-account').getByRole('button', {name:'Create a binding request'}).click()
+  await main.getByTestId('binding-qr').waitFor()
+  await main.getByTestId('join-account').getByRole('button', {name:'Request token', exact:true}).click()
+  assert.equal(await main.getByTestId('bind-token').innerText(),'binding-for-phone')
   // The joining desktop can replace a still-valid request and retry after losing its connection.
   let made = 0, checks = 0
   methods['device/pair_request'] = () => ({ ...preview(`joining-request-${++made}`), qr: vector.qr })

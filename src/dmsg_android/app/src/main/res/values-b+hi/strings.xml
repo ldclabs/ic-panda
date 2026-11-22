@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"एन्क्रिप्ट किए गए ब्लॉक भेजे जा रहे हैं"</string>
     <string name="cipher_transfer_title" formatted="false">"एन्क्रिप्टेड ट्रांसफ़र"</string>
     <string name="customize_fields" formatted="false">"फ़ील्ड कस्टमाइज़ करें"</string>
+    <string name="device_content_signing" formatted="false">"सामग्री पर हस्ताक्षर"</string>
     <string name="empty_folder" formatted="false">"इस फ़ोल्डर में कोई फ़ाइल नहीं"</string>
     <string name="file_moved_to_trash" formatted="false">"ट्रैश में भेज दिया गया"</string>
     <string name="file_name_rule" formatted="false">"1–255 वर्णों का नाम इस्तेमाल करें जिसमें स्लैश या कंट्रोल वर्ण न हों।"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"युक्ति"</string>
     <string name="history_fields" formatted="false">"खेत"</string>
     <string name="import_local_account" formatted="false">"स्थानीय खाते से आयात करें"</string>
+    <string name="join_code" formatted="false">"मिलान कोड"</string>
+    <string name="join_compare_hint" formatted="false">"मंज़ूरी देने से पहले जाँचें कि दोनों डिवाइस पर एक ही कोड दिख रहा है।"</string>
+    <string name="join_confirm" formatted="false">"इस खाते के लिए यह लॉगिन इस्तेमाल करें और यह डिवाइस जोड़ें"</string>
+    <string name="join_create" formatted="false">"अलग खाता बनाएँ"</string>
+    <string name="join_identity" formatted="false">"लॉगिन पहचान"</string>
+    <string name="join_other" formatted="false">"यह लॉगिन किसी दूसरे खाते से जुड़ा है। कोई और लॉगिन चुनें।"</string>
+    <string name="join_scan_hint" formatted="false">"खाता खोलने के लिए किसी अधिकृत डिवाइस पर दिख रहा कोड स्कैन करें।"</string>
+    <string name="join_show_hint" formatted="false">"नए डिवाइस पर मौजूदा खाता खोलने का विकल्प चुनें और यह कोड स्कैन करें।"</string>
+    <string name="join_wait_device" formatted="false">"डिवाइस की मंज़ूरी का इंतज़ार है"</string>
+    <string name="join_wait_login" formatted="false">"लॉगिन की मंज़ूरी का इंतज़ार है"</string>
     <string name="language_search" formatted="false">"भाषा खोजें"</string>
     <string name="links_created_progress" formatted="true">"%2$s में से %1$s बनाए गए"</string>
     <string name="local_password" formatted="false">"स्थानीय पासवर्ड"</string>

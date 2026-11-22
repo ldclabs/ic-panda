@@ -22,6 +22,8 @@ pub struct SessionSnapshot {
     pub account_kind: String,
     #[uniffi(default = "unavailable")]
     pub local_unlock_method: String,
+    #[uniffi(default = None)]
+    pub principal: Option<String>,
 }
 
 impl SessionSnapshot {
@@ -33,6 +35,7 @@ impl SessionSnapshot {
             account_kind: value.account_kind.into(),
             local_unlock_method: value.local_unlock_method.into(),
             account: value.account,
+            principal: value.principal,
             device_id: value.device_id,
             pending_sync: value.pending_sync,
             conflicts: value.conflicts,

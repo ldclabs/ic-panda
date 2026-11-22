@@ -3576,5 +3576,25 @@
 	<string>After key registration, refresh the request on the joining device and scan it again.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Scan this code with an administrator device to review the request.</string>
+	<key>Close</key>
+	<string>Close</string>
+	<key>Comparison code</key>
+	<string>Comparison code</string>
+	<key>Create a separate account</key>
+	<string>Create a separate account</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Scan the code on an authorized device to open its account.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>This login belongs to another account. Choose a different login.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Use this login for this account and add this device</string>
+	<key>Waiting for device approval</key>
+	<string>Waiting for device approval</string>
+	<key>Waiting for login approval</key>
+	<string>Waiting for login approval</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>On the new device, choose Open an existing account and scan this code.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Check that both devices show the same code before approving.</string>
 </dict>
 </plist>

@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "別のアカウントを作成",
+  joinConfirm: "このログイン方法をアカウントに登録し、この端末を追加",
+  joinOther: "このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。",
+  joinCode: "照合コード",
+  joinWaitLogin: "ログイン方法の承認待ち",
+  joinWaitDevice: "端末の承認待ち",
+  joinShowRequest: "もう一方の端末で読み取る QR コードを表示",
+  joinShowHint: "新しい端末で「既存のアカウントを開く」を選び、このコードをスキャンしてください。",
+  joinCompareHint: "承認する前に、両方の端末に同じコードが表示されていることを確認してください。",
+  joinScanHint: "承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。",
+  joinOpen: "既存のアカウントを開く",
   pairScanWithAdmin: "管理者デバイスでこのコードをスキャンして、リクエストを確認してください。",
   pairContinueElsewhere: "別のデバイスで続ける",
   pairEnableApprovals: "このデバイスで今後のリクエストを承認できるようにする",

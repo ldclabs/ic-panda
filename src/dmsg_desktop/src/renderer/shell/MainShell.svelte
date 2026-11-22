@@ -20,6 +20,7 @@
   import { lock, offerUnlock, settleOffer } from './session'
   import Shortcuts from './Shortcuts.svelte'
   import Sidebar from './Sidebar.svelte'
+  import JoinAccount from '../views/JoinAccount.svelte'
   import Welcome from './Welcome.svelte'
   import WindowNav from './WindowNav.svelte'
 
@@ -303,6 +304,8 @@
     }
   })
 </script>
+
+<JoinAccount {status} {refresh} />
 
 <svelte:window onkeydown={onKey} onfocus={() => !route.startsWith('/reminders') && offerUnlock(status)} />
 

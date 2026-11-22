@@ -3576,5 +3576,25 @@
 	<string>Dopo aver registrato la chiave, aggiorna la richiesta sul dispositivo da aggiungere e scansiona di nuovo il codice.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Scansiona questo codice con un dispositivo amministratore per esaminare la richiesta.</string>
+	<key>Close</key>
+	<string>Chiudi</string>
+	<key>Comparison code</key>
+	<string>Codice di confronto</string>
+	<key>Create a separate account</key>
+	<string>Crea un account separato</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Scansiona il codice su un dispositivo autorizzato per aprire il suo account.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Questo accesso appartiene a un altro account. Scegli un altro accesso.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Usa questo accesso per l’account e aggiungi questo dispositivo</string>
+	<key>Waiting for device approval</key>
+	<string>In attesa di approvazione del dispositivo</string>
+	<key>Waiting for login approval</key>
+	<string>In attesa di approvazione dell’accesso</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Sul nuovo dispositivo scegli di aprire un account esistente e scansiona questo codice.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Prima di approvare, verifica che i due dispositivi mostrino lo stesso codice.</string>
 </dict>
 </plist>

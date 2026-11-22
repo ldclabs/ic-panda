@@ -30,6 +30,7 @@ struct AccountsView: View {
             if !loading && !failed && !accounts.contains(where: { $0.accountKind == "local" }) {
                 SettingsAction("Use only on this device") { Task { await model.openLocalAccount(); onSelected?() } }
             }
+            SettingsAction("Open an existing account") { model.showingJoinAccount = true }
             SettingsAction("Sign in to another account") { Task {
                 guard !working else { return }; working = true; defer { working = false }
                 if model.localAccount { await model.leaveLocalAccount() } else { await model.lock(); model.signingIntoAnotherAccount = true }; onSelected?()

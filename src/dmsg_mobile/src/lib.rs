@@ -149,6 +149,7 @@ fn runtime() -> &'static Runtime {
 #[derive(uniffi::Object)]
 pub struct MobileEngine {
     host: ScopedHost,
+    invitations: Arc<dmsg_client::pairing::InvitationHost>,
     platform: Arc<dyn Platform>,
     login: Arc<Mutex<LoginState>>,
     config: Config,
@@ -295,6 +296,7 @@ impl MobileEngine {
             .await
             .map_err(|_| Error::Unavailable("mobile worker".into()))??;
         Ok(Arc::new(Self {
+            invitations: Arc::default(),
             host: ScopedHost::new(Host::start(client, runtime().handle()), 0),
             platform,
             login: Arc::new(Mutex::new(LoginState::default())),
@@ -369,6 +371,7 @@ impl MobileEngine {
     pub fn scoped(&self, generation: u64) -> Result<Arc<Self>> {
         ensure(generation == self.host.inner.generation(), Error::Locked)?;
         Ok(Arc::new(Self {
+            invitations: self.invitations.clone(),
             host: self.host.scoped(generation)?,
             platform: self.platform.clone(),
             login: self.login.clone(),
@@ -922,6 +925,51 @@ impl MobileEngine {
             Box::pin(async move { dmsg_client::pairing::join(h, &invitation).await })
         })
         .await
+    }
+
+    pub async fn account_invitation(
+        &self,
+        invitation: String,
+        principal: Option<String>,
+        bind_login: bool,
+    ) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                dmsg_client::pairing::account_invitation(
+                    h,
+                    &invitation,
+                    principal.as_deref(),
+                    bind_login,
+                )
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn saved_account_invitation(&self) -> Result<Option<String>> {
+        self.held(|h| {
+            Box::pin(async { h.with(|c| dmsg_client::pairing::saved_invitation(c)).await })
+        })
+        .await
+    }
+
+    pub async fn start_account_invitation(&self) -> Result<ObjectSnapshot> {
+        let host = self.invitations.clone();
+        self.held_object(move |h| Box::pin(async move { host.start(h, true).await }))
+            .await
+    }
+
+    pub async fn account_invitation_status(&self, id: String) -> Result<ObjectSnapshot> {
+        let host = self.invitations.clone();
+        self.held_object(move |h| Box::pin(async move { host.status(h, &id).await }))
+            .await
+    }
+
+    pub async fn cancel_account_invitation(&self, id: String) -> Result<()> {
+        let host = self.invitations.clone();
+        self.held(move |h| Box::pin(async move { host.cancel(h, &id).await }))
+            .await
     }
 
     pub async fn refresh_account(&self) -> Result<SessionSnapshot> {

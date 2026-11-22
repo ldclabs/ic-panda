@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"正在传输加密分块"</string>
     <string name="cipher_transfer_title" formatted="false">"加密传输"</string>
     <string name="customize_fields" formatted="false">"自定义字段"</string>
+    <string name="device_content_signing" formatted="false">"内容签名"</string>
     <string name="empty_folder" formatted="false">"此文件夹中没有文件"</string>
     <string name="file_moved_to_trash" formatted="false">"已移入回收站"</string>
     <string name="file_name_rule" formatted="false">"名称须为 1–255 个字符，且不能包含斜杠或控制字符。"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"设备"</string>
     <string name="history_fields" formatted="false">"字段"</string>
     <string name="import_local_account" formatted="false">"从本地账户导入"</string>
+    <string name="join_code" formatted="false">"核对码"</string>
+    <string name="join_compare_hint" formatted="false">"批准前，请核对两台设备显示的核对码是否一致。"</string>
+    <string name="join_confirm" formatted="false">"以后用此身份登录该账号，并加入这台设备"</string>
+    <string name="join_create" formatted="false">"创建独立账号"</string>
+    <string name="join_identity" formatted="false">"登录身份"</string>
+    <string name="join_other" formatted="false">"此登录身份属于另一个账号。请选择其他登录方式。"</string>
+    <string name="join_scan_hint" formatted="false">"扫描已授权设备上的二维码，打开它的账号。"</string>
+    <string name="join_show_hint" formatted="false">"在新设备上选择「打开已有账号」，扫描此码。"</string>
+    <string name="join_wait_device" formatted="false">"等待批准设备加入"</string>
+    <string name="join_wait_login" formatted="false">"等待批准登录方式"</string>
     <string name="language_search" formatted="false">"查找语言"</string>
     <string name="links_created_progress" formatted="true">"已创建 %1$s / %2$s"</string>
     <string name="local_password" formatted="false">"本地解锁口令"</string>

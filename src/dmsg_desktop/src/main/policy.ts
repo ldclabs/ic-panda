@@ -113,6 +113,8 @@ export const WINDOW_METHODS = new Set([
   'device/pair_inspect',
   'device/pair_scan',
   'device/pair_invite',
+  'device/join_invitation',
+  'device/saved_invitation',
   'device/pair_invite_status',
   'device/pair_invite_cancel',
   'device/approve',

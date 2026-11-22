@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Buat akun terpisah",
+  joinConfirm: "Gunakan login ini untuk akun ini dan tambahkan perangkat ini",
+  joinOther: "Login ini terhubung ke akun lain. Pilih login yang berbeda.",
+  joinCode: "Kode pembanding",
+  joinWaitLogin: "Menunggu persetujuan login",
+  joinWaitDevice: "Menunggu persetujuan perangkat",
+  joinShowRequest: "Tampilkan kode QR untuk dipindai perangkat lain",
+  joinShowHint: "Di perangkat baru, pilih Buka akun yang sudah ada lalu pindai kode ini.",
+  joinCompareHint: "Pastikan kedua perangkat menampilkan kode yang sama sebelum menyetujui.",
+  joinScanHint: "Pindai kode pada perangkat yang diizinkan untuk membuka akunnya.",
+  joinOpen: "Buka akun yang sudah ada",
   pairScanWithAdmin: "Pindai kode ini dengan perangkat administrator untuk meninjau permintaan.",
   pairContinueElsewhere: "Lanjutkan di perangkat lain",
   pairEnableApprovals: "Izinkan perangkat ini menyetujui permintaan berikutnya",

@@ -25,6 +25,12 @@ class ClientController internal constructor(private val application: Application
     val state = mutable.asStateFlow()
     private val mutableAccess = MutableStateFlow(AccessPage.WELCOME)
     val access = mutableAccess.asStateFlow()
+    private val mutableJoiningAccount = MutableStateFlow(false)
+    val joiningAccount = mutableJoiningAccount.asStateFlow()
+    fun showAccountInvitation(open: Boolean) {
+        automaticUnlock.suppress()
+        mutableJoiningAccount.value = open
+    }
     fun showAccess(page: AccessPage) { activity(); mutableAccess.value = page }
     val prompts = PresencePrompts()
     val passkeys = NativePasskeys(application)
@@ -146,7 +152,7 @@ class ClientController internal constructor(private val application: Application
     }
 
     fun tryAutomaticUnlock() {
-        if (engine == null || !appForeground || state.value.concealed || mutableAccess.value != AccessPage.WELCOME || !prompts.canPrompt || prompts.isAuthenticating || passkeys.isAuthenticating) return
+        if (engine == null || !appForeground || state.value.concealed || mutableJoiningAccount.value || mutableAccess.value != AccessPage.WELCOME || !prompts.canPrompt || prompts.isAuthenticating || passkeys.isAuthenticating) return
         if (application.getSystemService(android.app.KeyguardManager::class.java).isDeviceLocked) return
         if (automaticUnlock.consume(state.value.session?.state == "locked", state.value.session?.fastUnlock == true, state.value.busy)) unlock()
     }

@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Inililipat ang mga naka-encrypt na block"</string>
     <string name="cipher_transfer_title" formatted="false">"Mga naka-encrypt na paglilipat"</string>
     <string name="customize_fields" formatted="false">"Iangkop ang mga field"</string>
+    <string name="device_content_signing" formatted="false">"Paglagda ng nilalaman"</string>
     <string name="empty_folder" formatted="false">"Walang file sa folder na ito"</string>
     <string name="file_moved_to_trash" formatted="false">"Inilipat sa Basurahan"</string>
     <string name="file_name_rule" formatted="false">"Gumamit ng pangalang may 1–255 character na walang slash o control character."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Mga patlang"</string>
     <string name="import_local_account" formatted="false">"Mag-import mula sa lokal na account"</string>
+    <string name="join_code" formatted="false">"Code na ihahambing"</string>
+    <string name="join_compare_hint" formatted="false">"Bago aprubahan, tiyaking magkapareho ang code sa dalawang device."</string>
+    <string name="join_confirm" formatted="false">"Gamitin ang login na ito sa account at idagdag ang device na ito"</string>
+    <string name="join_create" formatted="false">"Gumawa ng hiwalay na account"</string>
+    <string name="join_identity" formatted="false">"Identity sa pag-login"</string>
+    <string name="join_other" formatted="false">"Para sa ibang account ang login na ito. Pumili ng ibang login."</string>
+    <string name="join_scan_hint" formatted="false">"I-scan ang code sa awtorisadong device para buksan ang account nito."</string>
+    <string name="join_show_hint" formatted="false">"Sa bagong device, piliing magbukas ng kasalukuyang account at i-scan ang code na ito."</string>
+    <string name="join_wait_device" formatted="false">"Hinihintay ang pag-apruba sa device"</string>
+    <string name="join_wait_login" formatted="false">"Hinihintay ang pag-apruba sa login"</string>
     <string name="language_search" formatted="false">"Maghanap ng wika"</string>
     <string name="links_created_progress" formatted="true">"Nagawa na ang %1$s sa %2$s"</string>
     <string name="local_password" formatted="false">"Lokal na password"</string>

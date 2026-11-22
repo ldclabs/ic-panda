@@ -1,6 +1,6 @@
 import type { Glyph } from '../components/glyphs'
 import { toast } from '../components/toast.svelte'
-import { writable } from 'svelte/store'
+import { get, writable } from 'svelte/store'
 import type { Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
 import { closeLogin, login, startLogin } from './login.svelte'
@@ -37,6 +37,8 @@ let offered = false
 export const unlocking = writable(false)
 /** Route a request to the one account menu, including when the rail is collapsed. */
 export const accountMenuRequested = writable(false)
+export const accountJoinRequested = writable(false)
+export const deviceRequestQr = writable(false)
 export const openAccounts = () => accountMenuRequested.set(true)
 let opening: Promise<void> | null = null
 
@@ -82,7 +84,7 @@ export function unlock(status: any) {
  * it in front of the window, and not again once it asked.
  */
 export function offerUnlock(status: any) {
-  if (status?.account_kind === 'local' || opening || offered || login.phase !== 'idle' || status?.state !== 'locked' || !status.fast_presence) return
+  if (get(accountJoinRequested) || status?.account_kind === 'local' || opening || offered || login.phase !== 'idle' || status?.state !== 'locked' || !status.fast_presence) return
   void unlock(status)
 }
 

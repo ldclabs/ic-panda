@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  joinCreate: "创建独立账号",
+  joinConfirm: "以后用此身份登录该账号，并加入这台设备",
+  joinOther: "此登录身份属于另一个账号。请选择其他登录方式。",
+  joinCode: "核对码",
+  joinWaitLogin: "等待批准登录方式",
+  joinWaitDevice: "等待批准设备加入",
+  joinShowRequest: "显示二维码，让另一台设备扫描",
+  joinShowHint: "在新设备上选择「打开已有账号」，扫描此码。",
+  joinCompareHint: "批准前，请核对两台设备显示的核对码是否一致。",
+  joinScanHint: "扫描已授权设备上的二维码，打开它的账号。",
+  joinOpen: "打开已有账号",
   pairScanWithAdmin: "请用有批准权限的管理员设备扫码，核对并处理请求。",
   pairContinueElsewhere: "在另一台设备上继续",
   pairEnableApprovals: "让这台设备以后也能批准请求",

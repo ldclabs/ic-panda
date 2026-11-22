@@ -3576,5 +3576,25 @@
 	<string>Pagkatapos irehistro ang susi, i-refresh ang kahilingan sa device na idaragdag at i-scan ito muli.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>I-scan ang code na ito gamit ang device ng administrator para suriin ang kahilingan.</string>
+	<key>Close</key>
+	<string>Isara</string>
+	<key>Comparison code</key>
+	<string>Code na ihahambing</string>
+	<key>Create a separate account</key>
+	<string>Gumawa ng hiwalay na account</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>I-scan ang code sa awtorisadong device para buksan ang account nito.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Para sa ibang account ang login na ito. Pumili ng ibang login.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Gamitin ang login na ito sa account at idagdag ang device na ito</string>
+	<key>Waiting for device approval</key>
+	<string>Hinihintay ang pag-apruba sa device</string>
+	<key>Waiting for login approval</key>
+	<string>Hinihintay ang pag-apruba sa login</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Sa bagong device, piliing magbukas ng kasalukuyang account at i-scan ang code na ito.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Bago aprubahan, tiyaking magkapareho ang code sa dalawang device.</string>
 </dict>
 </plist>

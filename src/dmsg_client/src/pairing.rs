@@ -4,29 +4,44 @@
 
 use crate::Client;
 use crate::account::{self, refreshed_security};
+
+mod account_join;
+mod host;
 use crate::codec::{b64, canonical, decode, sha256, unb64};
 use crate::crypto::{aes_gcm_open, aes_gcm_seal, random_id, random_key};
 use crate::hold::{Hold, Session, Unlocked};
 use crate::now_ms;
+pub use account_join::{account_invitation, saved_invitation};
 use candid::Principal;
 use dmsg_types::user::{Capability, ControllerRole};
 use dmsg_types::{AccountId, Error, Hash, Result, ensure};
+pub use host::InvitationHost;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 const PREFIX: &str = "dmsg-device-invite/2:";
+const ACCOUNT_PREFIX: &str = "dmsg-device-invite/3:";
 const CREATE: &str = "dmsg/device-invite/create/v2";
 const CANCEL: &str = "dmsg/device-invite/cancel/v2";
 const LIFETIME: u64 = 300_000;
 const MAX_SEALED: usize = 4096 + 12 + 16;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Invitation {
     home: Principal,
     account: AccountId,
     relay: String,
     invite_id: Hash,
     expires_at: u64,
+    key: Hash,
+    submit_token: Hash,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    binding: Option<BindingMailbox>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct BindingMailbox {
+    invite_id: Hash,
     key: Hash,
     submit_token: Hash,
 }
@@ -46,10 +61,32 @@ struct Cancellation {
 impl Invitation {
     fn parse(token: &str, now: u64) -> Result<Self> {
         ensure(token.len() <= 4096, Error::QuotaExceeded)?;
-        let text = token.strip_prefix(PREFIX).ok_or(Error::IntegrityFailed)?;
+        let (text, dual) = if let Some(text) = token.strip_prefix(ACCOUNT_PREFIX) {
+            (text, true)
+        } else {
+            (
+                token.strip_prefix(PREFIX).ok_or(Error::IntegrityFailed)?,
+                false,
+            )
+        };
         let invite: Self = decode(&unb64(text)?, 4096)?;
+        ensure(invite.binding.is_some() == dual, Error::IntegrityFailed)?;
+        if let Some(login) = &invite.binding {
+            ensure(login.invite_id != invite.invite_id, Error::IntegrityFailed)?;
+        }
         invite.check(now)?;
         Ok(invite)
+    }
+
+    fn binding_slot(&self) -> Option<Self> {
+        let slot = self.binding.as_ref()?;
+        Some(Self {
+            invite_id: slot.invite_id,
+            key: slot.key,
+            submit_token: slot.submit_token,
+            binding: None,
+            ..self.clone()
+        })
     }
 
     fn check(&self, now: u64) -> Result<()> {
@@ -138,6 +175,13 @@ impl Receiver {
     /// # Errors
     /// Refuses a locked, stale or unauthorized device and relay registration failures.
     pub async fn new<H: Hold>(h: &H) -> Result<Self> {
+        Self::register(h, false).await
+    }
+
+    /// Register the separate login and device reply mailboxes of a single QR.
+    /// # Errors
+    /// As in the original device invitation.
+    async fn register<H: Hold>(h: &H, with_login: bool) -> Result<Self> {
         let h = Unlocked::new(h).await?;
         let security = refreshed_security(&h).await?;
         let receiver = h
@@ -158,37 +202,37 @@ impl Receiver {
                         expires_at: now_ms() + account::APPROVAL_MS,
                         key: Hash::new(random_key()),
                         submit_token: Hash::new(random_key()),
+                        binding: with_login.then(|| BindingMailbox {
+                            invite_id: Hash::new(random_id()),
+                            key: Hash::new(random_key()),
+                            submit_token: Hash::new(random_key()),
+                        }),
                     },
                     generation: c.session_generation,
                 })
             })
             .await?;
-        let path = format!(
-            "/v1/accounts/{}/device-invites",
-            receiver.invitation.account
-        );
-        let registration = receiver.invitation.registration();
-        let result = h
-            .send(|c| {
-                receiver.check_client(c, now_ms())?;
-                c.signed_post(&path, CREATE, &registration, &receiver.invitation.invite_id)
-            })
-            .await;
-        // A lost create reply is reconciled against the same mailbox, not a
-        // second invitation. It contains no candidate authority of its own.
-        match result {
-            Ok(value) => {
-                h.with(|c| {
+        for slot in
+            std::iter::once(receiver.invitation.clone()).chain(receiver.invitation.binding_slot())
+        {
+            let path = format!("/v1/accounts/{}/device-invites", slot.account);
+            let result = h
+                .send(|c| {
                     receiver.check_client(c, now_ms())?;
-                    receiver.check_metadata(&value)
+                    c.signed_post(&path, CREATE, &slot.registration(), &slot.invite_id)
                 })
-                .await?
+                .await;
+            let registered = match result {
+                Ok(value) => Self::check_metadata(&slot, &value),
+                Err(Error::ExecutionUnknown) => receiver.read(&h, &slot).await.map(|_| ()),
+                Err(error) => Err(error),
+            };
+            if let Err(error) = registered {
+                let _ = receiver.cancel(&h).await;
+                return Err(error);
             }
-            Err(Error::ExecutionUnknown) => {
-                receiver.status(&h).await?;
-            }
-            Err(error) => return Err(error),
         }
+        h.with(|c| receiver.check_client(c, now_ms())).await?;
         Ok(receiver)
     }
 
@@ -201,24 +245,29 @@ impl Receiver {
     /// # Errors
     /// Returns the QR renderer's error if the invitation cannot be encoded.
     pub fn view(&self) -> Result<Value> {
-        let token = format!("{PREFIX}{}", b64(&canonical(&self.invitation)));
+        let prefix = if self.invitation.binding.is_some() {
+            ACCOUNT_PREFIX
+        } else {
+            PREFIX
+        };
+        let token = format!("{prefix}{}", b64(&canonical(&self.invitation)));
         Ok(
             json!({ "id": self.id(), "qr": crate::qr::png_data(&token)?, "token": token,
             "expires_at": self.invitation.expires_at, "candidate": null }),
         )
     }
 
-    fn check_metadata(&self, value: &Value) -> Result<()> {
+    fn check_metadata(slot: &Invitation, value: &Value) -> Result<()> {
         ensure(
-            value["id"].as_str() == Some(self.id().as_str())
-                && value["expires_at"].as_u64() == Some(self.invitation.expires_at),
+            value["id"].as_str() == Some(hex::encode(*slot.invite_id).as_str())
+                && value["expires_at"].as_u64() == Some(slot.expires_at),
             Error::IntegrityFailed,
         )
     }
 
     fn candidate(&self, c: &Client, value: &Value, now: u64) -> Result<Value> {
         self.check_client(c, now)?;
-        self.check_metadata(value)?;
+        Self::check_metadata(&self.invitation, value)?;
         let candidate = match value.get("sealed").ok_or(Error::IntegrityFailed)? {
             Value::Null => Value::Null,
             Value::String(text) => {
@@ -239,13 +288,66 @@ impl Receiver {
     /// # Errors
     /// Rejects expired or cancelled invitations, changed sessions and bad proofs.
     pub async fn status<H: Hold>(&self, h: &H) -> Result<Value> {
+        let device = self.read(h, &self.invitation).await?;
+        let Some(slot) = self.invitation.binding_slot() else {
+            return h.with(|c| self.candidate(c, &device, now_ms())).await;
+        };
+        let login = self.read(h, &slot).await?;
+        let bound = if device["sealed"].is_string() && login["sealed"].is_string() {
+            Some(account::refreshed(h).await?.info.auth_bindings)
+        } else {
+            None
+        };
+        h.with(|c| {
+            let now = now_ms();
+            let mut result = self.candidate(c, &device, now)?;
+            let encoded = login.get("sealed").ok_or(Error::IntegrityFailed)?;
+            if let Some(text) = encoded.as_str() {
+                ensure(text.len() <= MAX_SEALED * 4 / 3 + 4, Error::QuotaExceeded)?;
+                let binding =
+                    account_join::inspect_reply(c, &self.invitation, &slot.open(&unb64(text)?)?)?;
+                let candidate = &mut result["candidate"];
+                if let Some(token) = candidate["token"].as_str() {
+                    ensure(
+                        c.inspect_pairing(token)?.device == binding.device,
+                        Error::IntegrityFailed,
+                    )?;
+                    if bound
+                        .as_ref()
+                        .is_some_and(|logins| logins.contains(&binding.principal))
+                    {
+                        candidate["code"] = json!(binding.code);
+                    } else {
+                        *candidate = binding.view();
+                    }
+                } else {
+                    *candidate = binding.view();
+                }
+            } else {
+                ensure(encoded.is_null(), Error::IntegrityFailed)?;
+                let candidate = &mut result["candidate"];
+                if let Some(token) = candidate["token"].as_str() {
+                    candidate["code"] = json!(account_join::comparison(
+                        &self.invitation,
+                        None,
+                        &c.inspect_pairing(token)?.device
+                    ));
+                }
+            }
+            Ok(result)
+        })
+        .await
+    }
+
+    async fn read<H: Hold>(&self, h: &H, slot: &Invitation) -> Result<Value> {
         let value = h
             .send(|c| {
                 self.check_client(c, now_ms())?;
-                c.signed_get(&self.invitation.path())
+                c.signed_get(&slot.path())
             })
             .await?;
-        h.with(|c| self.candidate(c, &value, now_ms())).await
+        Self::check_metadata(slot, &value)?;
+        Ok(value)
     }
 
     /// Cancel the relay mailbox after the host has already discarded it locally.
@@ -254,17 +356,24 @@ impl Receiver {
     /// # Errors
     /// Returns session or relay errors; no new invitation is affected.
     pub async fn cancel<H: Hold>(&self, h: &H) -> Result<()> {
-        let path = format!("{}/cancel", self.invitation.path());
-        let payload = Cancellation {
-            invite_id: self.invitation.invite_id,
-        };
-        let id = Hash::new(random_id());
-        h.send(|c| {
-            self.context(c)?;
-            c.signed_post(&path, CANCEL, &payload, &id)
-        })
-        .await
-        .map(|_| ())
+        let mut result = Ok(());
+        for slot in std::iter::once(self.invitation.clone()).chain(self.invitation.binding_slot()) {
+            let path = format!("{}/cancel", slot.path());
+            let payload = Cancellation {
+                invite_id: slot.invite_id,
+            };
+            let id = Hash::new(random_id());
+            if let Err(error) = h
+                .send(|c| {
+                    self.context(c)?;
+                    c.signed_post(&path, CANCEL, &payload, &id)
+                })
+                .await
+            {
+                result = Err(error);
+            }
+        }
+        result
     }
 }
 
@@ -289,6 +398,13 @@ pub async fn join<H: Hold>(h: &H, invitation: &str) -> Result<Value> {
     )?;
     let nonce: [u8; 12] = random_id()[..12].try_into().unwrap();
     let sealed = invite.seal(&request.token, &nonce)?;
+    submit(&h, &invite, &sealed).await?;
+    Ok(
+        json!({"device_id": hex::encode(*request.device_id), "expires_at": invite.expires_at.min(request.expires_at)}),
+    )
+}
+
+async fn submit<H: Hold>(h: &H, invite: &Invitation, sealed: &[u8]) -> Result<()> {
     for attempt in 0..2 {
         let relay = h
             .with(|c| {
@@ -305,18 +421,23 @@ pub async fn join<H: Hold>(h: &H, invitation: &str) -> Result<Value> {
                 &invite.account,
                 &invite.invite_id,
                 &invite.submit_token,
-                &sealed,
+                sealed,
             )
             .await;
         match reply {
             Err(Error::ExecutionUnknown) if attempt == 0 => continue,
             result => {
                 let value = result?;
-                return h.with(|_| {
-                    invite.check(now_ms())?;
-                    ensure(value["digest"].as_str() == Some(hex::encode(*sha256(&sealed)).as_str()), Error::IntegrityFailed)?;
-                    Ok(json!({"device_id": hex::encode(*request.device_id), "expires_at": invite.expires_at.min(request.expires_at)}))
-                }).await;
+                return h
+                    .with(|_| {
+                        invite.check(now_ms())?;
+                        ensure(
+                            value["digest"].as_str() == Some(hex::encode(*sha256(sealed)).as_str()),
+                            Error::IntegrityFailed,
+                        )?;
+                        Ok(())
+                    })
+                    .await;
             }
         }
     }

@@ -33,6 +33,7 @@ import kotlinx.coroutines.CancellationException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, openLogin: (String) -> Unit, share: (File, String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
+    val joiningAccount by client.joiningAccount.collectAsStateWithLifecycle()
     val local = state.session?.accountKind == "local"
     val destinations = if (local) workspaceDestinations.filter { it.id != "messages" } else workspaceDestinations
     LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
@@ -77,6 +78,15 @@ import kotlinx.coroutines.CancellationException
         Surface(Modifier.fillMaxSize().fileDropTarget(client, !state.concealed && (!state.unlocked || navigation.workspace == Workspace.FILES))) {
             when {
                 state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                joiningAccount -> AccountJoinScreen(client, openLogin)
+                state.unlocked && route == "account-invite" -> Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                    // Keep the invitation mounted while Android shows the system credential prompt.
+                    BackHandler { client.navigation.open("devices") }
+                    if (!state.concealed) TextButton(onClick = { client.navigation.open("devices") }) {
+                        Text(str(R.string.text_back_5db5cac))
+                    }
+                    Box(Modifier.weight(1f)) { AccountInviteHostScreen(client) }
+                }
                 state.concealed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }
                 !state.unlocked -> EntryScreen(client, state, browser, openLogin, snackbar)
                 else -> BoxWithConstraints {
@@ -334,6 +344,7 @@ private fun title(route: String) = when (route) {
     "approvals" -> str(R.string.text_approvals_d0130a6); "devices" -> str(R.string.text_your_devices_cc95bcc); "recovery" -> str(R.string.text_account_recovery_04aaf7e)
     "security" -> str(R.string.text_security_c4c7059); "notifications" -> str(R.string.text_notifications_3e7769a); "profile" -> str(R.string.text_public_profile_a67b108)
     "key-enrollment" -> str(R.string.text_review_an_enrollment_request_65ae501)
+    "account-invite" -> str(R.string.text_authorize_another_device_d67d951)
     "pair-approve" -> str(R.string.text_add_device_0912d8b)
     "secret-attachments" -> str(R.string.text_item_attachments_e29ea9d); "secret-reference" -> str(R.string.text_field_reference_f38f4f4)
     "secret-health" -> str(R.string.text_local_security_review_b7f4013); "secret-rotation" -> str(R.string.text_credential_rotation_1ec9a4c)

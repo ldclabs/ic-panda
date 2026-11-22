@@ -398,9 +398,15 @@ fn ask(prompt: &str) -> String {
 
 fn main() {
     let cli = Cli::parse();
-    let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
     let json = cli.json && !matches!(cli.command, Some(Command::Run(_)));
     let daemon = matches!(&cli.command, Some(Command::Daemon { .. }));
+    let mut builder = tokio::runtime::Builder::new_multi_thread();
+    if daemon {
+        // Approval execution also decodes the IC certificate tree on this
+        // worker. The default 2 MiB stack overflows during a debug login bind.
+        builder.thread_stack_size(4 * 1024 * 1024);
+    }
+    let runtime = builder.enable_all().build().expect("tokio runtime");
     let code = match runtime.block_on(run(cli)) {
         Ok(()) => 0,
         Err(failure) if failure.code == "PROCESS_EXIT" => failure.message.parse().unwrap_or(1),

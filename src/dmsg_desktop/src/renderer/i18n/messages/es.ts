@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  joinCreate: "Crear una cuenta independiente",
+  joinConfirm: "Usar este acceso para esta cuenta y añadir este dispositivo",
+  joinOther: "Este acceso pertenece a otra cuenta. Elige otro método de acceso.",
+  joinCode: "Código de comparación",
+  joinWaitLogin: "Esperando la aprobación del acceso",
+  joinWaitDevice: "Esperando la aprobación del dispositivo",
+  joinShowRequest: "Mostrar un código QR para escanear con el otro dispositivo",
+  joinShowHint: "En el dispositivo nuevo, elige «Abrir una cuenta existente» y escanea este código.",
+  joinCompareHint: "Comprueba que ambos dispositivos muestran el mismo código antes de aprobar.",
+  joinScanHint: "Escanea el código de un dispositivo autorizado para abrir su cuenta.",
+  joinOpen: "Abrir una cuenta existente",
   pairScanWithAdmin: "Escanea este código con un dispositivo administrador para revisar la solicitud.",
   pairContinueElsewhere: "Continuar en otro dispositivo",
   pairEnableApprovals: "Permitir que este dispositivo apruebe futuras solicitudes",

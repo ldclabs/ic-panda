@@ -3,116 +3,111 @@ import DMsgCore
 import VisionKit
 import AVFoundation
 
-/// Scanning transports the request to the desktop. Only its approval center
-/// can grant authority; this screen never treats delivery as enrollment.
+/// A single invitation follows the login through account selection and both approvals.
 struct DesktopPairingView: View {
-    private struct Delivery: Decodable { let deviceId: String; let expiresAt: UInt64 }
+    struct Preview: Decodable {
+        var stage: String
+        var account: String
+        var currentAccount: String?
+        var principal: String?
+        var deviceId: String?
+        var code: String?
+        var expiresAt: UInt64
+    }
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @State private var invitation = ""
+    @State private var preview: Preview?
     @State private var scanning = false
-    @State private var attempt: UUID?
     @State private var working = false
-    @State private var delivery: Delivery?
-    @State private var expired = false
-    @State private var failed = false
-    @State private var cameraDenied = false
-    @State private var needsLogin = false
     @State private var paused = false
+    @State private var expired = false
+    @State private var cameraDenied = false
+    @State private var failure: String?
+    private var token: String { invitation.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var waiting: Bool { ["waiting_login", "waiting_device", "authorized"].contains(preview?.stage ?? "") }
 
     var body: some View {
         Form {
-            NoticeBar(text: String(localized: "Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop."))
-            if DataScannerViewController.isSupported {
-                Button("Scan desktop invitation", systemImage: "qrcode.viewfinder") { Task { await scan() } }
-                    .disabled(working).accessibilityIdentifier("pair.desktop.scan")
+            if let preview {
+                Section("Account") {
+                    FingerprintRow(title: "Account ID", value: preview.account)
+                    if let code = preview.code { FingerprintRow(title: "Comparison code", value: code); Text("Check that both devices show the same code before approving.") }
+                    if let device = preview.deviceId {
+                        FingerprintRow(title: "Device ID", value: groupedFingerprint(device))
+                            .accessibilityIdentifier("pair.desktop.device")
+                    }
+                }
+                switch preview.stage {
+                case "sign_in", "other_account", "linked_login_required":
+                    if preview.stage == "other_account" {
+                        NoticeBar(text: String(localized: "This login belongs to another account. Choose a different login."))
+                        if let account = preview.currentAccount { FingerprintRow(title: "Account ID", value: account) }
+                    }
+                    if model.session?.passkeyAvailable == true {
+                        Button("Use an existing passkey") { Task { await signIn(.login) } }
+                        if preview.stage != "linked_login_required" { Button("Create a passkey") { Task { await signIn(.register) } } }
+                    }
+                    Button("Continue with Internet Identity") { Task { if await model.login(usingInternetIdentity: true) { await check() } } }
+                case "bind_login", "device":
+                    Button(LocalizedStringKey(preview.stage == "bind_login" ? "Use this login for this account and add this device" : "Send device request")) {
+                        Task { await check(continueJoin: true) }
+                    }.accessibilityIdentifier("pair.desktop.confirm")
+                default:
+                    if preview.stage == "waiting_device" { LabeledContent("Login identity") { Label("Completed", systemImage: "checkmark") } }
+                    Text(LocalizedStringKey(model.session?.state == "root_required" ? "Approved. Preparing your vault…" : preview.stage == "waiting_login" ? "Waiting for login approval" : "Waiting for device approval"))
+                }
+            } else {
+                NoticeBar(text: String(localized: "Scan the code on an authorized device to open its account."))
+                if DataScannerViewController.isSupported {
+                    Button("Scan invitation", systemImage: "qrcode.viewfinder") { Task { await scan() } }
+                }
+                if cameraDenied {
+                    NoticeBar(text: String(localized: "Camera access is unavailable. Paste the invitation or allow camera access in Settings."))
+                    Button("Open Settings") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
+                }
+                Section("Paste invitation") {
+                    TextField("Paste invitation", text: $invitation, axis: .vertical).lineLimit(3...6)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityIdentifier("pair.desktop.invitation")
+                    Button("Review") { Task { await check() } }.disabled(token.isEmpty).accessibilityIdentifier("pair.desktop.send")
+                }
+                if model.session?.state == "no_account" {
+                    NavigationLink("Create binding request") { LoginBindingRequestView() }
+                }
             }
-            if cameraDenied {
-                NoticeBar(text: String(localized: "Camera access is unavailable. Paste the invitation or allow camera access in Settings."))
-                Button("Open Settings") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
+            if expired { NoticeBar(text: String(localized: "This request has expired")) }
+            if let failure { NoticeBar(text: failure) }
+            if paused || failure != nil {
+                Button("Retry") { Task { paused = false; await check(continueJoin: waiting) } }
             }
-            Section("Paste invitation") {
-                TextField("Paste invitation", text: $invitation, axis: .vertical)
-                    .lineLimit(3...6).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .disabled(working).accessibilityIdentifier("pair.desktop.invitation")
-                Button("Send device request") { attempt = UUID() }
-                    .disabled(invitation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || working || delivery != nil)
-                    .accessibilityIdentifier("pair.desktop.send")
+            if preview != nil || expired {
+                Button("Scan invitation") { preview = nil; failure = nil; expired = false; paused = false; invitation = ""; Task { await scan() } }
             }
             if working { ProgressView().accessibilityIdentifier("pair.desktop.working") }
-            if needsLogin {
-                NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                Button("Continue with Internet Identity") {
-                    Task { if await model.login(usingInternetIdentity: true) { needsLogin = false } }
-                }.disabled(working || model.busy)
-            }
-            if model.session?.state == "root_required" { NoticeBar(text: String(localized: "Approved. Preparing your vault…")) }
-            if paused { Button("Unlock workspace") { Task { paused = false; await refresh() } }.disabled(working) }
-            if failed || expired {
-                NoticeBar(text: expired ? String(localized: "This request has expired") : String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))
-                Button("Check authorization") { Task { await refresh() } }.disabled(working)
-            }
-            if let delivery, model.session?.state != "root_required" {
-                Section("Waiting for approval") {
-                    Text("Compare the device ID on both screens and approve on your desktop.")
-                    Text(groupedFingerprint(delivery.deviceId)).font(.caption.monospaced()).textSelection(.enabled)
-                        .environment(\.layoutDirection, .leftToRight).accessibilityIdentifier("pair.desktop.device")
-                    LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(delivery.expiresAt) / 1000), style: .relative) }
+        }.disabled(working || model.busy).privateScreen().navigationTitle("Open an existing account")
+            .onChange(of: model.session?.principal) { _, principal in
+                if let previous = preview?.principal, previous != principal, !working && !model.busy {
+                    paused = true
+                    Task { await check() }
                 }
-            }
-        }.privateScreen().navigationTitle("Scan desktop invitation").navigationBarTitleDisplayMode(.inline)
-            .onChange(of: invitation) { delivery = nil; failed = false; expired = false }
-            .onChange(of: model.session?.state) {
-                if model.session?.state == "logged_out" || (model.session?.state == "locked" && !paused && !needsLogin) { dismiss() }
             }
             .sheet(isPresented: $scanning) {
-                QRCodeScanner { text in
-                    invitation = text; delivery = nil; scanning = false; attempt = UUID()
-                }
+                QRCodeScanner { text in invitation = text; scanning = false; Task { await check() } }
             }
-            .task { await scan() }
-            .task(id: delivery?.expiresAt) {
-                guard let receipt = delivery else { return }
-                let remaining = Date(timeIntervalSince1970: Double(receipt.expiresAt) / 1000).timeIntervalSinceNow
-                if remaining > 0 {
-                    do { try await Task.sleep(for: .seconds(remaining)) } catch { return }
-                }
-                guard !Task.isCancelled, delivery?.expiresAt == receipt.expiresAt, model.session?.state != "root_required" else { return }
-                delivery = nil; expired = true
-            }
-            // Stop polling when the request expires, even if a refresh was slow.
-            .task(id: delivery?.deviceId) {
-                guard delivery != nil else { return }
+            .task {
+                if let saved = try? await model.engine?.savedAccountInvitation() { invitation = saved; await check() }
+                else { await scan() }
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(5))
-                    guard !Task.isCancelled else { return }
-                    if !paused && !needsLogin && !working && ["pairing_required", "root_required"].contains(model.session?.state ?? "") { await refresh() }
+                    do { try await Task.sleep(for: .seconds(4)) } catch { return }
+                    if scenePhase == .active, waiting, !paused, !working, !model.busy { await check(continueJoin: true) }
                 }
             }
-            .task(id: attempt) {
-                guard attempt != nil else { return }
-                let epoch = model.epoch
-                let token = invitation.trimmingCharacters(in: .whitespacesAndNewlines)
-                working = true; failed = false; expired = false; delivery = nil
-                defer { working = false }
-                do {
-                    #if DEBUG
-                    if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-pairing-expiry") {
-                        needsLogin = model.session?.loginExpiresAtMs == nil
-                        delivery = Delivery(deviceId: String(repeating: "aa", count: 32), expiresAt: UInt64(Date.now.timeIntervalSince1970 * 1000) + 3_000)
-                        return
-                    }
-                    #endif
-                    guard let engine = model.engine else { return }
-                    let result: Delivery = try model.decode(try await engine.joinDeviceInvitation(invitation: token))
-                    guard !Task.isCancelled, epoch == model.epoch else { return }
-                    delivery = result
-                } catch {
-                    guard !Task.isCancelled, epoch == model.epoch else { return }
-                    failed = true
-                }
-            }
+    }
+
+    private func signIn(_ operation: PasskeyOperation) async {
+        if await model.login(passkeyOperation: operation) { await check() }
     }
 
     private func scan() async {
@@ -120,30 +115,43 @@ struct DesktopPairingView: View {
         let allowed = await AVCaptureDevice.requestAccess(for: .video)
         guard !Task.isCancelled else { return }
         cameraDenied = !allowed || !DataScannerViewController.isAvailable
-        if !cameraDenied { scanning = true }
+        scanning = !cameraDenied
     }
 
-    private func refresh() async {
+    private func check(continueJoin: Bool = false) async {
         guard !working else { return }
         working = true; defer { working = false }
-        await check()
-    }
-
-    private func check() async {
-        guard let engine = model.engine else { return }
-        let epoch = model.epoch
+        let input = token
+        failure = nil
         do {
-            _ = try await engine.refreshAccount()
-            if epoch == model.epoch, !Task.isCancelled { needsLogin = false }
-        }
-        catch {
-            if epoch == model.epoch, !Task.isCancelled {
-                if let failure = error as? MobileError, case .Failure(let code) = failure, ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code) {
-                    needsLogin = true
-                } else if pairingNeedsManualUnlock(error) { paused = true; model.report(error) }
-                else { model.reportBackground(error) }
+            #if DEBUG
+            if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-pairing-expiry") {
+                if preview == nil { preview = Preview(stage: "waiting_device", account: "040g2081040g2081040g", deviceId: String(repeating: "aa", count: 32), expiresAt: UInt64(Date.now.timeIntervalSince1970 * 1000) + 3000) }
+                else { expired = true; preview = nil }
+                return
             }
+            #endif
+            guard let engine = model.engine else { return }
+            if continueJoin, model.session?.principal == preview?.principal, ["authorized", "waiting_device"].contains(preview?.stage ?? "") {
+                _ = try await engine.refreshAccount()
+                await model.updateSession()
+                if model.unlocked && model.session?.account == preview?.account { dismiss(); return }
+                if model.session?.state == "root_required" { return }
+            }
+            let result = try await engine.accountInvitation(invitation: input, principal: continueJoin ? preview?.principal : nil, bindLogin: continueJoin && preview?.stage == "bind_login")
+            guard input == token, !Task.isCancelled else { return }
+            preview = try model.decode(result)
+            paused = false
+            await model.updateSession()
+        } catch {
+            guard !Task.isCancelled, token == input else { return }
+            if let err = error as? MobileError, case .Failure(let code) = err {
+                if code == "EXPIRED" { expired = true; paused = true; return }
+                if ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code) { preview?.stage = "sign_in"; return }
+                paused = !["UNAVAILABLE","EXECUTION_UNKNOWN","POLICY_STALE","SYNC_BUSY"].contains(code)
+            } else { paused = true }
+            model.report(error)
+            failure = model.error
         }
-        if epoch == model.epoch { await model.updateSession() }
     }
 }

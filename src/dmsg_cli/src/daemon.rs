@@ -93,7 +93,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 76] = [
+const METHODS: [&str; 78] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -119,6 +119,8 @@ const METHODS: [&str; 76] = [
     "device/pair_inspect",
     "device/pair_scan",
     "device/pair_invite",
+    "device/join_invitation",
+    "device/saved_invitation",
     "device/pair_invite_status",
     "device/pair_invite_cancel",
     "device/approve",
@@ -319,7 +321,7 @@ pub(crate) struct Daemon {
     pub(crate) notifications: crate::notifications::Notifications,
     /// The device transfer, running or last.
     pub(crate) transfers: crate::transfer::Transfers,
-    pub(crate) pairing: crate::pairing::Pairing,
+    pub(crate) pairing: dmsg_client::pairing::InvitationHost,
 }
 
 /// Who presented a credential.
@@ -1844,17 +1846,45 @@ impl Daemon {
                     .map_err(|e| Error::Unavailable(e.to_string()))??;
                 h.with(|c| ensure(c.session_generation() == session, Error::Locked))
                     .await?;
-                let mut preview = self.device_request_preview(&token).await?;
+                let mut preview = if params["invitation"] == true {
+                    dmsg_client::pairing::account_invitation(&h, &token, None, false).await?
+                } else {
+                    self.device_request_preview(&token).await?
+                };
                 h.with(|c| ensure(c.session_generation() == session, Error::Locked))
                     .await?;
                 preview["token"] = json!(token);
                 Ok(preview)
             }
             "device/pair_inspect" => self.device_request_preview(&text(params, "token")?).await,
-            "device/pair_invite" => self.pairing.start(self).await,
-            "device/pair_invite_status" => self.pairing.status(self, &text(params, "id")?).await,
+            "device/join_invitation" => {
+                dmsg_client::pairing::account_invitation(
+                    &self.hold(),
+                    &text(params, "invitation")?,
+                    params["principal"].as_str(),
+                    params["bind_login"] == true,
+                )
+                .await
+            }
+            "device/saved_invitation" => Ok(json!(
+                self.hold()
+                    .with(|c| dmsg_client::pairing::saved_invitation(c))
+                    .await?
+            )),
+            "device/pair_invite" => {
+                self.pairing
+                    .start(&self.hold(), params["with_login"] == true)
+                    .await
+            }
+            "device/pair_invite_status" => {
+                self.pairing
+                    .status(&self.hold(), &text(params, "id")?)
+                    .await
+            }
             "device/pair_invite_cancel" => {
-                self.pairing.cancel(self, &text(params, "id")?).await?;
+                self.pairing
+                    .cancel(&self.hold(), &text(params, "id")?)
+                    .await?;
                 Ok(Value::Null)
             }
             "device/approve" => {

@@ -36,8 +36,8 @@ struct PairView: View {
             if preparing {
                 NoticeBar(text: String(localized: "Approved. Preparing your vault…"))
             } else {
-                NavigationLink { DesktopPairingView() } label: {
-                    Label("Scan desktop invitation", systemImage: "qrcode.viewfinder")
+                Button { model.showingJoinAccount = true } label: {
+                    Label("Scan invitation", systemImage: "qrcode.viewfinder")
                 }.accessibilityIdentifier("pair.desktop")
                 if let token {
                     if let image = qrImage { Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code") }
@@ -72,6 +72,7 @@ struct PairView: View {
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
+            if model.showingJoinAccount { continue }
             if model.session?.state == "pairing_required" && !paused && expires <= .now { await request() }
             if !needsLogin && !paused && ["pairing_required", "root_required"].contains(model.session?.state ?? "") { await refresh() }
         }
@@ -121,14 +122,14 @@ struct EnrollmentRequest: Decodable {
 
 struct DeviceRequestCode: View {
     let token: String
-    let deviceId: String
+    let deviceId: String?
     var keyId: String?
     var body: some View {
         if let image = QRCode.image(token) {
             Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240)
                 .frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code")
         }
-        FingerprintRow(title: "Device ID", value: groupedFingerprint(deviceId))
+        if let deviceId { FingerprintRow(title: "Device ID", value: groupedFingerprint(deviceId)) }
         if let keyId { FingerprintRow(title: "Key fingerprint", value: groupedFingerprint(keyId)) }
         ShareLink(item: token) { SettingsActionLabel("Share request", systemImage: "square.and.arrow.up") }
     }
@@ -148,7 +149,8 @@ struct PairApprovalView: View {
     @State private var enrollment: EnrollmentRequest?
     @State private var visible = false
     struct PairPreview: Decodable {
-        let deviceId, kind, route: String
+        let kind, route: String
+        let deviceId, principal: String?
         let approvers: [String]
         let canEnroll: Bool
         let keyId: String?
@@ -170,6 +172,7 @@ struct PairApprovalView: View {
                 ApprovalReceiptRow(receipts: receipts, key: "pair.\(clean)") { created = $0 }
             }
             if let inspected {
+                if let principal = inspected.principal { FingerprintRow(title: "Login identity", value: principal) }
                 if inspected.route == "handoff" {
                     if enrollment == nil {
                         Section("Continue on another device") {
@@ -213,11 +216,14 @@ struct PairApprovalView: View {
             let inspected: PairPreview = try model.decode(try await engine.inspectPairingRequest(token: input))
             guard visible, epoch == model.epoch, input == clean else { return }
             guard !enrollmentOnly || inspected.kind == "approval_key" else { throw MobileError.Failure(code: "UNSUPPORTED_PROTOCOL") }
+            let firstLoginPreview = inspected.kind == "login_binding" && self.inspected?.principal != inspected.principal
             self.inspected = inspected
-            guard inspected.route == "approve" else { return }
+            guard !firstLoginPreview, inspected.route == "approve" else { return }
             let value = try await receipts.request("pair.\(input)", model: model) { engine in
-                if inspected.kind == "approval_key" { return try await engine.approveApprovalKey(token: input, device: inspected.deviceId) }
-                return try await engine.approvePairingRequest(token: input, device: inspected.deviceId)
+                if inspected.kind == "login_binding" { return try await engine.reviewBinding(token: input) }
+                guard let device = inspected.deviceId else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+                if inspected.kind == "approval_key" { return try await engine.approveApprovalKey(token: input, device: device) }
+                return try await engine.approvePairingRequest(token: input, device: device)
             }
             guard let value, visible, epoch == model.epoch, input == clean else { return }
             created = value
@@ -247,5 +253,113 @@ enum QRCode {
         guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 5, y: 5)),
               let image = CIContext().createCGImage(output, from: output.extent) else { return nil }
         return UIImage(cgImage: image)
+    }
+}
+
+/// The inviting device keeps both approvals in the same presentation.
+struct AccountInvitationHostView: View {
+    private struct Invite: Decodable {
+        var id: String?
+        var token: String?
+        var account: String?
+        var route: String?
+        var approvers: [String]?
+        var candidate: Candidate?
+    }
+    private struct Candidate: Decodable {
+        let token: String
+        let deviceId: String
+        var kind: String?
+        var principal: String?
+        var code: String?
+        var role: String?
+        var capabilities: [String]?
+    }
+    @Environment(SessionModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var invite: Invite?
+    @State private var candidate: Candidate?
+    @State private var approval: ApprovalView?
+    @State private var receipt: ApprovalView?
+    @State private var completedLogin = false
+    @State private var finished = false
+    @State private var working = false
+    @State private var failure: String?
+    @State private var run = UUID()
+
+    var body: some View {
+        Form {
+            if let failure { NoticeBar(text: failure) }
+            if invite?.route == "handoff" {
+                Text("Continue on another device")
+                ForEach(invite?.approvers ?? [], id: \.self) { FingerprintRow(title: "Authorized device", value: model.deviceLabel($0) ?? groupedFingerprint($0)) }
+                if invite?.approvers?.isEmpty == true { Text("No eligible administrator device was found.") }
+            } else if finished { Label("Completed", systemImage: "checkmark.circle") }
+            else if let receipt {
+                Button("View approval") { approval = receipt }
+            } else if let candidate {
+                if let code = candidate.code { FingerprintRow(title: "Comparison code", value: code); Text("Check that both devices show the same code before approving.") }
+                FingerprintRow(title: "Device ID", value: groupedFingerprint(candidate.deviceId))
+                if let principal = candidate.principal { FingerprintRow(title: "Login identity", value: principal) }
+                if let role = candidate.role { LabeledContent("Role", value: deviceRoleTitle(role)) }
+                ForEach(candidate.capabilities ?? [], id: \.self) { Text(deviceCapabilityTitle($0)) }
+                Button(LocalizedStringKey(candidate.kind == "login_binding" ? "Review binding" : "Review")) { Task { await review(candidate) } }.disabled(working)
+            } else if completedLogin { Text("Waiting for device approval") }
+            else if let token = invite?.token {
+                if let account = model.session?.account { FingerprintRow(title: "Account ID", value: account) }
+                if let qr = QRCode.image(token) { Image(uiImage: qr).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 280).accessibilityLabel("Authorize another device") }
+                ShareLink(item: token) { Label("Share request", systemImage: "square.and.arrow.up") }
+                Text("On the new device, choose Open an existing account and scan this code.")
+            } else if failure == nil { ProgressView() }
+            if failure != nil { Button("Retry") { run = UUID() } }
+        }.privateScreen().navigationTitle("Authorize another device")
+            .sheet(item: $approval) { shown in
+                NavigationStack { ApprovalDetailView(request: shown).toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Close") { approval = nil } }
+                } }
+            }
+            .task(id: run) { await watch() }
+    }
+
+    private func watch() async {
+        guard let engine = model.engine else { return }
+        invite = nil; candidate = nil; receipt = nil; finished = false; completedLogin = false; failure = nil
+        var id: String?
+        defer { if let id { Task { try? await engine.cancelAccountInvitation(id: id) } } }
+        do {
+            let result: Invite = try model.decode(try await engine.startAccountInvitation())
+            id = result.id
+            guard !Task.isCancelled else { return }
+            invite = result
+            guard let id else { return }
+            while !Task.isCancelled && !finished {
+                try await Task.sleep(for: .seconds(2))
+                guard scenePhase == .active, !working else { continue }
+                if let receipt {
+                    let status: ApprovalView = try model.decode(try await engine.approval(id: receipt.id))
+                    if status.state == "done" {
+                        if candidate?.kind == "login_binding" { completedLogin = true } else { finished = true }
+                        self.receipt = nil; candidate = nil
+                    } else if ["rejected","cancelled","expired","failed"].contains(status.state) {
+                        failure = String(localized: "Refresh the request on the joining device and scan it again."); return
+                    }
+                } else if candidate == nil {
+                    let result: Invite = try model.decode(try await engine.accountInvitationStatus(id: id))
+                    if result.candidate?.kind != "login_binding" || !completedLogin { candidate = result.candidate }
+                }
+            }
+        } catch {
+            if !Task.isCancelled { model.report(error); failure = model.error }
+        }
+    }
+
+    private func review(_ candidate: Candidate) async {
+        guard !working, let engine = model.engine else { return }
+        working = true; defer { working = false }
+        do {
+            let result = candidate.kind == "login_binding" ? try await engine.reviewBinding(token: candidate.token) : try await engine.approvePairingRequest(token: candidate.token, device: candidate.deviceId)
+            receipt = try model.decode(result)
+            approval = receipt
+        } catch { model.report(error) }
     }
 }

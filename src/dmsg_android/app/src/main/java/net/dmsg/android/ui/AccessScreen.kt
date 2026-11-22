@@ -114,16 +114,17 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         Button(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_passkey)) }
                     }
                     anotherAccount -> {
+                        OutlinedButton(onClick = { client.showAccountInvitation(true) }) { Text(str(R.string.access_existing_account)) }
                         if (state.session?.passkeyAvailable == true) Button(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                             Text(str(R.string.text_sign_in_with_passkey_0c861d7))
                         }
                         InternetIdentityButton(primary = state.session?.passkeyAvailable != true, enabled = !state.busy) { client.login(open = openLogin) }
                     }
                     setup -> {
-                        Button(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
-                        if (status == "no_account") OutlinedButton(onClick = { client.showAccess(AccessPage.JOIN_ACCOUNT) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.access_existing_account)) }
+                        if (status == "no_account") Button(onClick = { client.showAccountInvitation(true) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.access_existing_account)) }
+                        OutlinedButton(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.join_create)) }
                         Notice(if (slow) str(R.string.text_the_network_is_taking_longer_than_usual_your_setup_progress_is_ke_d703303)
-                            else str(R.string.text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122))
+                            else str(if (status == "no_account") R.string.join_scan_hint else R.string.text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122))
                         TextButton(onClick = client::signInToAnotherAccount, enabled = !state.busy) { Text(str(R.string.text_switch_account_52f71df)) }
                     }
                     authorize -> {
@@ -136,16 +137,18 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                             Icon(Icons.Outlined.LockOpen, null); Spacer(Modifier.width(10.dp)); Text(str(R.string.text_unlock_workspace_ec9cb2a))
                         }
                         if (state.session?.state == "logged_out") {
+                            if (state.session?.passkeyAvailable != true) OutlinedButton(onClick = { client.showAccountInvitation(true) }) { Text(str(R.string.access_existing_account)) }
                             OutlinedButton(onClick = client::openLocal, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("access.local")) { Text(str(R.string.use_on_device)) }
                         }
                         if (state.session?.accountKind != "local") {
                             if (state.session?.passkeyAvailable == true) {
                                 if (state.session?.account == null && state.session?.fastUnlock != true) {
-                                    Button(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
-                                    OutlinedButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_account)) }
+                                    Button(onClick = { client.showAccountInvitation(true) }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_account)) }
+                                    OutlinedButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.join_create)) }
+                                    TextButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy) { Text(str(R.string.access_existing_passkey)) }
                                 } else {
                                     OutlinedButton(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }
-                                    TextButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy) { Text(str(R.string.access_new_workspace)) }
+                                    TextButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy) { Text(str(R.string.join_create)) }
                                 }
                             }
                             InternetIdentityButton(primary = state.session?.passkeyAvailable != true && state.session?.fastUnlock != true, enabled = !state.busy) { client.login(open = openLogin) }

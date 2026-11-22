@@ -893,6 +893,14 @@ impl Client {
                 false,
                 key.device_id == own,
             )
+        } else if let Ok(login) = self.inspect_binding(token) {
+            (
+                json!({"kind":"login_binding","principal":login.principal.to_text(),"expires_at":login.expires_at}),
+                HardwarePurpose::AccountControl,
+                state.info.auth_bindings.contains(&login.principal),
+                false,
+                false,
+            )
         } else {
             let pair = self.inspect_pairing(token)?;
             let device = &pair.device;
@@ -909,6 +917,33 @@ impl Client {
                 false,
             )
         };
+        self.approval_route(state, purpose, complete, stale, self_enrollment, &mut view)?;
+        Ok(view)
+    }
+
+    pub(crate) fn invitation_route(&self, state: &crate::account::AccountState) -> Result<Json> {
+        let mut view = json!({"account":state.info.account_id.to_string()});
+        self.approval_route(
+            state,
+            HardwarePurpose::DeviceControl,
+            false,
+            false,
+            false,
+            &mut view,
+        )?;
+        Ok(view)
+    }
+
+    fn approval_route(
+        &self,
+        state: &crate::account::AccountState,
+        purpose: HardwarePurpose,
+        complete: bool,
+        stale: bool,
+        self_enrollment: bool,
+        view: &mut Json,
+    ) -> Result<()> {
+        let own = self.workspace.meta.device_id;
         let protected = state.info.hardware_policy.contains(&purpose);
         let registered = state.info.approval_keys.get(&own).map(|k| k.key_id);
         let key = self.registered_key(registered)?;
@@ -947,7 +982,7 @@ impl Client {
                 && !approvers.is_empty()
         );
         view["approvers"] = json!(approvers);
-        Ok(view)
+        Ok(())
     }
 }
 

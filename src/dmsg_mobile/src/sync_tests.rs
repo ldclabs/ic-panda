@@ -116,6 +116,7 @@ impl Fixture {
                 hints_redial: Arc::default(),
                 sync_signal: Arc::default(),
                 plan_checked: Arc::default(),
+                invitations: Arc::default(),
                 transfers: Arc::default(),
             },
             uploads,

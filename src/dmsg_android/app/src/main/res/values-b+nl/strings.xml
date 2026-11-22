@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Versleutelde blokken overdragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Versleutelde overdrachten"</string>
     <string name="customize_fields" formatted="false">"Velden aanpassen"</string>
+    <string name="device_content_signing" formatted="false">"Inhoud ondertekenen"</string>
     <string name="empty_folder" formatted="false">"Geen bestanden in deze map"</string>
     <string name="file_moved_to_trash" formatted="false">"Verplaatst naar prullenmand"</string>
     <string name="file_name_rule" formatted="false">"Gebruik een naam van 1–255 tekens zonder schuine strepen of besturingstekens."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Apparaat"</string>
     <string name="history_fields" formatted="false">"Velden"</string>
     <string name="import_local_account" formatted="false">"Importeren uit lokaal account"</string>
+    <string name="join_code" formatted="false">"Vergelijkingscode"</string>
+    <string name="join_compare_hint" formatted="false">"Controleer vóór goedkeuring of beide apparaten dezelfde code tonen."</string>
+    <string name="join_confirm" formatted="false">"Deze aanmelding voor dit account gebruiken en dit apparaat toevoegen"</string>
+    <string name="join_create" formatted="false">"Een apart account maken"</string>
+    <string name="join_identity" formatted="false">"Aanmeldidentiteit"</string>
+    <string name="join_other" formatted="false">"Deze aanmelding hoort bij een ander account. Kies een andere aanmelding."</string>
+    <string name="join_scan_hint" formatted="false">"Scan de code op een bevoegd apparaat om het account ervan te openen."</string>
+    <string name="join_show_hint" formatted="false">"Kies op het nieuwe apparaat ‘Bestaand account openen’ en scan deze code."</string>
+    <string name="join_wait_device" formatted="false">"Wachten op goedkeuring van het apparaat"</string>
+    <string name="join_wait_login" formatted="false">"Wachten op goedkeuring van de aanmelding"</string>
     <string name="language_search" formatted="false">"Een taal zoeken"</string>
     <string name="links_created_progress" formatted="true">"%1$s van %2$s gemaakt"</string>
     <string name="local_password" formatted="false">"Lokaal wachtwoord"</string>

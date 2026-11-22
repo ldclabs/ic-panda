@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { NoticeStatus } from '../../shared/notifications'
+  import { accountJoinRequested } from './session'
   import { daemonBlocked } from '../connection-gate'
   import { onMount } from 'svelte'
   import { DropdownMenu } from 'bits-ui'
@@ -159,6 +160,9 @@
           {t(hasLocal ? 'importLocalAccount' : 'useOnDevice')}
         </DropdownMenu.Item>
       {/if}
+      <DropdownMenu.Item class={menuItemClass} onSelect={() => requestAnimationFrame(() => accountJoinRequested.set(true))} data-testid="account-join">
+        <span class="flex items-center gap-2"><Icon name="pair" />{t('joinOpen')}</span>
+      </DropdownMenu.Item>
       {#if loginMissing}
         <Notice id="account-login-hint" testid="account-login-hint">{t('localAccessWithoutLogin')}</Notice>
       {/if}

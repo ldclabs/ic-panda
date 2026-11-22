@@ -3576,5 +3576,25 @@
 	<string>Po zarejestrowaniu klucza odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Zeskanuj ten kod urządzeniem administratora, aby sprawdzić prośbę.</string>
+	<key>Close</key>
+	<string>Zamknij</string>
+	<key>Comparison code</key>
+	<string>Kod porównawczy</string>
+	<key>Create a separate account</key>
+	<string>Utwórz osobne konto</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Zeskanuj kod na autoryzowanym urządzeniu, aby otworzyć jego konto.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Ta metoda logowania należy do innego konta. Wybierz inną metodę.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Użyj tej metody logowania do tego konta i dodaj to urządzenie</string>
+	<key>Waiting for device approval</key>
+	<string>Oczekiwanie na zatwierdzenie urządzenia</string>
+	<key>Waiting for login approval</key>
+	<string>Oczekiwanie na zatwierdzenie logowania</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Na nowym urządzeniu wybierz otwarcie istniejącego konta i zeskanuj ten kod.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Przed zatwierdzeniem sprawdź, czy oba urządzenia wyświetlają ten sam kod.</string>
 </dict>
 </plist>

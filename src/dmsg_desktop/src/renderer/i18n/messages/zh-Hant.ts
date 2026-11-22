@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "建立獨立帳號",
+  joinConfirm: "以此身分登入該帳號，並加入這部裝置",
+  joinOther: "此登入身分屬於另一個帳號。請選擇其他登入方式。",
+  joinCode: "核對碼",
+  joinWaitLogin: "等待核准登入方式",
+  joinWaitDevice: "等待核准裝置加入",
+  joinShowRequest: "顯示 QR 碼，讓另一部裝置掃描",
+  joinShowHint: "在新裝置上選擇「開啟現有帳號」，掃描此碼。",
+  joinCompareHint: "核准前，請確認兩部裝置顯示的核對碼相同。",
+  joinScanHint: "掃描已授權裝置上的 QR 碼，開啟它的帳號。",
+  joinOpen: "開啟現有帳號",
   pairScanWithAdmin: "請用有核准權限的管理員裝置掃碼，核對並處理請求。",
   pairContinueElsewhere: "在另一台裝置上繼續",
   pairEnableApprovals: "讓這台裝置日後也能核准請求",

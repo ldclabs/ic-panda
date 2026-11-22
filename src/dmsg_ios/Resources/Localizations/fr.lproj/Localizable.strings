@@ -3576,5 +3576,25 @@
 	<string>Après l’enregistrement de la clé, actualisez la demande sur le nouvel appareil et scannez-la à nouveau.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Scannez ce code avec un appareil administrateur pour examiner la demande.</string>
+	<key>Close</key>
+	<string>Fermer</string>
+	<key>Comparison code</key>
+	<string>Code à comparer</string>
+	<key>Create a separate account</key>
+	<string>Créer un compte distinct</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Scannez le code sur un appareil autorisé pour ouvrir son compte.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Cet identifiant appartient à un autre compte. Choisissez un autre identifiant.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Utiliser cet identifiant pour ce compte et ajouter cet appareil</string>
+	<key>Waiting for device approval</key>
+	<string>En attente de l’approbation de l’appareil</string>
+	<key>Waiting for login approval</key>
+	<string>En attente de l’approbation de l’identifiant</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Sur le nouvel appareil, choisissez « Ouvrir un compte existant » et scannez ce code.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Vérifiez que les deux appareils affichent le même code avant d’approuver.</string>
 </dict>
 </plist>

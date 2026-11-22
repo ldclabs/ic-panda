@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Utwórz osobne konto",
+  joinConfirm: "Użyj tej metody logowania do tego konta i dodaj to urządzenie",
+  joinOther: "Ta metoda logowania należy do innego konta. Wybierz inną metodę.",
+  joinCode: "Kod porównawczy",
+  joinWaitLogin: "Oczekiwanie na zatwierdzenie logowania",
+  joinWaitDevice: "Oczekiwanie na zatwierdzenie urządzenia",
+  joinShowRequest: "Pokaż kod QR do zeskanowania drugim urządzeniem",
+  joinShowHint: "Na nowym urządzeniu wybierz otwarcie istniejącego konta i zeskanuj ten kod.",
+  joinCompareHint: "Przed zatwierdzeniem sprawdź, czy oba urządzenia wyświetlają ten sam kod.",
+  joinScanHint: "Zeskanuj kod na autoryzowanym urządzeniu, aby otworzyć jego konto.",
+  joinOpen: "Otwórz istniejące konto",
   pairScanWithAdmin: "Zeskanuj ten kod urządzeniem administratora, aby sprawdzić prośbę.",
   pairContinueElsewhere: "Kontynuuj na innym urządzeniu",
   pairEnableApprovals: "Zezwól temu urządzeniu na zatwierdzanie przyszłych próśb",

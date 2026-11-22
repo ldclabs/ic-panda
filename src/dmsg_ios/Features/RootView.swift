@@ -53,6 +53,13 @@ struct RootView: View {
         }
         .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
         .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView(showsDone: true) }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
+        .sheet(isPresented: $model.showingJoinAccount) {
+            NavigationStack {
+                DesktopPairingView().toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Close") { model.showingJoinAccount = false } }
+                }
+            }
+        }
         .task { routeIntent() }
         .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
         .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
@@ -241,7 +248,7 @@ struct AccessView: View {
                 : String(localized: "Setting up your encrypted workspace. Please keep dMsg open.")
         }
         if needsSetup {
-            return String(localized: "Create your encrypted workspace to start saving passwords, notes and files.")
+            return String(localized: "Scan the code on an authorized device to open its account.")
         }
         if model.session?.state == "root_required" { return String(localized: "Approved. Preparing your vault…") }
         if needsAuthorization {
@@ -271,6 +278,11 @@ struct AccessView: View {
                     }
                 }
                 VStack(spacing: 12) {
+                    if !needsAuthorization && model.session?.setupPending != true {
+                        Button { model.showingJoinAccount = true } label: {
+                            AccessActionLabel("Open an existing account", symbol: "qrcode.viewfinder")
+                        }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.join")
+                    }
                     if fastUnlock {
                         Button { Task {
                             await model.fastUnlock()
@@ -280,14 +292,9 @@ struct AccessView: View {
                     }
                     if needsSetup {
                         Button { Task { await model.initializeAccount() } } label: {
-                            AccessActionLabel(model.initializingAccount ? "Preparing your workspace…" : "Get started", symbol: "arrow.forward", working: model.initializingAccount)
-                        }.modifier(AccessActionStyle(prominent: true))
+                            AccessActionLabel(model.initializingAccount ? "Preparing your workspace…" : "Create a separate account", symbol: "arrow.forward", working: model.initializingAccount)
+                        }.modifier(AccessActionStyle(prominent: false))
                             .accessibilityIdentifier("login.initialize")
-                        if model.session?.state == "no_account" {
-                            NavigationLink { LoginBindingRequestView() } label: {
-                                AccessActionLabel("Join an existing account", symbol: "person.2")
-                            }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.join")
-                        }
                     } else if needsAuthorization {
                         NavigationLink { PairView() } label: {
                             AccessActionLabel(model.session?.state == "root_required" ? "Check authorization" : "Authorize this device", symbol: "checkmark.shield")
@@ -343,12 +350,12 @@ struct AccessView: View {
             let welcome = model.session?.account == nil && !model.signingIntoAnotherAccount
             if welcome {
                 NavigationLink { PasskeyAccessView(intent: .create) } label: {
-                    AccessActionLabel("Set up a new workspace", symbol: "person.crop.circle.badge.plus")
-                }.modifier(AccessActionStyle(prominent: true)).disabled(model.engine == nil && !model.uiTesting)
+                    AccessActionLabel("Create a separate account", symbol: "person.crop.circle.badge.plus")
+                }.modifier(AccessActionStyle(prominent: false)).disabled(model.engine == nil && !model.uiTesting)
                     .accessibilityIdentifier("login.new-workspace")
             }
             NavigationLink { PasskeyAccessView(intent: welcome ? .existing : .choose) } label: {
-                AccessActionLabel(welcome ? "Open an existing account" : "Continue with a passkey", symbol: "key")
+                AccessActionLabel("Continue with a passkey", symbol: "key")
             }.modifier(AccessActionStyle(prominent: !welcome && !fastUnlock && !needsAuthorization, quiet: fastUnlock || needsAuthorization))
                 .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
             Button { Task { await model.login(usingInternetIdentity: true) } } label: {

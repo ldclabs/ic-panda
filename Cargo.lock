@@ -2683,6 +2683,7 @@ dependencies = [
  "cbor2",
  "dmsg_account_product",
  "dmsg_client",
+ "dmsg_mobile",
  "dmsg_protocol",
  "dmsg_runtime",
  "dmsg_types",

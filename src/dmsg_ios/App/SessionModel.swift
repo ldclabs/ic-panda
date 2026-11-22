@@ -28,6 +28,7 @@ final class SessionModel {
     var error: String?
     private(set) var passkeySessionLimitCredential: Data?
     var canResetPasskeySessions: Bool { passkeySessionLimitCredential != nil }
+    var showingJoinAccount = false
     var signingIntoAnotherAccount = false
     var notice: String? { didSet { noticeRevision &+= 1 } }
     private(set) var noticeRevision: UInt64 = 0
@@ -1470,7 +1471,7 @@ final class SessionModel {
     }
 
     private func unlockAutomaticallyIfNeeded() async {
-        guard isForeground, !concealed, engine != nil, !signingIntoAnotherAccount,
+        guard isForeground, !concealed, engine != nil, !showingJoinAccount, !signingIntoAnotherAccount,
               UIApplication.shared.applicationState == .active,
               UIApplication.shared.isProtectedDataAvailable,
               automaticUnlock.consume(locked: session?.state == "locked",

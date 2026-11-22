@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Tạo tài khoản riêng",
+  joinConfirm: "Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này",
+  joinOther: "Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác.",
+  joinCode: "Mã đối chiếu",
+  joinWaitLogin: "Đang chờ duyệt cách đăng nhập",
+  joinWaitDevice: "Đang chờ duyệt thiết bị",
+  joinShowRequest: "Hiện mã QR để thiết bị kia quét",
+  joinShowHint: "Trên thiết bị mới, chọn Mở tài khoản hiện có rồi quét mã này.",
+  joinCompareHint: "Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không.",
+  joinScanHint: "Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó.",
+  joinOpen: "Mở tài khoản hiện có",
   pairScanWithAdmin: "Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.",
   pairContinueElsewhere: "Tiếp tục trên thiết bị khác",
   pairEnableApprovals: "Cho phép thiết bị này phê duyệt các yêu cầu sau này",

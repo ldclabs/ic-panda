@@ -5,6 +5,17 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  joinCreate: "Create a separate account",
+  joinConfirm: "Use this login for this account and add this device",
+  joinOther: "This login belongs to another account. Choose a different login.",
+  joinCode: "Comparison code",
+  joinWaitLogin: "Waiting for login approval",
+  joinWaitDevice: "Waiting for device approval",
+  joinShowRequest: "Show a QR code for the other device to scan",
+  joinShowHint: "On the new device, choose Open an existing account and scan this code.",
+  joinCompareHint: "Check that both devices show the same code before approving.",
+  joinScanHint: "Scan the code on an authorized device to open its account.",
+  joinOpen: "Open an existing account",
   pairScanWithAdmin: "Scan this code with an administrator device to review the request.",
   pairContinueElsewhere: "Continue on another device",
   pairEnableApprovals: "Let this device approve future requests",

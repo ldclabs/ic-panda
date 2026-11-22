@@ -3576,5 +3576,25 @@
 	<string>Setelah kunci terdaftar, perbarui permintaan di perangkat yang akan bergabung, lalu pindai lagi.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Pindai kode ini dengan perangkat administrator untuk meninjau permintaan.</string>
+	<key>Close</key>
+	<string>Tutup</string>
+	<key>Comparison code</key>
+	<string>Kode pembanding</string>
+	<key>Create a separate account</key>
+	<string>Buat akun terpisah</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Pindai kode pada perangkat yang diizinkan untuk membuka akunnya.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Login ini terhubung ke akun lain. Pilih login yang berbeda.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Gunakan login ini untuk akun ini dan tambahkan perangkat ini</string>
+	<key>Waiting for device approval</key>
+	<string>Menunggu persetujuan perangkat</string>
+	<key>Waiting for login approval</key>
+	<string>Menunggu persetujuan login</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Di perangkat baru, pilih Buka akun yang sudah ada lalu pindai kode ini.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Pastikan kedua perangkat menampilkan kode yang sama sebelum menyetujui.</string>
 </dict>
 </plist>

@@ -187,7 +187,10 @@ import net.dmsg.core.PasskeyOperation
         AccountRow(str(R.string.text_transfer_between_devices_fc09783)) { client.navigation.push(Route("device-transfer")) }
         AccountRow(str(R.string.text_replace_a_device_fbe5457)) { client.navigation.push(Route("handovers")) }
         ReadFeedback(devices, client.account::devices)
-        if (selected == null) Button(onClick = { client.navigation.open("pair-approve") }, enabled = value != null) { Text(str(R.string.text_authorize_another_device_d67d951)) }
+        if (selected == null) {
+            Button(onClick = { client.navigation.open("account-invite") }, enabled = value?.canManage == true) { Text(str(R.string.text_authorize_another_device_d67d951)) }
+            OutlinedButton(onClick = { client.navigation.open("pair-approve") }, enabled = value != null) { Text(str(R.string.text_scan_device_request_c50056e)) }
+        }
         value?.devices?.filter { selected == null || it.id == selected }?.forEach { device ->
             if (selected == null) AccountRow(if (device.current) str(R.string.text_this_android_device_7a65c2a) else device.id) { selected = device.id }
             else {

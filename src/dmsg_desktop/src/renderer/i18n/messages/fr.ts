@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  joinCreate: "Créer un compte distinct",
+  joinConfirm: "Utiliser cet identifiant pour ce compte et ajouter cet appareil",
+  joinOther: "Cet identifiant appartient à un autre compte. Choisissez un autre identifiant.",
+  joinCode: "Code à comparer",
+  joinWaitLogin: "En attente de l’approbation de l’identifiant",
+  joinWaitDevice: "En attente de l’approbation de l’appareil",
+  joinShowRequest: "Afficher un QR code à scanner avec l’autre appareil",
+  joinShowHint: "Sur le nouvel appareil, choisissez « Ouvrir un compte existant » et scannez ce code.",
+  joinCompareHint: "Vérifiez que les deux appareils affichent le même code avant d’approuver.",
+  joinScanHint: "Scannez le code sur un appareil autorisé pour ouvrir son compte.",
+  joinOpen: "Ouvrir un compte existant",
   pairScanWithAdmin: "Scannez ce code avec un appareil administrateur pour examiner la demande.",
   pairContinueElsewhere: "Continuer sur un autre appareil",
   pairEnableApprovals: "Autoriser cet appareil à approuver les prochaines demandes",

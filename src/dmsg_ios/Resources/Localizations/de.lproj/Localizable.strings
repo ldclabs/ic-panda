@@ -3576,5 +3576,25 @@
 	<string>Aktualisiere nach der Schlüsselregistrierung die Anfrage auf dem neuen Gerät und scanne sie erneut.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Scanne diesen Code mit einem Administratorgerät, um die Anfrage zu prüfen.</string>
+	<key>Close</key>
+	<string>Schließen</string>
+	<key>Comparison code</key>
+	<string>Vergleichscode</string>
+	<key>Create a separate account</key>
+	<string>Separates Konto erstellen</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Scanne den Code auf einem autorisierten Gerät, um dessen Konto zu öffnen.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Diese Anmeldung gehört zu einem anderen Konto. Wähle eine andere Anmeldung.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Diese Anmeldung für dieses Konto verwenden und dieses Gerät hinzufügen</string>
+	<key>Waiting for device approval</key>
+	<string>Warten auf Gerätefreigabe</string>
+	<key>Waiting for login approval</key>
+	<string>Warten auf Freigabe der Anmeldung</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Wähle auf dem neuen Gerät „Bestehendes Konto öffnen“ und scanne diesen Code.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Prüfe vor der Freigabe, ob beide Geräte denselben Code anzeigen.</string>
 </dict>
 </plist>

@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"暗号化ブロックを転送中"</string>
     <string name="cipher_transfer_title" formatted="false">"暗号化転送"</string>
     <string name="customize_fields" formatted="false">"フィールドをカスタマイズ"</string>
+    <string name="device_content_signing" formatted="false">"コンテンツの署名"</string>
     <string name="empty_folder" formatted="false">"このフォルダにファイルはありません"</string>
     <string name="file_moved_to_trash" formatted="false">"ゴミ箱に移動しました"</string>
     <string name="file_name_rule" formatted="false">"スラッシュや制御文字を含まない、1～255文字の名前を使用してください。"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"デバイス"</string>
     <string name="history_fields" formatted="false">"フィールド"</string>
     <string name="import_local_account" formatted="false">"ローカルアカウントから読み込む"</string>
+    <string name="join_code" formatted="false">"照合コード"</string>
+    <string name="join_compare_hint" formatted="false">"承認する前に、両方の端末に同じコードが表示されていることを確認してください。"</string>
+    <string name="join_confirm" formatted="false">"このログイン方法をアカウントに登録し、この端末を追加"</string>
+    <string name="join_create" formatted="false">"別のアカウントを作成"</string>
+    <string name="join_identity" formatted="false">"ログインID"</string>
+    <string name="join_other" formatted="false">"このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。"</string>
+    <string name="join_scan_hint" formatted="false">"承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。"</string>
+    <string name="join_show_hint" formatted="false">"新しい端末で「既存のアカウントを開く」を選び、このコードをスキャンしてください。"</string>
+    <string name="join_wait_device" formatted="false">"端末の承認待ち"</string>
+    <string name="join_wait_login" formatted="false">"ログイン方法の承認待ち"</string>
     <string name="language_search" formatted="false">"言語を検索"</string>
     <string name="links_created_progress" formatted="true">"%2$s 件中 %1$s 件を作成"</string>
     <string name="local_password" formatted="false">"ローカルパスワード"</string>

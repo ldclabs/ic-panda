@@ -11,7 +11,7 @@ final class AccountInitializationUITests: XCTestCase {
             let start = app.buttons["login.initialize"]
             XCTAssertTrue(start.waitForExistence(timeout: 5))
             XCTAssertTrue(start.isHittable)
-            if language == "zh-Hans" { XCTAssertEqual(start.label, "开始使用") }
+            if language == "zh-Hans" { XCTAssertEqual(start.label, "创建独立账号") }
             XCTAssertFalse(app.buttons["login.unlock"].exists, "A renewable passkey login has no workspace to unlock yet")
             XCTAssertFalse(app.buttons["login.start"].exists)
             XCTAssertFalse(app.buttons["login.ii"].exists)
@@ -36,6 +36,10 @@ final class AccountInitializationUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["login.initialize"].waitForExistence(timeout: 5))
         app.buttons["login.join"].tap()
+        let preview = app.buttons["pair.desktop.send"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        XCTAssertFalse(preview.isEnabled)
+        app.buttons["Create binding request"].tap()
         XCTAssertTrue(app.textFields["Account ID"].waitForExistence(timeout: 3))
         let pushed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == false"), object: app.buttons["login.initialize"])
         XCTAssertEqual(XCTWaiter.wait(for: [pushed], timeout: 5), .completed)
@@ -46,7 +50,7 @@ final class AccountInitializationUITests: XCTestCase {
     func testEditingBindingAccountRetiresThePreviousRequest() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-setup", "--ui-passkey", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        app.launch(); app.buttons["login.join"].tap()
+        app.launch(); app.buttons["login.join"].tap(); app.buttons["Create binding request"].tap()
         let field = app.textFields["Account ID"], create = app.buttons["Create binding request"]
         XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap()
         field.typeText("040g2081040g2081040g"); create.tap()

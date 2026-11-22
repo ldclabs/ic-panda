@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"กำลังโอนบล็อกที่เข้ารหัส"</string>
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>
     <string name="customize_fields" formatted="false">"ปรับแต่งช่องข้อมูล"</string>
+    <string name="device_content_signing" formatted="false">"การลงนามเนื้อหา"</string>
     <string name="empty_folder" formatted="false">"ไม่มีไฟล์ในโฟลเดอร์นี้"</string>
     <string name="file_moved_to_trash" formatted="false">"ย้ายไปถังขยะแล้ว"</string>
     <string name="file_name_rule" formatted="false">"ใช้ชื่อยาว 1–255 อักขระ โดยไม่มีเครื่องหมายทับหรืออักขระควบคุม"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"อุปกรณ์"</string>
     <string name="history_fields" formatted="false">"เขตข้อมูล"</string>
     <string name="import_local_account" formatted="false">"นำเข้าจากบัญชีในเครื่อง"</string>
+    <string name="join_code" formatted="false">"รหัสเปรียบเทียบ"</string>
+    <string name="join_compare_hint" formatted="false">"ตรวจสอบว่ารหัสบนอุปกรณ์ทั้งสองตรงกันก่อนอนุมัติ"</string>
+    <string name="join_confirm" formatted="false">"ใช้วิธีเข้าสู่ระบบนี้กับบัญชีและเพิ่มอุปกรณ์นี้"</string>
+    <string name="join_create" formatted="false">"สร้างบัญชีแยกต่างหาก"</string>
+    <string name="join_identity" formatted="false">"ข้อมูลประจำตัวในการเข้าสู่ระบบ"</string>
+    <string name="join_other" formatted="false">"วิธีเข้าสู่ระบบนี้ผูกกับบัญชีอื่น โปรดเลือกวิธีอื่น"</string>
+    <string name="join_scan_hint" formatted="false">"สแกนรหัสบนอุปกรณ์ที่ได้รับอนุญาตเพื่อเปิดบัญชีนั้น"</string>
+    <string name="join_show_hint" formatted="false">"บนอุปกรณ์ใหม่ ให้เลือกเปิดบัญชีที่มีอยู่แล้วสแกนรหัสนี้"</string>
+    <string name="join_wait_device" formatted="false">"กำลังรออนุมัติอุปกรณ์"</string>
+    <string name="join_wait_login" formatted="false">"กำลังรออนุมัติวิธีเข้าสู่ระบบ"</string>
     <string name="language_search" formatted="false">"ค้นหาภาษา"</string>
     <string name="links_created_progress" formatted="true">"สร้างแล้ว %1$s จาก %2$s"</string>
     <string name="local_password" formatted="false">"รหัสผ่านในเครื่อง"</string>

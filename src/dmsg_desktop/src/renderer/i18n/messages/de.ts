@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Separates Konto erstellen",
+  joinConfirm: "Diese Anmeldung für dieses Konto verwenden und dieses Gerät hinzufügen",
+  joinOther: "Diese Anmeldung gehört zu einem anderen Konto. Wähle eine andere Anmeldung.",
+  joinCode: "Vergleichscode",
+  joinWaitLogin: "Warten auf Freigabe der Anmeldung",
+  joinWaitDevice: "Warten auf Gerätefreigabe",
+  joinShowRequest: "QR-Code zum Scannen mit dem anderen Gerät anzeigen",
+  joinShowHint: "Wähle auf dem neuen Gerät „Bestehendes Konto öffnen“ und scanne diesen Code.",
+  joinCompareHint: "Prüfe vor der Freigabe, ob beide Geräte denselben Code anzeigen.",
+  joinScanHint: "Scanne den Code auf einem autorisierten Gerät, um dessen Konto zu öffnen.",
+  joinOpen: "Vorhandenes Konto öffnen",
   pairScanWithAdmin: "Scanne diesen Code mit einem Administratorgerät, um die Anfrage zu prüfen.",
   pairContinueElsewhere: "Auf einem anderen Gerät fortfahren",
   pairEnableApprovals: "Diesem Gerät erlauben, künftige Anfragen zu genehmigen",

@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Transferring encrypted blocks"</string>
     <string name="cipher_transfer_title" formatted="false">"Encrypted transfers"</string>
     <string name="customize_fields" formatted="false">"Customize fields"</string>
+    <string name="device_content_signing" formatted="false">"Content signing"</string>
     <string name="empty_folder" formatted="false">"No files in this folder"</string>
     <string name="file_moved_to_trash" formatted="false">"Moved to Trash"</string>
     <string name="file_name_rule" formatted="false">"Use a name of 1–255 characters without slashes or control characters."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Fields"</string>
     <string name="import_local_account" formatted="false">"Import from local account"</string>
+    <string name="join_code" formatted="false">"Comparison code"</string>
+    <string name="join_compare_hint" formatted="false">"Check that both devices show the same code before approving."</string>
+    <string name="join_confirm" formatted="false">"Use this login for this account and add this device"</string>
+    <string name="join_create" formatted="false">"Create a separate account"</string>
+    <string name="join_identity" formatted="false">"Login identity"</string>
+    <string name="join_other" formatted="false">"This login belongs to another account. Choose a different login."</string>
+    <string name="join_scan_hint" formatted="false">"Scan the code on an authorized device to open its account."</string>
+    <string name="join_show_hint" formatted="false">"On the new device, choose Open an existing account and scan this code."</string>
+    <string name="join_wait_device" formatted="false">"Waiting for device approval"</string>
+    <string name="join_wait_login" formatted="false">"Waiting for login approval"</string>
     <string name="language_search" formatted="false">"Find a language"</string>
     <string name="links_created_progress" formatted="true">"Created %1$s of %2$s"</string>
     <string name="local_password" formatted="false">"Local password"</string>

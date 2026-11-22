@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Transfert des blocs chiffrés"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferts chiffrés"</string>
     <string name="customize_fields" formatted="false">"Personnaliser les champs"</string>
+    <string name="device_content_signing" formatted="false">"Signature de contenu"</string>
     <string name="empty_folder" formatted="false">"Aucun fichier dans ce dossier"</string>
     <string name="file_moved_to_trash" formatted="false">"Déplacé dans la corbeille"</string>
     <string name="file_name_rule" formatted="false">"Utilisez un nom de 1 à 255 caractères, sans barres obliques ni caractères de contrôle."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Appareil"</string>
     <string name="history_fields" formatted="false">"Champs"</string>
     <string name="import_local_account" formatted="false">"Importer depuis le compte local"</string>
+    <string name="join_code" formatted="false">"Code à comparer"</string>
+    <string name="join_compare_hint" formatted="false">"Vérifiez que les deux appareils affichent le même code avant d’approuver."</string>
+    <string name="join_confirm" formatted="false">"Utiliser cet identifiant pour ce compte et ajouter cet appareil"</string>
+    <string name="join_create" formatted="false">"Créer un compte distinct"</string>
+    <string name="join_identity" formatted="false">"Identité de connexion"</string>
+    <string name="join_other" formatted="false">"Cet identifiant appartient à un autre compte. Choisissez un autre identifiant."</string>
+    <string name="join_scan_hint" formatted="false">"Scannez le code sur un appareil autorisé pour ouvrir son compte."</string>
+    <string name="join_show_hint" formatted="false">"Sur le nouvel appareil, choisissez « Ouvrir un compte existant » et scannez ce code."</string>
+    <string name="join_wait_device" formatted="false">"En attente de l’approbation de l’appareil"</string>
+    <string name="join_wait_login" formatted="false">"En attente de l’approbation de l’identifiant"</string>
     <string name="language_search" formatted="false">"Rechercher une langue"</string>
     <string name="links_created_progress" formatted="true">"%1$s sur %2$s créés"</string>
     <string name="local_password" formatted="false">"Mot de passe local"</string>

@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Mentransfer blok terenkripsi"</string>
     <string name="cipher_transfer_title" formatted="false">"Transfer terenkripsi"</string>
     <string name="customize_fields" formatted="false">"Sesuaikan bidang"</string>
+    <string name="device_content_signing" formatted="false">"Penandatanganan konten"</string>
     <string name="empty_folder" formatted="false">"Tidak ada file di folder ini"</string>
     <string name="file_moved_to_trash" formatted="false">"Dipindahkan ke Sampah"</string>
     <string name="file_name_rule" formatted="false">"Gunakan nama sepanjang 1–255 karakter tanpa garis miring atau karakter kontrol."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Perangkat"</string>
     <string name="history_fields" formatted="false">"Bidang"</string>
     <string name="import_local_account" formatted="false">"Impor dari akun lokal"</string>
+    <string name="join_code" formatted="false">"Kode pembanding"</string>
+    <string name="join_compare_hint" formatted="false">"Pastikan kedua perangkat menampilkan kode yang sama sebelum menyetujui."</string>
+    <string name="join_confirm" formatted="false">"Gunakan login ini untuk akun ini dan tambahkan perangkat ini"</string>
+    <string name="join_create" formatted="false">"Buat akun terpisah"</string>
+    <string name="join_identity" formatted="false">"Identitas masuk"</string>
+    <string name="join_other" formatted="false">"Login ini terhubung ke akun lain. Pilih login yang berbeda."</string>
+    <string name="join_scan_hint" formatted="false">"Pindai kode pada perangkat yang diizinkan untuk membuka akunnya."</string>
+    <string name="join_show_hint" formatted="false">"Di perangkat baru, pilih Buka akun yang sudah ada lalu pindai kode ini."</string>
+    <string name="join_wait_device" formatted="false">"Menunggu persetujuan perangkat"</string>
+    <string name="join_wait_login" formatted="false">"Menunggu persetujuan login"</string>
     <string name="language_search" formatted="false">"Cari bahasa"</string>
     <string name="links_created_progress" formatted="true">"%1$s dari %2$s dibuat"</string>
     <string name="local_password" formatted="false">"Kata sandi lokal"</string>

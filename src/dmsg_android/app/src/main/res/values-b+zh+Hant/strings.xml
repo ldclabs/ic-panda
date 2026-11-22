@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"正在傳輸加密分塊"</string>
     <string name="cipher_transfer_title" formatted="false">"加密傳輸"</string>
     <string name="customize_fields" formatted="false">"自訂欄位"</string>
+    <string name="device_content_signing" formatted="false">"內容簽署"</string>
     <string name="empty_folder" formatted="false">"此資料夾中沒有檔案"</string>
     <string name="file_moved_to_trash" formatted="false">"已移至垃圾桶"</string>
     <string name="file_name_rule" formatted="false">"名稱須為 1–255 個字元，且不能包含斜線或控制字元。"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"裝置"</string>
     <string name="history_fields" formatted="false">"欄位"</string>
     <string name="import_local_account" formatted="false">"從本機帳戶匯入"</string>
+    <string name="join_code" formatted="false">"核對碼"</string>
+    <string name="join_compare_hint" formatted="false">"核准前，請確認兩部裝置顯示的核對碼相同。"</string>
+    <string name="join_confirm" formatted="false">"以此身分登入該帳號，並加入這部裝置"</string>
+    <string name="join_create" formatted="false">"建立獨立帳號"</string>
+    <string name="join_identity" formatted="false">"登入身分"</string>
+    <string name="join_other" formatted="false">"此登入身分屬於另一個帳號。請選擇其他登入方式。"</string>
+    <string name="join_scan_hint" formatted="false">"掃描已授權裝置上的 QR 碼，開啟它的帳號。"</string>
+    <string name="join_show_hint" formatted="false">"在新裝置上選擇「開啟現有帳號」，掃描此碼。"</string>
+    <string name="join_wait_device" formatted="false">"等待核准裝置加入"</string>
+    <string name="join_wait_login" formatted="false">"等待核准登入方式"</string>
     <string name="language_search" formatted="false">"查詢語言"</string>
     <string name="links_created_progress" formatted="true">"已建立 %1$s / %2$s"</string>
     <string name="local_password" formatted="false">"本機解鎖密碼"</string>

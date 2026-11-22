@@ -28,7 +28,13 @@ class LocalAccountNavigationTest {
         try {
             compose.runOnUiThread { client.start() }
             compose.setContent { DMsgApp(client, {}, {}, { _, _ -> }) }
-            compose.waitUntil(15_000) { client.state.value.session?.state == "logged_out" }
+            compose.waitUntil(15_000) { client.state.value.session?.state == "logged_out" && !client.state.value.busy && !client.state.value.concealed }
+            compose.onNodeWithText("Open an existing account").performScrollTo().performClick()
+            compose.waitUntil(10_000) { client.joiningAccount.value && compose.onAllNodesWithText("Scan invitation").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Scan invitation").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Review").assertIsNotEnabled()
+            compose.onNodeWithText("Close").performClick()
+            compose.waitUntil(5_000) { !client.joiningAccount.value }
             compose.onNodeWithTag("access.local").performClick()
             compose.waitUntil(15_000) { client.state.value.unlocked }
             compose.runOnIdle { client.navigation.open("account") }

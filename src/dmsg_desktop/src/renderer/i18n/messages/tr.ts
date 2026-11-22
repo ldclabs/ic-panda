@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Ayrı bir hesap oluştur",
+  joinConfirm: "Bu oturum açma yöntemini hesaba bağla ve bu cihazı ekle",
+  joinOther: "Bu oturum açma yöntemi başka bir hesaba bağlı. Başka bir yöntem seçin.",
+  joinCode: "Karşılaştırma kodu",
+  joinWaitLogin: "Oturum açma onayı bekleniyor",
+  joinWaitDevice: "Cihaz onayı bekleniyor",
+  joinShowRequest: "Diğer cihazın taraması için QR kodu göster",
+  joinShowHint: "Yeni cihazda Mevcut hesabı aç seçeneğini seçin ve bu kodu tarayın.",
+  joinCompareHint: "Onaylamadan önce her iki cihazdaki kodun aynı olduğunu doğrulayın.",
+  joinScanHint: "Hesabı açmak için yetkili bir cihazdaki kodu tarayın.",
+  joinOpen: "Mevcut bir hesabı aç",
   pairScanWithAdmin: "İsteği incelemek için bu kodu bir yönetici cihazıyla tarayın.",
   pairContinueElsewhere: "Başka bir cihazda devam et",
   pairEnableApprovals: "Bu cihazın gelecekteki istekleri onaylamasına izin ver",

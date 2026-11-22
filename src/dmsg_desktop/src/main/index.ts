@@ -807,7 +807,7 @@ handle('dmsg:vault-import', 'main', async (_event, session: number, picks: numbe
 })
 /** Camera permission and picked images stay behind the main-process bridge. */
 handle('dmsg:camera-access', 'main', () => process.platform === 'darwin' ? systemPreferences.askForMediaAccess('camera') : true)
-handle('dmsg:device-qr-image', 'main', async (_event, source: string) => {
+handle('dmsg:device-qr-image', 'main', async (_event, source: string, invitation?: boolean) => {
   const limit = 8 * 1024 * 1024
   let bytes: Buffer
   if (source === 'clipboard') {
@@ -824,7 +824,7 @@ handle('dmsg:device-qr-image', 'main', async (_event, source: string) => {
     bytes = await readFile(path)
   } else throw new DaemonError('INVALID_INPUT', 'QR image source')
   if (bytes.length > limit) throw new DaemonError('QUOTA_EXCEEDED', 'QR image too large')
-  return daemon.call('device/pair_scan', { image: bytes.toString('base64') })
+  return daemon.call('device/pair_scan', { image: bytes.toString('base64'), ...(invitation === true ? { invitation: true } : {}) })
 })
 
 /** The text of a QR code, from an image the person picks or the one on the clipboard. */

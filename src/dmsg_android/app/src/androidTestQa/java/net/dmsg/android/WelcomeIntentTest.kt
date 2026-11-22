@@ -52,10 +52,12 @@ class WelcomeIntentTest {
             compose.activity.setContent { DMsgTheme(false) { EntryScreen(client, sample.value, {}, {}, remember { SnackbarHostState() }) } }
         }
         compose.onNodeWithText("Open an existing account").performClick()
+        compose.runOnIdle { assertEquals(true, client.joiningAccount.value); client.showAccountInvitation(false) }
+        compose.onNodeWithText("Use an existing passkey").performScrollTo().performClick()
         compose.onNodeWithText("Use an existing passkey").assertIsDisplayed()
         compose.onNodeWithText("Create passkey").assertDoesNotExist()
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Set up a new workspace").performClick()
+        compose.onNodeWithText("Create a separate account").performClick()
         compose.onNodeWithText("Create passkey").assertIsDisplayed()
         compose.onNodeWithText("Already have a passkey? Sign in").performClick()
         compose.onNodeWithText("Use an existing passkey").assertIsDisplayed()
@@ -67,7 +69,7 @@ class WelcomeIntentTest {
             sample.value = initial.copy(session = session.copy(state = "locked", account = initial.session?.account, fastUnlock = true))
         }
         compose.onNodeWithText("Unlock workspace").assertIsDisplayed()
-        compose.onNodeWithText("Set up a new workspace").performScrollTo().performClick()
+        compose.onNodeWithText("Create a separate account").performScrollTo().performClick()
         compose.onNodeWithText("Create passkey").assertIsDisplayed()
         compose.runOnIdle { assertEquals(requestsBefore, client.state.value.session!!.approvalsWaiting) }
     }

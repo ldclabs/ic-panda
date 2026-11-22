@@ -65,6 +65,7 @@ k256 = { workspace = true, features = ["ecdsa", "schnorr"] }
 alloy-consensus = { workspace = true, features = ["k256"] }
 alloy-eips.workspace = true
 dmsg_client = { path = "../../src/dmsg_client", features = ["testing"] }
+dmsg_mobile = { path = "../../src/dmsg_mobile", features = ["ui-fixtures"] }
 bitcoin.workspace = true
 ic-ed25519.workspace = true
 ic-secp256k1.workspace = true

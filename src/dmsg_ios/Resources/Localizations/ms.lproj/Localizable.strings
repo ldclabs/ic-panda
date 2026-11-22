@@ -3576,5 +3576,25 @@
 	<string>Selepas kunci didaftarkan, muat semula permintaan pada peranti yang akan ditambah dan imbas sekali lagi.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Imbas kod ini dengan peranti pentadbir untuk menyemak permintaan.</string>
+	<key>Close</key>
+	<string>Tutup</string>
+	<key>Comparison code</key>
+	<string>Kod perbandingan</string>
+	<key>Create a separate account</key>
+	<string>Cipta akaun berasingan</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Imbas kod pada peranti yang dibenarkan untuk membuka akaunnya.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Log masuk ini milik akaun lain. Pilih log masuk lain.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Gunakan log masuk ini untuk akaun ini dan tambah peranti ini</string>
+	<key>Waiting for device approval</key>
+	<string>Menunggu kelulusan peranti</string>
+	<key>Waiting for login approval</key>
+	<string>Menunggu kelulusan log masuk</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Pada peranti baharu, pilih Buka akaun sedia ada dan imbas kod ini.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Pastikan kedua-dua peranti memaparkan kod yang sama sebelum meluluskan.</string>
 </dict>
 </plist>

@@ -979,6 +979,7 @@ final class DeviceNavigationTests: NavigationTestCase {
             XCTAssertTrue(fields.firstMatch.waitForExistence(timeout: 5) || views.firstMatch.exists)
             let field = fields.firstMatch.exists ? fields.firstMatch : views.firstMatch
             let send = app.buttons["pair.desktop.send"]
+            if language == "zh-Hans" { XCTAssertTrue(app.buttons["关闭"].exists) }
             XCTAssertFalse(send.isEnabled)
             capture(app, name: "Desktop invitation empty · \(language)")
             field.tap()
@@ -1005,14 +1006,11 @@ final class DeviceNavigationTests: NavigationTestCase {
         send.tap()
         let device = app.staticTexts["pair.desktop.device"]
         XCTAssertTrue(device.waitForExistence(timeout: 2))
-        XCTAssertFalse(send.isEnabled)
-        let signIn = app.buttons["Continue with Internet Identity"]
-        signIn.tap()
+        XCTAssertFalse(send.exists)
+        XCTAssertTrue(app.staticTexts["Waiting for device approval"].exists)
         XCTAssertTrue(app.staticTexts["This request has expired"].waitForExistence(timeout: 8))
-        XCTAssertTrue(signIn.exists, "An unsuccessful sign-in can be retried on the pairing screen")
         XCTAssertFalse(device.exists)
-        XCTAssertTrue(send.isEnabled)
-        XCTAssertTrue(app.buttons["Check authorization"].exists)
+        XCTAssertTrue(send.isEnabled, "A fresh invitation can be reviewed from the same screen")
         capture(app, name: "Expired desktop pairing receipt")
     }
 }

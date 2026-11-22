@@ -4,6 +4,7 @@
   import { onDestroy, onMount } from 'svelte'
   import Collapsible from '../components/Collapsible.svelte'
 
+  import { accountJoinRequested, deviceRequestQr } from '../shell/session'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -19,7 +20,8 @@
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
 
   let account = $state('')
-  let token = $state('')
+  let direct = $state(false)
+  let token = $state(''), bindingQr = $state('')
   let pairing = $state<any>(null)
   let member = $state(false)
   let predecessor = $state('')
@@ -53,13 +55,17 @@
     attempt(async () => {
       const target = account.trim()
       const result: any = await call('account/bind_request', { account: target })
-      if (alive && target === account.trim()) token = result.token
+      if (alive && target === account.trim()) { token = result.token; bindingQr = result.qr ?? '' }
     })
 
   const bindAccept = () =>
     attempt(async () => {
-      await call('account/bind_accept', { account: account.trim() })
-      token = ''
+      const bound = await call<{state: string}>('account/bind_accept', { account: account.trim() })
+      token = ''; bindingQr = ''
+      if (alive && bound?.state === 'pairing_required') {
+        const value = await call('device/pair_request', {role:member ? 'member' : 'administrator'})
+        if (alive) { pairing = value; polling = true }
+      }
     })
 
   const pair = () =>
@@ -95,14 +101,20 @@
     })
 
   onMount(() => {
+    const offQr = deviceRequestQr.subscribe(requested => {
+      if (!requested) return
+      deviceRequestQr.set(false)
+      if (status?.state === 'no_account') direct = true
+      else if (status?.state === 'pairing_required') void pair()
+    })
     if (status?.state === 'root_required' && !status.setup_pending) polling = true
     if (recoverable) void recoveryCall('recovery/status')
     const off = onChange(['recovery/changed'], () => { if (recoverable) void recoveryCall('recovery/status') })
     const timer = setInterval(() => { now = Date.now() }, 1000)
     const check = setInterval(() => {
-      if (!document.hidden && !busy && polling && recoverable) void joined(true)
+      if (!document.hidden && !$accountJoinRequested && !busy && polling && recoverable) void joined(true)
     }, 5000)
-    return () => { clearInterval(timer); clearInterval(check); off() }
+    return () => { clearInterval(timer); clearInterval(check); off(); offQr() }
   })
 </script>
 
@@ -111,19 +123,25 @@
   <Section title={t('noAccount')} icon="add" testid="onboarding">
     <div class="grid gap-4">
       <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">{t('loginPrincipal')} <Id id={status.principal} full /></div>
-      <button class={buttonClass('primary', 'lg', 'justify-self-start')} disabled={busy} data-testid="create-account" onclick={create}>
-        <Icon name="add" />{t('createAccount')}
+      <button class={buttonClass('secondary', 'lg', 'justify-self-start')} disabled={busy} data-testid="create-account" onclick={create}>
+        <Icon name="add" />{t('joinCreate')}
       </button>
-      <Collapsible testid="join-account">
-        {#snippet title()}<b class="text-[13px] font-semibold">{t('joinAccount')}</b>{/snippet}
+      <Collapsible bind:open={direct} testid="join-account">
+        {#snippet title()}<b class="text-[13px] font-semibold">{t('joinShowRequest')}</b>{/snippet}
         <div class="grid gap-2 py-2">
         <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
         <div class="flex flex-wrap items-end gap-2">
           <TextField label={t('accountId')} bind:value={account} oninput={() => (token = '')} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
-          <button class={buttonClass('secondary')} disabled={busy || !account.trim() || !!token} onclick={bindRequest}>{t('bindRequest')}</button>
+          <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={bindRequest}>{t(token ? 'refresh' : 'bindRequest')}</button>
         </div>
         {#if token}
-          <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all select-all" data-testid="bind-token">{token}</p>
+          {#if bindingQr}<img src={bindingQr} alt={t('bindRequest')} width="224" height="224" class="max-w-full rounded-lg bg-white p-2 [image-rendering:pixelated]" data-testid="binding-qr" />{/if}
+          <p>{t('principalShown')} <Id id={status.principal} full wrap /></p>
+          <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(token)}>{t('copy')} · {t('requestToken')}</button>
+          <Collapsible>
+            {#snippet title()}{t('requestToken')}{/snippet}
+            <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all select-all" data-testid="bind-token">{token}</p>
+          </Collapsible>
           <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy} onclick={bindAccept}>{t('bindAccept')}</button>
         {/if}
         </div>

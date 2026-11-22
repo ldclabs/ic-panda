@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Verschlüsselte Datenblöcke werden übertragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Verschlüsselte Übertragungen"</string>
     <string name="customize_fields" formatted="false">"Felder anpassen"</string>
+    <string name="device_content_signing" formatted="false">"Inhalte signieren"</string>
     <string name="empty_folder" formatted="false">"Keine Dateien in diesem Ordner"</string>
     <string name="file_moved_to_trash" formatted="false">"In den Papierkorb verschoben"</string>
     <string name="file_name_rule" formatted="false">"Verwende einen Namen mit 1–255 Zeichen ohne Schrägstriche oder Steuerzeichen."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Gerät"</string>
     <string name="history_fields" formatted="false">"Felder"</string>
     <string name="import_local_account" formatted="false">"Aus lokalem Konto importieren"</string>
+    <string name="join_code" formatted="false">"Vergleichscode"</string>
+    <string name="join_compare_hint" formatted="false">"Prüfe vor der Freigabe, ob beide Geräte denselben Code anzeigen."</string>
+    <string name="join_confirm" formatted="false">"Diese Anmeldung für dieses Konto verwenden und dieses Gerät hinzufügen"</string>
+    <string name="join_create" formatted="false">"Separates Konto erstellen"</string>
+    <string name="join_identity" formatted="false">"Anmeldeidentität"</string>
+    <string name="join_other" formatted="false">"Diese Anmeldung gehört zu einem anderen Konto. Wähle eine andere Anmeldung."</string>
+    <string name="join_scan_hint" formatted="false">"Scanne den Code auf einem autorisierten Gerät, um dessen Konto zu öffnen."</string>
+    <string name="join_show_hint" formatted="false">"Wähle auf dem neuen Gerät „Bestehendes Konto öffnen“ und scanne diesen Code."</string>
+    <string name="join_wait_device" formatted="false">"Warten auf Gerätefreigabe"</string>
+    <string name="join_wait_login" formatted="false">"Warten auf Freigabe der Anmeldung"</string>
     <string name="language_search" formatted="false">"Sprache suchen"</string>
     <string name="links_created_progress" formatted="true">"%1$s von %2$s erstellt"</string>
     <string name="local_password" formatted="false">"Lokales Passwort"</string>

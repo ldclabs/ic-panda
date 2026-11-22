@@ -12,7 +12,7 @@
   import LocalAccount from './LocalAccount.svelte'
   import Brand from './Brand.svelte'
   import { login, startLogin } from './login.svelte'
-  import { logout } from './session'
+  import { accountJoinRequested, logout } from './session'
 
   /**
    * A device without a ready account sees only this: signing in, creating or
@@ -89,6 +89,7 @@
 
     {#if error}<Notice failure={error} tone="danger" testid="welcome-error">{error}</Notice>{/if}
 
+    {#if step < 2}<button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={() => accountJoinRequested.set(true)} data-testid="open-account-invite">{t('joinOpen')}</button>{/if}
     {#if step === 0}
       <div class="grid gap-4">
         <h1 class="text-[22px] leading-tight font-semibold">{t('welcomeTitle')}</h1>

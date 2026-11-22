@@ -3576,5 +3576,25 @@
 	<string>کلید رجسٹر کرنے کے بعد شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>درخواست کا جائزہ لینے کے لیے منتظم کی ڈیوائس سے یہ کوڈ اسکین کریں۔</string>
+	<key>Close</key>
+	<string>بند کریں</string>
+	<key>Comparison code</key>
+	<string>توثیقی کوڈ</string>
+	<key>Create a separate account</key>
+	<string>علیحدہ اکاؤنٹ بنائیں</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>اکاؤنٹ کھولنے کے لیے مجاز آلے پر دکھایا گیا کوڈ اسکین کریں۔</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>یہ لاگ ان دوسرے اکاؤنٹ سے منسلک ہے۔ کوئی اور لاگ ان منتخب کریں۔</string>
+	<key>Use this login for this account and add this device</key>
+	<string>اس اکاؤنٹ کے لیے یہ لاگ ان استعمال کریں اور یہ آلہ شامل کریں</string>
+	<key>Waiting for device approval</key>
+	<string>آلے کی منظوری کا انتظار ہے</string>
+	<key>Waiting for login approval</key>
+	<string>لاگ ان کی منظوری کا انتظار ہے</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>نئے آلے پر موجودہ اکاؤنٹ کھولنے کا اختیار منتخب کریں اور یہ کوڈ اسکین کریں۔</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>منظوری سے پہلے دیکھیں کہ دونوں آلات پر ایک ہی کوڈ دکھائی دے رہا ہے۔</string>
 </dict>
 </plist>

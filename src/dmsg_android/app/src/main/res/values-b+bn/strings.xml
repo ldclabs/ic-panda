@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"এনক্রিপ্ট করা ব্লক স্থানান্তর হচ্ছে"</string>
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>
     <string name="customize_fields" formatted="false">"ফিল্ড সাজান"</string>
+    <string name="device_content_signing" formatted="false">"বিষয়বস্তু স্বাক্ষর"</string>
     <string name="empty_folder" formatted="false">"এই ফোল্ডারে কোনো ফাইল নেই"</string>
     <string name="file_moved_to_trash" formatted="false">"ট্র্যাশে সরানো হয়েছে"</string>
     <string name="file_name_rule" formatted="false">"স্ল্যাশ বা নিয়ন্ত্রণ অক্ষর ছাড়া ১–২৫৫ অক্ষরের নাম ব্যবহার করুন।"</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"ডিভাইস"</string>
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
     <string name="import_local_account" formatted="false">"স্থানীয় অ্যাকাউন্ট থেকে আমদানি করুন"</string>
+    <string name="join_code" formatted="false">"মেলানোর কোড"</string>
+    <string name="join_compare_hint" formatted="false">"অনুমোদনের আগে দুই ডিভাইসে দেখানো কোড মিলিয়ে নিন।"</string>
+    <string name="join_confirm" formatted="false">"এই অ্যাকাউন্টে এই লগইন ব্যবহার করুন এবং ডিভাইসটি যোগ করুন"</string>
+    <string name="join_create" formatted="false">"আলাদা অ্যাকাউন্ট তৈরি করুন"</string>
+    <string name="join_identity" formatted="false">"লগইন পরিচয়"</string>
+    <string name="join_other" formatted="false">"এই লগইন অন্য একটি অ্যাকাউন্টের। অন্য লগইন বেছে নিন।"</string>
+    <string name="join_scan_hint" formatted="false">"অ্যাকাউন্ট খুলতে অনুমোদিত ডিভাইসে দেখানো কোড স্ক্যান করুন।"</string>
+    <string name="join_show_hint" formatted="false">"নতুন ডিভাইসে বিদ্যমান অ্যাকাউন্ট খোলার বিকল্পটি বেছে নিয়ে এই কোডটি স্ক্যান করুন।"</string>
+    <string name="join_wait_device" formatted="false">"ডিভাইসের অনুমোদনের অপেক্ষায়"</string>
+    <string name="join_wait_login" formatted="false">"লগইনের অনুমোদনের অপেক্ষায়"</string>
     <string name="language_search" formatted="false">"ভাষা খুঁজুন"</string>
     <string name="links_created_progress" formatted="true">"%2$sটির মধ্যে %1$sটি তৈরি হয়েছে"</string>
     <string name="local_password" formatted="false">"স্থানীয় পাসওয়ার্ড"</string>

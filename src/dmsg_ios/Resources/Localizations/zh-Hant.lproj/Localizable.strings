@@ -3576,5 +3576,25 @@
 	<string>金鑰登記成功後，請在要加入的裝置上重新整理請求，再掃描一次。</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>請用有核准權限的管理員裝置掃碼，核對並處理請求。</string>
+	<key>Close</key>
+	<string>關閉</string>
+	<key>Comparison code</key>
+	<string>核對碼</string>
+	<key>Create a separate account</key>
+	<string>建立獨立帳號</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>掃描已授權裝置上的 QR 碼，開啟它的帳號。</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>此登入身分屬於另一個帳號。請選擇其他登入方式。</string>
+	<key>Use this login for this account and add this device</key>
+	<string>以此身分登入該帳號，並加入這部裝置</string>
+	<key>Waiting for device approval</key>
+	<string>等待核准裝置加入</string>
+	<key>Waiting for login approval</key>
+	<string>等待核准登入方式</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>在新裝置上選擇「開啟現有帳號」，掃描此碼。</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>核准前，請確認兩部裝置顯示的核對碼相同。</string>
 </dict>
 </plist>

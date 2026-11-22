@@ -3576,5 +3576,25 @@
 	<string>Vernieuw na de sleutelregistratie het verzoek op het toe te voegen apparaat en scan het opnieuw.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Scan deze code met een beheerdersapparaat om het verzoek te beoordelen.</string>
+	<key>Close</key>
+	<string>Sluiten</string>
+	<key>Comparison code</key>
+	<string>Vergelijkingscode</string>
+	<key>Create a separate account</key>
+	<string>Een apart account maken</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Scan de code op een bevoegd apparaat om het account ervan te openen.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Deze aanmelding hoort bij een ander account. Kies een andere aanmelding.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Deze aanmelding voor dit account gebruiken en dit apparaat toevoegen</string>
+	<key>Waiting for device approval</key>
+	<string>Wachten op goedkeuring van het apparaat</string>
+	<key>Waiting for login approval</key>
+	<string>Wachten op goedkeuring van de aanmelding</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Kies op het nieuwe apparaat ‘Bestaand account openen’ en scan deze code.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Controleer vóór goedkeuring of beide apparaten dezelfde code tonen.</string>
 </dict>
 </plist>

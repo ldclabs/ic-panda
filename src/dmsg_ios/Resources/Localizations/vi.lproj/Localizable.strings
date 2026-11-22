@@ -3576,5 +3576,25 @@
 	<string>Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.</string>
+	<key>Close</key>
+	<string>Đóng</string>
+	<key>Comparison code</key>
+	<string>Mã đối chiếu</string>
+	<key>Create a separate account</key>
+	<string>Tạo tài khoản riêng</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này</string>
+	<key>Waiting for device approval</key>
+	<string>Đang chờ duyệt thiết bị</string>
+	<key>Waiting for login approval</key>
+	<string>Đang chờ duyệt cách đăng nhập</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Trên thiết bị mới, chọn Mở tài khoản hiện có rồi quét mã này.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không.</string>
 </dict>
 </plist>

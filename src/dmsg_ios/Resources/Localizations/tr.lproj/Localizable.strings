@@ -3576,5 +3576,25 @@
 	<string>Anahtarı kaydettikten sonra katılacak cihazdaki isteği yenileyip tekrar tarayın.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>İsteği incelemek için bu kodu bir yönetici cihazıyla tarayın.</string>
+	<key>Close</key>
+	<string>Kapat</string>
+	<key>Comparison code</key>
+	<string>Karşılaştırma kodu</string>
+	<key>Create a separate account</key>
+	<string>Ayrı bir hesap oluştur</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Hesabı açmak için yetkili bir cihazdaki kodu tarayın.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Bu oturum açma yöntemi başka bir hesaba bağlı. Başka bir yöntem seçin.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Bu oturum açma yöntemini hesaba bağla ve bu cihazı ekle</string>
+	<key>Waiting for device approval</key>
+	<string>Cihaz onayı bekleniyor</string>
+	<key>Waiting for login approval</key>
+	<string>Oturum açma onayı bekleniyor</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Yeni cihazda Mevcut hesabı aç seçeneğini seçin ve bu kodu tarayın.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Onaylamadan önce her iki cihazdaki kodun aynı olduğunu doğrulayın.</string>
 </dict>
 </plist>

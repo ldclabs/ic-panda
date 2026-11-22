@@ -3576,5 +3576,25 @@
 	<string>鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>管理者デバイスでこのコードをスキャンして、リクエストを確認してください。</string>
+	<key>Close</key>
+	<string>閉じる</string>
+	<key>Comparison code</key>
+	<string>照合コード</string>
+	<key>Create a separate account</key>
+	<string>別のアカウントを作成</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。</string>
+	<key>Use this login for this account and add this device</key>
+	<string>このログイン方法をアカウントに登録し、この端末を追加</string>
+	<key>Waiting for device approval</key>
+	<string>端末の承認待ち</string>
+	<key>Waiting for login approval</key>
+	<string>ログイン方法の承認待ち</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>新しい端末で「既存のアカウントを開く」を選び、このコードをスキャンしてください。</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>承認する前に、両方の端末に同じコードが表示されていることを確認してください。</string>
 </dict>
 </plist>

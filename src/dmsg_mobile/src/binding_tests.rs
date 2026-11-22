@@ -20,6 +20,7 @@ async fn fixture(origin: &str) -> (MobileEngine, testing::TempDir, String) {
         hints_redial: Arc::default(),
         sync_signal: Arc::default(),
         plan_checked: Arc::default(),
+        invitations: Arc::default(),
         transfers: Arc::default(),
     };
     let mut session = LoginSession::ios(
@@ -44,6 +45,16 @@ async fn fixture(origin: &str) -> (MobileEngine, testing::TempDir, String) {
         dmsg_client::codec::b64(&bytes)
     );
     (engine, dir, callback)
+}
+
+#[tokio::test]
+async fn mobile_invitation_belongs_to_the_session_across_scoped_calls() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let first = engine.scoped(engine.control_generation()).unwrap();
+    let second = engine.scoped(engine.control_generation()).unwrap();
+    assert!(Arc::ptr_eq(&first.invitations, &second.invitations));
+    engine.lock_now();
+    assert!(first.account_invitation_status("old".into()).await.is_err());
 }
 
 #[tokio::test]

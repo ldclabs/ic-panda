@@ -3576,5 +3576,25 @@
 	<string>После регистрации ключа обновите запрос на добавляемом устройстве и снова отсканируйте его.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>Отсканируйте код устройством администратора, чтобы проверить запрос.</string>
+	<key>Close</key>
+	<string>Закрыть</string>
+	<key>Comparison code</key>
+	<string>Код для сверки</string>
+	<key>Create a separate account</key>
+	<string>Создать отдельный аккаунт</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Отсканируйте код на авторизованном устройстве, чтобы открыть его аккаунт.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Этот способ входа привязан к другому аккаунту. Выберите другой способ.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Использовать этот способ входа в аккаунт и добавить устройство</string>
+	<key>Waiting for device approval</key>
+	<string>Ожидание одобрения устройства</string>
+	<key>Waiting for login approval</key>
+	<string>Ожидание одобрения способа входа</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>На новом устройстве выберите «Открыть существующий аккаунт» и отсканируйте этот код.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Перед одобрением убедитесь, что коды на обоих устройствах совпадают.</string>
 </dict>
 </plist>

@@ -401,7 +401,7 @@ impl Daemon {
         self.under_lock(async |client| match method {
             "account/bind_request" => {
                 let token = client.bind_request(&account(params, "account")?).await?;
-                Ok(json!({"token": token}))
+                Ok(json!({"qr": dmsg_client::qr::png_data(&token)?, "token": token}))
             }
             "account/bind_accept" => Ok(to_json(
                 &client.bind_accept(&account(params, "account")?).await?,

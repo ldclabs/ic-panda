@@ -1,0 +1,122 @@
+<script lang="ts">
+  import { onDestroy, onMount, untrack } from 'svelte'
+  import { accountJoinRequested, deviceRequestQr } from '../shell/session'
+  import Dialog from '../components/Dialog.svelte'
+  import QrCamera from '../components/QrCamera.svelte'
+  import SecretInput from '../components/SecretInput.svelte'
+  import Fact from '../components/page/Fact.svelte'
+  import Id from '../components/page/Id.svelte'
+  import Notice from '../components/page/Notice.svelte'
+  import { buttonClass } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { bridge, call, code, errorText } from '../rpc'
+  import { startLogin } from '../shell/login.svelte'
+
+  let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
+  type Preview = { stage: string; account: string; current_account?: string; principal?: string; code?: string; expires_at: number }
+  let open = $state(false), scanning = $state(false), busy = $state(false)
+  let token = $state(''), error = $state(''), view = $state<Preview | null>(null)
+  let revision = 0, timer: ReturnType<typeof setTimeout> | undefined
+  let paused = $state(false), directAfterLogin = $state(false)
+  function edit(value: string) {
+    revision++; clearTimeout(timer); token = value; view = null; busy = false; paused = false; error = ''
+  }
+  function show(value: boolean) {
+    if (!value) accountJoinRequested.set(false)
+    open = value; scanning = false; directAfterLogin = false; edit('')
+    if (value) {
+      const turn = revision
+      void call<string | null>('device/saved_invitation').then(saved => {
+        if (open && revision === turn && saved) { edit(saved); void check() }
+      }).catch(() => {})
+    }
+  }
+  onMount(() => accountJoinRequested.subscribe(value => { if (value && !open) show(true) }))
+  onDestroy(() => { revision++; clearTimeout(timer) })
+  function schedule() {
+    clearTimeout(timer)
+    if (open && !paused && ['waiting_login','waiting_device','authorized'].includes(view?.stage ?? '')) {
+      timer = setTimeout(() => { if (document.hidden) schedule(); else void check(true) }, 4000)
+    }
+  }
+  async function check(continueJoin = false) {
+    if (busy || !token.trim()) return
+    const turn = revision
+    busy = true; error = ''
+    try {
+      if (continueJoin && ['waiting_device','authorized'].includes(view?.stage ?? '')) {
+        await call('session/unlock', { pairing_poll: true })
+        await refresh()
+        if (turn !== revision) return
+        if (status?.state === 'unlocked' && status?.account === view?.account) { show(false); return }
+        if (status?.state === 'root_required') { schedule(); return }
+      }
+      const result = await call<Preview>('device/join_invitation', { invitation: token.trim(), ...(continueJoin && view?.principal ? {principal:view.principal, bind_login:view.stage === 'bind_login'} : {}) })
+      if (turn !== revision) return
+      view = result; schedule()
+    } catch (e) {
+      if (turn !== revision) return
+      error = errorText(e)
+      if (!['UNAVAILABLE','EXECUTION_UNKNOWN','POLICY_STALE','SYNC_BUSY'].includes(code(e))) paused = true
+      schedule()
+    } finally { if (turn === revision) busy = false }
+  }
+  async function scan(image: string) {
+    const turn = revision
+    const result = await call<Preview & {token:string}>('device/pair_scan', { image, invitation:true })
+    if (turn === revision && scanning) { edit(result.token); view = result; scanning = false; schedule() }
+  }
+  async function scanImage(source: 'file' | 'clipboard') {
+    const turn = revision
+    busy = true; error = ''
+    try {
+      const result = await bridge<(Preview & {token:string}) | null>(() => window.dmsg.deviceQrImage(source, true))
+      if (turn === revision && result) { edit(result.token); view = result; schedule() }
+    } catch (e) { if (turn === revision) error = errorText(e) }
+    finally { if (turn === revision) busy = false }
+  }
+  function showRequest() {
+    if (['no_account', 'pairing_required'].includes(status?.state)) { show(false); deviceRequestQr.set(true) }
+    else { directAfterLogin = true; void startLogin() }
+  }
+  $effect(() => {
+    const principal = status?.principal, state = status?.state
+    untrack(() => {
+      if (open && directAfterLogin && ['no_account','pairing_required'].includes(state)) { showRequest(); return }
+      if (!open || !view || busy) return
+      if (principal && (view.stage === 'sign_in' || view.principal !== principal)) void check()
+      else if (!principal && view.principal) show(false)
+    })
+  })
+</script>
+<Dialog bind:open={() => open, show} title={t('joinOpen')} description={t(view?.code ? 'joinCompareHint' : 'joinScanHint')} icon="pair" testid="join-account-invitation">
+  <div class="grid gap-3">
+    {#if scanning}
+      <QrCamera onImage={scan} onCancel={() => { revision++; scanning = false }} />
+    {:else if !view}
+      <div class="flex flex-wrap gap-2">
+        <button class={buttonClass('secondary','sm')} disabled={busy} onclick={() => { edit(''); scanning = true }}>{t('scanQrCamera')}</button>
+        <button class={buttonClass('secondary','sm')} disabled={busy} onclick={() => scanImage('file')}>{t('scanQrImage')}</button>
+        <button class={buttonClass('secondary','sm')} disabled={busy} onclick={() => scanImage('clipboard')}>{t('scanQrClipboard')}</button>
+      </div>
+      {#if ['logged_out','no_account', 'pairing_required'].includes(status?.state)}
+        <button class={buttonClass('secondary','sm')} onclick={showRequest} data-testid="join-show-request">{t('joinShowRequest')}</button>
+      {/if}
+      <SecretInput label={t('pasteRequest')} multiline bind:value={() => token, edit} testid="join-invitation-token" />
+      <button class={buttonClass('primary')} disabled={!token.trim() || busy} onclick={() => check()}>{t('review')}</button>
+    {:else}
+      <Fact label={t('account')}><Id id={view.account} full wrap /></Fact>
+      {#if view.code}<Fact label={t('joinCode')}><b dir="ltr">{view.code}</b></Fact>{/if}
+      {#if ['sign_in','other_account','linked_login_required'].includes(view.stage)}
+        {#if view.stage !== 'sign_in'}<Notice>{t(view.stage === 'other_account' ? 'joinOther' : 'passkeyExistingHint')}</Notice>{/if}
+        <button class={buttonClass('primary')} onclick={() => startLogin()}>{t('login')}</button>
+      {:else if view.stage === 'bind_login' || view.stage === 'device'}
+        <button class={buttonClass('primary')} disabled={busy} onclick={() => check(true)}>{t(view.stage === 'bind_login' ? 'joinConfirm' : 'pairRequest')}</button>
+      {:else}
+        {#if view.stage === 'waiting_device'}<Fact label={t('loginPrincipal')}>{t('done')}</Fact>{/if}
+        <p role="status">{t(status?.state === 'root_required' ? 'pairPreparingVault' : view.stage === 'waiting_login' ? 'joinWaitLogin' : 'joinWaitDevice')}</p>
+      {/if}
+    {/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice><button class={buttonClass('secondary')} disabled={busy} onclick={() => { paused=false; void check(!!view) }}>{t('retry')}</button>{/if}
+  </div>
+</Dialog>

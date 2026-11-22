@@ -3576,5 +3576,25 @@
 	<string>कुंजी पंजीकृत होने के बाद, जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>अनुरोध की समीक्षा करने के लिए व्यवस्थापक डिवाइस से यह कोड स्कैन करें।</string>
+	<key>Close</key>
+	<string>बंद करें</string>
+	<key>Comparison code</key>
+	<string>मिलान कोड</string>
+	<key>Create a separate account</key>
+	<string>अलग खाता बनाएँ</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>खाता खोलने के लिए किसी अधिकृत डिवाइस पर दिख रहा कोड स्कैन करें।</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>यह लॉगिन किसी दूसरे खाते से जुड़ा है। कोई और लॉगिन चुनें।</string>
+	<key>Use this login for this account and add this device</key>
+	<string>इस खाते के लिए यह लॉगिन इस्तेमाल करें और यह डिवाइस जोड़ें</string>
+	<key>Waiting for device approval</key>
+	<string>डिवाइस की मंज़ूरी का इंतज़ार है</string>
+	<key>Waiting for login approval</key>
+	<string>लॉगिन की मंज़ूरी का इंतज़ार है</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>नए डिवाइस पर मौजूदा खाता खोलने का विकल्प चुनें और यह कोड स्कैन करें।</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>मंज़ूरी देने से पहले जाँचें कि दोनों डिवाइस पर एक ही कोड दिख रहा है।</string>
 </dict>
 </plist>

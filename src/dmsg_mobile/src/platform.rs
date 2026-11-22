@@ -430,7 +430,13 @@ impl dmsg_client::wallet::cosign::CosignProvider for Adapter {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(
+    test,
+    all(
+        feature = "ui-fixtures",
+        not(any(target_os = "android", target_os = "ios"))
+    )
+))]
 pub(crate) mod tests {
     use super::*;
 

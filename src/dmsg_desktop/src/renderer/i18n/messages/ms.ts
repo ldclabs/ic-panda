@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Cipta akaun berasingan",
+  joinConfirm: "Gunakan log masuk ini untuk akaun ini dan tambah peranti ini",
+  joinOther: "Log masuk ini milik akaun lain. Pilih log masuk lain.",
+  joinCode: "Kod perbandingan",
+  joinWaitLogin: "Menunggu kelulusan log masuk",
+  joinWaitDevice: "Menunggu kelulusan peranti",
+  joinShowRequest: "Paparkan kod QR untuk diimbas dengan peranti lain",
+  joinShowHint: "Pada peranti baharu, pilih Buka akaun sedia ada dan imbas kod ini.",
+  joinCompareHint: "Pastikan kedua-dua peranti memaparkan kod yang sama sebelum meluluskan.",
+  joinScanHint: "Imbas kod pada peranti yang dibenarkan untuk membuka akaunnya.",
+  joinOpen: "Buka akaun sedia ada",
   pairScanWithAdmin: "Imbas kod ini dengan peranti pentadbir untuk menyemak permintaan.",
   pairContinueElsewhere: "Teruskan pada peranti lain",
   pairEnableApprovals: "Benarkan peranti ini meluluskan permintaan akan datang",

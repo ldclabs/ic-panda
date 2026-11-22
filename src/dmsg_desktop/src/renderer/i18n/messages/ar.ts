@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  joinCreate: "إنشاء حساب مستقل",
+  joinConfirm: "استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز",
+  joinOther: "يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى.",
+  joinCode: "رمز المطابقة",
+  joinWaitLogin: "بانتظار الموافقة على تسجيل الدخول",
+  joinWaitDevice: "بانتظار الموافقة على الجهاز",
+  joinShowRequest: "عرض رمز ليمسحه الجهاز الآخر",
+  joinShowHint: "اختر فتح حساب موجود على الجهاز الجديد، ثم امسح هذا الرمز.",
+  joinCompareHint: "تأكد من تطابق الرمزين على الجهازين قبل الموافقة.",
+  joinScanHint: "امسح الرمز الموجود على جهاز مصرح له لفتح حسابه.",
+  joinOpen: "فتح حساب موجود",
   pairScanWithAdmin: "امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.",
   pairContinueElsewhere: "المتابعة على جهاز آخر",
   pairEnableApprovals: "السماح لهذا الجهاز بالموافقة على الطلبات المستقبلية",

@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "별도 계정 만들기",
+  joinConfirm: "이 로그인 수단을 계정에 연결하고 이 기기 추가",
+  joinOther: "이 로그인 수단은 다른 계정에 연결되어 있습니다. 다른 로그인 수단을 선택하세요.",
+  joinCode: "확인 코드",
+  joinWaitLogin: "로그인 승인 대기 중",
+  joinWaitDevice: "기기 승인 대기 중",
+  joinShowRequest: "다른 기기로 스캔할 QR 코드 표시",
+  joinShowHint: "새 기기에서 기존 계정 열기를 선택하고 이 코드를 스캔하세요.",
+  joinCompareHint: "승인하기 전에 두 기기에 표시된 코드가 같은지 확인하세요.",
+  joinScanHint: "승인된 기기의 코드를 스캔해 해당 계정을 여세요.",
+  joinOpen: "기존 계정 열기",
   pairScanWithAdmin: "관리자 기기로 이 코드를 스캔하여 요청을 검토하세요.",
   pairContinueElsewhere: "다른 기기에서 계속",
   pairEnableApprovals: "이 기기에서 향후 요청을 승인하도록 허용",

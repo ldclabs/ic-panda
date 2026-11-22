@@ -117,6 +117,7 @@ import net.dmsg.android.core.*
             OutlinedButton(onClick = { client.openLocal(); onSelected?.invoke() }, enabled = !state.busy) { Text(str(R.string.use_on_device)) }
         }
         item {
+            OutlinedButton(onClick = { onSelected?.invoke(); client.showAccountInvitation(true) }) { Text(str(R.string.access_existing_account)) }
             Button(onClick = { client.signInToAnotherAccount(); onSelected?.invoke() }, enabled = !state.busy) {
                 Text(str(R.string.access_sign_in_another))
             }

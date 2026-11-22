@@ -3576,5 +3576,25 @@
 	<string>بعد تسجيل المفتاح، حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
 	<string>امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.</string>
+	<key>Close</key>
+	<string>إغلاق</string>
+	<key>Comparison code</key>
+	<string>رمز المطابقة</string>
+	<key>Create a separate account</key>
+	<string>إنشاء حساب مستقل</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>امسح الرمز الموجود على جهاز مصرح له لفتح حسابه.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى.</string>
+	<key>Use this login for this account and add this device</key>
+	<string>استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز</string>
+	<key>Waiting for device approval</key>
+	<string>بانتظار الموافقة على الجهاز</string>
+	<key>Waiting for login approval</key>
+	<string>بانتظار الموافقة على تسجيل الدخول</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>اختر فتح حساب موجود على الجهاز الجديد، ثم امسح هذا الرمز.</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>تأكد من تطابق الرمزين على الجهازين قبل الموافقة.</string>
 </dict>
 </plist>

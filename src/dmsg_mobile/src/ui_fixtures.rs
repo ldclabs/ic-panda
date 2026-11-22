@@ -266,6 +266,17 @@ impl MobileEngine {
 }
 
 impl MobileEngine {
+    /// Host-side PocketIC fixture for exercising the native public methods with
+    /// the same short-lived scoped handles as the apps. Not exported to UniFFI.
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    pub fn integration_fixture(client: Client, staging: PathBuf) -> Arc<Self> {
+        Self::fixture_engine(
+            client,
+            staging,
+            Box::new(crate::platform::tests::PasscodeFallback::default()),
+        )
+    }
+
     fn fixture_engine(client: Client, staging: PathBuf, platform: Box<dyn Platform>) -> Arc<Self> {
         let config = client.config().clone();
         Arc::new(Self {
@@ -280,6 +291,7 @@ impl MobileEngine {
             hints_redial: Arc::default(),
             sync_signal: Arc::default(),
             plan_checked: Arc::default(),
+            invitations: Arc::default(),
             transfers: Arc::default(),
         })
     }

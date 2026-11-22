@@ -38,6 +38,7 @@ import java.security.MessageDigest
             }
         }, enabled = validAccount(account) && !state.working("access:binding")) { Text(str(R.string.text_create_binding_request_598bc7a)) }
         token?.let { request ->
+            state.session?.principal?.let { LabelValue(str(R.string.join_identity), it) }
             QrCode(request)
             TextButton(onClick = { client.clipboard.copy(request) }) { Text(str(R.string.text_copy_request_b707c92)) }
             SelectionContainer { Text(request, style = MaterialTheme.typography.bodySmall, maxLines = 5) }
@@ -49,16 +50,12 @@ import java.security.MessageDigest
 
 @Composable fun DevicePairingScreen(client: ClientController) {
     val state by client.state.collectAsStateWithLifecycle()
-    val qr by client.qr.state.collectAsStateWithLifecycle()
     var token by remember { mutableStateOf<String?>(null) }
     var refreshAt by remember { mutableLongStateOf(0) }
-    var invitation by remember { mutableStateOf("") }
     var failure by remember { mutableStateOf<String?>(null) }
-    var delivered by remember { mutableStateOf<Pair<String, ULong>?>(null) }
     var needsLogin by remember { mutableStateOf(false) }
     var polling by rememberSaveable(state.session?.deviceId) { mutableStateOf(true) }
     val preparing = state.session?.state == "root_required"
-    LaunchedEffect(qr.result) { client.qr.consume("pair-invitation")?.let { invitation = it; delivered = null } }
     fun request() = client.perform({ (it.pairRequest().decode() as? JsonPrimitive)?.takeIf { value -> value.isString }?.content ?: error("INTEGRITY_FAILED") }, key = "access:pair-request", onError = { failure = it }) {
         token = it; refreshAt = android.os.SystemClock.elapsedRealtime() + 270_000; failure = null
     }
@@ -95,19 +92,7 @@ import java.security.MessageDigest
                 TextButton(onClick = { client.clipboard.copy(encoded) }) { Text(str(R.string.text_copy_device_request_7bde6dd)) }
                 TextButton(onClick = ::request, enabled = !state.working("access:pair-request")) { Text(str(R.string.text_refresh_request_b86a6e2)) }
             } ?: if (state.working("access:pair-request")) LinearProgressIndicator(Modifier.fillMaxWidth()) else TextButton(onClick = ::request) { Text(str(R.string.text_show_device_request_8145c2f)) }
-            SectionTitle(str(R.string.text_join_with_an_invitation_d50f262))
-            OutlinedTextField(invitation, { invitation = it; delivered = null }, Modifier.fillMaxWidth(), minLines = 2, label = { Text(str(R.string.text_paste_desktop_invitation_ebe35cc)) })
-            OutlinedButton(onClick = { client.qr.open("pair-invitation") }) { Text(str(R.string.text_scan_invitation_27f0014)) }
-            Button(onClick = {
-                val shown = invitation.trim()
-                client.perform({ core -> core.joinDeviceInvitation(shown).decode().objectValue().let { it.required("device_id") to it.requiredUnsigned("expires_at") } }, key = "access:invitation", onError = { failure = it }) {
-                    if (invitation.trim() == shown) { delivered = it; failure = null }
-                }
-            }, enabled = invitation.isNotBlank() && delivered == null && !state.working("access:invitation")) { Text(str(R.string.text_send_device_request_c245e0d)) }
-            delivered?.let { (device, expires) ->
-                Notice(str(R.string.text_delivered_for_review_the_device_is_not_authorized_yet_5bae486))
-                SelectionContainer { Text(device) }; Text(str(R.string.text_expires_d2c7887) + displayTime(expires))
-            }
+            OutlinedButton(onClick = { client.showAccountInvitation(true) }) { Text(str(R.string.text_scan_invitation_27f0014)) }
         }
         failure?.let { Notice(errorText(it), true) }
         if (needsLogin) TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Text(str(R.string.text_return_to_sign_in_b22d5c4)) }
@@ -128,11 +113,10 @@ import java.security.MessageDigest
     }
 }
 
-@Composable internal fun DeviceRequestCode(client: ClientController, token: String, device: String, key: String? = null) {
+@Composable internal fun DeviceRequestCode(client: ClientController, token: String, device: String?, key: String? = null) {
     val context = LocalContext.current
     QrCode(token)
-    Text(str(R.string.text_device_id_b31993b))
-    DeviceFingerprint(device)
+    if (device != null) { Text(str(R.string.text_device_id_b31993b)); DeviceFingerprint(device) }
     if (key != null) {
         Text(str(R.string.pair_key_fingerprint))
         DeviceFingerprint(key)
@@ -150,7 +134,6 @@ private fun pairingReceipt(token: String): String =
 
 @Composable fun PairApprovalScreen(client: ClientController, enrollmentOnly: Boolean = false) {
     val state by client.state.collectAsStateWithLifecycle()
-    val qr by client.qr.state.collectAsStateWithLifecycle()
     var token by remember { mutableStateOf("") }
     var reviewError by remember { mutableStateOf<String?>(null) }
     var preview by remember { mutableStateOf<JsonObject?>(null) }
@@ -167,17 +150,20 @@ private fun pairingReceipt(token: String): String =
             if (!visible || input != token.trim()) return@perform
             val key = inspected.required("kind") == "approval_key"
             if (enrollmentOnly && !key) { reviewError = "INVALID_INPUT"; return@perform }
+            val firstLoginPreview = inspected.text("kind") == "login_binding" && preview?.text("principal") != inspected.text("principal")
             preview = inspected
-            if (inspected.required("route") == "approve") client.approvals.request(
+            if (!firstLoginPreview && inspected.required("route") == "approve") client.approvals.request(
                 pairingReceipt(input),
                 active = { visible && token.trim() == input },
                 onError = { code -> if (visible && input == token.trim()) reviewError = code },
             ) { core ->
+                if (inspected.text("kind") == "login_binding") return@request core.reviewBinding(input)
                 val device = inspected.required("device_id")
                 if (key) core.approveApprovalKey(input, device) else core.approvePairingRequest(input, device)
             }
         }
     }
+    val qr by client.qr.state.collectAsStateWithLifecycle()
     LaunchedEffect(qr.result) { client.qr.consume("pair-approval")?.let { edit(it); review() } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (preview?.text("route") != "handoff") {
@@ -191,6 +177,7 @@ private fun pairingReceipt(token: String): String =
             Notice(if (code == "EXPIRED" || code == "VERSION_CONFLICT") str(R.string.pair_refresh_request) else errorText(code), true)
         }
         preview?.let { inspected ->
+            inspected.text("principal")?.let { LabelValue(str(R.string.join_identity), it) }
             when (inspected.required("route")) {
                 "done" -> Notice(str(R.string.text_completed_6ff49bc))
                 "refresh" -> Notice(str(R.string.pair_refresh_request))
@@ -198,7 +185,7 @@ private fun pairingReceipt(token: String): String =
                     SectionTitle(str(if (enrollment == null) R.string.pair_continue_elsewhere else R.string.pair_enable_approvals))
                     Text(str(R.string.pair_scan_with_admin))
                     if (enrollment == null) {
-                        DeviceRequestCode(client, token.trim(), inspected.required("device_id"), inspected.text("key_id"))
+                        DeviceRequestCode(client, token.trim(), inspected.text("device_id"), inspected.text("key_id"))
                         val devices = inspected.strings("approvers")
                         if (devices.isEmpty()) {
                             Notice(str(R.string.pair_no_approver))

@@ -14,9 +14,12 @@ struct DevicesView: View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section {
-                NavigationLink { PairApprovalView() } label: {
-                    DeviceChoice(title: "Authorize another device", detail: "Add a device and keep using this one.")
+                if canManage {
+                    NavigationLink { AccountInvitationHostView() } label: {
+                        DeviceChoice(title: "Authorize another device", detail: "Add a device and keep using this one.")
+                    }
                 }
+                NavigationLink("Scan device request") { PairApprovalView() }
                 NavigationLink { SuccessionsView() } label: {
                     DeviceChoice(title: "Replace a device", detail: "Move this device’s role to its replacement.")
                 }.accessibilityIdentifier("devices.succession")

@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Gumawa ng hiwalay na account",
+  joinConfirm: "Gamitin ang login na ito sa account at idagdag ang device na ito",
+  joinOther: "Para sa ibang account ang login na ito. Pumili ng ibang login.",
+  joinCode: "Code na ihahambing",
+  joinWaitLogin: "Hinihintay ang pag-apruba sa login",
+  joinWaitDevice: "Hinihintay ang pag-apruba sa device",
+  joinShowRequest: "Magpakita ng QR code na i-scan ng kabilang device",
+  joinShowHint: "Sa bagong device, piliing magbukas ng kasalukuyang account at i-scan ang code na ito.",
+  joinCompareHint: "Bago aprubahan, tiyaking magkapareho ang code sa dalawang device.",
+  joinScanHint: "I-scan ang code sa awtorisadong device para buksan ang account nito.",
+  joinOpen: "Magbukas ng kasalukuyang account",
   pairScanWithAdmin: "I-scan ang code na ito gamit ang device ng administrator para suriin ang kahilingan.",
   pairContinueElsewhere: "Magpatuloy sa ibang device",
   pairEnableApprovals: "Payagang mag-apruba ang device na ito ng mga susunod na kahilingan",

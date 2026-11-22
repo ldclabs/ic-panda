@@ -40,13 +40,13 @@ const ACCEPT_MS: u64 = 600_000;
 const BINDING: &str = "binding:";
 
 #[derive(Serialize, Deserialize)]
-struct AuthPacket {
-    format: String,
-    home: Principal,
-    account: AccountId,
-    principal: Principal,
-    nonce: Hash,
-    expires_at: u64,
+pub(super) struct AuthPacket {
+    pub(super) format: String,
+    pub(super) home: Principal,
+    pub(super) account: AccountId,
+    pub(super) principal: Principal,
+    pub(super) nonce: Hash,
+    pub(super) expires_at: u64,
 }
 
 /// A binding request another login produced, after its checks.
@@ -56,6 +56,8 @@ pub struct BindingRequest {
     pub principal: Principal,
     /// Its one-time nonce.
     pub nonce: Hash,
+    /// Deadline of the original request.
+    pub expires_at: u64,
 }
 
 /// A login waiting on this device for its binding: the identity that
@@ -285,6 +287,7 @@ impl Client {
         Ok(BindingRequest {
             principal: packet.principal,
             nonce: packet.nonce,
+            expires_at: packet.expires_at,
         })
     }
 

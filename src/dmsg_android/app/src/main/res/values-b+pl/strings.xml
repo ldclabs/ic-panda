@@ -31,6 +31,7 @@
     <string name="cipher_transfer_running" formatted="false">"Przesyłanie zaszyfrowanych bloków"</string>
     <string name="cipher_transfer_title" formatted="false">"Zaszyfrowane transfery"</string>
     <string name="customize_fields" formatted="false">"Dostosuj pola"</string>
+    <string name="device_content_signing" formatted="false">"Podpisywanie treści"</string>
     <string name="empty_folder" formatted="false">"Brak plików w tym folderze"</string>
     <string name="file_moved_to_trash" formatted="false">"Przeniesiono do kosza"</string>
     <string name="file_name_rule" formatted="false">"Użyj nazwy o długości 1–255 znaków, bez ukośników i znaków sterujących."</string>
@@ -41,6 +42,16 @@
     <string name="history_device" formatted="false">"Urządzenie"</string>
     <string name="history_fields" formatted="false">"Pola"</string>
     <string name="import_local_account" formatted="false">"Importuj z konta lokalnego"</string>
+    <string name="join_code" formatted="false">"Kod porównawczy"</string>
+    <string name="join_compare_hint" formatted="false">"Przed zatwierdzeniem sprawdź, czy oba urządzenia wyświetlają ten sam kod."</string>
+    <string name="join_confirm" formatted="false">"Użyj tej metody logowania do tego konta i dodaj to urządzenie"</string>
+    <string name="join_create" formatted="false">"Utwórz osobne konto"</string>
+    <string name="join_identity" formatted="false">"Tożsamość logowania"</string>
+    <string name="join_other" formatted="false">"Ta metoda logowania należy do innego konta. Wybierz inną metodę."</string>
+    <string name="join_scan_hint" formatted="false">"Zeskanuj kod na autoryzowanym urządzeniu, aby otworzyć jego konto."</string>
+    <string name="join_show_hint" formatted="false">"Na nowym urządzeniu wybierz otwarcie istniejącego konta i zeskanuj ten kod."</string>
+    <string name="join_wait_device" formatted="false">"Oczekiwanie na zatwierdzenie urządzenia"</string>
+    <string name="join_wait_login" formatted="false">"Oczekiwanie na zatwierdzenie logowania"</string>
     <string name="language_search" formatted="false">"Znajdź język"</string>
     <string name="links_created_progress" formatted="true">"Utworzono %1$s z %2$s"</string>
     <string name="local_password" formatted="false">"Hasło lokalne"</string>

@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  joinCreate: "Een apart account maken",
+  joinConfirm: "Deze aanmelding voor dit account gebruiken en dit apparaat toevoegen",
+  joinOther: "Deze aanmelding hoort bij een ander account. Kies een andere aanmelding.",
+  joinCode: "Vergelijkingscode",
+  joinWaitLogin: "Wachten op goedkeuring van de aanmelding",
+  joinWaitDevice: "Wachten op goedkeuring van het apparaat",
+  joinShowRequest: "Een QR-code tonen om met het andere apparaat te scannen",
+  joinShowHint: "Kies op het nieuwe apparaat ‘Bestaand account openen’ en scan deze code.",
+  joinCompareHint: "Controleer vóór goedkeuring of beide apparaten dezelfde code tonen.",
+  joinScanHint: "Scan de code op een bevoegd apparaat om het account ervan te openen.",
+  joinOpen: "Bestaand account openen",
   pairScanWithAdmin: "Scan deze code met een beheerdersapparaat om het verzoek te beoordelen.",
   pairContinueElsewhere: "Doorgaan op een ander apparaat",
   pairEnableApprovals: "Dit apparaat toekomstige verzoeken laten goedkeuren",
