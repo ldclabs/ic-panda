@@ -993,7 +993,7 @@ final class DeviceNavigationTests: NavigationTestCase {
 
     func testDesktopPairingReceiptExpiresAndAllowsANewAttempt() {
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-pairing", "--ui-pairing-expiry", "-AppleLanguages", "(en)"]
+        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-pairing", "--ui-pairing-expiry", "--ui-login-expired", "-AppleLanguages", "(en)"]
         app.launch()
         let authorize = app.buttons["login.authorize"]
         XCTAssertTrue(authorize.waitForExistence(timeout: 5))
@@ -1006,7 +1006,10 @@ final class DeviceNavigationTests: NavigationTestCase {
         let device = app.staticTexts["pair.desktop.device"]
         XCTAssertTrue(device.waitForExistence(timeout: 2))
         XCTAssertFalse(send.isEnabled)
+        let signIn = app.buttons["Continue with Internet Identity"]
+        signIn.tap()
         XCTAssertTrue(app.staticTexts["This request has expired"].waitForExistence(timeout: 8))
+        XCTAssertTrue(signIn.exists, "An unsuccessful sign-in can be retried on the pairing screen")
         XCTAssertFalse(device.exists)
         XCTAssertTrue(send.isEnabled)
         XCTAssertTrue(app.buttons["Check authorization"].exists)

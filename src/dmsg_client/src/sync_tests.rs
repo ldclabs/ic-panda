@@ -162,6 +162,69 @@ async fn a_refused_rekey_dispatch_clears_so_a_rotated_root_can_reseal() {
 }
 
 #[tokio::test]
+async fn a_stale_retry_keeps_an_unconfirmed_revision_until_reconciliation() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client.vault_create("note", &item("pending")).unwrap();
+    let row = client.workspace.store.objects_in(LOCAL).unwrap().remove(0);
+    let mut job: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    job.vault.done = true;
+    client.workspace.store.set_job(&row.key, &job).unwrap();
+
+    let base = client.base().unwrap();
+    let status = format!("{base}/operations/{}", hex::encode(*job.request_id));
+    let stale = Some(json!({"ok": false, "error": {"code": "POLICY_STALE"}}));
+    let accepted = json!({"revision_id": row.revision, "head": row.revision, "conflict": false, "tombstone": false});
+    let server = scripted_relay(
+        &mut client,
+        vec![
+            ("GET", status.clone(), reply(json!({"found": false}))),
+            ("POST", format!("{base}/vault"), None),
+            ("GET", status.clone(), stale.clone()),
+            ("GET", status.clone(), stale),
+            (
+                "GET",
+                status,
+                reply(json!({"found": true, "result": accepted})),
+            ),
+        ],
+    )
+    .await;
+
+    assert_eq!(
+        push_one(&client.hold(), row.clone()).await,
+        Err(Error::PolicyStale)
+    );
+    let mut pending: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    // Enter the five-second renewal window for the already submitted operation.
+    pending
+        .dispatch
+        .as_mut()
+        .expect("lost POST must remain journaled")
+        .deadline = now_ms() + 2_000;
+    client.workspace.store.set_job(&row.key, &pending).unwrap();
+    assert_eq!(
+        push_one(&client.hold(), row.clone()).await,
+        Err(Error::PolicyStale)
+    );
+    let retained: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    assert_eq!(retained.request_id, job.request_id);
+    assert_eq!(retained.dispatch, pending.dispatch);
+
+    reconcile(&client.hold()).await.unwrap();
+    assert_eq!(client.workspace.store.count_in(SYNCED).unwrap(), 1);
+    assert!(
+        client
+            .workspace
+            .store
+            .job::<ContentJob>(&row.key)
+            .unwrap()
+            .is_none()
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

@@ -1293,11 +1293,12 @@ final class SessionModel {
         session = nil
     }
 
-    func login(usingInternetIdentity: Bool = false, passkeyOperation: PasskeyOperation = .login, credentialID: Data? = nil) async {
-        guard let engine, !busy else { return }
+    @discardableResult
+    func login(usingInternetIdentity: Bool = false, passkeyOperation: PasskeyOperation = .login, credentialID: Data? = nil) async -> Bool {
+        guard let engine, !busy else { return false }
         let resetting = passkeyOperation == .resetSessions
         let credential = resetting ? passkeySessionLimitCredential : credentialID
-        guard !resetting || credential != nil else { return }
+        guard !resetting || credential != nil else { return false }
         automaticUnlock.suppress()
         let operation = beginBusyOperation()
         error = nil
@@ -1317,7 +1318,7 @@ final class SessionModel {
                 selectedCredential = resetting ? credential : response.credentialId
                 credentialCreated = passkeyOperation == .register
                 await waitUntilActive()
-                guard current == authenticationGeneration else { return }
+                guard current == authenticationGeneration else { return false }
                 _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
                 state = try await engine.completePasskey(state: start.state, response: response)
             } else {
@@ -1325,24 +1326,26 @@ final class SessionModel {
                 guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
                 let callback = try await webLogin.authenticate(url: url)
                 await waitUntilActive()
-                guard current == authenticationGeneration else { return }
+                guard current == authenticationGeneration else { return false }
                 _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
                 state = try await engine.completeLogin(callback: callback.absoluteString)
             }
-            guard current == authenticationGeneration else { return }
+            guard current == authenticationGeneration else { return false }
             try adopt(state)
             if resetting {
                 passkeySessionLimitCredential = nil
                 finishBusyOperation(operation)
-                await login(passkeyOperation: .login, credentialID: credential)
-                return
+                return await login(passkeyOperation: .login, credentialID: credential)
             }
             signingIntoAnotherAccount = false; uncoverIfActive()
             if unlocked { await refresh() }
-        } catch { if current == authenticationGeneration {
+            return true
+        } catch {
+            guard current == authenticationGeneration else { return false }
             engine.cancelLogin(); await updateSession()
             reportLoginFailure(error, usingPasskey: usePasskey, operation: passkeyOperation, credentialCreated: credentialCreated, credentialID: selectedCredential)
-        } }
+            return false
+        }
     }
 
     func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation, credentialCreated: Bool = false, credentialID: Data? = nil) {

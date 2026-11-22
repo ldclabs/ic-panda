@@ -43,7 +43,9 @@ struct DesktopPairingView: View {
             if working { ProgressView().accessibilityIdentifier("pair.desktop.working") }
             if needsLogin {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true); needsLogin = false } }.disabled(working || model.busy)
+                Button("Continue with Internet Identity") {
+                    Task { if await model.login(usingInternetIdentity: true) { needsLogin = false } }
+                }.disabled(working || model.busy)
             }
             if model.session?.state == "root_required" { NoticeBar(text: String(localized: "Approved. Preparing your vault…")) }
             if paused { Button("Unlock workspace") { Task { paused = false; await refresh() } }.disabled(working) }
@@ -97,6 +99,7 @@ struct DesktopPairingView: View {
                 do {
                     #if DEBUG
                     if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-pairing-expiry") {
+                        needsLogin = model.session?.loginExpiresAtMs == nil
                         delivery = Delivery(deviceId: String(repeating: "aa", count: 32), expiresAt: UInt64(Date.now.timeIntervalSince1970 * 1000) + 3_000)
                         return
                     }

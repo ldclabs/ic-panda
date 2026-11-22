@@ -1645,7 +1645,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
     for file in [true, false] {
         send_upload(h, &row.key, &record, file).await?;
     }
-    let (relay, (dispatch, reused)) = h
+    let (relay, (dispatch, previous_dispatch)) = h
         .signed(|c| {
             let security = write_security(c)?;
             ensure(
@@ -1663,7 +1663,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             )?;
             let now = now_ms();
             if let Some(dispatch) = job.dispatch.as_ref().filter(|d| d.deadline > now + 5_000) {
-                return Ok((dispatch.clone(), true));
+                return Ok((dispatch.clone(), job.dispatch));
             }
             let revision = Revision {
                 item_id: record.id.clone(),
@@ -1684,12 +1684,14 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
                 &format!("{base}/operations/{request}"),
                 now,
             )?;
-            job.dispatch = Some(dispatch.clone());
+            let previous_dispatch = job.dispatch.replace(dispatch.clone());
             c.workspace.store.set_job(&row.key, &job)?;
-            Ok((dispatch, false))
+            Ok((dispatch, previous_dispatch))
         })
         .await?;
     let mut verdict = relay.submit(&dispatch, now_ms()).await;
+    // A refusal on retry cannot settle an earlier submission whose reply was lost.
+    let refused_before_retry = matches!(verdict, Err(Error::PolicyStale | Error::RekeyRequired));
     if matches!(
         verdict,
         Err(Error::ExecutionUnknown | Error::Unavailable(_))
@@ -1719,9 +1721,9 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
         match verdict {
             Ok(verdict) => c.settle(&row.key, &verdict).map(|_| true),
             Err(Error::VersionConflict) => c.block(&row.key).map(|_| false),
-            Err(error @ (Error::PolicyStale | Error::RekeyRequired)) if !reused => {
-                // The relay explicitly refused this new command; allow resealing under the new root.
-                job.dispatch = None;
+            Err(error) if refused_before_retry && job.dispatch != previous_dispatch => {
+                // Restore the earlier proof and its deadline, if this operation had one.
+                job.dispatch = previous_dispatch;
                 c.workspace.store.set_job(&row.key, &job)?;
                 Err(error)
             }
