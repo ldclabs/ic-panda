@@ -13,6 +13,7 @@ export default {
   "promoSync": "配额同步中",
   "promoUnavailable": "当前账户无法使用此码。",
   "promoReplace": "补发未用卡",
+  "promoGuestReplay": "第 {slot} 张赠友卡已发放。如仍未使用，可补发以获取新兑换码。",
   "promoGranted": "赠予会员",
   joinCreate: "创建独立账号",
   joinConfirm: "以后用此身份登录该账号，并加入这台设备",

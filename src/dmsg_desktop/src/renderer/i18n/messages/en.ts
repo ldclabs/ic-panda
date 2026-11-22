@@ -15,6 +15,7 @@ const messages = {
   "promoSync": "Updating limits",
   "promoUnavailable": "This code is unavailable for this account.",
   "promoReplace": "Replace unused pass",
+  "promoGuestReplay": "Guest pass {slot} was issued. Replace it if unused to get a new code.",
   "promoGranted": "Promotional membership",
   joinCreate: "Create a separate account",
   joinConfirm: "Use this login for this account and add this device",

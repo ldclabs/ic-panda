@@ -13,6 +13,7 @@ export default {
   "promoSync": "Đang cập nhật hạn mức",
   "promoUnavailable": "Tài khoản này không dùng được mã này.",
   "promoReplace": "Cấp lại thẻ chưa sử dụng",
+  "promoGuestReplay": "Thẻ khách {slot} đã được cấp. Nếu thẻ chưa được sử dụng, hãy cấp lại để nhận mã mới.",
   "promoGranted": "Gói thành viên khuyến mãi",
   joinCreate: "Tạo tài khoản riêng",
   joinConfirm: "Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này",

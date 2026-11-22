@@ -13,6 +13,7 @@ export default {
   "promoSync": "Memperbarui kuota",
   "promoUnavailable": "Kode ini tidak tersedia untuk akun ini.",
   "promoReplace": "Ganti pas yang belum dipakai",
+  "promoGuestReplay": "Pas tamu {slot} sudah diterbitkan. Jika belum dipakai, ganti pas untuk mendapatkan kode baru.",
   "promoGranted": "Keanggotaan promosi",
   joinCreate: "Buat akun terpisah",
   joinConfirm: "Gunakan login ini untuk akun ini dan tambahkan perangkat ini",

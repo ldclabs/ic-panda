@@ -13,6 +13,7 @@ export default {
   "promoSync": "Aktualizowanie limitów",
   "promoUnavailable": "Ten kod jest niedostępny dla tego konta.",
   "promoReplace": "Zastąp niewykorzystaną przepustkę",
+  "promoGuestReplay": "Karta gościa {slot} została wydana. Jeśli nadal jest niewykorzystana, zastąp ją, aby uzyskać nowy kod.",
   "promoGranted": "Członkostwo promocyjne",
   joinCreate: "Utwórz osobne konto",
   joinConfirm: "Użyj tej metody logowania do tego konta i dodaj to urządzenie",

@@ -13,6 +13,7 @@ export default {
   "promoSync": "正在同步配額",
   "promoUnavailable": "此帳戶無法使用這組代碼。",
   "promoReplace": "補發未使用的卡片",
+  "promoGuestReplay": "第 {slot} 張好友體驗卡已發放。如尚未使用，可補發以取得新兌換碼。",
   "promoGranted": "贈予會員",
   joinCreate: "建立獨立帳號",
   joinConfirm: "以此身分登入該帳號，並加入這部裝置",

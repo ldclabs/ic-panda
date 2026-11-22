@@ -13,6 +13,7 @@ export default {
   "promoSync": "Aggiornamento dei limiti",
   "promoUnavailable": "Questo codice non è disponibile per questo account.",
   "promoReplace": "Sostituisci pass inutilizzato",
+  "promoGuestReplay": "Il pass ospite {slot} è stato emesso. Se è ancora inutilizzato, sostituiscilo per ottenere un nuovo codice.",
   "promoGranted": "Abbonamento promozionale",
   joinCreate: "Crea un account separato",
   joinConfirm: "Usa questo accesso per l’account e aggiungi questo dispositivo",

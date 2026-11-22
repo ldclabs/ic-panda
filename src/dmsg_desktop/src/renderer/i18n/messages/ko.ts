@@ -13,6 +13,7 @@ export default {
   "promoSync": "한도 업데이트 중",
   "promoUnavailable": "이 계정에서는 이 코드를 사용할 수 없습니다.",
   "promoReplace": "사용하지 않은 패스 재발급",
+  "promoGuestReplay": "게스트 패스 {slot}이 발급되었습니다. 아직 사용하지 않았다면 재발급하여 새 코드를 받으세요.",
   "promoGranted": "프로모션 멤버십",
   joinCreate: "별도 계정 만들기",
   joinConfirm: "이 로그인 수단을 계정에 연결하고 이 기기 추가",

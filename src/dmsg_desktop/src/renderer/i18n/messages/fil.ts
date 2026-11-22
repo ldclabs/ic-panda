@@ -13,6 +13,7 @@ export default {
   "promoSync": "Ina-update ang mga limitasyon",
   "promoUnavailable": "Hindi magagamit ang code na ito sa account na ito.",
   "promoReplace": "Palitan ang hindi nagamit na pass",
+  "promoGuestReplay": "Nagawa na ang guest pass {slot}. Kung hindi pa ito nagagamit, palitan ito para makakuha ng bagong code.",
   "promoGranted": "Promosyonal na membership",
   joinCreate: "Gumawa ng hiwalay na account",
   joinConfirm: "Gamitin ang login na ito sa account at idagdag ang device na ito",

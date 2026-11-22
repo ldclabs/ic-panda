@@ -69,6 +69,15 @@ final class DeploymentTests: XCTestCase {
         XCTAssertFalse(external.managesSubscription(environment: "Production", at: now))
     }
 
+    func testAppStorePurchaseAvailabilityUsesThePlayEnvironment() {
+        let limits = SubscriptionView.Plan.Limits(storageBytes: 10, activeChannels: 5, monthlyExecutionUnits: 5)
+        for environment in ["Test", "Production"] {
+            let plan = SubscriptionView.Plan(plan: "Plus", source: "Active", limits: limits,
+                current: .init(endsAtMs: 2_000_000, method: "GooglePlay", storeEnvironment: environment))
+            XCTAssertEqual(plan.allowsStoreSubscription, environment == "Test")
+        }
+    }
+
     func testMembershipConfirmationAndUsageFailureHaveSeparatePresentation() {
         let now = Date(timeIntervalSince1970: 1000)
         let limits = SubscriptionView.Plan.Limits(storageBytes: 10, activeChannels: 5, monthlyExecutionUnits: 5)

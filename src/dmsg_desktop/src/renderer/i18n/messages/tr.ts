@@ -13,6 +13,7 @@ export default {
   "promoSync": "Kotalar güncelleniyor",
   "promoUnavailable": "Bu kod bu hesap için kullanılamaz.",
   "promoReplace": "Kullanılmamış kartı değiştir",
+  "promoGuestReplay": "{slot} numaralı misafir kartı oluşturuldu. Kullanılmadıysa yeni bir kod almak için kartı değiştirin.",
   "promoGranted": "Promosyon üyeliği",
   joinCreate: "Ayrı bir hesap oluştur",
   joinConfirm: "Bu oturum açma yöntemini hesaba bağla ve bu cihazı ekle",

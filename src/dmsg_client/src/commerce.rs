@@ -1989,8 +1989,12 @@ pub async fn google_play_purchase_check<H: Hold>(
     )
 }
 
-fn gifted(current: &Json) -> bool {
+fn fallback_term(current: &Json) -> bool {
     matches!(current["method"].as_str(), Some("Promo" | "Compensation"))
+        || matches!(
+            current["store_environment"].as_str(),
+            Some("Sandbox" | "Test")
+        )
 }
 
 fn store_action_allowed(status: &Json, key: &str) -> bool {
@@ -2016,7 +2020,7 @@ fn google_play_purchase_reason(
     {
         return Some("external_plan");
     }
-    if !current.is_null() && current["method"] != "GooglePlay" && !gifted(current) {
+    if !current.is_null() && current["method"] != "GooglePlay" && !fallback_term(current) {
         return Some("external_plan");
     }
     if matches!(kind, PlayProductKind::Storage { .. })
@@ -2101,15 +2105,20 @@ mod google_play_purchase_tests {
             google_play_purchase_reason(&plan, &owned, &PlayEnvironment::Production),
             Some("unavailable")
         );
-        let promo = json!({"source":"Active","allowed_actions":["app_store","google_play"],"current":{"method":"Promo","contract":"22".repeat(32)}});
-        assert_eq!(
-            google_play_purchase_reason(&plan, &promo, &PlayEnvironment::Production),
-            None
-        );
-        assert_eq!(
-            google_play_purchase_reason(&storage, &promo, &PlayEnvironment::Production),
-            Some("subscription_required")
-        );
+        for current in [
+            json!({"method":"Promo"}),
+            json!({"method":"AppStore","store_environment":"Sandbox"}),
+        ] {
+            let status = json!({"source":"Active","allowed_actions":["cash","sns","app_store","google_play"],"current":current});
+            assert_eq!(
+                google_play_purchase_reason(&plan, &status, &PlayEnvironment::Production),
+                None
+            );
+            assert_eq!(
+                google_play_purchase_reason(&storage, &status, &PlayEnvironment::Production),
+                Some("subscription_required")
+            );
+        }
     }
 }
 
@@ -2167,7 +2176,7 @@ fn app_store_purchase_reason(
     {
         return Some("external_plan");
     }
-    if !current.is_null() && current["method"] != "AppStore" && !gifted(current) {
+    if !current.is_null() && current["method"] != "AppStore" && !fallback_term(current) {
         return Some("external_plan");
     }
     if matches!(kind, dmsg_types::app_store::StoreProductKind::Storage(_))
@@ -2222,11 +2231,16 @@ mod app_store_purchase_tests {
             ),
             Some("unavailable")
         );
-        let promo = json!({"source":"Active","allowed_actions":["app_store","google_play"],"current":{"method":"Promo"}});
-        assert_eq!(app_store_purchase_reason(&plan, &promo, &Production), None);
-        assert_eq!(
-            app_store_purchase_reason(&storage, &promo, &Production),
-            Some("subscription_required")
-        );
+        for current in [
+            json!({"method":"Promo"}),
+            json!({"method":"GooglePlay","store_environment":"Test"}),
+        ] {
+            let status = json!({"source":"Active","allowed_actions":["cash","sns","app_store","google_play"],"current":current});
+            assert_eq!(app_store_purchase_reason(&plan, &status, &Production), None);
+            assert_eq!(
+                app_store_purchase_reason(&storage, &status, &Production),
+                Some("subscription_required")
+            );
+        }
     }
 }

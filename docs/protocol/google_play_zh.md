@@ -53,6 +53,6 @@ RTDN 公网入口验证 Google 签名的 OIDC、固定 audience、已验证的�
 
 展示与提醒使用 `get_membership_terms_v3` 的开放来源标识 `google_play` 和显式沙盒字段。冻结的 `get_membership_terms_v2` 可返回 Google Play 来源，遇到其无法表达的营销赠予会返回 `UnsupportedProtocol`。原 `get_membership_terms` 冻结升级前的 Candid 来源 variant，原有现金、PANDA、Apple 合同及退款窗口保持不变；账户含有 Google Play 合同时返回已有的 `UnsupportedProtocol` 错误，不省略合同或冒充其他支付来源。旧客户端需更新后才能显示 Google Play 合同。认证 `EntitlementView` 与月执行额度格式不变。
 
-先升级 commerce，再发布使用 v2 查询的客户端和服务调用方，最后开放 Play 购买。旧状态可原地升级；写入 `GooglePlay` 合同后，旧 Wasm 无法读取该新增稳定记录 variant，不能把回退旧模块当作兼容回滚。可运行 `bash scripts/test-dmsg-android-upgrade.sh`，同时检查旧 Candid 的兼容性和真实旧 Wasm 的状态升级。
+部署使用 v3 的客户端和提醒服务前，先升级它们访问的 commerce 实例。旧状态可原地升级。写入 `GooglePlay` 合同后，回滚也必须使用支持该稳定记录 variant 的 Wasm。可运行 `bash scripts/test-dmsg-android-upgrade.sh`，同时检查旧 Candid 的兼容性和真实旧 Wasm 的状态升级。
 
 实现依据：[Billing 接入](https://developer.android.com/google/play/billing/integrate)、[订阅资源](https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2)、[一次性商品资源](https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.productsv2)、[订单资源](https://developers.google.com/android-publisher/api-ref/rest/v3/orders)、[Pub/Sub 认证](https://cloud.google.com/pubsub/docs/authenticate-push-subscriptions)。实际 Google 购买、RTDN、配置身份和发布门禁需另行验收。

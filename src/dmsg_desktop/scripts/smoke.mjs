@@ -1985,18 +1985,26 @@ smoke: try {
     let guestPasses = []
     let guestRequestIds = new Set()
     let guestSeq = 0
-    methods['plan/promo_history'] = () => ({
-      redemptions: delivered ? [receipt] : [],
-      guest_passes: guestPasses,
-      guest_remaining: Math.max(0, 2 - guestPasses.length)
-    })
-    methods['plan/promo_preview'] = ({ code }) => ({
-      account,
-      eligible: code === 'PH-PLUS',
-      plan: 'Plus',
-      duration_days: 30,
-      expires_at_ms: receipt.expires_at_ms
-    })
+    let loseGuestReply = true
+    const previous = { ...receipt, grant_id: 'e1'.repeat(32), status: 'revoked' }
+    methods['plan/promo_history'] = (request) => {
+      assert.equal(request.account, account)
+      return {
+        redemptions: delivered ? [receipt, previous] : [previous],
+        guest_passes: guestPasses,
+        guest_remaining: Math.max(0, 2 - guestPasses.length)
+      }
+    }
+    methods['plan/promo_preview'] = (request) => {
+      assert.equal(request.account, account)
+      return {
+        account,
+        eligible: request.code === 'PH-PLUS',
+        plan: 'Plus',
+        duration_days: 30,
+        expires_at_ms: receipt.expires_at_ms
+      }
+    }
     methods['plan/redeem'] = (request) => {
       assert.equal(request.account, account)
       assert.equal(request.code, 'PH-PLUS')
@@ -2005,12 +2013,16 @@ smoke: try {
     }
     methods['plan/guest_pass'] = (request) => {
       if (guestRequestIds.has(request.request_id)) {
-        return { code: null, slot: request.replace_slot ?? 1, replayed: true, ends_at_ms: receipt.expires_at_ms }
+        return { code: null, slot: request.replace_slot ?? 1, replayed: true }
       }
       guestRequestIds.add(request.request_id)
       guestSeq += 1
       const slot = request.replace_slot ?? (guestPasses.length + 1)
       if (!guestPasses.some((item) => item.slot === slot)) guestPasses.push({ slot, available: true })
+      if (loseGuestReply) {
+        loseGuestReply = false
+        throw { code: 'EXECUTION_UNKNOWN', message: 'Guest pass response lost' }
+      }
       return {
         code: `DMSG-K7P4-9X2M-3Q8${guestSeq}`,
         slot,
@@ -2043,6 +2055,7 @@ smoke: try {
     const dialog = main.getByTestId('promo-dialog')
     assert.equal(await dialog.count(), 0)
 
+    const finishHistory = hold('plan/promo_history')
     session = 'unlocked'
     emit('session/changed')
     await dialog.waitFor()
@@ -2054,6 +2067,8 @@ smoke: try {
     await main.keyboard.press('Enter')
     await dialog.getByText(/No automatic charge/).waitFor()
     await input.fill('WRONG')
+    await finishHistory()
+    await dialog.getByText('History', { exact: true }).waitFor()
     assert.equal(await dialog.getByText(/No automatic charge/).count(), 0)
     await button.click()
     await dialog.getByText(/unavailable for this account/).waitFor()
@@ -2072,8 +2087,17 @@ smoke: try {
     membership = 'cash'
     await main.getByTestId('plan-refresh').click()
     await main.getByTestId('guest-open').click()
-    await dialog.getByRole('button', { name: 'Create guest pass', exact: true }).click()
-    await dialog.getByRole('button', { name: 'Copy code', exact: true }).waitFor()
+    const createGuest = dialog.getByRole('button', { name: 'Create guest pass', exact: true })
+    const finishIssue = hold('plan/guest_pass')
+    await createGuest.click()
+    await main.keyboard.press('Escape')
+    assert.equal(await dialog.isVisible(), true)
+    await finishIssue()
+    await createGuest.click()
+    await dialog.getByTestId('guest-code-unavailable').waitFor()
+    assert.equal(await createGuest.isDisabled(), true)
+    assert.equal(guestPasses.length, 1)
+    await formMatrix(app, main, shots, 'promo-guest-replay', '[data-testid="promo-dialog"]')
     const replaceButton = dialog.getByRole('button', { name: /Replace unused pass #1/ })
     await replaceButton.click()
     await waitFor(async () => (await dialog.locator('input[readonly]').inputValue()) === 'DMSG-K7P4-9X2M-3Q82')

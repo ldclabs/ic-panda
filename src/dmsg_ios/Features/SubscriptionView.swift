@@ -15,7 +15,10 @@ struct SubscriptionView: View {
         var eligibility: String? = nil
         var leaseUntilMs: UInt64? = nil
 
-        var allowsStoreSubscription: Bool { current == nil || current?.method == "AppStore" || current?.isGrant == true }
+        var allowsStoreSubscription: Bool {
+            guard let current else { return true }
+            return current.method == "AppStore" || current.isGrant || current.storeEnvironment == "Test"
+        }
 
         func needsRefresh(at: Date = .now) -> Bool {
             source == "Unverifiable" || eligibility == "Unverifiable"
@@ -197,9 +200,9 @@ struct SubscriptionView: View {
                             }
                         }
                     }
-                    if let term = plan?.current, term.method != "AppStore", !term.isGrant, model.purchases.storeEnvironment != "Sandbox" {
+                    if let plan, !plan.allowsStoreSubscription, model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
-                    } else if plan?.current == nil || plan?.current?.isGrant == true, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
+                    } else if plan?.current?.method != "AppStore", model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
                     subscriptionCards

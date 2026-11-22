@@ -231,14 +231,19 @@ fn promotional_members_convert_through_each_real_payment_adapter() {
             (g.grant_id,),
         );
         assert_eq!(saved.unwrap().unwrap().conversion.unwrap().0, channel);
-        let issuer: Result<u64> = update(
-            &f.ic,
-            f.commerce,
-            person(91),
-            "check_guest_pass_issuer",
-            (&g.beneficiary,),
-        );
-        assert!(issuer.unwrap() > time(&f.ic));
+        let issuer = || -> Result<u64> {
+            update(
+                &f.ic,
+                f.commerce,
+                person(91),
+                "check_guest_pass_issuer",
+                (&g.beneficiary,),
+            )
+        };
+        assert!(issuer().unwrap() > time(&f.ic));
+        let paused: Result<()> = update(&f.ic, f.commerce, f.sns, "set_admission_pause", (true,));
+        paused.unwrap();
+        assert_eq!(issuer(), Err(Error::Forbidden));
     }
 }
 

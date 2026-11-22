@@ -13,6 +13,7 @@ export default {
   "promoSync": "利用枠を更新中",
   "promoUnavailable": "このアカウントではこのコードを利用できません。",
   "promoReplace": "未使用のパスを再発行",
+  "promoGuestReplay": "ゲストパス {slot} は発行済みです。未使用なら再発行して新しいコードを取得できます。",
   "promoGranted": "特典による会員資格",
   joinCreate: "別のアカウントを作成",
   joinConfirm: "このログイン方法をアカウントに登録し、この端末を追加",

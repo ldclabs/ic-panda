@@ -13,6 +13,7 @@ export default {
   "promoSync": "Limieten worden bijgewerkt",
   "promoUnavailable": "Deze code is niet beschikbaar voor dit account.",
   "promoReplace": "Ongebruikte pas vervangen",
+  "promoGuestReplay": "Gastpas {slot} is uitgegeven. Vervang de pas als die nog niet is gebruikt om een nieuwe code te krijgen.",
   "promoGranted": "Promotioneel lidmaatschap",
   joinCreate: "Een apart account maken",
   joinConfirm: "Deze aanmelding voor dit account gebruiken en dit apparaat toevoegen",

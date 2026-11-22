@@ -62,6 +62,10 @@ fn get_promo_config() -> PromoConfig {
     CONFIG.with_borrow(|c| c.get().0.clone())
 }
 
+fn grants_enabled() -> bool {
+    CONFIG.with_borrow(|c| c.get().0.enabled) && !store::config(|c| c.paused)
+}
+
 #[ic_cdk::query]
 fn promo_stats() -> Vec<PromoCount> {
     COUNTS.with_borrow(|c| c.get().0.clone())
@@ -215,7 +219,7 @@ fn apply_promo_grant(grant: PromoGrant) -> Result<PromoReceipt> {
         }
         Err(error) => return Err(error),
     };
-    let rejection = if !CONFIG.with_borrow(|c| c.get().0.enabled) || store::config(|c| c.paused) {
+    let rejection = if !grants_enabled() {
         Some("PROMO_PAUSED")
     } else if product::base_reserved(&grant.beneficiary, at) {
         Some("PROMO_PURCHASE_PENDING")
@@ -299,7 +303,7 @@ fn revoke_promo_grant(id: Hash) -> Result<PromoReceipt> {
 #[ic_cdk::update]
 fn check_guest_pass_issuer(b: Beneficiary) -> Result<u64> {
     authorized(ic_cdk::api::msg_caller(), false)?;
-    ensure(get_promo_config().enabled, Error::Forbidden)?;
+    ensure(grants_enabled(), Error::Forbidden)?;
     api::valid_subject(&b)?;
     let at = api::now();
     let s = store::load(&b)?;

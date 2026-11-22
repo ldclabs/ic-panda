@@ -13,6 +13,7 @@ export default {
   "promoSync": "Mise à jour des quotas",
   "promoUnavailable": "Ce code est indisponible pour ce compte.",
   "promoReplace": "Remplacer un pass inutilisé",
+  "promoGuestReplay": "Le pass invité {slot} a été créé. S’il est encore inutilisé, remplacez-le pour obtenir un nouveau code.",
   "promoGranted": "Abonnement offert",
   joinCreate: "Créer un compte distinct",
   joinConfirm: "Utiliser cet identifiant pour ce compte et ajouter cet appareil",

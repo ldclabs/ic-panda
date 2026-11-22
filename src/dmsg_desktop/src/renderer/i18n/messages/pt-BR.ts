@@ -13,6 +13,7 @@ export default {
   "promoSync": "Atualizando limites",
   "promoUnavailable": "Este código não está disponível para esta conta.",
   "promoReplace": "Substituir passe não utilizado",
+  "promoGuestReplay": "O passe de convidado {slot} foi emitido. Se ainda não foi usado, substitua-o para obter um novo código.",
   "promoGranted": "Assinatura promocional",
   joinCreate: "Criar uma conta separada",
   joinConfirm: "Usar este login para esta conta e adicionar este dispositivo",

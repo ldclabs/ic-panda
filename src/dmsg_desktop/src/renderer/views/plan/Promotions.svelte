@@ -38,9 +38,8 @@
     reason?: string
   }
   type Pass = {
-    code?: string
+    code: string | null
     slot: number
-    remaining?: number
     ends_at_ms?: number
   }
   let open = $state(false),
@@ -55,6 +54,7 @@
     slots = $state<{ slot: number; available: boolean }[]>([]),
     remaining = $state<number | null>(null)
   let epoch = 0,
+    historyRead = 0,
     operation = '',
     replacement: number | null = null
   const nonce = () =>
@@ -79,10 +79,11 @@
     remaining = null
     replacement = null
     open = true
-    void loadHistory(epoch)
+    void loadHistory()
   }
   function close() {
     epoch++
+    historyRead++
     open = false
     draft = ''
     claim = null
@@ -93,6 +94,7 @@
   }
   onDestroy(() => {
     epoch++
+    historyRead++
   })
   $effect(() => {
     if (redemption) {
@@ -101,16 +103,17 @@
       start('redeem', code)
     }
   })
-  async function loadHistory(version: number, report = mode === 'guest') {
+  async function loadHistory(report = mode === 'guest') {
+    const read = ++historyRead
     try {
-      const r = await call('plan/promo_history', {})
-      if (version === epoch) {
+      const r = await call('plan/promo_history', { account })
+      if (read === historyRead) {
         history = r.redemptions
         slots = r.guest_passes
         remaining = r.guest_remaining
       }
     } catch (error) {
-      if (version === epoch && report) failure = errorText(error)
+      if (read === historyRead && report) failure = errorText(error)
     }
   }
   async function run(
@@ -123,7 +126,7 @@
     failure = ''
     try {
       if (action === 'preview') {
-        const r = await call('plan/promo_preview', { code: draft.trim() })
+        const r = await call('plan/promo_preview', { account, code: draft.trim() })
         if (version === epoch) preview = r
       } else if (action === 'redeem') {
         if (!preview?.eligible || preview.account !== account) return
@@ -140,7 +143,7 @@
         }
         claim = r
         if (r.status === 'applied') await refresh()
-        if (version === epoch) await loadHistory(version)
+        if (version === epoch) await loadHistory()
       } else {
         if (replacement !== slot) {
           operation = nonce()
@@ -155,7 +158,7 @@
           pass = r
           operation = nonce()
           replacement = null
-          await loadHistory(version)
+          await loadHistory()
         }
       }
     } catch (error) {
@@ -170,7 +173,7 @@
     busy = true
     failure = ''
     try {
-      await loadHistory(version, true)
+      await loadHistory(true)
       if (version !== epoch || !claim) return
       const updated = history.find((r) => r.grant_id === claim?.grant_id)
       if (updated) {
@@ -203,6 +206,7 @@
     }
   }
   title={t(mode === 'guest' ? 'promoGuest' : 'promoRedeem')}
+  dismissible={mode !== 'guest' || !busy}
   testid="promo-dialog"
 >
   <div class="grid min-w-0 gap-3">
@@ -264,25 +268,30 @@
         /><button
           class={buttonClass('secondary', 'sm')}
           onclick={() => copyText(pass!.code!)}>{t('copyCode')}</button
+        >{:else if pass}<Notice tone="warn" testid="guest-code-unavailable"
+          >{t('promoGuestReplay', { slot: pass.slot })}</Notice
         >{/if}
       {#if pass?.ends_at_ms}<p>{t('expires')} {when(pass.ends_at_ms)}</p>{/if}
       {#each slots.filter((s) => s.available) as item (item.slot)}<button
           class={buttonClass('secondary', 'sm')}
           disabled={busy}
           onclick={() => run('guest', item.slot)}
-          >{t('promoReplace')} #{item.slot}</button
+          >{t('promoReplace')} <bdi dir="ltr">#{item.slot}</bdi></button
         >{/each}
     {/if}
     {#if failure}<Notice tone="danger" {failure}>{failure}</Notice>{/if}
   </div>
   {#snippet footer()}
-    <button class={buttonClass('secondary')} onclick={close}
+    <button
+      class={buttonClass('secondary')}
+      disabled={mode === 'guest' && busy}
+      onclick={close}
       >{t('close')}</button
     >
     {#if mode === 'guest'}<button
         class={buttonClass('primary')}
-        disabled={busy || remaining === 0 || !!pass?.code}
-        onclick={() => run('guest')}>{t('promoGuest')}</button
+        disabled={busy || remaining === 0 || !!pass}
+        onclick={() => run('guest')}>{t(busy ? 'loading' : 'promoGuest')}</button
       >
     {:else if claim}<button
         class={buttonClass('secondary')}

@@ -601,4 +601,4 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 
 治理通过 `validate_set_promo_config`、`set_promo_config` 登记发放 principal，默认关闭。受控 `apply_promo_grant` 仅接受 dMsg 受益人的 Plus、Pro、Max 30 或 365 天固定区间。同一 grant_id 只交付一次，参数变化返回幂等冲突。可通过 update 取回权威回执或撤销，`promo_stats` 按档位、时长和补偿类别给出累计份数。正式合同优先于赠予，赠予优先于沙盒。赠予租约最长一天，纯赠期不能加购年度存储。首次现金退款资格独立于赠予历史。
 
-`get_membership_terms_v3` 使用开放来源和操作标识。消费者按认证权益的 business_revision、active_contract_id 匹配展示条款，未知来源仍可读取档位和区间。v1/v2 无法表达营销来源时返回 UnsupportedProtocol。先发布 v3 读取方，再开放生产赠予。新来源已写入后，停发使用治理开关。公开字节合同见 [Candid](dmsg_commerce.did)。
+`get_membership_terms_v3` 使用开放来源和操作标识。消费者按认证权益的 business_revision、active_contract_id 匹配展示条款，未知来源仍可读取档位和区间。v1/v2 无法表达营销来源时返回 UnsupportedProtocol。先升级目标 commerce 实例，再发布使用 v3 的客户端和服务，最后开放生产赠予。新来源已写入后，停发使用治理开关。公开字节合同见 [Candid](dmsg_commerce.did)。

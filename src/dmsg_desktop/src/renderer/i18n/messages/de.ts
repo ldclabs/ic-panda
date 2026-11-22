@@ -13,6 +13,7 @@ export default {
   "promoSync": "Kontingente werden aktualisiert",
   "promoUnavailable": "Dieser Code ist für dieses Konto nicht verfügbar.",
   "promoReplace": "Ungenutzten Pass ersetzen",
+  "promoGuestReplay": "Gästepass {slot} wurde ausgestellt. Ersetze den ungenutzten Pass, um einen neuen Code zu erhalten.",
   "promoGranted": "Aktionsmitgliedschaft",
   joinCreate: "Separates Konto erstellen",
   joinConfirm: "Diese Anmeldung für dieses Konto verwenden und dieses Gerät hinzufügen",
