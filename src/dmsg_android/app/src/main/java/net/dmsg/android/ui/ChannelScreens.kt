@@ -141,8 +141,8 @@ import net.dmsg.android.core.*
     LaunchedEffect(Unit) { client.channels.loadCreations(); while (true) { kotlinx.coroutines.delay(1000); now = System.currentTimeMillis().toULong() } }
     LaunchedEffect(qr.result) { client.qr.consume("channel-join")?.let { client.channels.editSetup(form.copy(joining = true, invitation = it)) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        WorkspaceScope(str(R.string.text_create_7570cfc), str(R.string.text_join_5f4ca2d), form.joining, enabled = !working) {
-            client.channels.editSetup(form.copy(joining = !form.joining))
+        SegmentedChoice(listOf(str(R.string.text_create_7570cfc), str(R.string.text_join_5f4ca2d)), if (form.joining) 1 else 0, enabled = !working) {
+            index -> client.channels.editSetup(form.copy(joining = index == 1))
         }
         if (form.joining) {
             if (summary == null || editingInvitation) {

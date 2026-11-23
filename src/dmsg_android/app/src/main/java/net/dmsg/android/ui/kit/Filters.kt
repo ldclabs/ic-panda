@@ -105,15 +105,14 @@ import net.dmsg.android.ui.card
     }
 }
 
-/** Two exclusive choices as a segmented button. */
-@Composable internal fun WorkspaceScope(first: String, second: String, secondSelected: Boolean, enabled: Boolean = true, switch: () -> Unit) {
+/** Exclusive choices as a segmented button; every segment takes the tallest label's height. */
+@Composable internal fun SegmentedChoice(labels: List<String>, selected: Int, enabled: Boolean = true, choose: (Int) -> Unit) {
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        listOf(first, second).forEachIndexed { index, label ->
-            val selected = (index == 1) == secondSelected
+        labels.forEachIndexed { index, label ->
             SegmentedButton(
-                selected = selected, enabled = enabled, onClick = { if (!selected) switch() },
+                selected = index == selected, enabled = enabled, onClick = { if (index != selected) choose(index) },
                 modifier = Modifier.fillMaxHeight(),
-                shape = SegmentedButtonDefaults.itemShape(index, 2),
+                shape = SegmentedButtonDefaults.itemShape(index, labels.size),
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,

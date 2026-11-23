@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
  * A round avatar: the [image] when there is one, else an [icon], else the first letter of [label]
  * on one of the container tones, chosen by [seed] so the same account keeps its tone.
  */
-@Composable internal fun Avatar(label: String, seed: String, modifier: Modifier = Modifier, size: Dp = 40.dp, image: ImageBitmap? = null, icon: ImageVector? = null) {
+@Composable internal fun Avatar(label: String, seed: String, modifier: Modifier = Modifier, size: Dp = 40.dp, image: ImageBitmap? = null, icon: Painter? = null) {
     val colors = MaterialTheme.colorScheme
     val tones = listOf(colors.primaryContainer to colors.onPrimaryContainer, colors.secondaryContainer to colors.onSecondaryContainer,
         colors.tertiaryContainer to colors.onTertiaryContainer)

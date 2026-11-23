@@ -51,7 +51,7 @@ class AdaptiveLayoutTest {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f), LocalLayoutDirection provides LayoutDirection.Rtl) {
                 DMsgTheme(false) {
-                    Box(Modifier.width(280.dp)) { WorkspaceScope("Local", "Encrypted cloud backups", false) {} }
+                    Box(Modifier.width(280.dp)) { SegmentedChoice(listOf("Local", "Encrypted cloud backups"), 0) {} }
                 }
             }
         }

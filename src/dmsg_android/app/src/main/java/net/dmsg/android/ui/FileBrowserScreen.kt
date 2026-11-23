@@ -196,7 +196,7 @@ import net.dmsg.android.core.*
                         action = if (filtered) ({ TextButton(onClick = { update(preferences.copy(query = "", favorites = false, limit = 100)) }) { Text(str(R.string.text_clear_filters_5ea61be)) } }) else null)
                 }
                 item {
-                    if (!trash && !empty && all.isNotEmpty()) Notice(privacy)
+                    // The encryption note is the empty folder's first-run hint; a filled list does not repeat it.
                     if (state.working("files:batch")) { LinearProgressIndicator(Modifier.fillMaxWidth()); TextButton(onClick = client.library::cancelBatch) { Text(str(R.string.text_stop_after_completed_items_d0aee2e)) } }
                     if (results.isNotEmpty()) TextButton(onClick = { showingResults = true }) { Text(str(R.string.text_review_operation_results_f79dc63)) }
                 }

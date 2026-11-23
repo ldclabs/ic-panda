@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -92,7 +93,7 @@ import net.dmsg.core.MessageItem
                 val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
                 val unread = channel.unread > 0u
                 BrowseRow(channel.name, Modifier.animateItem().clickable { select(channel.id) },
-                    leading = { Avatar(channel.name, channel.id, icon = if (channel.news) Icons.Outlined.Campaign else null) },
+                    leading = { Avatar(channel.name, channel.id, icon = if (channel.news) rememberVectorPainter(Icons.Outlined.Campaign) else null) },
                     emphasized = unread,
                     supporting = {
                         Column {
@@ -246,7 +247,7 @@ import net.dmsg.core.MessageItem
     fun update(value: MessageComposer) = client.messages.edit(channel, value)
     val syncError = syncFailure?.takeIf { it.first == channel }?.second
     var dismissedError by remember(channel) { mutableStateOf<String?>(null) }
-    ScreenBar(info?.name, subtitle = str(R.string.text_encrypted_conversation_9f9e912), leading = { Avatar(info?.name.orEmpty(), channel, size = 36.dp, icon = if (info?.news == true) Icons.Outlined.Campaign else null) }) {
+    ScreenBar(info?.name, subtitle = str(R.string.text_encrypted_conversation_9f9e912), leading = { Avatar(info?.name.orEmpty(), channel, size = 36.dp, icon = if (info?.news == true) rememberVectorPainter(Icons.Outlined.Campaign) else null) }) {
         IconButton(onClick = { setSearchMode(BrowseSearchMode.Editing) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
         IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_conversation_settings_f07a685)) }
     }

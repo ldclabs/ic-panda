@@ -37,7 +37,6 @@ import net.dmsg.android.platform.numericExpression
     val current = plan.valueOrNull()
     val known = plan is ReadState.Ready && current?.needsRefresh(now) == false
     FilledTonalButton(onClick = { client.navigation.push(Route("membership")) },
-        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.card, contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(horizontal = 14.dp), modifier = Modifier.testTag("membership-badge")) {
         Icon(if (known) Icons.Outlined.Verified else Icons.Outlined.Info, null, Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))

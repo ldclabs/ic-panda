@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A row that opens a page. There is no chevron: the trailing side shows the current [value]
- * or a [trailing] badge.
+ * or a [trailing] badge. A [destructive] row, such as signing out, takes the error colour.
  */
 @Composable internal fun ListRow(
     headline: String,
@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
     supporting: String? = null,
     @DrawableRes glyph: Int? = null,
     trailing: (@Composable () -> Unit)? = null,
+    destructive: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     val leading: (@Composable () -> Unit)? = when {
@@ -64,7 +65,7 @@ import androidx.compose.ui.unit.dp
         }
     } }
     ListItem(
-        headlineContent = { Text(headline) },
+        headlineContent = { Text(headline, color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified) },
         supportingContent = supporting?.let { { Text(it) } },
         leadingContent = leading, trailingContent = end,
         modifier = modifier.clipTo(rowShape())

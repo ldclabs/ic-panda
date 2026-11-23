@@ -1,5 +1,35 @@
 # Android implementation validation
 
+## Account, entry and files — 2026-11-23
+
+The account card sits on the card colour with the account's avatar, name,
+"Public profile" and the plan chip; waiting approvals show as a badge.
+Appearance moved out of the security page into its own group on the account
+root: the theme as a System/Light/Dark segmented control and the app language.
+Sign out is a red row in its own group and its confirmation is red. The entry
+and lock screen dropped its card: the mark grows in, the greeting and one
+primary action sit centred, a locked workspace shows the account's avatar and
+saved name (or its ID) under "Welcome back", explanations sit as small text
+under their action instead of banners, and saved accounts, language, privacy
+and about are small links at the bottom. The file list no longer repeats the
+encryption note under a filled folder; the empty folder keeps it as its hint.
+`SegmentedChoice` replaces the two-option `WorkspaceScope`.
+
+The grid view for files was not built: thumbnails are decoded from each file's
+preview, and a grid would multiply that work before a thumbnail cache exists.
+Other subpages keep their notices; only the pages above were converged.
+
+On the API 36 emulator the account root and the lock screen were checked in
+light, dark, Arabic (RTL) and at 200% font size, and the file list in light.
+At 200% the account ID under "Welcome back" is cut with an ellipsis and the
+bottom links wrap to three lines; in English at 100% they wrap to two. The
+fixture has no waiting approvals, so the badge was checked only in code.
+TalkBack was not rerun. Debug: 138 JVM tests pass; lint reports 89 warnings and
+no errors (the unnamed account's avatar uses the shared profile glyph, so it
+stays in use). QA: JVM tests pass and the device suite ran 140 tests, 133
+passed and 7 skipped; the avatar glyph change came after the suite and was
+checked by compile, lint and screenshots.
+
 ## Conversations, bubbles and composer — 2026-11-23
 
 Conversation and letter rows lead with an initial avatar on a tone chosen by

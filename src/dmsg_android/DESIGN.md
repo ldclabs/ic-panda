@@ -183,11 +183,12 @@ Cards pad their content by 16 dp; rows inside a section bring their own padding.
 | Component | Use |
 | --- | --- |
 | `Section(title, footer, iconColor)` | Settings-style group: rows on the card colour 2 dp apart, large outer and 4 dp inner corners |
-| `ListRow`, `SettingToggle`, `SelectionRow`, `RadioChoiceRow` | Rows that open a page or change one setting; each is one accessible target of at least 56 dp |
+| `ListRow`, `SettingToggle`, `SelectionRow`, `RadioChoiceRow` | Rows that open a page or change one setting; each is one accessible target of at least 56 dp; a `destructive` row (sign out) takes the error colour |
+| `SegmentedChoice` | Two or three exclusive choices, such as the theme or create/join; segments share the tallest label's height |
 | `RowIcon` | A row's leading icon on a tonal circle; the section may colour it |
 | `LabelValue`, `DetailCard` | A label with its value inside a card |
 | `BrowseRow`, `BrowseIcon` | Compact rows of the vault, message and file lists, with a type glyph on a tonal square |
-| `Avatar` | A round avatar: the image, or the first letter on a container tone chosen by the account ID |
+| `Avatar` | A round avatar: the image, an icon (the profile glyph for an unnamed account), or the first letter, on a container tone chosen by the account ID |
 | `BrowseScopes`, `BrowseChoice`, `MenuChoice`, `SortMenu` | Filter chips that scroll sideways with fading edges, a chip that opens a menu of choices, and the sort chip |
 | `Notice` | Inline banner, information or problem, actions at its end; at most one per screen |
 | `EmptyState` | A mark, one line, one line of detail and at most one action, centred |
@@ -286,7 +287,25 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
   withdraw, report, block); a tap does nothing. TalkBack offers the same
   actions as a long-press action.
 - **Composer.** A filled capsule holds the attachment menu and the text; the
-  send button grows to full size once there is something to send.
+  attachment button, the last text line and the send button share one centre
+  line. The send button grows to full size once there is something to send.
+
+## Account, Entry and Files
+
+- **Account root.** A large bar; the identity card on the card colour with the
+  account's `Avatar`, name, "Public profile" and the plan chip. Waiting
+  approvals show as a badge. Appearance is its own group: the theme as a
+  `SegmentedChoice` (System, Light, Dark) and the app language. Sign out is a
+  red row in a group of its own and asks before it acts.
+- **Entry and lock.** No card: the mark grows in where the splash icon was,
+  the greeting and one primary action sit centred, and a locked workspace
+  shows the account's avatar and saved name (or its ID in `code()`) under
+  "Welcome back". Explanations sit under the action they belong to as small
+  centred text; banners are for errors. Saved accounts, language, privacy and
+  about are one row of small links at the bottom edge.
+- **Files.** The encryption note is the empty folder's hint and is not repeated
+  under a filled list. A grid view waits for cached thumbnails: each thumbnail
+  is decoded from the file's preview, and a grid would multiply that work.
 
 ## Platform
 
@@ -317,6 +336,6 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
 - `Card` call sites without colours still use the filled default
   (`surfaceContainerHighest`); the component kit will replace them with one card.
 - Dialogs use the Material defaults (`surfaceContainerHigh`, 28 dp).
-- Screens still stack several notices and text buttons; the screen passes
-  converge them.
+- Subpages outside the vault, messages, account and entry screens still stack
+  several notices and text buttons.
 - Dynamic colour is not offered yet; when it is, state colours stay fixed.

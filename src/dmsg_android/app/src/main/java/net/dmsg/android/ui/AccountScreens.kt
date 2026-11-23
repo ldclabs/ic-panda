@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,12 +30,14 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 
 @Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, openLogin: (String) -> Unit) {
+    var signingOut by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(pagePadding())) {
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
         Section {
+            val waiting = state.session?.approvalsWaiting?.takeIf { it > 0u }
             ListRow(str(R.string.text_approvals_1b5e94c), glyph = R.drawable.glyph_approvals,
-                value = state.session?.approvalsWaiting?.takeIf { it > 0u }?.let(::localizedNumber)) { go("approvals") }
+                trailing = waiting?.let { count -> { Badge { Text(if (count > 99u) "99+" else localizedNumber(count)) } } }) { go("approvals") }
             ListRow(str(R.string.text_account_security_41c2886), glyph = R.drawable.glyph_security) { go("security") }
             ListRow(str(R.string.text_devices_bebe058), glyph = R.drawable.glyph_device) { go("devices") }
             ListRow(str(R.string.text_switch_account_52f71df), glyph = R.drawable.glyph_account) { go("accounts") }
@@ -45,25 +48,41 @@ import net.dmsg.core.*
             ListRow(str(R.string.text_plan_and_usage_acf1a9a), glyph = R.drawable.glyph_plan) { go("membership") }
             ListRow(str(R.string.text_system_integrations_9ea81ce), icon = Icons.Outlined.Layers) { go("system-integrations") }
         }
+        SectionTitle(str(R.string.text_appearance_7bcd380))
+        Section(iconColor = MaterialTheme.colorScheme.tertiaryContainer) {
+            AppearanceRow(client, state)
+            AccountLanguageRow()
+        }
         SectionTitle(str(R.string.text_settings_8d4d0d8))
         Section(iconColor = MaterialTheme.colorScheme.tertiaryContainer) {
             ListRow(str(R.string.text_send_feedback_73e1781), icon = Icons.Outlined.Feedback) { go("feedback") }
             ListRow(str(R.string.text_notifications_3e7769a), icon = Icons.Outlined.NotificationsNone) { go("notifications") }
-            AccountLanguageRow()
             ListRow(str(R.string.text_advanced), icon = Icons.Outlined.Tune) { go("advanced") }
             ListRow(str(R.string.text_about_dmsg_630408f), icon = Icons.Outlined.Info) { go("about") }
         }
-        Spacer(Modifier.height(12.dp))
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            var signingOut by remember { mutableStateOf(false) }
-            TextButton(onClick = { signingOut = true }) { Text(str(R.string.text_sign_out_7bfa045), color = MaterialTheme.colorScheme.error) }
-            if (signingOut) AlertDialog(onDismissRequest = { signingOut = false },
-                title = { Text(str(R.string.text_sign_out_of_this_account_c08b5b1)) },
-                text = { Text(str(R.string.text_encrypted_content_stays_on_this_device_saved_login_and_quick_unlo_40bc13b)) },
-                confirmButton = { TextButton(onClick = { signingOut = false; client.logout() }) { Text(str(R.string.text_sign_out_7bfa045)) } },
-                dismissButton = { TextButton(onClick = { signingOut = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+        Section(Modifier.padding(top = 24.dp), iconColor = MaterialTheme.colorScheme.errorContainer) {
+            ListRow(str(R.string.text_sign_out_7bfa045), icon = Icons.AutoMirrored.Outlined.Logout, destructive = true) { signingOut = true }
         }
     }
+    if (signingOut) AlertDialog(onDismissRequest = { signingOut = false },
+        title = { Text(str(R.string.text_sign_out_of_this_account_c08b5b1)) },
+        text = { Text(str(R.string.text_encrypted_content_stays_on_this_device_saved_login_and_quick_unlo_40bc13b)) },
+        confirmButton = { TextButton(onClick = { signingOut = false; client.logout() }) { Text(str(R.string.text_sign_out_7bfa045), color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = { signingOut = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+}
+
+/** The app theme as one segmented control: following the system, light or dark. */
+@Composable private fun AppearanceRow(client: ClientController, state: UiState) {
+    val choices = listOf(null, false, true)
+    ListItem(
+        leadingContent = { RowIcon(Icons.Outlined.Contrast) },
+        headlineContent = {
+            SegmentedChoice(listOf(str(R.string.text_system_b9dd0f7), str(R.string.text_light_f3bfabb), str(R.string.text_dark_0bea023)), choices.indexOf(state.dark)) { index ->
+                choices[index]?.let(client::dark) ?: client.systemAppearance()
+            }
+        },
+        modifier = Modifier.clipTo(rowShape()),
+    )
 }
 
 @Composable fun SystemIntegrationsScreen(client: ClientController) {
@@ -100,12 +119,6 @@ import net.dmsg.core.*
             ListRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
             ListRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
             ListRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
-        }
-        SectionTitle(str(R.string.text_appearance_7bcd380))
-        Section {
-            listOf(null to str(R.string.text_system_b9dd0f7), false to str(R.string.text_light_f3bfabb), true to str(R.string.text_dark_0bea023)).forEach { (value, label) ->
-                RadioChoiceRow(label, state.dark == value) { if (value == null) client.systemAppearance() else client.dark(value) }
-            }
         }
         SectionTitle(str(R.string.text_account_4ab56e9))
         Section {

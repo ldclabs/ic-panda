@@ -100,7 +100,7 @@ class LanguageFlowTest {
             capture("$tag-detail", "demo@example.test")
             compose.onNodeWithContentDescription(str(R.string.text_back_5db5cac)).performClick()
             compose.runOnIdle { client.navigation.open("files") }
-            compose.waitUntil(10_000) { compose.onAllNodesWithText(str(R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b)).fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("Project materials").fetchSemanticsNodes().isNotEmpty() }
             capture("$tag-files", "Project materials")
             compose.runOnIdle { client.navigation.open("account") }
         }

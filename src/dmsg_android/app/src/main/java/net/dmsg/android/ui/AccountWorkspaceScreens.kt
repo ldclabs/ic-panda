@@ -1,7 +1,6 @@
 package net.dmsg.android.ui
 
 import net.dmsg.android.ui.kit.*
-import androidx.compose.ui.res.painterResource
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -41,20 +40,18 @@ import net.dmsg.android.core.*
     val profile by client.profile.saved.state.collectAsStateWithLifecycle()
     val account = state.session?.account.orEmpty()
     LaunchedEffect(account, state.epoch) { client.profile.load() }
+    val name = if (profile.valueOrNull() != null) profile.valueOrNull()?.name?.takeIf(String::isNotBlank) else names[account]
     val identity: @Composable (Modifier) -> Unit = { modifier ->
         Row(modifier.clickable(role = Role.Button) { client.navigation.push(Route("profile")) }.padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.card) {
-                image?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                    ?: Icon(painterResource(R.drawable.glyph_profile), null, Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.primary)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(if (profile.valueOrNull() != null) profile.valueOrNull()?.name?.takeIf(String::isNotBlank) ?: str(R.string.text_your_account_ae9d708) else names[account] ?: str(R.string.text_your_account_ae9d708), style = MaterialTheme.typography.titleMedium)
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Avatar(name.orEmpty(), account, size = 56.dp, image = remember(image) { image?.asImageBitmap() }, icon = if (name == null) painterResource(R.drawable.glyph_profile) else null)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(name ?: str(R.string.text_your_account_ae9d708), style = MaterialTheme.typography.titleLarge)
                 Text(str(R.string.text_public_profile_a67b108), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
-    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
+    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.card) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
             if (maxWidth >= 280.dp && LocalDensity.current.fontScale < 1.3f) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
