@@ -220,13 +220,19 @@ struct FilesView: View {
         if let local = model.filesLocalOnly, local.unbackedVersions > 0, let account = model.session?.account, !model.backupHintDismissed.contains(account) {
             HStack(spacing: 0) {
                 Button { model.route.filesPath.append(.unbacked) } label: {
-                    HStack(spacing: 8) {
-                        Label("Without a cloud backup", glyph: .cloudOff)
-                        Spacer(minLength: 8)
-                        Text(verbatim: local.unbackedVersions.formatted() + " · " + fileSize(UInt64(max(0, local.unbackedBytes))))
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
-                    }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                    let count = Text(verbatim: local.unbackedVersions.formatted() + " · " + fileSize(UInt64(max(0, local.unbackedBytes))))
+                        .foregroundStyle(.secondary)
+                    if textSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 4) { Label("Without a cloud backup", glyph: .cloudOff); count }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                    } else {
+                        HStack(spacing: 8) {
+                            Label("Without a cloud backup", glyph: .cloudOff)
+                            Spacer(minLength: 8)
+                            count
+                            Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                        }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                    }
                 }.buttonStyle(.plain).accessibilityIdentifier("files.unbacked.review")
                 Button { model.dismissBackupHint() } label: {
                     Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly).font(.footnote)

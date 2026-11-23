@@ -52,7 +52,9 @@ struct FileBrowseBar: View {
                 ])
             } else { Spacer() }
             Button(action: openTransfers) {
-                Image(systemName: "arrow.left.arrow.right").frame(width: 44, height: 44).contentShape(Rectangle())
+                // Icon buttons stop growing where they would outgrow their 44 pt targets, as bar buttons do.
+                Image(systemName: "arrow.left.arrow.right").dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
                     .overlay(alignment: .topTrailing) {
                         if active > 0 {
                             Text(active.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
@@ -66,7 +68,7 @@ struct FileBrowseBar: View {
                     ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             } label: {
-                Image(systemName: "arrow.up.arrow.down").font(.body).frame(width: 44, height: 44)
+                Image(systemName: "arrow.up.arrow.down").font(.body).dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(width: 44, height: 44)
             }.accessibilityLabel("Sort by").accessibilityValue(Text(sort.title))
                 .accessibilityIdentifier("files.options")
         }.font(.subheadline).padding(.bottom, 8)

@@ -146,8 +146,8 @@ struct UnbackedVersionsView: View {
                             Text("Back up to cloud")
                             if !selection.isEmpty { Text(verbatim: "\(selection.count.formatted()) · \(fileSize(selected.reduce(0) { $0 + $1.size }))").font(.footnote) }
                         }.frame(maxWidth: .infinity)
-                    }.buttonStyle(.borderedProminent).disabled(selection.isEmpty || loading).padding().background(.bar)
-                        .accessibilityIdentifier("backup.review-selected")
+                    }.buttonStyle(.borderedProminent).disabled(selection.isEmpty || loading)
+                        .accessibilityIdentifier("backup.review-selected").padding().background(.bar)
                 }
             }
             .task { await load() }.refreshable { await load() }

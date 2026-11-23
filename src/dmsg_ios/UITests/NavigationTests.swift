@@ -1037,7 +1037,16 @@ final class DeviceNavigationTests: NavigationTestCase {
 
 final class SubscriptionPresentationTests: NavigationTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication, up: Bool = true) {
-        for _ in 0..<26 where !element.isHittable {
+        // A lazy list creates rows only near the screen; reading isHittable before that fails the test.
+        // Lists scroll under the glass bars, where a row still reads as hittable but a tap reaches the bar.
+        func clear() -> Bool {
+            guard element.exists, element.isHittable else { return false }
+            let (navigation, tabs) = (app.navigationBars.firstMatch, app.tabBars.firstMatch)
+            let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+            let bottom = tabs.exists ? tabs.frame.minY : app.frame.maxY
+            return element.frame.minY >= top && element.frame.maxY <= bottom
+        }
+        for _ in 0..<26 where !clear() {
             if up { app.swipeUp(velocity: .slow) } else { app.swipeDown(velocity: .slow) }
         }
         if !element.isHittable { capture(app, name: "Unable to reveal \(element.identifier)") }

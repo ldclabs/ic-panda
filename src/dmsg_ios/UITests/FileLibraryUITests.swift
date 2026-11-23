@@ -463,7 +463,10 @@ final class FileRequestUITests: FileLibraryTestCase {
         app.navigationBars.buttons["Cancel"].tap()
         let discard = app.buttons["Discard"]
         XCTAssertTrue(discard.waitForExistence(timeout: 5))
-        app.sheets.buttons["Cancel"].firstMatch.tap()
+        // iOS 27 shows the dialog as a popover without a Cancel button; tapping outside keeps editing.
+        let keep = app.sheets.buttons["Cancel"].firstMatch
+        if keep.exists { keep.tap() } else { app.otherElements["PopoverDismissRegion"].tap() }
+        XCTAssertTrue(discard.waitForNonExistence(timeout: 5))
         XCTAssertEqual(title.value as? String, "Invoice review")
         app.navigationBars.buttons["Cancel"].tap()
         discard.tap()
@@ -625,7 +628,11 @@ final class FileRequestUITests: FileLibraryTestCase {
         chooseCloud(app)
         tap(app.buttons["backup.item.fixture-old-backup"], in: app)
         tap(app.buttons["backup.link.fixture-old-backup"], in: app)
-        XCTAssertTrue(app.staticTexts["file.link.remote"].waitForExistence(timeout: 5))
+        // At this size the note sits below the first screen of a lazy list.
+        let remote = app.staticTexts["file.link.remote"]
+        XCTAssertTrue(app.navigationBars["Share by link"].waitForExistence(timeout: 5))
+        for _ in 0..<4 where !remote.exists { app.swipeUp() }
+        XCTAssertTrue(remote.exists)
         capture(app, "Link terms at maximum Dynamic Type")
         let create = app.buttons["file.link.create"]
         for _ in 0..<8 where !create.isHittable { app.swipeUp() }

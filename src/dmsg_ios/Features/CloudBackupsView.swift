@@ -64,7 +64,7 @@ struct CloudBackupStatusView: View {
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Button { Task { await model.loadCloudBackups(refresh: true) } } label: {
-                    Image(systemName: "arrow.clockwise").font(.body).frame(width: 44, height: 44)
+                    Image(systemName: "arrow.clockwise").font(.body).dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(width: 44, height: 44)
                 }.buttonStyle(.borderless).disabled(model.loadingCloudBackups)
                     .accessibilityLabel(model.cloudBackupsFailed ? "Retry" : "Refresh backup list")
                     .accessibilityIdentifier("backups.refresh")
