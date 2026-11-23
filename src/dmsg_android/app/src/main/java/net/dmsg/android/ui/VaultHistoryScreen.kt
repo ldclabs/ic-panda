@@ -26,7 +26,7 @@ import net.dmsg.android.core.*
     var restoring by remember(id, state.epoch) { mutableStateOf<Pair<String, String>?>(null) }
     var naming by remember(id, state.epoch) { mutableStateOf<VaultVersion?>(null) }
     LaunchedEffect(id, state.epoch) { client.vaultHistory.load(id) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { ReadFeedback(read, { client.vaultHistory.load(id) }) }
         items(read.valueOrNull()?.takeIf { it.current.id == id }?.versions.orEmpty(), key = { it.revision }) { version ->
             Column {
@@ -87,7 +87,7 @@ private fun historyChange(code: String) = str(when (code) {
 @Composable fun VaultComparisonScreen(client: ClientController, id: String, revision: String) {
     val read by client.vaultHistory.comparison.state.collectAsStateWithLifecycle()
     LaunchedEffect(id, revision) { client.vaultHistory.compare(id, revision) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadFeedback(read, { client.vaultHistory.compare(id, revision) })
         read.valueOrNull()?.let { (current, previous) ->
             ComparisonRow(str(R.string.text_title_4c18fa6), current.title, previous.title)
@@ -130,7 +130,7 @@ private fun historyChange(code: String) = str(when (code) {
     val merging = choice?.merging == true
     var confirmation by remember(selected, conflict?.current?.revision) { mutableStateOf<String?>(null) }
     LaunchedEffect(state.epoch) { client.vaultHistory.conflicts() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(str(R.string.text_version_conflicts_0df1b3c), modifier = Modifier.openedReminderVisible(client, read is ReadState.Ready || read is ReadState.Empty) { it.kind == "task" && it.id?.startsWith("conflicts:") == true }, style = MaterialTheme.typography.titleMedium)
         ReadFeedback(read, client.vaultHistory::conflicts)
         if (conflict == null) {

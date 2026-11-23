@@ -52,7 +52,7 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
     var confirmingAccount by remember { mutableStateOf(false) }
     var confirmingRetry by remember { mutableStateOf(false) }
     LaunchedEffect(state.epoch) { client.notifications.load() }
-    LazyColumn(Modifier.fillMaxSize().testTag("notification-settings"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("notification-settings"), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text(str(R.string.text_notification_delivery_937a3db), modifier = Modifier.openedReminderVisible(client, preferences is ReadState.Ready) { it.kind == "service" && it.id?.startsWith("registration:") == true }, style = MaterialTheme.typography.titleMedium)
             ReadFeedback(preferences, client.notifications::load)
@@ -136,7 +136,7 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
             value.account?.let { account ->
                 item {
                     SectionTitle(str(R.string.text_this_account_24d133a))
-                    Text(value.accountId.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                    Text(value.accountId.orEmpty(), style = MaterialTheme.typography.bodySmall.code())
                     NoticeSwitch(str(R.string.text_notify_for_this_account_f989be2), account.enabled) { enabled ->
                         if (enabled) confirmingAccount = true else client.notifications.edit(account = account.copy(enabled = false))
                     }
@@ -179,7 +179,7 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
             Triple(id, name, zone.getDisplayName(false, java.util.TimeZone.LONG, locale))
         }.sortedWith(compareBy<Triple<String, String, String>> { it.first != current }.thenComparator { a, b -> sorter.compare(a.second, b.second) })
     }
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+    Column(Modifier.fillMaxSize().padding(pagePadding())) {
         WorkspaceSearchField(query, { query = it }, str(R.string.text_search_time_zones_e44910f))
         LazyColumn {
             val visible = zones.filter { (id, city, region) -> listOf(id, city, region).any { it.contains(query.trim(), ignoreCase = true) } }
@@ -202,7 +202,7 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
     var clearing by remember { mutableStateOf(false) }
     var snoozing by remember { mutableStateOf<ReminderItem?>(null) }
     LaunchedEffect(state.epoch) { client.notifications.list() }
-    LazyColumn(Modifier.fillMaxSize().testTag("reminders-list"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("reminders-list"), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text(state.session?.account.orEmpty(), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

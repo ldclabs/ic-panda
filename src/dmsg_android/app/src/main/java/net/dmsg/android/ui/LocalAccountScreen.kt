@@ -19,7 +19,7 @@ import net.dmsg.android.platform.str
 
 @Composable
 fun LocalSettings(client: ClientController, go: (String) -> Unit) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 20.dp, 20.dp, 20.dp + LocalWorkspaceBarInset.current)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(bottomInset = LocalWorkspaceBarInset.current)) {
         item { SectionTitle(str(R.string.saved_on_device)) }
         item {
             SettingsGroup {
@@ -54,7 +54,7 @@ fun LocalImportScreen(client: ClientController) {
             plan?.text("id")?.let { id -> client.perform({ it.localImportCancel(id) }, key = "local-import:cancel", quiet = true) {} }
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val reviewed = plan
         if (reviewed == null) {
             item { Button(enabled = !working, onClick = {

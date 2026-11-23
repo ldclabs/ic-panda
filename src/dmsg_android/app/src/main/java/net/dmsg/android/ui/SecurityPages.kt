@@ -28,11 +28,11 @@ import net.dmsg.core.PasskeyOperation
     val value = security.valueOrNull()
     val manage = devices.valueOrNull()?.canManage == true && devices is ReadState.Ready
     LaunchedEffect(session.epoch) { client.account.security(); client.approvals.settle() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         ReadFeedback(security, devices, client.account::security, client.account::devices)
         if (!manage && devices is ReadState.Ready) Notice(str(R.string.text_an_administrator_device_is_required_to_change_account_security_b4649ea))
         value?.logins?.forEach { login ->
-            SelectionContainer { Text(login.principal) }
+            SelectionContainer { Text(login.principal, style = MaterialTheme.typography.bodyMedium.code()) }
             if (login.current) Text(str(R.string.text_current_login_3d84cda), style = MaterialTheme.typography.labelLarge)
             TextButton(onClick = { client.clipboard.copy(login.principal) }) { Text(str(R.string.text_copy_identity_f95ea28)) }
             TextButton(onClick = { client.approvals.request("login:remove:" + login.principal) { it.removeLogin(login.principal) } }, enabled = manage && !login.current && value.logins.size > 1) { Text(str(R.string.text_review_removing_this_login_7a4b004)) }
@@ -67,7 +67,7 @@ import net.dmsg.core.PasskeyOperation
     val value = recovery.valueOrNull()
     LaunchedEffect(session.epoch) { client.account.recovery() }
     LaunchedEffect(Unit) { while (true) { delay(1000); now = System.currentTimeMillis().toULong() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(recovery, client.account::recovery)
         Notice(str(R.string.text_recovery_requires_a_bound_login_and_an_on_chain_policy_enabled_be_a56b875))
         if (expectedDigest != null && recovery is ReadState.Ready && value?.pending?.digest != expectedDigest) {
@@ -109,7 +109,7 @@ import net.dmsg.core.PasskeyOperation
     var enrollment by remember { mutableStateOf<JsonObject?>(null) }
     val controls = setOf("account_control", "device_control", "principal_control")
     LaunchedEffect(session.epoch) { client.account.hardware(); client.approvals.settle() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Notice(str(R.string.text_quick_unlock_opens_local_content_device_binding_restricts_which_d_5f0009f))
         ReadFeedback(status, client.account::hardware)
         if (value != null) {
@@ -162,7 +162,7 @@ import net.dmsg.core.PasskeyOperation
     val form by client.account.recoveryDraft.collectAsStateWithLifecycle()
     val manage = devices is ReadState.Ready && devices.valueOrNull()?.canManage == true
     LaunchedEffect(Unit) { client.account.security(); client.approvals.settle() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(security, devices, client.account::security, client.account::devices)
         Notice(str(R.string.text_on_chain_recovery_is_off_by_default_for_new_accounts_configure_it_ebbc51d))
         SettingToggle(str(R.string.text_on_chain_recovery_dcf7d3f), form.enabled, { client.account.editRecovery(form.copy(enabled = it)) }, enabled = manage)
@@ -183,7 +183,7 @@ import net.dmsg.core.PasskeyOperation
     var selected by remember { mutableStateOf<String?>(null) }
     val value = devices.valueOrNull()
     LaunchedEffect(session.epoch) { client.account.devices(); client.approvals.settle() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AccountRow(str(R.string.text_transfer_between_devices_fc09783)) { client.navigation.push(Route("device-transfer")) }
         AccountRow(str(R.string.text_replace_a_device_fbe5457)) { client.navigation.push(Route("handovers")) }
         ReadFeedback(devices, client.account::devices)

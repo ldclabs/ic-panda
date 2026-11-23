@@ -47,7 +47,7 @@ internal val LocalWorkspaceBarInset = compositionLocalOf { 0.dp }
         .padding(horizontal = if (largeLabels) 4.dp else 16.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
         Surface(
             modifier = Modifier.widthIn(max = 448.dp).fillMaxWidth().testTag("workspace-navigation"),
-            shape = CircleShape, color = colors.surface.copy(alpha = 0.88f),
+            shape = CircleShape, color = colors.surfaceBright.copy(alpha = 0.88f),
             border = BorderStroke(1.dp, colors.outline.copy(alpha = 0.35f)), shadowElevation = 4.dp,
         ) {
             Row(Modifier.selectableGroup().padding(5.dp).height(IntrinsicSize.Min)) {

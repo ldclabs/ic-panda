@@ -116,7 +116,7 @@ import net.dmsg.android.core.*
                     }
                 }
             }) { searching ->
-            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
                 if (trash || folder != "root") item {
                     if (trash) Text(str(R.string.text_deleted_on_this_device_c40f3ba), style = MaterialTheme.typography.titleMedium)
                     if (!trash && folder != "root") Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {

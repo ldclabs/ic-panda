@@ -37,7 +37,7 @@ import net.dmsg.android.platform.IncomingShare
     var discard by remember { mutableStateOf<IncomingShare?>(null) }
     var importing by remember { mutableStateOf<IncomingShare?>(null) }
     LaunchedEffect(state.epoch) { client.incoming.load(); client.incoming.acknowledge() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Notice(str(R.string.text_shared_items_wait_in_an_independently_encrypted_copy_on_this_devi_ac0b59d))
             state.session?.account?.let { TransferIdentity(str(R.string.text_import_account_2335d8d), it) }

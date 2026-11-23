@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -54,7 +53,7 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     var deleting by remember(id) { mutableStateOf(false) }
     val scroll = rememberScrollState()
     LaunchedEffect(item?.id, item?.deleted) { if (item != null) scroll.scrollTo(0) }
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
             DetailCard {
@@ -164,14 +163,14 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
         }
     }
     val value = if (isOtp) otp?.takeIf { tick < deadline } ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
             .combinedClickable(enabled = !item.reserved && !item.deleted, role = Role.Button, onClickLabel = str(R.string.text_copy_d6e9651) + " · " + label, onClick = ::copyValue,
                 onLongClickLabel = str(R.string.text_field_actions_a2183fb), onLongClick = { menu = true }).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(6.dp)); Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier, style = (if (isOtp) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge).copy(textDirection = direction))
-                if (isOtp && deadline > tick) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0), style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.height(6.dp)); Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier, style = (if (isOtp) MaterialTheme.typography.headlineSmall.tabular() else MaterialTheme.typography.bodyLarge).copy(textDirection = direction))
+                if (isOtp && deadline > tick) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0), style = MaterialTheme.typography.labelSmall.tabular())
             }
             if (!item.reserved && !item.deleted) Box {
                 IconButton(onClick = { menu = true }) { Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.MoreVert, str(R.string.text_field_actions_a2183fb) + " · " + label) }
@@ -188,7 +187,7 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             }
         }
     }
-    if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), fontSize = 30.sp, lineHeight = 42.sp, style = MaterialTheme.typography.bodyLarge.copy(textDirection = direction)) } },
+    if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.headlineLarge.let { if (isOtp) it.tabular() else it }.copy(textDirection = direction)) } },
         confirmButton = { TextButton(onClick = { large = null }) { Text(str(R.string.text_done_9ffd599)) } },
         dismissButton = { TextButton(onClick = ::copyValue) { Text(str(if (copiedAt == 0L) R.string.text_copy_d6e9651 else R.string.vault_copied)) } })
 }

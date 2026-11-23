@@ -42,7 +42,7 @@ import net.dmsg.android.core.*
     val identity: @Composable (Modifier) -> Unit = { modifier ->
         Row(modifier.clickable(role = Role.Button) { client.navigation.push(Route("profile")) }.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surface) {
+            Surface(Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.card) {
                 image?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                     ?: Icon(Icons.Outlined.Person, null, Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
             }
@@ -81,7 +81,7 @@ import net.dmsg.android.core.*
     val notices by client.notifications.status.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.epoch) { client.accountWorkspace.accounts() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
         item { ReadFeedback(entries) { client.accountWorkspace.accounts() } }
         items(entries.valueOrNull().orEmpty(), key = { it.id }) { account ->
             val local = account.id == LOCAL_ACCOUNT
@@ -147,7 +147,7 @@ import net.dmsg.android.core.*
         client.accountWorkspace.local()
         if (account == LOCAL_ACCOUNT) client.perform({ it.localAccountCounts().decode().objectValue() }, key = "local:counts") { counts = it.requiredUnsigned("vault") to it.requiredUnsigned("files") }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (account == LOCAL_ACCOUNT) {
             Text(str(R.string.offline_account))
             counts?.let { LabelValue(str(R.string.text_vault_ede2a06), localizedNumber(it.first)); LabelValue(str(R.string.text_files_c79ddc2), localizedNumber(it.second)) }
@@ -167,7 +167,7 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
     LaunchedEffect(state.epoch) { client.accountWorkspace.cache() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_this_clears_encrypted_display_copies_that_can_be_refreshed_vault_7af3f03))
         ReadFeedback(usage, client.accountWorkspace::cache)
         usage.valueOrNull()?.let { LabelValue(str(R.string.text_cached_data_on_this_device_0b0207b), fileSize(it.bytes)) }
@@ -193,7 +193,7 @@ import net.dmsg.android.core.*
     var confirming by remember { mutableStateOf(false) }
     LaunchedEffect(state.epoch) { client.profile.loadEditor() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             ReadFeedback(saved, { client.profile.loadEditor(true) })
             state.session?.account?.let { account ->
                 SelectionContainer { Text(account, style = MaterialTheme.typography.bodySmall) }

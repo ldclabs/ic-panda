@@ -6,6 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -62,6 +65,24 @@ class MainActivity : ComponentActivity() {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }, null))
                 })
+        }
+        holdSplashWhileStarting()
+    }
+
+    /** Keeps the system splash up while the local engine opens, then fades it, so a cold start never shows a spinner frame. */
+    private fun holdSplashWhileStarting() {
+        val content = findViewById<View>(android.R.id.content)
+        val deadline = SystemClock.uptimeMillis() + 2_000
+        content.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (client.state.value.starting && SystemClock.uptimeMillis() < deadline) return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
+        splashScreen.setOnExitAnimationListener { splash ->
+            splash.iconView?.animate()?.scaleX(1.08f)?.scaleY(1.08f)?.setDuration(240)?.start()
+            splash.animate().alpha(0f).setDuration(240).withEndAction(splash::remove).start()
         }
     }
 

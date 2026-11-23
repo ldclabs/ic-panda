@@ -27,7 +27,7 @@ import net.dmsg.android.core.*
     val form = draft
     val busy = state.working("feedback:send") || state.working("feedback:discard")
     val editable = !busy && (value == null || value.state == "draft")
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(report, client.feedback::load)
         Text(str(R.string.text_tell_us_what_happened_3978a58), style = MaterialTheme.typography.headlineSmall)
         Notice(str(R.string.text_review_the_report_before_sending_no_vault_entries_messages_or_log_299c6b0))

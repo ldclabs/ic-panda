@@ -31,14 +31,14 @@ import net.dmsg.android.core.*
     if (selected.isNotEmpty()) {
         val link = links.valueOrNull()?.find { it.id == selected }
         if (link != null) FileRequestDetailScreen(client, selected, link)
-        else Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        else Column(Modifier.padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ReadFeedback(links, { client.fileRequests.browse() })
             if (links is ReadState.Ready || links is ReadState.Empty) Notice(str(R.string.text_this_link_is_not_in_the_account_s_current_list_187258b))
         }
         return
     }
     val allowed = capacity.valueOrNull()?.requestLimit
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(str(R.string.text_collect_files_3ad17e5), Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
@@ -77,7 +77,7 @@ import net.dmsg.android.core.*
     val limit = capacity.valueOrNull()
     LaunchedEffect(state.epoch) { client.cloudFiles.capacity() }
     DisposableEffect(Unit) { onDispose { client.fileRequests.leaveComposer() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(str(R.string.text_ask_for_a_file_0e52733), style = MaterialTheme.typography.headlineSmall)
         OutlinedTextField(draft.title, { client.fileRequests.edit(draft.copy(title = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_what_do_you_need_51c5d87)) }, enabled = !working, maxLines = 3)
         OutlinedTextField(draft.instructions, { client.fileRequests.edit(draft.copy(instructions = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_instructions_optional_a2bd5d5)) }, enabled = !working, minLines = 2, maxLines = 6)
@@ -113,7 +113,7 @@ import net.dmsg.android.core.*
     var discard by remember(batch) { mutableStateOf<String?>(null) }
     LaunchedEffect(batch, state.epoch) { client.fileRequests.loadIntents() }
     DisposableEffect(batch) { onDispose { if (client.fileRequests.publication.value?.batch == batch) client.fileRequests.pausePublication() } }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             jobs.firstOrNull()?.let { Text(it.title, style = MaterialTheme.typography.headlineSmall) }
             if (jobs.isEmpty() && (intents is ReadState.Ready || intents is ReadState.Empty)) {
@@ -172,7 +172,7 @@ import net.dmsg.android.core.*
     val files = received.valueOrNull()?.takeIf { it.request == id }?.files.orEmpty()
     LaunchedEffect(id, state.epoch, link?.url) { if (link != null) client.fileRequests.select(id) }
     DisposableEffect(id) { onDispose { client.fileRequests.leaveDetail() } }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             Text(link?.title ?: str(R.string.text_collection_link_5c12570), style = MaterialTheme.typography.headlineSmall)
             link?.label?.takeIf(String::isNotBlank)?.let { Text(it, style = MaterialTheme.typography.titleMedium) }

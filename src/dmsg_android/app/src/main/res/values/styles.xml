@@ -2,9 +2,11 @@
     <style name="Theme.DMsg" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:colorAccent">#315B40</item>
-        <item name="android:windowBackground">#FBFCF7</item>
+        <item name="android:colorAccent">@color/theme_primary</item>
+        <item name="android:windowBackground">@color/theme_page</item>
+        <item name="android:windowSplashScreenBackground">@color/theme_page</item>
     </style>
     <style name="Theme.DMsg.Main">
         <!-- Android uses the task's theme background for its private Recents placeholder. -->

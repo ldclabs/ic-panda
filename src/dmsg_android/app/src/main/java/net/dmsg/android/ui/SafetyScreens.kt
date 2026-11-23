@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
 @Composable fun MessageSettingsScreen(client: ClientController) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding())) {
         SettingsGroup {
             AccountRow(str(R.string.text_receiving_policy_7270844), Icons.Outlined.MarkEmailRead) { client.navigation.push(Route("inbox-settings")) }
             AccountRow(str(R.string.text_blocked_accounts_c7f6322), Icons.Outlined.Block) { client.navigation.push(Route("blocked-accounts")) }
@@ -42,7 +42,7 @@ import net.dmsg.android.core.*
     val form = draft
     val working = state.working("safety:policy:save")
     LaunchedEffect(state.epoch) { client.safety.loadPolicy() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             ReadFeedback(policy, { client.safety.loadPolicy(true) })
             Notice(str(R.string.text_choose_who_may_send_you_free_letters_existing_blocks_invitations_b203311))
@@ -86,7 +86,7 @@ import net.dmsg.android.core.*
     var input by remember(initial) { mutableStateOf(initial.orEmpty()) }
     var change by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             ReadFeedback(blocked, { client.safety.loadBlocks() })
             Notice(str(R.string.text_blocked_senders_are_hidden_on_this_device_after_online_synchroniz_34bdd62))
@@ -115,7 +115,7 @@ import net.dmsg.android.core.*
     val form = draft?.takeIf { it.target == target }
     val prepared = review.valueOrNull()?.takeIf { form != null && it.account == target.account && it.resource == target.resource }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (prepared != null) ReportReviewContent(client, prepared)
         else if (form != null) {
             ParticipantIdentity(client, target.account, true)
@@ -162,9 +162,9 @@ import net.dmsg.android.core.*
     val reports by client.safety.reports.state.collectAsStateWithLifecycle()
     val detail by client.safety.report.state.collectAsStateWithLifecycle()
     LaunchedEffect(id) { if (id == null) client.safety.loadReports() else client.safety.reviewReport(id) }
-    if (id != null) Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    if (id != null) Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadFeedback(detail, { client.safety.reviewReport(id) }); detail.valueOrNull()?.takeIf { it.report.id == id }?.let { ReportReviewContent(client, it) }
-    } else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    } else LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { ReadFeedback(reports, { client.safety.loadReports() }); if (reports is ReadState.Empty) EmptyPanel(str(R.string.text_no_reports_22f7dd6)) }
         items(reports.valueOrNull().orEmpty(), key = { it.id }) { report ->
             Text(reportState(report.state), style = MaterialTheme.typography.titleMedium)

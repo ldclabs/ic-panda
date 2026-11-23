@@ -55,7 +55,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
                     IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_message_settings_1a28455)) }
                 }) {
-                Row(Modifier.padding(horizontal = 16.dp)) {
+                Row(Modifier.padding(horizontal = pageMargin())) {
                     BrowseScopes(trailing = {
                         var choosing by remember { mutableStateOf(false) }
                         Box {
@@ -76,7 +76,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                         } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
                     }
                 }
-                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
                     when (folder) {
                         LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
                             item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
@@ -106,7 +106,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                     }
                 }
             }
-        } else if (letter != null || outgoing != null) Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        } else if (letter != null || outgoing != null) Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val account = letter?.sender ?: outgoing!!.recipient
             Text(if (letter != null) str(R.string.text_from_c08793d) else str(R.string.text_to_50fd5b7), style = MaterialTheme.typography.labelLarge)
             ParticipantIdentity(client, account, showId = true)
@@ -144,7 +144,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
     editing?.let { id ->
         val form = drafts[id]
         if (form != null) ModalBottomSheet(onDismissRequest = { editing = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(str(R.string.text_write_a_letter_1a8f9c9), style = MaterialTheme.typography.headlineSmall)
                 RecipientField(client, form.recipient, { client.letters.update(form.copy(recipient = it.trim())) }, label = str(R.string.text_recipient_account_id_99c767d))
                 OutlinedTextField(form.text, { client.letters.update(form.copy(text = it)) }, Modifier.fillMaxWidth(), minLines = 6, label = { Text(str(R.string.text_message_373be16)) }, isError = form.bytes > 6000, supportingText = { Text("${form.bytes} / 6000 " + str(R.string.text_utf_8_bytes_121f5ad)) })

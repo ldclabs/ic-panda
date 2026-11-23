@@ -38,7 +38,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     var discard by remember { mutableStateOf(false) }
     var limitsOpen by remember(id) { mutableStateOf(false) }
     LaunchedEffect(id) { client.secretSharing.composer(id, initialChannel) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (draft == null) ReadFeedback(source) { client.secretSharing.composer(id, initialChannel) }
         draft?.let { value ->
             val item = value.source.item
@@ -106,7 +106,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
 @Composable fun SecretSharesScreen(client: ClientController) {
     val read by client.secretSharing.jobs.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { client.secretSharing.list() }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { TextButton(onClick = { client.navigation.push(Route("vault-links")) }) { Text(str(R.string.text_share_links_fe69aa5)) } }
         item { Notice(str(R.string.text_snapshot_jobs_created_on_this_device_each_snapshot_retains_its_ow_5ffff05)); ReadFeedback(read, client.secretSharing::list) }
         items(read.valueOrNull().orEmpty(), key = { it.id }) { job ->
@@ -129,7 +129,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     LaunchedEffect(id) { client.secretSharing.select(id) }
     DisposableEffect(id) { onDispose { client.secretSharing.hideLink(id) } }
     val working = state.working("secret:reconcile:" + id) || state.working("secret:revoke:" + id) || state.working("approval:request:secret-share:" + id)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read) { client.secretSharing.select(id) }
         job?.let { value ->
             Text(value.title, style = MaterialTheme.typography.headlineSmall)
@@ -183,7 +183,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     val working = state.working("secret:preview") || state.working("secret:import")
     LaunchedEffect(source) { client.secretSharing.receiver(source); client.secretSharing.refreshIncoming() }
     LaunchedEffect(qr.result) { client.qr.consume("secret-package")?.let { link -> client.secretSharing.editIncoming { it.copy(link = link) } } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (current == null) return@Column
         val editable = !working && current.request == null && current.completed == null && current.pending == null
         if (source.channel == null) {
@@ -219,7 +219,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             }
             Notice(str(R.string.text_import_creates_independent_items_attachments_stay_on_this_device_fe5265b))
             Text(str(R.string.text_verified_package_fingerprint_c59476c), style = MaterialTheme.typography.labelMedium)
-            SelectionContainer { Text(value.digest, style = MaterialTheme.typography.bodySmall) }
+            SelectionContainer { Text(value.digest, style = MaterialTheme.typography.bodySmall.code()) }
         }
         if (current.pending != null && current.request == null) Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
         if (current.completed == null) Button(onClick = client.secretSharing::importRequest,
@@ -241,7 +241,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     val read by picker.listing.state.collectAsStateWithLifecycle()
     val query by picker.filters.collectAsStateWithLifecycle()
     LaunchedEffect(channel) { picker.browse() }
-    LazyColumn(contentPadding = PaddingValues(20.dp)) {
+    LazyColumn(contentPadding = pagePadding()) {
         item {
             WorkspaceSearchField(query.text, { picker.browse(VaultQuery(text = it)) }, str(R.string.text_search_vault_f6e42b2))
             ReadFeedback(read) { picker.browse() }

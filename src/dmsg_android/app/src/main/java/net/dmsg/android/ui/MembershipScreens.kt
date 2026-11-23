@@ -36,7 +36,7 @@ import net.dmsg.android.platform.numericExpression
     val current = plan.valueOrNull()
     val known = plan is ReadState.Ready && current?.needsRefresh(now) == false
     FilledTonalButton(onClick = { client.navigation.push(Route("membership")) },
-        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.card, contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(horizontal = 14.dp), modifier = Modifier.testTag("membership-badge")) {
         Icon(if (known) Icons.Outlined.Verified else Icons.Outlined.Info, null, Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
@@ -63,7 +63,7 @@ import net.dmsg.android.platform.numericExpression
     val current = plan.valueOrNull()
     val tier = current?.takeIf { plan is ReadState.Ready && !it.needsRefresh(now) }?.tier
     val list = workspaceListState(client.navigation, if (comparison) "membership:compare" else "membership:overview")
-    LazyColumn(Modifier.fillMaxSize().testTag("membership-list"), state = list, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("membership-list"), state = list, contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (comparison) {
             item {
                 Text(str(R.string.text_every_plan_includes_end_to_end_encryption_and_device_revocation_3f9af04), style = MaterialTheme.typography.bodyMedium)
@@ -71,7 +71,7 @@ import net.dmsg.android.platform.numericExpression
             }
             items(catalog.valueOrNull()?.plans.orEmpty(), key = { it.tier }) { benefit ->
                 DetailCard(Modifier.testTag("plan-card-" + benefit.tier),
-                    color = if (benefit.tier == tier) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface) {
+                    color = if (benefit.tier == tier) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.card) {
                     Text(benefit.tier, Modifier.semantics { heading() }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                     if (benefit.tier == tier) Text(str(R.string.text_current_plan_7901977), style = MaterialTheme.typography.labelLarge)
                     HorizontalDivider()
@@ -88,7 +88,7 @@ import net.dmsg.android.platform.numericExpression
             item { Text(str(R.string.text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1), style = MaterialTheme.typography.bodySmall) }
         } else {
             item {
-                DetailCard(color = if (tier != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface) {
+                DetailCard(color = if (tier != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.card) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         TonalIcon(if (tier != null) Icons.Outlined.Verified else Icons.Outlined.Info, MaterialTheme.colorScheme.surfaceContainer)
                         Column(Modifier.weight(1f)) {

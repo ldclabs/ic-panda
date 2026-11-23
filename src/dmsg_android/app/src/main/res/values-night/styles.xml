@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.DMsg" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">@color/theme_primary</item>
+        <item name="android:windowBackground">@color/theme_page</item>
+        <item name="android:windowSplashScreenBackground">@color/theme_page</item>
+    </style>
+</resources>

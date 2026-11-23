@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Themed icons tint this mask. The clip leaves the same gap around the gem that the
+         coloured foreground paints in launcher green: the outline runs against the frame, so it is a hole. -->
+    <group android:translateX="33" android:translateY="30">
+        <group>
+            <clip-path android:pathData="M-33,-30h108v108h-108Z M13.768,15.732A2.5,2.5 0,0 0,10.232 15.732L3.732,22.232A2.5,2.5 0,0 0,3.732 25.768L10.232,32.268A2.5,2.5 0,0 0,13.768 32.268L20.268,25.768A2.5,2.5 0,0 0,20.268 22.232Z" />
+            <path android:fillColor="#FFFFFFFF"
+                android:pathData="M4,0h4.5A1.5,1.5 0,0 1,10 1.5v45A1.5,1.5 0,0 1,8.5 48H4a4,4 0,0 1,-4 -4V4a4,4 0,0 1,4 -4Z" />
+            <path android:fillColor="#FFFFFFFF"
+                android:pathData="M15.5,0H18a24,24 0,0 1,0 48h-2.5a1.5,1.5 0,0 1,-1.5 -1.5v-45A1.5,1.5 0,0 1,15.5 0Z" />
+        </group>
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12,17.5L18.5,24 12,30.5 5.5,24Z" />
+    </group>
+</vector>

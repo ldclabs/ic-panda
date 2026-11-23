@@ -17,7 +17,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import net.dmsg.android.core.*
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.runtime.saveable.rememberSaveable
 import java.security.MessageDigest
 
@@ -27,7 +26,7 @@ import java.security.MessageDigest
     var token by remember { mutableStateOf<String?>(null) }
     var submitted by remember { mutableStateOf<String?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(str(R.string.text_join_an_existing_account_cc7175b), style = MaterialTheme.typography.headlineSmall)
         Notice(str(R.string.text_ask_an_authorized_administrator_to_approve_this_login_identity_ap_76d01ae))
         OutlinedTextField(account, { account = it.trim(); token = null; submitted = null; failure = null }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(str(R.string.text_account_id_43f0a66)) })
@@ -80,7 +79,7 @@ import java.security.MessageDigest
             check()
         }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(str(R.string.text_authorize_this_android_device_051b886), style = MaterialTheme.typography.headlineSmall)
         if (preparing) {
             Notice(str(R.string.pair_preparing_vault))
@@ -109,7 +108,7 @@ import java.security.MessageDigest
 
 @Composable private fun DeviceFingerprint(value: String) {
     SelectionContainer {
-        Text(value.chunked(4).joinToString(" "), style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Ltr))
+        Text(value.chunked(4).joinToString(" "), style = MaterialTheme.typography.bodySmall.code())
     }
 }
 
@@ -165,7 +164,7 @@ private fun pairingReceipt(token: String): String =
     }
     val qr by client.qr.state.collectAsStateWithLifecycle()
     LaunchedEffect(qr.result) { client.qr.consume("pair-approval")?.let { edit(it); review() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (preview?.text("route") != "handoff") {
             Text(str(if (enrollmentOnly) R.string.text_review_an_enrollment_request_65ae501 else R.string.text_authorize_another_device_d67d951), style = MaterialTheme.typography.headlineSmall)
             OutlinedTextField(token, ::edit, Modifier.fillMaxWidth(), minLines = 2, maxLines = 5, label = { Text(str(R.string.text_device_request_a29f5e8)) })
@@ -216,7 +215,7 @@ private fun pairingReceipt(token: String): String =
 @Composable fun MovedWorkspaceScreen(client: ClientController) {
     val state by client.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Text(str(R.string.text_this_workspace_came_from_another_device_d9830c7), style = MaterialTheme.typography.headlineSmall)
         Notice(str(R.string.text_its_device_bound_keys_cannot_be_replaced_automatically_keep_the_c_c11e52c))
         Button(onClick = { confirming = true }, enabled = !state.busy) { Text(str(R.string.text_set_aside_and_start_a_new_device_1e89498)) }

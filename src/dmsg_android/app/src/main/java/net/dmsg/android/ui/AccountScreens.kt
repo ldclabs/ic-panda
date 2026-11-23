@@ -30,7 +30,7 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 
 @Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, openLogin: (String) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(bottom = LocalWorkspaceBarInset.current).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(pagePadding(bottomInset = LocalWorkspaceBarInset.current))) {
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
         SettingsGroup {
@@ -78,7 +78,7 @@ import net.dmsg.core.*
 }
 
 @Composable fun SystemIntegrationsScreen(client: ClientController) {
-    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:system-integrations")).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:system-integrations")).padding(pagePadding())) {
         SettingsGroup {
             AccountRow(str(R.string.text_password_autofill_872af78), Icons.Outlined.Key) { client.navigation.push(Route("system-autofill")) }
             AccountRow(str(R.string.text_files_app_copies_96ebae6), Icons.Outlined.Folder) { client.navigation.push(Route("system-files")) }
@@ -89,7 +89,7 @@ import net.dmsg.core.*
 }
 
 @Composable fun AdvancedAccountScreen(client: ClientController) {
-    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:advanced")).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:advanced")).padding(pagePadding())) {
         SettingsGroup {
             AccountRow(str(R.string.text_agents_dcfd6ed), Icons.Outlined.SmartToy) { client.navigation.push(Route("agents")) }
             AccountRow(str(R.string.text_multisig_wallets_451404c), Icons.Outlined.AccountBalanceWallet) { client.navigation.push(Route("wallets")) }
@@ -102,7 +102,7 @@ import net.dmsg.core.*
 }
 
 @Composable fun SecurityScreen(client: ClientController, state: UiState) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding())) {
         SectionTitle(str(R.string.text_security_and_unlock_7ba00a7))
         SettingsGroup {
             SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d))
@@ -216,7 +216,7 @@ private fun approvalSource(source: String): String = when {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (selected.isEmpty()) {
                 ReadFeedback(listing, client.approvals::refreshRemote)
                 val entries = listing.valueOrNull().orEmpty()
@@ -268,7 +268,7 @@ private fun approvalSource(source: String): String = when {
         }
         current?.takeIf { it.state == "awaiting_user" }?.let { value ->
             Surface {
-                Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(pagePadding())) {
                     val submitting = state.working("approval:decide:" + selected)
                     if (now >= value.expiresAt) {
                         Text(str(R.string.text_this_request_expired_refresh_before_continuing_04ccc12))

@@ -21,7 +21,7 @@ import net.dmsg.android.core.*
     val session by client.state.collectAsStateWithLifecycle()
     var automatic by remember { mutableStateOf(client.synchronization.automatic) }
     LaunchedEffect(session.epoch, status?.lastSuccessAtMs) { client.accountWorkspace.local() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroup {
             SettingToggle(str(R.string.text_automatic_synchronization_dde4f07), automatic,
                 { automatic = it; client.automaticSync(it) }, description = str(R.string.text_while_dmsg_is_open_and_unlocked_99d4594))

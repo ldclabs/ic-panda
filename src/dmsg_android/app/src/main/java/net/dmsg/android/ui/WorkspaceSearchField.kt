@@ -24,7 +24,7 @@ import net.dmsg.android.platform.str
         singleLine = true, shape = CircleShape, placeholder = { Text(placeholder, Modifier.clearAndSetSemantics {}, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = if (onSearch == null) KeyboardActions.Default else KeyboardActions(onSearch = { onSearch() }),
-        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = colors.surface, unfocusedContainerColor = colors.surface,
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = colors.card, unfocusedContainerColor = colors.card,
             unfocusedBorderColor = colors.outlineVariant, focusedBorderColor = colors.primary),
         leadingIcon = { Icon(Icons.Outlined.Search, null) },
         trailingIcon = if (value.isNotEmpty()) {

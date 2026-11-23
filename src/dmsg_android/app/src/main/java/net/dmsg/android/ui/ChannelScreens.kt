@@ -37,7 +37,7 @@ import net.dmsg.android.core.*
     var leaveDraft by remember(channel) { mutableStateOf(false) }
     LaunchedEffect(channel, state.epoch) { client.channels.load(channel) }
     BackHandler(detail != null && name != detail.name) { leaveDraft = true }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             ReadFeedback(loaded, { client.channels.load(channel) })
             OutlinedTextField(name, { client.channels.editName(channel, it) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_conversation_name_428c56e)) }, singleLine = true, enabled = detail != null && !working,
@@ -120,7 +120,7 @@ import net.dmsg.android.core.*
 @Composable fun HiddenChannelsScreen(client: ClientController) {
     val hidden by client.channels.hidden.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { client.channels.browseHidden() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
         item { ReadFeedback(hidden, client.channels::browseHidden); if (hidden is ReadState.Empty) EmptyPanel(str(R.string.text_no_hidden_conversations_1471673)) }
         items(hidden.valueOrNull().orEmpty(), key = { it.id }) { channel -> ListItem(headlineContent = { Text(channel.name) }, supportingContent = { Text(channelType(channel.kind)) }, trailingContent = {
             TextButton(onClick = { client.channels.hide(channel.id, false) }) { Text(str(R.string.text_show_again_1409301)) }
@@ -139,7 +139,7 @@ import net.dmsg.android.core.*
     var now by remember { mutableStateOf(System.currentTimeMillis().toULong()) }
     LaunchedEffect(Unit) { client.channels.loadCreations(); while (true) { kotlinx.coroutines.delay(1000); now = System.currentTimeMillis().toULong() } }
     LaunchedEffect(qr.result) { client.qr.consume("channel-join")?.let { client.channels.editSetup(form.copy(joining = true, invitation = it)) } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         WorkspaceScope(str(R.string.text_create_7570cfc), str(R.string.text_join_5f4ca2d), form.joining, enabled = !working) {
             client.channels.editSetup(form.copy(joining = !form.joining))
         }
@@ -196,7 +196,7 @@ import net.dmsg.android.core.*
     val form = forms[channel] ?: ChannelInvite()
     val working = state.working("channel:invite:$channel")
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         RecipientField(client, form.account, { client.channels.editInvite(channel, form.copy(account = it)) }, enabled = !working && form.request == null, label = str(R.string.text_member_account_id_73d9865))
         Notice(str(R.string.text_only_this_account_can_accept_the_invitation_it_may_read_the_curre_7898d3d))
         form.error?.let { Notice(errorText(it), true) }
@@ -232,7 +232,7 @@ import net.dmsg.android.core.*
 @Composable fun InviteLetterSenderScreen(client: ClientController, account: String) {
     val channels by client.messages.channels.state.collectAsStateWithLifecycle()
     LaunchedEffect(account) { client.messages.browse() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
         item { ParticipantIdentity(client, account, true); ReadFeedback(channels, client.messages::browse) }
         items(channels.valueOrNull().orEmpty().filter { it.canInvite }, key = { it.id }) { channel ->
             AccountRow(channel.name) { client.channels.editInvite(channel.id, ChannelInvite(account)); client.navigation.push(Route("channel-invite", channel = channel.id)) }

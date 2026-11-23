@@ -37,7 +37,7 @@ import java.io.File
     val current = details.valueOrNull()?.takeIf { it.file.id == selected }
     val historical = current?.versions?.find { it.id == selectedVersion }
     val file = current?.file?.let { if (selectedVersion != null && historical == null) null else if (historical == null) it else it.atVersion(historical) }
-    if (selected.isEmpty()) FileBrowserScreen(client, state, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    if (selected.isEmpty()) FileBrowserScreen(client, state, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(details, { client.library.select(selected) })
         if (current != null && selectedVersion != null && historical == null) {
             Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481), true)

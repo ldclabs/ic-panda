@@ -87,7 +87,7 @@ class ExportAccessActivity : ComponentActivity() {
                         PasswordPicker(Modifier.fillMaxSize().padding(padding), entries, recent, target?.host, busy,
                             onChoose = ::choose, onSearch = ::scheduleTimeout, heading = heading)
                     } else {
-                        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(24.dp)) {
+                        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = pagePadding()) {
                             item { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { heading() } }
                         }
                     }

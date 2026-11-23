@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window and splash colours equal the Compose page and primary roles in ThemeColors.kt (checked by ThemeColorsTest). -->
+    <color name="theme_page">#EFF1ED</color>
+    <color name="theme_primary">#145C45</color>
+</resources>

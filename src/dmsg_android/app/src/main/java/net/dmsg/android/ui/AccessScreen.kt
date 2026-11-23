@@ -75,13 +75,13 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
             return@Scaffold
         }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 560.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.widthIn(max = 560.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 if (incoming.working) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(str(R.string.text_encrypting_shared_items_for_later_import_8caa029)) }
                 else if (incoming.count > 0) Notice(str(R.string.text_shared_items_are_waiting_unlock_an_account_to_review_and_import_t_713dc4a))
                 incoming.error?.let { Notice(errorText(it), true) }
                 if (intent != null) IconButton(onClick = { intent = null; client.cancelAuthentication() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                 else if (anotherAccount) TextButton(onClick = ::backToWelcome, enabled = !state.busy) { Text(str(R.string.text_cancel_998b9c4)) }
-                DetailCard(color = MaterialTheme.colorScheme.surface) {
+                DetailCard {
                     Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(54.dp))
                     Text(str(when (intent) {
                         PasskeyIntent.NEW_WORKSPACE -> R.string.access_new_workspace

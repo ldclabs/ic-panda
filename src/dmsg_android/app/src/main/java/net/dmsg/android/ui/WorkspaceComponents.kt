@@ -29,8 +29,10 @@ private val LocalGroupIconColor = staticCompositionLocalOf { Color.Unspecified }
     content: @Composable ColumnScope.() -> Unit,
 ) {
     CompositionLocalProvider(LocalGroupIconColor provides iconColor) {
-        Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
-            verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
+        OnCard {
+            Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
+                verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
+        }
     }
 }
 
@@ -43,7 +45,7 @@ private val LocalGroupIconColor = staticCompositionLocalOf { Color.Unspecified }
 
 @Composable internal fun DetailCard(
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.surface,
+    color: Color = MaterialTheme.colorScheme.card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = color) {
@@ -62,7 +64,7 @@ private val LocalGroupIconColor = staticCompositionLocalOf { Color.Unspecified }
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveContainerColor = MaterialTheme.colorScheme.card,
                     inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 ),
@@ -97,7 +99,7 @@ private val LocalGroupIconColor = staticCompositionLocalOf { Color.Unspecified }
     detail: String? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
-    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface) {
+    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.card) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             icon?.let { TonalIcon(it) }

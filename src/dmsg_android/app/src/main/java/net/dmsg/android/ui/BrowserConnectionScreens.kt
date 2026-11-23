@@ -38,7 +38,7 @@ import net.dmsg.android.core.*
             client.browserConnections.invitations.value().orEmpty().forEach(client.browserConnections::candidates)
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Notice(str(R.string.text_connect_only_a_browser_you_control_a_connection_can_submit_reques_4b16bf2))
             Button(onClick = { client.browserConnections.create(::open) }, enabled = !state.working("browser:create")) { Text(str(R.string.text_connect_a_browser_772f8bd)) }
@@ -87,7 +87,7 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     val request by client.browserConnections.request.state.collectAsStateWithLifecycle()
     if (link.account != null && link.account != state.session?.account) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(str(R.string.text_this_request_belongs_to_another_account_choose_its_account_before_0b05dcb))
             SelectionContainer { Text(link.account) }
             Button(onClick = { client.navigation.open("accounts") }) { Text(str(R.string.text_choose_account_58cfffa)) }
@@ -96,7 +96,7 @@ import net.dmsg.android.core.*
     } else if (link.destination == "pair") BrowserConnectionsScreen(client, browser)
     else {
         LaunchedEffect(link, state.epoch) { client.browserConnections.locate(link) }
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(str(R.string.text_the_app_retrieves_and_verifies_the_original_browser_request_openi_aea3c2b))
             ReadFeedback(request, { client.browserConnections.locate(link) })
             if (request is ReadState.Empty) Text(str(R.string.text_the_request_is_unavailable_to_this_device_it_may_have_expired_or_763c484))

@@ -62,7 +62,7 @@ import net.dmsg.core.*
     val working = state.working("vault:save:" + current.key) || state.working("vault:discard") || !ready
     fun update(change: (VaultDraft) -> VaultDraft) { client.activity(); if (!working) { failure = null; client.vaultDrafts.update(change) } }
     Column(Modifier.testTag("vault-editor").fillMaxWidth().imePadding()) {
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = close, enabled = !working) { Text(str(R.string.text_cancel_998b9c4)) }
                 Text(if (current.id == null) str(R.string.text_new_item_9916f9f) else str(R.string.text_edit_item_3638f4f), style = MaterialTheme.typography.titleLarge)
@@ -96,7 +96,7 @@ import net.dmsg.core.*
                         pendingFocus = null
                     }
                 }
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (customizing) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Box {
@@ -169,7 +169,7 @@ import net.dmsg.core.*
                 TextButton(onClick = { client.vault.loadAttachmentFiles(); attachment = true }, enabled = !working && current.files.size < 20) { Text(str(R.string.text_choose_from_files_c1e8160)) }
             }
         }
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             failure?.takeUnless { it in setOf("INVALID_TITLE", "INVALID_TAGS", "INVALID_FIELDS") }?.let { Notice(errorText(it), true) }
             if (!ready) TextButton(onClick = { client.vaultDrafts.load() }) { Text(str(R.string.text_retry_563171c)) }
             if (failure == null && state.session?.accountKind != "local") Text(str(R.string.text_saved_on_this_device_first_then_synchronized_unsynced_changes_can_0921bb4), style = MaterialTheme.typography.bodySmall)

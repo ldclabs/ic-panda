@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import net.dmsg.android.BuildConfig
 
 @Composable fun AboutScreen(browser: (String) -> Unit, privacy: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         DetailCard {
             Text("dMsg", style = MaterialTheme.typography.displaySmall)
             Text(str(R.string.text_a_private_workspace_for_the_ai_era_17ce1ec), style = MaterialTheme.typography.titleLarge)
@@ -62,7 +62,7 @@ import net.dmsg.android.BuildConfig
             }
         } catch (_: Exception) { failed = true }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Text(str(R.string.text_android_app_59fb6d0), style = MaterialTheme.typography.titleLarge)
         Text(str(R.string.text_android_handles_device_authentication_and_credential_providers_dm_df9a5ad))
         Text(if (net.dmsg.android.BuildConfig.HAS_FCM) str(R.string.text_if_you_enable_background_reminders_this_edition_can_use_google_fi_0942ee1) else str(R.string.text_this_edition_does_not_use_google_services_for_background_reminder_ccc1e1d))

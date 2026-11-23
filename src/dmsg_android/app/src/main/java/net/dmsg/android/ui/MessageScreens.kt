@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -65,7 +64,7 @@ import net.dmsg.core.MessageItem
             IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_message_settings_1a28455)) }
         }) { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = scroll,
-            contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+            contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
             browseScopesItem(searching) {
                 BrowseScopes {
                     BrowseChoice(str(R.string.text_conversations_23a085e), true) {}
@@ -223,7 +222,7 @@ import net.dmsg.core.MessageItem
         if (searchMode != BrowseSearchMode.Browse) {
             BrowseSearchRow(search, { search = it; client.messages.search(it) }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
                 searchMode, setSearchMode)
-        } else Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        } else Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically) {
             val syncError = syncFailure?.takeIf { it.first == channel }?.second
             Text(syncError?.let { errorText(it) } ?: str(R.string.text_encrypted_conversation_9f9e912),
                 Modifier.weight(1f).semantics { if (syncError != null) liveRegion = LiveRegionMode.Polite },
@@ -234,7 +233,7 @@ import net.dmsg.core.MessageItem
         }
         ReadFeedback(blocked, { client.safety.loadBlocks() })
         ReadFeedback(timeline, { client.messages.load(channel) })
-        LazyColumn(Modifier.weight(1f), state = scroll, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(Modifier.weight(1f), state = scroll, contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (currentTimeline?.hasMore == true) item { TextButton(onClick = client.messages::older) { Text(str(R.string.text_load_earlier_messages_1e9b531)) } }
             itemsIndexed(rows, key = { _, message -> "message:" + message.id }) { index, message ->
                 val mine = message.account == state.session?.account
@@ -246,7 +245,7 @@ import net.dmsg.core.MessageItem
                     if (previous?.account != message.account || messageDay(previous.createdAtMs) != day) ParticipantIdentity(client, message.account)
                     Surface(Modifier.padding(start = if (mine) 28.dp else 0.dp, end = if (mine) 0.dp else 28.dp).widthIn(max = 440.dp)
                         .combinedClickable(onClickLabel = str(R.string.message_actions), onClick = { action = message }, onLongClick = { action = message }),
-                        shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
+                        shape = MaterialTheme.shapes.medium, color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest) {
                         Column(Modifier.padding(14.dp)) {
                             message.replySequence?.let { sequence ->
                                 TextButton(onClick = { client.navigation.push(Route("message-reference", channel = channel, sequence = sequence)) }) {
@@ -275,7 +274,7 @@ import net.dmsg.core.MessageItem
             item { ReadFeedback(outgoing, { client.messages.load(channel, false) }) }
             items(pending, key = { "outgoing:" + it.id }) { queued ->
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                    Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(18.dp)).padding(14.dp))
+                    Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.shapes.medium).padding(14.dp))
                     if (queued.text.isNotBlank()) queued.attachmentName?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     val sending = state.working("message:send:" + queued.id)
                     Text(str(when {
@@ -294,11 +293,11 @@ import net.dmsg.core.MessageItem
             }
         }
         HorizontalDivider()
-        composer.reply?.let { reply -> Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        composer.reply?.let { reply -> Row(Modifier.padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically) {
             Text(str(R.string.text_reply_2f31ef1) + (reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}"), Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
             IconButton(onClick = { update(composer.copy(reply = null)) }) { Icon(Icons.Outlined.Close, str(R.string.text_cancel_reply_b66716c)) }
         } }
-        if (composer.attachments.isNotEmpty()) LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (composer.attachments.isNotEmpty()) LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(composer.attachments, key = { "${it.file}:${it.version}" }) { file -> InputChip(selected = true, onClick = {}, label = { Text(file.name, Modifier.widthIn(max = 180.dp), maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, trailingIcon = { IconButton(onClick = { update(composer.copy(attachments = composer.attachments.filterNot { it.file == file.file && it.version == file.version })) }) { Icon(Icons.Outlined.Close, str(R.string.text_remove_attachment_d043b7e) + file.name) } }) }
         }
@@ -306,7 +305,7 @@ import net.dmsg.core.MessageItem
         if (info?.canPublish == false) Notice(str(R.string.text_you_cannot_publish_in_the_current_channel_state_a56d35a))
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             FileIntakeButton(client, channel = channel, enabled = info?.canPublish == true && draftsReady, chooseExisting = { attachmentFolder = "root"; attachmentParents = listOf("root"); client.messages.chooseFolder("root"); attachment = true })
-            OutlinedTextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).focusRequester(composerFocus).revealFocusedInput(), enabled = draftsReady && info?.canPublish == true, placeholder = { Text(str(R.string.text_say_something_c413667)) }, shape = RoundedCornerShape(24.dp), maxLines = 5)
+            OutlinedTextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).focusRequester(composerFocus).revealFocusedInput(), enabled = draftsReady && info?.canPublish == true, placeholder = { Text(str(R.string.text_say_something_c413667)) }, shape = MaterialTheme.shapes.large, maxLines = 5)
             FilledIconButton(onClick = { client.messages.send(channel) { id -> search = ""; setSearchMode(BrowseSearchMode.Browse); queuedId = id } }, enabled = composer.sendable && !state.working("message:queue:" + channel) && draftsReady && info?.canPublish == true) { Icon(Icons.AutoMirrored.Outlined.Send, str(R.string.text_send_06acd73)) }
         }
     }
@@ -366,7 +365,7 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
     val shown = reference.valueOrNull()?.takeIf { it.channel == channel && it.sequence == sequence }?.message
     LaunchedEffect(channel, sequence, state.epoch) { client.safety.loadBlocks(); client.messages.locate(channel, sequence) }
     DisposableEffect(channel, sequence) { onDispose { client.messages.leaveReference() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(str(R.string.text_original_message_f73147f) + sequence, style = MaterialTheme.typography.headlineSmall)
         ReadFeedback(reference, { client.messages.locate(channel, sequence) })
         when {

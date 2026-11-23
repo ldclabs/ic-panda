@@ -23,7 +23,7 @@ import net.dmsg.android.core.*
     val read by client.secretTools.attachments.state.collectAsStateWithLifecycle()
     val listing = read.valueOrNull()?.takeIf { it.item == id }
     LaunchedEffect(id) { client.secretTools.attachments(id) }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Notice(str(R.string.text_item_references_may_sync_before_their_files_files_and_backups_are_decc308)); ReadFeedback(read) { client.secretTools.attachments(id) } }
         items(listing?.files.orEmpty(), key = { it.id }) { entry ->
             val file = entry.details?.file
@@ -49,7 +49,7 @@ import net.dmsg.android.core.*
     val reference = read.valueOrNull()?.takeIf { it.item == item && it.field == field }
     var confirming by remember(item, field) { mutableStateOf(false) }
     LaunchedEffect(item, field) { client.secretTools.reference(item, field) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_a_reference_identifies_a_field_it_contains_no_secret_value_and_gr_b9acac1))
         ReadFeedback(read) { client.secretTools.reference(item, field) }
         reference?.let { value ->
@@ -90,7 +90,7 @@ import net.dmsg.android.core.*
     var includeDismissed by remember { mutableStateOf(false) }
     var dismiss by remember { mutableStateOf<SecretFinding?>(null) }
     LaunchedEffect(Unit) { client.secretTools.health() }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Notice(str(R.string.text_local_observations_only_this_is_not_a_breach_scan_or_proof_of_a_p_2bcdde7)); ReadFeedback(read, client.secretTools::health) }
         if (report != null) {
             item {
@@ -99,7 +99,7 @@ import net.dmsg.android.core.*
             }
             val findings = report.findings.filter { includeDismissed || !it.dismissed }
             items(findings, key = { it.id }) { finding ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(findingTitle(finding.rule), style = MaterialTheme.typography.titleMedium,
                             color = if (finding.severity == "high") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
@@ -141,7 +141,7 @@ import net.dmsg.android.core.*
     val detail = read.valueOrNull()?.takeIf { it.rotation.id == id }
     var confirming by remember(id) { mutableStateOf<String?>(null) }
     LaunchedEffect(id) { client.secretTools.rotation(id) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_you_perform_provider_changes_yourself_dmsg_records_your_statement_4b02727))
         ReadFeedback(read) { client.secretTools.rotation(id) }
         detail?.let { value ->
@@ -166,7 +166,7 @@ import net.dmsg.android.core.*
             SectionTitle(str(R.string.text_current_local_dependencies_aeffc64))
             SecretDependencyRows(value.index)
             Text(str(R.string.text_inventory_fingerprint_5976df4), style = MaterialTheme.typography.labelMedium)
-            SelectionContainer { Text(value.index.digest, style = MaterialTheme.typography.bodySmall) }
+            SelectionContainer { Text(value.index.digest, style = MaterialTheme.typography.bodySmall.code()) }
             TextButton(onClick = { client.secretTools.rotation(id) }) { Text(str(R.string.text_refresh_dependencies_298a32c)) }
             if (rotation.completedAt != null) Notice(str(R.string.text_checklist_completed_from_your_statements_upstream_status_must_be_8c2081d))
         }
@@ -183,7 +183,7 @@ import net.dmsg.android.core.*
     val page = read.valueOrNull()
     var action by remember { mutableStateOf<SecretActivityEntry?>(null) }
     LaunchedEffect(Unit) { client.secretTools.activity() }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Notice(str(R.string.text_activity_belongs_to_this_device_desktop_cli_ssh_and_file_mount_re_d1b3407)); ReadFeedback(read) { client.secretTools.activity() } }
         items(page?.items.orEmpty(), key = { it.id }) { entry ->
             Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

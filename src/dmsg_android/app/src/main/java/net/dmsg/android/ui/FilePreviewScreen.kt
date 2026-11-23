@@ -29,7 +29,7 @@ import net.dmsg.android.core.*
     val pickers = LocalFilePickers.current
     LaunchedEffect(id, version, state.epoch) { client.filePreview.open(id, version) }
     DisposableEffect(id, version) { onDispose { client.filePreview.clear() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(preview, { client.filePreview.open(id, version) })
         content?.let { value ->
             Text(value.file.name, style = MaterialTheme.typography.headlineSmall)

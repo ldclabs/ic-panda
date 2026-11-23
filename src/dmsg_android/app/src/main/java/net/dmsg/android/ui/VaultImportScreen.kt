@@ -21,7 +21,7 @@ import net.dmsg.android.core.*
     val working = state.working("vault:import-preview") || state.working("vault:import-commit")
     val editable = !working && form?.pending == null && form?.completed == null
     Column(Modifier.fillMaxSize()) {
-    LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Notice(str(R.string.text_import_an_unencrypted_1password_bitwarden_or_browser_password_exp_4f960de))
             Button(onClick = { if (client.vaultImport.begin()) choose() }, enabled = !working && form?.pending == null) { Text(str(R.string.text_choose_password_export_100c6c6)) }
@@ -65,7 +65,7 @@ import net.dmsg.android.core.*
     }
     if (preview != null && form?.completed == null) {
         Button(onClick = client.vaultImport::commit, enabled = editable && (form?.selected?.size ?: 0) in 1..1000,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+            modifier = Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 12.dp)) {
             Text(str(R.string.text_import_selected_records_1f3e87e))
         }
     }

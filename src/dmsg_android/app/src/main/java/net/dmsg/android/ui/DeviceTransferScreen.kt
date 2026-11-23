@@ -35,7 +35,7 @@ import net.dmsg.android.core.*
     DisposableEffect(view, running) { view.keepScreenOn = running; onDispose { view.keepScreenOn = false } }
     LaunchedEffect(state.epoch) { client.deviceTransfers.load(); client.accountWorkspace.local() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Notice(str(R.string.text_keep_both_devices_open_on_the_same_network_discovery_finds_a_rece_75399e1))
             Text(str(R.string.text_only_the_file_library_moves_here_device_identities_private_signin_033e3f0), style = MaterialTheme.typography.bodySmall)
             if (sending == null && !running && pending == null) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -88,8 +88,8 @@ import net.dmsg.android.core.*
             local.valueOrNull()?.let { LocalContentPanel(it) }
         }
         Surface {
-            if (running || busy || pending != null) OutlinedButton(onClick = client.deviceTransfers::cancel, modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(str(R.string.text_stop_transfer_4135785)) }
-            else if (sendMode) Button(onClick = { focus.clearFocus(); client.deviceTransfers.send(succession) }, enabled = draft.valid(succession), modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(str(R.string.text_review_sending_a1b3596)) }
+            if (running || busy || pending != null) OutlinedButton(onClick = client.deviceTransfers::cancel, modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(str(R.string.text_stop_transfer_4135785)) }
+            else if (sendMode) Button(onClick = { focus.clearFocus(); client.deviceTransfers.send(succession) }, enabled = draft.valid(succession), modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(str(R.string.text_review_sending_a1b3596)) }
         }
     }
 }

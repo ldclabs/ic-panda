@@ -35,7 +35,7 @@ import net.dmsg.android.platform.*
     val credentials = purpose == ExportPurpose.credentials
     LaunchedEffect(state.epoch, purpose) { coordinator.load() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ReadFeedback(status, coordinator::load)
             val header = if (credentials) status.valueOrNull()?.credentials else status.valueOrNull()?.files
             if (!credentials && header == null && status is ReadState.Ready) Text(str(R.string.text_no_snapshot_3189948), style = MaterialTheme.typography.titleMedium)
@@ -70,7 +70,7 @@ import net.dmsg.android.platform.*
             }
             if (!credentials) TextButton(onClick = { removing = true }, enabled = !busy && (header != null || chosenFiles.isNotEmpty())) { Text(str(R.string.text_remove_selected_copies_770ac24)) }
         }
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().padding(pagePadding())) {
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (!credentials) Button(onClick = coordinator::updateFiles, enabled = !busy && status.valueOrNull() != null && chosenFiles.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_update_copies_47cb43d)) }
         }

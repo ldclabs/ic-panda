@@ -6,7 +6,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
@@ -26,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.dmsg.android.R
 import net.dmsg.android.ui.WorkspaceSearchField
+import net.dmsg.android.ui.pageMargin
 
 @Composable
 internal fun PasswordPickerHeading(app: String, host: String?, cancel: () -> Unit) {
@@ -54,11 +54,11 @@ internal fun PasswordPicker(modifier: Modifier, entries: List<ExportCredential>,
                 .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.username })
     }
     Column(modifier) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             heading()
             WorkspaceSearchField(query, { query = it; onSearch() }, str(R.string.text_search_vault_f6e42b2))
         }
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 16.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = pageMargin())) {
             items(sorted, key = { it.id }) { entry ->
                 Row(Modifier.fillMaxWidth().clickable(enabled = !busy, role = Role.Button) {
                     focus.clearFocus()
@@ -66,7 +66,7 @@ internal fun PasswordPicker(modifier: Modifier, entries: List<ExportCredential>,
                 }.heightIn(min = 56.dp).padding(horizontal = 4.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!largeText) {
-                        Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.secondaryContainer) {
                             Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                                 Text(entry.title.ifEmpty { entry.username }.take(1).uppercase(), style = MaterialTheme.typography.titleSmall,
                                     modifier = Modifier.clearAndSetSemantics {})

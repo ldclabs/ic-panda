@@ -31,7 +31,7 @@ import net.dmsg.android.platform.numericExpression
     val busy = state.working("agents:create")
     LaunchedEffect(state.epoch) { client.agents.load(); client.approvals.settle() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Notice(str(R.string.text_manage_agent_identities_and_permissions_here_android_does_not_run_2cd2699))
             AccountRow(str(R.string.text_controllers_and_delegations_8ce7d82)) { client.navigation.push(Route("agent-delegations")) }
             ReadFeedback(listing, client.agents::load)
@@ -54,7 +54,7 @@ import net.dmsg.android.platform.numericExpression
         }
         Surface {
             Button(onClick = { focus.clearFocus(); client.agents.create(label) }, enabled = validAgentLabel(label.trim()) && !busy && listing.valueOrNull().orEmpty().size < 16,
-                modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(str(R.string.text_create_agent_f6a5a91)) }
+                modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(str(R.string.text_create_agent_f6a5a91)) }
         }
     }
 }
@@ -73,7 +73,7 @@ import net.dmsg.android.platform.numericExpression
     val focus = LocalFocusManager.current
     LaunchedEffect(id, state.epoch) { client.agents.load(); client.approvals.settle() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             ReadFeedback(listing, client.agents::load)
             if (agent != null) {
                 Text(agent.label, style = MaterialTheme.typography.headlineSmall)
@@ -105,7 +105,7 @@ import net.dmsg.android.platform.numericExpression
         }
         Surface {
             Button(onClick = { focus.clearFocus(); agent?.let(client.agents::requestPermissions) }, enabled = agent != null && fresh && draft.valid && !busy && !state.working("approval:request:agent:permissions:" + id),
-                modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(str(R.string.text_review_permissions_7194a14)) }
+                modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(str(R.string.text_review_permissions_7194a14)) }
         }
     }
     if (removing && agent != null) AlertDialog(onDismissRequest = { removing = false }, title = { Text(str(R.string.text_remove_this_local_agent_4a373f8)) }, text = {
@@ -219,7 +219,7 @@ internal fun permissionDescription(value: String): String {
     val manages = devices is ReadState.Ready && devices.valueOrNull()?.canManage == true
     val fresh = principal is ReadState.Ready
     LaunchedEffect(state.epoch) { client.agents.loadPrincipal(); client.approvals.settle() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             ReadFeedback(principal, devices, client.agents::loadPrincipal, client.account::devices)
             if (!manages) Notice(str(R.string.text_account_changes_need_an_administrator_with_account_management_per_5eddc16))
@@ -279,7 +279,7 @@ internal fun permissionDescription(value: String): String {
     val ready = devices is ReadState.Ready && devices.valueOrNull()?.canManage == true && principal is ReadState.Ready
     LaunchedEffect(state.epoch) { client.agents.loadPrincipal(); client.approvals.settle() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             ReadFeedback(principal, devices, client.agents::loadPrincipal, client.account::devices)
             principal.valueOrNull()?.let { AgentFingerprint(str(R.string.text_principal_415a07f), it.id) }
             if (controller) {
@@ -297,7 +297,7 @@ internal fun permissionDescription(value: String): String {
         Surface {
             Button(onClick = { focus.clearFocus(); if (controller) client.agents.registerController() else client.agents.grantDelegation() },
                 enabled = ready && !state.busy && if (controller) draft.validController else draft.validGrant && principal.valueOrNull()?.published == true,
-                modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(if (controller) str(R.string.text_review_controller_registration_992d053) else str(R.string.text_review_delegation_grant_15c19b3)) }
+                modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(if (controller) str(R.string.text_review_controller_registration_992d053) else str(R.string.text_review_delegation_grant_15c19b3)) }
         }
     }
 }
@@ -310,7 +310,7 @@ internal fun permissionDescription(value: String): String {
 }
 @Composable private fun AgentFingerprint(label: String, value: String) {
     Text(label, style = MaterialTheme.typography.labelMedium)
-    SelectionContainer { Text(value, style = MaterialTheme.typography.bodySmall) }
+    SelectionContainer { Text(value, style = MaterialTheme.typography.bodySmall.code()) }
 }
 private fun agentCredentialState(value: String) = when (value) {
     "active" -> str(R.string.text_active_45e5d33); "revoked" -> str(R.string.text_revoked_c4fbad3); "suspended" -> str(R.string.text_suspended_ae8b286)

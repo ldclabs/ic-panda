@@ -1,5 +1,32 @@
 # Android implementation validation
 
+## Design system foundation — 2026-11-23
+
+Colour roles come from HCT tonal palettes seeded with the brand forest and gem
+(material-color-utilities 0.4.0). Pages use `background` = `surface` (tone 95
+light, 6 dark) and cards `surfaceContainerLow` (99, 10). `ThemeColorsTest` keeps
+body text and text on containers at 7:1, accents, links and the snackbar at
+4.5:1 and outlines at 3:1 on the page and the card in both modes, checks the
+surface ladder, and compares the window, splash and launcher colours with the
+Compose theme. `UiConventionsTest` rejects literal colours, corners, sp sizes,
+monospace, nested themes and literal page padding outside the theme files.
+
+On the API 36 ARM64 emulator the platform splash stayed until the local engine
+had opened and then faded; `am start -W` reported 2.1 s (light) and 1.9 s (dark)
+for a cold start, with no spinner frame. `values-night` set the window and bar
+appearance before the first frame, and Pixel Launcher drew the new monochrome
+layer as a themed icon in light and dark. Light and dark screenshots of the
+vault, an item, a dialog, the editor sheet, Account, Security, a conversation,
+Files and the locked page were compared before and after. Dark cards now sit
+closer to the page (1.08:1 instead of 1.25:1), as the Material tone mapping
+gives. Chinese, Arabic and 200% text were not rechecked for this change.
+
+The QA and debug variants each passed 134 JVM tests and lint reported no errors.
+All 139 QA device tests ran: 132 passed and 7 skipped. An earlier run stopped at
+`deniedCameraRetainsPasteAndDoesNotCreateAnApproval` because the emulator still
+held a camera grant from an earlier install, and Android kills the process when
+the test revokes it; after a clean install the test passed.
+
 ## Workspace search, compact lists and navigation — 2026-11-23
 
 On a 1080 × 2400 API 36 ARM64 emulator at 420 dpi, the first vault row began at

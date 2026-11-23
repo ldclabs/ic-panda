@@ -26,7 +26,7 @@ import net.dmsg.android.core.*
     val working = state.working("account-deletion:request")
     LaunchedEffect(state.epoch) { client.accountDeletion.load() }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Notice(str(R.string.text_deleting_this_service_account_permanently_removes_its_cloud_ciphe_77889e6), true)
             Text(str(R.string.text_account_deletion_does_not_cancel_a_subscription_purchased_through_6e817fb), style = MaterialTheme.typography.bodySmall)
             AccountRow(str(R.string.text_membership_and_subscription_source_58d228f)) { client.navigation.push(Route("membership")) }
@@ -70,7 +70,7 @@ import net.dmsg.android.core.*
             AccountRow(str(R.string.text_privacy_policy_d216307)) { client.navigation.push(Route("privacy")) }
         }
         if (job == null) Surface {
-            Button(onClick = { confirming = true }, enabled = client.accountDeletion.ready() && !working, modifier = Modifier.fillMaxWidth().padding(20.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_request_account_deletion_b443c94)) }
+            Button(onClick = { confirming = true }, enabled = client.accountDeletion.ready() && !working, modifier = Modifier.fillMaxWidth().padding(pagePadding()), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_request_account_deletion_b443c94)) }
         }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_permanently_delete_this_service_account_cf40644)) }, text = {

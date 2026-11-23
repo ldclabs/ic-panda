@@ -44,7 +44,7 @@ import net.dmsg.android.core.*
     }
     val content: @Composable (Boolean) -> Unit = { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = if (selected.isEmpty()) workspaceListState(client.navigation, "cloud-files:list") else rememberLazyListState(),
-            contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+            contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
             if (selected.isEmpty()) browseScopesItem(searching) {
                 BrowseScopes(trailing = {
                     SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
@@ -125,7 +125,7 @@ import net.dmsg.android.core.*
     val selected = groups.flatMap { group -> group.versions.filter { BackupVersionKey(group.file.id, it.id) in batch.selected } }
     LaunchedEffect(Unit) { client.cloudFiles.listUnbacked() }
     Column(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { ReadFeedback(state, client.cloudFiles::listUnbacked) }
             if (state is ReadState.Empty) item { EmptyPanel(str(R.string.backup_all_caught_up)) }
             groups.forEach { group ->
@@ -141,7 +141,7 @@ import net.dmsg.android.core.*
             }
         }
         if (groups.isNotEmpty()) Button(onClick = client.cloudFiles::reviewSelection, enabled = selected.isNotEmpty() && choosing,
-            modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("backup-review-selection")) {
+            modifier = Modifier.fillMaxWidth().padding(pagePadding()).testTag("backup-review-selection")) {
             Text(str(R.string.text_back_up_to_cloud_ee48ac0) + if (selected.isEmpty()) "" else " · " + localizedNumber(selected.size) + " · " + fileSize(selected.sumOf { it.size }))
         }
     }
@@ -158,7 +158,7 @@ private fun versionLabel(current: Boolean, at: ULong) =
     val limits = (capacity as? ReadState.Ready)?.value
     LaunchedEffect(Unit) { client.cloudFiles.capacity() }
     Column(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Notice(str(R.string.backup_selected_help))
                 LabelValue(str(R.string.text_versions_0ff2bdb), localizedNumber(batch.review.size))
@@ -190,7 +190,7 @@ private fun versionLabel(current: Boolean, at: ULong) =
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (batch.pending.isNotEmpty()) Button(onClick = client.cloudFiles::queueReviewed, enabled = !busy && limits?.let(batch::fits) == true,
-            modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("backup-queue-selection")) {
+            modifier = Modifier.fillMaxWidth().padding(pagePadding()).testTag("backup-queue-selection")) {
             Text(str(if (batch.outcomes.isEmpty()) R.string.text_queue_encrypted_backup_bd8aaaf else R.string.text_retry_563171c))
         }
     }
@@ -206,7 +206,7 @@ private fun versionLabel(current: Boolean, at: ULong) =
         else reviewed?.file?.takeIf { it.version == version && it.local && it.backup == null }
     val limits = capacity.valueOrNull()
     LaunchedEffect(id, state.epoch) { client.library.select(id); client.cloudFiles.capacity() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_save_an_encrypted_cloud_copy_of_this_version_your_local_copy_stay_b3a0064))
         ReadFeedback(details, { client.library.select(id) }); ReadFeedback(capacity, client.cloudFiles::capacity)
         if (file != null) { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size))

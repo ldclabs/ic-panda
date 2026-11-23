@@ -34,7 +34,7 @@ import net.dmsg.android.core.*
     val working = state.working("links:prepare")
     LaunchedEffect(id, version, backup, state.epoch) { client.fileLinks.open(id, version, backup) }
     DisposableEffect(id, version, backup) { onDispose { client.fileLinks.leaveComposer() } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(target, { client.fileLinks.open(id, version, backup) })
         value?.let { Text(it.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(it.size) + " · " + it.mime) }
         Notice(str(R.string.text_anyone_with_this_link_can_download_the_file_until_it_expires_or_y_7f123e4))
@@ -69,7 +69,7 @@ import net.dmsg.android.core.*
         if (snapshots) it.source == "vault_snapshot" && (vaultItem == null || it.vaultItem == vaultItem) else it.source != "vault_snapshot"
     }
     val current = links.valueOrNull()?.find { it.id == selected }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(if (snapshots) str(R.string.text_share_links_fe69aa5) else if (selected.isEmpty()) str(R.string.text_shared_files_b3cfe3a) else str(R.string.text_share_link_b335ffa), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
@@ -106,7 +106,7 @@ import net.dmsg.android.core.*
     var discard by remember(id) { mutableStateOf(false) }
     LaunchedEffect(id, state.epoch) { client.fileLinks.loadIntents() }
     DisposableEffect(id) { onDispose { if (client.state.value.working("links:run:$id")) client.fileLinks.pause(id) } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(intents, client.fileLinks::loadIntents)
         if (job == null && (intents is ReadState.Ready || intents is ReadState.Empty)) {
             EmptyPanel(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), Icons.Outlined.LinkOff) {

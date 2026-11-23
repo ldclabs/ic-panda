@@ -149,8 +149,8 @@ import kotlinx.coroutines.CancellationException
                         }
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
-                            containerColor = MaterialTheme.colorScheme.background,
-                            topBar = { if (!browseHeader && (wide || threadSearch == BrowseSearchMode.Browse)) TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = {
+                            containerColor = MaterialTheme.colorScheme.page,
+                            topBar = { if (!browseHeader && (wide || threadSearch == BrowseSearchMode.Browse)) TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page), title = {
                                 val label = when {
                                     local && route == "account" -> str(R.string.offline_account)
                                     inConversation -> channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b)
@@ -312,7 +312,7 @@ import kotlinx.coroutines.CancellationException
             if (showEditor && state.unlocked && !state.concealed) ModalBottomSheet(onDismissRequest = ::closeEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = {
                 if (it == SheetValue.Hidden && client.vaultDrafts.dirty) { discardEditor = true; false } else true
             })) {
-                VaultEditor(client, close = ::closeEditor)
+                OnCard { VaultEditor(client, close = ::closeEditor) }
             }
             if (discardEditor && state.unlocked && !state.concealed) AlertDialog(onDismissRequest = { discardEditor = false }, title = { Text(str(R.string.text_keep_your_changes_01fdac5)) },
                 confirmButton = { TextButton(onClick = { discardEditor = false; client.vaultDrafts.keep() }) { Text(str(R.string.text_keep_draft_89639c8)) } },

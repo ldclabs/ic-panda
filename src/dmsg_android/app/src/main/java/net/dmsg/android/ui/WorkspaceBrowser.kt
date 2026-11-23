@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -87,7 +86,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
         keyboard?.hide()
     }
     BackHandler(enabled = mode != BrowseSearchMode.Browse && !imeVisible, onBack = ::dismiss)
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         if (mode == BrowseSearchMode.Editing) {
             WorkspaceSearchField(query, change, prompt, Modifier.weight(1f).focusRequester(editor).testTag("browse-search-editor"), onSearch = {
                 cancelFocus.requestFocus()
@@ -102,7 +101,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
             val colors = MaterialTheme.colorScheme
             Surface(onClick = { setMode(BrowseSearchMode.Editing) },
                 modifier = Modifier.weight(1f).testTag("browse-search-entry").semantics { contentDescription = prompt },
-                shape = CircleShape, color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
+                shape = CircleShape, color = colors.card, border = BorderStroke(1.dp, colors.outlineVariant)) {
                 Row(Modifier.heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(48.dp), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = colors.onSurfaceVariant) }
                     val labelModifier = if (query.isEmpty()) Modifier.clearAndSetSemantics {} else Modifier
@@ -128,7 +127,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
 /** Keep the scope controls reachable while browsing a long set of search results. */
 internal fun LazyListScope.browseScopesItem(searching: Boolean, controls: @Composable () -> Unit) {
     if (searching) stickyHeader(key = "browse-scopes") {
-        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) { controls() }
+        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.page)) { controls() }
     } else item(key = "browse-scopes") { controls() }
 }
 
@@ -158,7 +157,7 @@ internal fun LazyListScope.browseScopesItem(searching: Boolean, controls: @Compo
 
 @Composable internal fun BrowseIcon(icon: ImageVector) {
     val ink = MaterialTheme.colorScheme.primary
-    Box(Modifier.size(36.dp).background(ink.copy(alpha = 0.09f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(36.dp).background(ink.copy(alpha = 0.09f), MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
         Icon(icon, null, Modifier.size(19.dp), tint = ink)
     }
 }

@@ -100,7 +100,7 @@ import java.util.concurrent.atomic.AtomicBoolean
     }
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().systemBarsPadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(onClick = close) { Text(str(R.string.text_close_6cf4a77)) }
                     TextButton(onClick = { front = !front }) { Text(str(R.string.text_switch_camera_01e5df0)) }

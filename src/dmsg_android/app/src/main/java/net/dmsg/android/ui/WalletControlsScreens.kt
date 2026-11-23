@@ -27,7 +27,7 @@ import net.dmsg.core.WalletChange
     LaunchedEffect(wallet, id, state.epoch) { client.wallets.select(wallet); client.wallets.proposal(wallet, id) }
     val current = proposal.valueOrNull()?.takeIf { it.id == id }
     val working = state.working("wallet:execute:" + wallet + ":" + id) || state.working("wallet:import-packet")
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { ReadFeedback(proposal, { client.wallets.proposal(wallet, id) }); Text(str(R.string.text_proposal_4301b5a) + id, style = MaterialTheme.typography.headlineSmall); SelectionContainer { Text(wallet) } }
         current?.let { value ->
             item {
@@ -102,7 +102,7 @@ import net.dmsg.core.WalletChange
     var confirming by remember { mutableStateOf<WalletChange?>(null) }
     var freezing by remember { mutableStateOf(false) }
     fun edit(value: WalletControlDraft) = client.wallets.editControls(wallet, value)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { ReadFeedback(details, { client.wallets.select(wallet, true) }); Notice(str(R.string.text_each_change_creates_a_proposal_under_the_wallet_s_existing_rules_47f37be)) }
         current?.let { value ->
             item {

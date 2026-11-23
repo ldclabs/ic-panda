@@ -22,7 +22,7 @@ import net.dmsg.android.core.*
     LaunchedEffect(state.epoch) { client.wallets.keys() }
     val existing = keys.valueOrNull()?.find { it.label == label }
     val attempted = submissions["register-key:" + label]?.attempted == true
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             ReadFeedback(keys, client.wallets::keys)
             Text(str(R.string.text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d))
@@ -62,7 +62,7 @@ import net.dmsg.android.core.*
     val value = native.valueOrNull()
     val walletDetails = details.valueOrNull()?.takeIf { it.id == wallet }
     LaunchedEffect(wallet, state.epoch) { client.wallets.deviceKeys(wallet) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             ReadFeedback(native, details, { client.wallets.deviceKeys(wallet) }, { client.wallets.select(wallet, true) })
             SectionTitle(str(R.string.text_native_taproot_key_741b323))
@@ -127,7 +127,7 @@ import net.dmsg.android.core.*
     LaunchedEffect(wallet, from, l2, state.epoch) { client.wallets.move(wallet, from, l2) }
     val value = plan.valueOrNull()
     val busy = state.working("wallet:move-next")
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text(str(R.string.text_the_old_address_commits_to_the_old_device_s_key_register_this_dev_7c7c099))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

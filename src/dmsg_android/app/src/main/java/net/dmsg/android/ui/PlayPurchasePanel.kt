@@ -79,7 +79,7 @@ private val purchaseWorking = setOf(PurchasePhase.LOADING, PurchasePhase.PREPARI
     }
     view.selected?.let { offer ->
         ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-            Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 24.dp).testTag("play-review"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()).padding(bottom = pageMargin()).testTag("play-review"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(offerTitle(offer), style = MaterialTheme.typography.headlineSmall)
                 LabelValue(str(R.string.text_account_4ab56e9), view.beneficiary ?: str(R.string.text_not_verified_e9586ea))
                 if (offer.description.isNotBlank()) Text(offer.description, style = MaterialTheme.typography.bodyMedium)

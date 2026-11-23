@@ -25,7 +25,7 @@ import net.dmsg.android.core.*
     LaunchedEffect(transferring) {
         if (transferring) while (true) { kotlinx.coroutines.delay(1000); client.backgroundFiles.load() }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             BackgroundTransferPanel(client)
             Notice(str(R.string.text_the_foreground_queue_runs_while_dmsg_is_open_and_unlocked_explici_a1289c4))

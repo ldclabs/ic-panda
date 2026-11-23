@@ -25,7 +25,7 @@ import net.dmsg.android.core.*
     var confirming by remember(id) { mutableStateOf<Pair<Handover, String>?>(null) }
     val fresh = listing is ReadState.Ready
     LaunchedEffect(state.epoch, id) { client.handovers.load() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text(str(R.string.text_the_new_device_asks_to_replace_an_administrator_the_old_device_re_4c92532))
             AccountRow(str(R.string.text_review_a_replacement_request_2ef5a94)) { client.navigation.push(Route("handover-review")) }
@@ -114,7 +114,7 @@ import net.dmsg.android.core.*
     LaunchedEffect(state.epoch) { client.accountWorkspace.local() }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis().toULong(); delay(1000) } }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(str(R.string.text_read_the_request_from_the_new_device_then_compare_and_type_its_co_b5449b1))
             if (needsFresh) Notice(str(R.string.text_complete_the_wallet_approvals_then_generate_a_fresh_replacement_r_d0f4549))
             OutlinedTextField(token, client.handovers::editToken, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_replacement_request_64790c0)) }, minLines = 2, maxLines = 6)
@@ -134,7 +134,7 @@ import net.dmsg.android.core.*
             }
         }
         Surface {
-            Button(onClick = { focus.clearFocus(); client.handovers.approve() }, enabled = client.handovers.canApprove(now) && !state.working("handover:approve"), modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text(str(R.string.text_review_replacement_approval_a633998)) }
+            Button(onClick = { focus.clearFocus(); client.handovers.approve() }, enabled = client.handovers.canApprove(now) && !state.working("handover:approve"), modifier = Modifier.fillMaxWidth().padding(pagePadding())) { Text(str(R.string.text_review_replacement_approval_a633998)) }
         }
     }
 }
@@ -155,7 +155,7 @@ import net.dmsg.android.core.*
     }
     var copyConfirm by remember { mutableStateOf<MovedCopy?>(null) }
     LaunchedEffect(state.epoch) { client.handovers.loadCopies() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Notice(str(R.string.text_this_device_creates_its_own_keys_the_old_administrator_reviews_it_097d2ec))
         OutlinedTextField(predecessor, client.handovers::editPredecessor, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_id_of_the_device_to_replace_7d565df)) }, maxLines = 3, enabled = !state.working("handover:request"))
         Button(onClick = client.handovers::createRequest, enabled = transferHex(predecessor.trim().lowercase()) && requested.valueOrNull() == null && !state.working("handover:request")) { Text(str(R.string.text_create_replacement_request_33db979)) }

@@ -99,7 +99,7 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
     val included=preview.filter { it.requiredUInt("index") in picks }.flatMap { it.getValue("files").jsonArray.filterNot { f->f==JsonNull } }.distinct().size
     LaunchedEffect(form.step) { if (form.step=="waiting") controller.approved() }
     LaunchedEffect(form.failure) { if(form.failure=="INTEGRITY_FAILED") password="" }
-    LazyColumn(contentPadding=PaddingValues(18.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
+    LazyColumn(contentPadding = pagePadding(), verticalArrangement=Arrangement.spacedBy(10.dp)) {
         item { LabelValue(str(R.string.text_account_4ab56e9), app.session?.account.orEmpty()) }
         if(working) item {
             LinearProgressIndicator(Modifier.fillMaxWidth())

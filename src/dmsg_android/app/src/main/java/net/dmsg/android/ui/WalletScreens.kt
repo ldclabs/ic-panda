@@ -25,7 +25,7 @@ import net.dmsg.core.WalletChange
     val state by client.state.collectAsStateWithLifecycle()
     var wallet by remember { mutableStateOf("") }
     LaunchedEffect(state.epoch) { client.wallets.list() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { ReadFeedback(wallets, { client.wallets.list(true) }); Text(str(R.string.text_manage_personal_or_shared_assets_with_the_wallet_s_approval_and_d_851a18f)) }
         items(wallets.valueOrNull().orEmpty(), key = { it.id }) { value ->
             Card(Modifier.fillMaxWidth().clickable { client.navigation.push(Route("wallet", value.id)) }) {
@@ -58,7 +58,7 @@ import net.dmsg.core.WalletChange
     val state by client.state.collectAsStateWithLifecycle()
     var limit by remember(wallet) { mutableIntStateOf(30) }
     LaunchedEffect(wallet, state.epoch) { client.wallets.select(wallet) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { ReadFeedback(details, { client.wallets.select(wallet, true) }); SelectionContainer { Text(wallet, style = MaterialTheme.typography.bodySmall) } }
         details.valueOrNull()?.takeIf { it.id == wallet }?.let { value ->
             item {
@@ -117,7 +117,7 @@ import net.dmsg.core.WalletChange
     val asset = assets.valueOrNull()?.find { it.key == draft.asset }
     val amount = asset?.decimals?.let { AtomicAmount.parse(draft.amount, it) }
     Column(Modifier.fillMaxSize()) {
-    LazyColumn(Modifier.weight(1f).testTag("wallet-transfer"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.weight(1f).testTag("wallet-transfer"), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             ReadFeedback(assets, details, { client.wallets.transfer(wallet) }, { client.wallets.select(wallet, true) })
             SelectionContainer { Text(wallet, style = MaterialTheme.typography.bodySmall) }
@@ -154,7 +154,7 @@ import net.dmsg.core.WalletChange
         }
     }
     Surface {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 12.dp)) {
             if (submission?.result != null) WalletSubmissionStatus(client, "transfer:" + wallet, wallet)
             else if (submission?.attempted == true) {
                 Text(str(R.string.text_check_the_original_request_before_submitting_anything_new_cd7ce38), style = MaterialTheme.typography.bodySmall)

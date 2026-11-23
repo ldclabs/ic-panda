@@ -107,7 +107,7 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
         LaunchedEffect(state.session?.state) { if (state.session?.state != "no_account") { manual = false; close() } }
         return
     }
-    Column(Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).imePadding().padding(20.dp),
+    Column(Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = ::close) { Text(str(R.string.text_close_6cf4a77)) }
         Text(str(R.string.access_existing_account), style = MaterialTheme.typography.headlineSmall)
@@ -229,7 +229,7 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
         ApprovalsScreen(client, state, pending) {}
         return
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         pollWarning?.let { Notice(errorText(it), true) }
         val shown = candidate
         when {

@@ -83,7 +83,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                     }
                 }
             }) { searching ->
-            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
                 if (query.trash) item { Text(str(R.string.text_trash_8af1079), style = MaterialTheme.typography.titleMedium) }
                 browseScopesItem(searching) {
                     BrowseScopes(trailing = {
@@ -148,7 +148,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
 @Composable private fun VaultFilterSheet(query: VaultQuery, page: VaultListing?, update: (VaultQuery) -> Unit, close: () -> Unit) {
     var tags by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = close) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageMargin(), vertical = 8.dp)) {
             Text(str(R.string.browse_filters), style = MaterialTheme.typography.titleLarge)
             page?.let {
                 Text(quantity(R.plurals.items, it.total), style = MaterialTheme.typography.bodyMedium)
