@@ -21,6 +21,7 @@ struct ConversationComposer: View {
     }
     private var queuing: Bool { model.queuingChannels.contains(channel.id) }
     @State private var importing = false
+    @State private var sendFailures = 0
     @State private var working = false
     @State private var choosingFile = false
     @State private var choosingPhotos = false
@@ -62,6 +63,7 @@ struct ConversationComposer: View {
                     .animation(.snappy(duration: 0.2), value: empty)
             }.padding(.horizontal, 12).padding(.vertical, 8)
         }
+        .sensoryFeedback(.error, trigger: sendFailures)
         .sheet(isPresented: $choosingFile) {
             NavigationStack { AttachmentPicker(folder: "root") { file in
                 choosingFile = false
@@ -259,7 +261,7 @@ struct ConversationComposer: View {
                 }
                 text = ""; reply = nil
             }
-        } catch { if epoch == model.epoch, !Task.isCancelled { Haptics.failure(); await failed(); model.report(error) } }
+        } catch { if epoch == model.epoch, !Task.isCancelled { sendFailures &+= 1; await failed(); model.report(error) } }
         guard workspace == model.viewGeneration else { return }
         model.queuingChannels.remove(channel.id)
         // Use the same draft task as autosave so another send waits for this write.

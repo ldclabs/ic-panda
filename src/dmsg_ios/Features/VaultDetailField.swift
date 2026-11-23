@@ -47,7 +47,7 @@ struct VaultDetailField: View {
                             .accessibilityIdentifier("vault.reveal.\(field.id)")
                     }
                     Menu("Actions", systemImage: copied ? "checkmark.circle.fill" : "ellipsis") { actions }
-                        .labelStyle(.iconOnly).font(.body)
+                        .labelStyle(.iconOnly).font(.body).contentTransition(.symbolEffect(.replace))
                         .foregroundStyle(copied ? Theme.forest : Color.secondary)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                         .buttonStyle(.borderless).menuOrder(.fixed).disabled(busy)

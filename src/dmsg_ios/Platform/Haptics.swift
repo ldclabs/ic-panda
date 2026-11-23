@@ -1,10 +1,6 @@
 import UIKit
 
-/// Short confirmations for actions that otherwise finish out of sight.
+/// A tap for copies, which finish out of sight. SwiftUI views use `sensoryFeedback`.
 @MainActor enum Haptics {
     static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-
-    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
-
-    static func failure() { UINotificationFeedbackGenerator().notificationOccurred(.error) }
 }

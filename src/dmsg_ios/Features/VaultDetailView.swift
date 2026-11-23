@@ -24,6 +24,7 @@ struct VaultDetailView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var revealRequest: UUID?
     @State private var deleting = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var readKey: String { "\(id):\(revision ?? "head"):\(model.epoch):\(model.concealed):\(model.contentRevision):\(model.vault.first { $0.id == id }?.changeToken ?? "unlisted"):\(reload)" }
 
@@ -74,6 +75,7 @@ struct VaultDetailView: View {
                 Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
             } else { ProgressView().accessibilityIdentifier("vault.detail.loading") }
         }.privateScreen().contentMargins(.top, 8, for: .scrollContent)
+            .sensoryFeedback(.selection, trigger: item?.favorite) { old, new in old != nil && new != nil }
             .navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
             // The header already names the item.
             .toolbar(removing: revision == nil ? .title : nil)
@@ -177,8 +179,9 @@ struct VaultDetailView: View {
                         Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
                         if item.favorite {
                             Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
+                                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                         }
-                    }
+                    }.animation(reduceMotion ? .default : .bouncy, value: item.favorite)
                     let state: LocalizedStringKey = item.deleted ? "In Trash" : item.conflict ? "Sync conflicts"
                         : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync"
                     (Text(vaultKindName(item.kind)) + Text(verbatim: " · ") + Text(state)).font(.subheadline).foregroundStyle(.secondary)

@@ -173,6 +173,10 @@ struct ApprovalDetailView: View {
     }
 
     var body: some View {
+        content.sensoryFeedback(.success, trigger: state) { (_: String?, outcome: String?) in outcome == "done" || outcome == "rejected" }
+    }
+
+    private var content: some View {
         ScrollViewReader { reader in
             List {
                 HStack(alignment: .top, spacing: 12) {
@@ -374,7 +378,6 @@ struct ApprovalDetailView: View {
             if case .object(let fields) = value, case .string(let outcome)? = fields["state"] {
                 state = outcome
                 if fields["detail"] != nil { payload = value }
-                if outcome == "done" || outcome == "rejected" { Haptics.success() }
             }
             await model.updateSession(); await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }

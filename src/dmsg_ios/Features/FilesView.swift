@@ -195,7 +195,7 @@ struct FilesView: View {
             }
         }
         if id == model.filesFolder {
-            if shown == nil && !model.filesFailed { ProgressView("Loading…") }
+            if shown == nil && !model.filesFailed { PlaceholderRows(identifier: "files.loading") }
             if model.filesFailed {
                 FileInlineFailure(message: String(localized: "The operation could not be completed. Please try again.")) { Task { await model.loadFiles() } }
             } else if let shown, targets(shown).isEmpty, !model.filesLoading {

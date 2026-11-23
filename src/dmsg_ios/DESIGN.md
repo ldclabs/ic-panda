@@ -103,12 +103,43 @@ The diagnosis behind it is the 2026-11-23 UI quality review.
   icons. The widget compiles the same catalog.
 - Within one section or menu, prefer one family.
 
+## Motion and feedback
+
+- State changes move or answer: favourites pop in with a selection tap, a copied field's
+  menu turns into a checkmark (`contentTransition(.symbolEffect(.replace))`) and the
+  clipboard gives a light tap, a failed send and a finished approval use
+  `sensoryFeedback`. The conversation list animates conversations that arrive, leave or
+  change read state.
+- With Reduce Motion, movement and bounces become fades or nothing; `sensoryFeedback`
+  follows the system's haptics setting on its own.
+- A first read shows `PlaceholderRows` in the shape of the list instead of a centred
+  spinner. Once rows are on screen, a refresh stays in the activity button.
+
+## App icon
+
+The icon set has light, dark and tinted variants. The dark and tinted ones are the
+frontend's `mark.svg` geometry at the light icon's position (630 × 720 at 197, 152 on
+1024) on a transparent background: the dark one in the mark's dark-mode colours, the
+tinted one in white with the gap around the gem, like Android's monochrome icon.
+
 ## Checking a change
 
 Before handing over a visual change:
 
 1. `python3 -B -m unittest discover -s scripts/ios -p 'test_*.py'`.
 2. Build the `dMsg` scheme and run the UI tests of the touched screens.
-3. Screenshot the touched screens in light and dark, Simplified Chinese, Arabic (RTL)
-   and an accessibility text size, next to the matching system app (Settings,
-   Passwords, Messages, Files). Report what was actually run.
+3. Run `VisualBaselineTests` before and after the change, export both result bundles
+   with `scripts/ios/export-screenshots.sh <run.xcresult> <folder>` and compare: vault,
+   detail, account, messages, conversation and the returning screen in light and dark,
+   English and Simplified Chinese, Arabic and an accessibility text size. Put the
+   touched screens next to the matching system app (Settings, Passwords, Messages,
+   Files) and report what was actually run.
+
+The checklist for those screenshots:
+
+- Colours and radii come from the palette and `Theme`; grouped pages and cards keep at
+  least 1.12:1 against each other.
+- At most four type sizes per screen; list subtitles are no smaller than `subheadline`.
+- Explanations sit in footers; banners are only for problems.
+- One icon family per section or menu; people are round.
+- Every state change animates or answers with a haptic.

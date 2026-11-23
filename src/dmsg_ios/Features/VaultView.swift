@@ -21,8 +21,10 @@ struct VaultView: View {
                     }
                 }
                 if model.loadingVault || !model.vaultQueryIsCurrent && !model.vaultFailed {
-                    ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
-                        .accessibilityIdentifier("vault.loading")
+                    if model.vaultQueryIsCurrent && !model.vault.isEmpty {
+                        ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
+                            .accessibilityIdentifier("vault.loading")
+                    } else { PlaceholderRows(identifier: "vault.loading") }
                 }
                 if model.vaultFailed {
                     NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))

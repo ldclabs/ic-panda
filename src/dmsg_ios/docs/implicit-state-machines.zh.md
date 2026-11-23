@@ -244,7 +244,7 @@
 
 ### 无独立业务生命周期的入口
 
-- 显示模型、名称、图标、系统色与触感将输入映射为界面。浏览范围通过 Binding 写回所属页面，语言设置链接交由 iOS 处理，隐私政策是本地静态内容。[显示模型](../App/DisplayModels.swift) · [名称](../Features/VaultNames.swift) · [图标](../Features/AppGlyph.swift) · [原生主题](../Shared/NativeTheme.swift) · [触感](../Platform/Haptics.swift) · [浏览控件](../Features/BrowseBar.swift) · [语言](../Features/LanguageSettingsLink.swift) · [隐私政策](../Features/PrivacyPolicyView.swift)
+- 显示模型、名称、图标、系统色与触感将输入映射为界面。浏览范围通过 Binding 写回所属页面，语言设置链接交由 iOS 处理，隐私政策是本地静态内容。[显示模型](../App/DisplayModels.swift) · [名称](../Features/VaultNames.swift) · [图标](../Features/AppGlyph.swift) · [原生主题](../Shared/NativeTheme.swift) · [复制触感](../Platform/Haptics.swift) · [浏览控件](../Features/BrowseBar.swift) · [语言](../Features/LanguageSettingsLink.swift) · [隐私政策](../Features/PrivacyPolicyView.swift)
 - 消息耗时诊断记录既有操作和固定错误码。Widget 的时间线返回静态入口，打开和解锁由主应用负责。[耗时记录](../Platform/MessageTiming.swift) · [Widget](../Extensions/Widget/WorkspaceWidget.swift)
 - DEBUG 的工作区、文件、商店预览夹具分别模拟账户、消息、故障和展示数据。录制用触点观察器有按下、移动和结束的生命周期，仅在预览模式安装。[基础夹具](../App/PreviewFixtures.swift) · [文件夹具](../App/FileFixtures.swift) · [商店夹具](../App/StorePreviewFixtures.swift) · [录制触点](../App/PreviewTouches.swift)
 - [工程目标](../project.yml) 和 [桥接包](../CoreBridge/Package.swift) 定义编译与链接边界。覆盖 App 26 个、Features 84 个、Platform 27 个、Shared 4 个、Extensions 5 个、Intents 1 个 Swift 文件。资源、权限清单、Review 材料，以及 30 个单元测试和 17 个界面测试 Swift 文件用于定位合同和回归。生成的 UniFFI 胶水及 Rust 内部状态由各自模块维护，本表跟踪到调用/回执边界。

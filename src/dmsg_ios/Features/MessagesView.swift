@@ -19,6 +19,7 @@ struct MessagesView: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var creating = false
     @State private var writing: LetterDraft?
     @State private var inbox = InboxLoading()
@@ -60,6 +61,8 @@ struct MessagesView: View {
                     else { letterRows }
                 }.plainListRows(selectable: listSelection != nil)
             }.listStyle(.plain)
+                // New, removed, reordered and newly read conversations animate, except with Reduce Motion.
+                .animation(reduceMotion ? nil : .default, value: channels.map { "\($0.id):\($0.unread)" })
                 .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
                 .scopeBar { if !barInList { bars } }
                 .privateScreen(.plain).navigationTitle("Messages")
@@ -301,7 +304,7 @@ struct MessagesView: View {
                     InboxPolicyHint()
                 }
             }
-            if inbox.refreshing && received.isEmpty || !inbox.known && inbox.failure == nil { ProgressView("Syncing…").accessibilityIdentifier("inbox.loading") }
+            if inbox.refreshing && received.isEmpty || !inbox.known && inbox.failure == nil { PlaceholderRows(identifier: "inbox.loading") }
             if received.count > limit { LoadMoreRow(trigger: limit) { limit += 50 } }
         } else {
             SettingsLoadStatus(loading: model.letters.loading, failed: model.letters.failed) { Task { await model.letters.load(model) } }
