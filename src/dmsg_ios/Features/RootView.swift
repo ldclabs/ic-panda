@@ -143,11 +143,13 @@ private struct LocalAccountSettings: View {
 
 private struct AccountWorkspace: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// The account lives in the sidebar, so portrait iPads show it instead of the bare placeholder.
+    @State private var columns = NavigationSplitViewVisibility.all
 
     var body: some View {
         if sizeClass == .compact { NavigationStack { AccountView() } }
         else {
-            NavigationSplitView { AccountView(inSplitView: true) } detail: {
+            NavigationSplitView(columnVisibility: $columns) { AccountView(inSplitView: true) } detail: {
                 ContentUnavailableView("Account", image: AppGlyph.account.assetName)
             }.navigationSplitViewStyle(.balanced)
         }

@@ -8,6 +8,8 @@ import XCTest
 final class VisualBaselineTests: XCTestCase {
     private struct Look {
         let language: String, locale: String, dark: Bool, large: Bool
+        /// The Account tab title: iPad shows the tabs as a top bar of plain buttons, not a TabBar.
+        var account: String { ["zh-Hans": "账户", "ar": "الحساب"][language] ?? "Account" }
         var name: String { "\(language)-\(dark ? "dark" : "light")\(large ? "-ax" : "")" }
         var arguments: [String] {
             ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
@@ -36,7 +38,7 @@ final class VisualBaselineTests: XCTestCase {
             item.tap()
             XCTAssertTrue(app.staticTexts["vault.detail.title"].waitForExistence(timeout: 5), look.name)
             shot(app, look, "vault-detail")
-            app.tabBars.buttons.element(boundBy: 3).tap()
+            app.buttons[look.account].firstMatch.tap()
             XCTAssertTrue(app.buttons["account.profile"].waitForExistence(timeout: 5), look.name)
             shot(app, look, "account")
             app.terminate()
