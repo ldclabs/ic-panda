@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.clickable
@@ -134,8 +135,8 @@ private fun historyChange(code: String) = str(when (code) {
         Text(str(R.string.text_version_conflicts_0df1b3c), modifier = Modifier.openedReminderVisible(client, read is ReadState.Ready || read is ReadState.Empty) { it.kind == "task" && it.id?.startsWith("conflicts:") == true }, style = MaterialTheme.typography.titleMedium)
         ReadFeedback(read, client.vaultHistory::conflicts)
         if (conflict == null) {
-            if (read is ReadState.Empty) EmptyPanel(str(R.string.text_no_conflicts_f2a54d9))
-            read.valueOrNull().orEmpty().forEach { value -> AccountRow(value.current.title + " · " + str(R.string.text_two_versions_need_review_df5bf89)) { select(value.key) } }
+            if (read is ReadState.Empty) EmptyState(str(R.string.text_no_conflicts_f2a54d9))
+            read.valueOrNull().orEmpty().forEach { value -> ListRow(value.current.title + " · " + str(R.string.text_two_versions_need_review_df5bf89)) { select(value.key) } }
         } else {
             Notice(str(R.string.text_review_both_versions_the_selected_parts_replace_current_values_ex_042fcc1))
             Text(conflict.current.title, style = MaterialTheme.typography.headlineSmall)

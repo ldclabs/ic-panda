@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.clickable
@@ -65,13 +66,13 @@ import net.dmsg.android.core.*
             if (selected.isEmpty()) {
                 items(entries, key = { it.id }) { item ->
                     BrowseRow(item.name ?: str(R.string.text_encrypted_backup_2ad5848), Modifier.clickable { client.navigation.select(item.id) },
-                        leading = { BrowseIcon(if (item.needsRoot) Icons.Outlined.Key else Icons.Outlined.Cloud) }) {
+                        leading = { BrowseIcon(if (item.needsRoot) R.drawable.glyph_key else R.drawable.glyph_sync) }) {
                         Text(listOfNotNull(item.size?.let(::fileSize), str(if (item.needsRoot) R.string.text_waiting_for_the_required_content_key_1d9169d
                             else if (item.local) R.string.text_also_on_this_device_7d07aa6 else R.string.text_only_in_cloud_6a03abd)).joinToString(" · "))
                     }
                 }
                 if (entries.isEmpty() && saved?.complete == true && inventory !is ReadState.Failed) item {
-                    EmptyPanel(if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5))
+                    EmptyState(if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5), glyph = if (query.isBlank()) R.drawable.glyph_sync else null)
                 }
                 item { Notice(str(R.string.text_back_up_selected_files_explicitly_your_local_library_is_not_uploa_0e590c9)) }
             } else if (current != null) {
@@ -127,7 +128,7 @@ import net.dmsg.android.core.*
     Column(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { ReadFeedback(state, client.cloudFiles::listUnbacked) }
-            if (state is ReadState.Empty) item { EmptyPanel(str(R.string.backup_all_caught_up)) }
+            if (state is ReadState.Empty) item { EmptyState(str(R.string.backup_all_caught_up)) }
             groups.forEach { group ->
                 item { SectionTitle((group.file.path + group.file.name).joinToString(" / ")) }
                 items(group.versions.asReversed(), key = { group.file.id + ":" + it.id }) { v ->

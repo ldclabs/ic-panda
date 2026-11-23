@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
 import androidx.activity.compose.BackHandler
@@ -181,14 +182,14 @@ import kotlinx.coroutines.CancellationException
                                 val pageContent: @Composable () -> Unit = { when (route) {
                                     "vault" -> {
                                         if (wide) WorkspacePanes(fold, list = { VaultScreen(client, ::select) }, detail = {
-                                            if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) } else EmptyPanel(str(R.string.text_choose_an_item_3782357))
+                                            if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) } else EmptyState(str(R.string.text_choose_an_item_3782357), glyph = R.drawable.glyph_vault)
                                         }) else if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) }
                                         else VaultScreen(client, ::select)
                                     }
                                     "messages" -> {
                                         val list: @Composable () -> Unit = { MessagesScreen(client, state, ::select) { go("inbox") } }
                                         val detail: @Composable () -> Unit = {
-                                            if (selected.isEmpty()) EmptyPanel(str(R.string.text_choose_a_conversation_f1e5111))
+                                            if (selected.isEmpty()) EmptyState(str(R.string.text_choose_a_conversation_f1e5111), glyph = R.drawable.glyph_channels)
                                             else ConversationScreen(client, state, selected, threadSearch) { threadSearch = it }
                                         }
                                         if (wide) WorkspacePanes(fold, list = list, detail = detail)
@@ -207,7 +208,7 @@ import kotlinx.coroutines.CancellationException
                                     "channel-hidden" -> HiddenChannelsScreen(client)
                                     "message-reference" -> ReferencedMessageScreen(client, navigation.current.channel.orEmpty(), navigation.current.sequence ?: 0u)
                                     "files" -> if (wide) WorkspacePanes(fold, list = { FilesScreen(client, state, "", ::select, share) }, detail = {
-                                        if (selected.isNotEmpty()) FilesScreen(client, state, selected, ::select, share) else EmptyPanel(str(R.string.text_choose_a_file_2916860))
+                                        if (selected.isNotEmpty()) FilesScreen(client, state, selected, ::select, share) else EmptyState(str(R.string.text_choose_a_file_2916860), glyph = R.drawable.glyph_file)
                                     }) else FilesScreen(client, state, selected, ::select, share)
                                     "incoming-shares" -> IncomingSharesScreen(client)
                                     "workspace-entries" -> WorkspaceEntriesScreen()
@@ -224,7 +225,7 @@ import kotlinx.coroutines.CancellationException
                                     "browser-connections" -> BrowserConnectionsScreen(client, browser)
                                     "browser-request" -> {
                                         val link = ConnectLink(navigation.current.field.orEmpty(), navigation.current.channel, navigation.current.id)
-                                        if (ConnectLink.parse(link.url()) == link) BrowserRequestScreen(client, link, browser) else EmptyPanel(str(R.string.text_invalid_request_link_0f99d32))
+                                        if (ConnectLink.parse(link.url()) == link) BrowserRequestScreen(client, link, browser) else EmptyState(str(R.string.text_invalid_request_link_0f99d32))
                                     }
                                     "device-transfer" -> DeviceTransferScreen(client, navigation.current.id, navigation.current.field?.let { it == "predecessor" })
                                     "handovers" -> HandoversScreen(client, navigation.current.id)
@@ -292,11 +293,11 @@ import kotlinx.coroutines.CancellationException
                                     "vault-import" -> VaultImportScreen(client) { passwordImport.launch(arrayOf("*/*")) }
                                     "local-import" -> LocalImportScreen(client)
                                     "vault-backup" -> VaultBackupScreen(client)
-                                    else -> EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae))
+                                    else -> EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account)
                                 } }
                                 if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                     list = { AccountScreen(client, state, ::go, openLogin) },
-                                    detail = { if (route == "account") EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae)) else pageContent() })
+                                    detail = { if (route == "account") EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) else pageContent() })
                                 else CompositionLocalProvider(LocalBrowseNavigation provides {
                                     if (browseHeader) Row(verticalAlignment = Alignment.CenterVertically) { backButton(); activityButton() }
                                 }) { pageContent() }

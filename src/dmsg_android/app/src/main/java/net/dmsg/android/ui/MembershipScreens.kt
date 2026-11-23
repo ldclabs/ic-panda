@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -90,7 +91,7 @@ import net.dmsg.android.platform.numericExpression
             item {
                 DetailCard(color = if (tier != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.card) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TonalIcon(if (tier != null) Icons.Outlined.Verified else Icons.Outlined.Info, MaterialTheme.colorScheme.surfaceContainer)
+                        RowIcon(if (tier != null) Icons.Outlined.Verified else Icons.Outlined.Info, MaterialTheme.colorScheme.surfaceContainer)
                         Column(Modifier.weight(1f)) {
                             Text(str(R.string.text_current_plan_and_limits_1d28c4a), Modifier.semantics { heading() }, style = MaterialTheme.typography.labelLarge)
                             if (current != null) Text(tier ?: str(R.string.text_status_needs_updating_1842722),
@@ -163,7 +164,7 @@ import net.dmsg.android.platform.numericExpression
                     }
                 }
             }
-            item { SettingsGroup { AccountRow(str(R.string.text_compare_all_plans_a6fbd12), Icons.AutoMirrored.Outlined.ViewList) { client.navigation.push(Route("membership-compare")) } } }
+            item { Section { ListRow(str(R.string.text_compare_all_plans_a6fbd12), icon = Icons.AutoMirrored.Outlined.ViewList) { client.navigation.push(Route("membership-compare")) } } }
             item { DetailCard { PlayPurchasePanel(client) } }
         }
     }

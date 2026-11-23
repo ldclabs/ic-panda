@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import kotlinx.serialization.json.JsonObject
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
@@ -71,7 +72,7 @@ import net.dmsg.core.PasskeyOperation
         ReadFeedback(recovery, client.account::recovery)
         Notice(str(R.string.text_recovery_requires_a_bound_login_and_an_on_chain_policy_enabled_be_a56b875))
         if (expectedDigest != null && recovery is ReadState.Ready && value?.pending?.digest != expectedDigest) {
-            EmptyPanel(str(R.string.text_this_recovery_request_is_no_longer_pending_a8f8c13))
+            EmptyState(str(R.string.text_this_recovery_request_is_no_longer_pending_a8f8c13), glyph = R.drawable.glyph_recovery)
         }
         value?.takeIf { expectedDigest == null || it.pending?.digest == expectedDigest }?.let {
             Text(if (it.enabled) str(R.string.text_on_chain_recovery_enabled_63f689f) else str(R.string.text_on_chain_recovery_disabled_29431b5), style = MaterialTheme.typography.titleMedium)
@@ -90,7 +91,7 @@ import net.dmsg.core.PasskeyOperation
             if (it.canRequest(now)) Button(onClick = { confirm = true }, enabled = !session.working("recovery:request")) { Text(str(R.string.text_request_account_recovery_c8c08bd)) }
             if (it.canComplete(now) && (!it.member || session.session?.state == "root_required")) Button(onClick = { client.perform({ core -> core.completeRecovery() }, transition = true) { client.account.recovery() } }, enabled = !session.busy) { Text(str(R.string.text_complete_recovery_7f77126)) }
         }
-        if (session.unlocked) AccountRow(str(R.string.text_on_chain_recovery_policy_2a130d0)) { client.navigation.open("recovery-policy") }
+        if (session.unlocked) ListRow(str(R.string.text_on_chain_recovery_policy_2a130d0)) { client.navigation.open("recovery-policy") }
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text(str(R.string.text_start_account_recovery_0b7ddb1)) }, text = { Text(str(R.string.text_authorized_devices_can_cancel_the_request_during_the_waiting_peri_7e54d5f)) }, confirmButton = { TextButton(onClick = { confirm = false; client.perform({ it.requestRecovery() }, key = "recovery:request") { client.account.recovery() } }) { Text(str(R.string.text_request_recovery_9ec2322)) } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
@@ -184,15 +185,15 @@ import net.dmsg.core.PasskeyOperation
     val value = devices.valueOrNull()
     LaunchedEffect(session.epoch) { client.account.devices(); client.approvals.settle() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AccountRow(str(R.string.text_transfer_between_devices_fc09783)) { client.navigation.push(Route("device-transfer")) }
-        AccountRow(str(R.string.text_replace_a_device_fbe5457)) { client.navigation.push(Route("handovers")) }
+        ListRow(str(R.string.text_transfer_between_devices_fc09783)) { client.navigation.push(Route("device-transfer")) }
+        ListRow(str(R.string.text_replace_a_device_fbe5457)) { client.navigation.push(Route("handovers")) }
         ReadFeedback(devices, client.account::devices)
         if (selected == null) {
             Button(onClick = { client.navigation.open("account-invite") }, enabled = value?.canManage == true) { Text(str(R.string.text_authorize_another_device_d67d951)) }
             OutlinedButton(onClick = { client.navigation.open("pair-approve") }, enabled = value != null) { Text(str(R.string.text_scan_device_request_c50056e)) }
         }
         value?.devices?.filter { selected == null || it.id == selected }?.forEach { device ->
-            if (selected == null) AccountRow(if (device.current) str(R.string.text_this_android_device_7a65c2a) else device.id) { selected = device.id }
+            if (selected == null) ListRow(if (device.current) str(R.string.text_this_android_device_7a65c2a) else device.id) { selected = device.id }
             else {
                 TextButton(onClick = { selected = null }) { Text(str(R.string.text_all_devices_a5aa921)) }
                 SelectionContainer { Text(device.id) }

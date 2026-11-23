@@ -1,5 +1,7 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
+import androidx.compose.ui.res.painterResource
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -44,7 +46,7 @@ import net.dmsg.android.core.*
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Surface(Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.card) {
                 image?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                    ?: Icon(Icons.Outlined.Person, null, Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
+                    ?: Icon(painterResource(R.drawable.glyph_profile), null, Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.primary)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(if (profile.valueOrNull() != null) profile.valueOrNull()?.name?.takeIf(String::isNotBlank) ?: str(R.string.text_your_account_ae9d708) else names[account] ?: str(R.string.text_your_account_ae9d708), style = MaterialTheme.typography.titleMedium)
@@ -112,7 +114,7 @@ import net.dmsg.android.core.*
                     }
                 })
         }
-        if (entries is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_saved_accounts_f8486b6)) }
+        if (entries is ReadState.Empty) item { EmptyState(str(R.string.text_no_saved_accounts_f8486b6), glyph = R.drawable.glyph_account) }
         if ((entries is ReadState.Ready || entries is ReadState.Empty) && entries.valueOrNull()?.none { it.id == LOCAL_ACCOUNT } == true) item {
             OutlinedButton(onClick = { client.openLocal(); onSelected?.invoke() }, enabled = !state.busy) { Text(str(R.string.use_on_device)) }
         }
@@ -240,14 +242,4 @@ import net.dmsg.android.core.*
         Button(onClick = { if (pending) client.profile.retryPublication() else confirming = true }, enabled = !working && if (pending) true else client.profile.ready(), modifier = Modifier.fillMaxWidth().padding(20.dp, 12.dp)) { Text(if (pending) str(R.string.text_retry_publication_1d487c8) else str(R.string.text_publish_profile_5b8d8d6)) }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_publish_these_details_publicly_efc379b)) }, text = { Text(str(R.string.text_your_name_description_avatar_and_listed_links_will_be_public_1025600)) }, confirmButton = { TextButton(onClick = { confirming = false; client.profile.publish() }) { Text(str(R.string.text_publish_88bb01f)) } }, dismissButton = { TextButton(onClick = { confirming = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
-}
-
-@Composable internal fun LabelValue(label: String, value: String) {
-    FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp),
-        itemVerticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.padding(end = 12.dp), style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleSmall)
-    }
 }

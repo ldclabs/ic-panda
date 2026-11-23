@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
@@ -65,7 +66,7 @@ import net.dmsg.android.core.*
                 leadingContent = { Icon(Icons.Outlined.MoveToInbox, null) }, trailingContent = { if (link.unread) Badge { Text(str(R.string.text_new_426a93d)) } })
             HorizontalDivider()
         }
-        if (links is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_collection_links_yet_d10e09a)) }
+        if (links is ReadState.Empty) item { EmptyState(str(R.string.text_no_collection_links_yet_d10e09a)) }
     }
 }
 
@@ -117,7 +118,7 @@ import net.dmsg.android.core.*
         item {
             jobs.firstOrNull()?.let { Text(it.title, style = MaterialTheme.typography.headlineSmall) }
             if (jobs.isEmpty() && (intents is ReadState.Ready || intents is ReadState.Empty)) {
-                EmptyPanel(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), Icons.Outlined.LinkOff) {
+                EmptyState(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), icon = Icons.Outlined.LinkOff) {
                     TextButton(onClick = client.fileRequests::loadIntents) { Text(str(R.string.text_refresh_cba212b)) }
                 }
             }
@@ -186,7 +187,7 @@ import net.dmsg.android.core.*
             Row(verticalAlignment = Alignment.CenterVertically) { Text(str(R.string.text_received_files_1a98b82), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge); IconButton(onClick = { client.fileRequests.select(id) }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_received_files_ace2ac4)) } }
             Notice(str(R.string.text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6))
             ReadFeedback(received, { client.fileRequests.select(id) })
-            if (received is ReadState.Empty) EmptyPanel(str(R.string.text_nothing_has_arrived_yet_bfc5dd1))
+            if (received is ReadState.Empty) EmptyState(str(R.string.text_nothing_has_arrived_yet_bfc5dd1))
         }
         items(files, key = { it.id }) { file ->
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

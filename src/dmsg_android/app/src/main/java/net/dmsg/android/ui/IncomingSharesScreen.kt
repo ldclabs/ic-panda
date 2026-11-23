@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -41,13 +42,13 @@ import net.dmsg.android.platform.IncomingShare
         item {
             Notice(str(R.string.text_shared_items_wait_in_an_independently_encrypted_copy_on_this_devi_ac0b59d))
             state.session?.account?.let { TransferIdentity(str(R.string.text_import_account_2335d8d), it) }
-            AccountRow(str(R.string.text_choose_another_account_bd5c007)) { client.navigation.push(Route("accounts")) }
+            ListRow(str(R.string.text_choose_another_account_bd5c007)) { client.navigation.push(Route("accounts")) }
             TextButton(onClick = { choosing = true }) { Text(str(R.string.text_destination_646099e) + destination.folderLabel) }
             if (intake.working) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(str(R.string.text_encrypting_the_shared_items_dcc2984)); TextButton(onClick = client.incoming::stop) { Text(str(R.string.text_stop_receiving_d2c4d33)) } }
             intake.error?.let { Notice(errorText(it), true) }
             if (intake.duplicate) Notice(str(R.string.text_this_shared_copy_was_already_received_it_will_not_be_imported_twi_64ed5e3))
             ReadFeedback(entries, client.incoming::load)
-            if (entries is ReadState.Empty && !intake.working) EmptyPanel(str(R.string.text_no_shared_items_waiting_0f756a2))
+            if (entries is ReadState.Empty && !intake.working) EmptyState(str(R.string.text_no_shared_items_waiting_0f756a2))
         }
         entries.valueOrNull().orEmpty().forEach { entry ->
             item(key = entry.id) {

@@ -1,5 +1,6 @@
 package net.dmsg.android.platform
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import android.app.Activity
 import android.content.Intent

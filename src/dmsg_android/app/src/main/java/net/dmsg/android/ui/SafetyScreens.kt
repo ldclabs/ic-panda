@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -23,11 +24,11 @@ import net.dmsg.android.core.*
 
 @Composable fun MessageSettingsScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding())) {
-        SettingsGroup {
-            AccountRow(str(R.string.text_receiving_policy_7270844), Icons.Outlined.MarkEmailRead) { client.navigation.push(Route("inbox-settings")) }
-            AccountRow(str(R.string.text_blocked_accounts_c7f6322), Icons.Outlined.Block) { client.navigation.push(Route("blocked-accounts")) }
-            AccountRow(str(R.string.text_your_reports_8c328aa), Icons.Outlined.Flag) { client.navigation.push(Route("reports")) }
-            AccountRow(str(R.string.text_hidden_conversations_46b7307), Icons.Outlined.VisibilityOff) { client.navigation.push(Route("channel-hidden")) }
+        Section {
+            ListRow(str(R.string.text_receiving_policy_7270844), icon = Icons.Outlined.MarkEmailRead) { client.navigation.push(Route("inbox-settings")) }
+            ListRow(str(R.string.text_blocked_accounts_c7f6322), icon = Icons.Outlined.Block) { client.navigation.push(Route("blocked-accounts")) }
+            ListRow(str(R.string.text_your_reports_8c328aa), icon = Icons.Outlined.Flag) { client.navigation.push(Route("reports")) }
+            ListRow(str(R.string.text_hidden_conversations_46b7307), icon = Icons.Outlined.VisibilityOff) { client.navigation.push(Route("channel-hidden")) }
         }
     }
 }
@@ -73,7 +74,7 @@ import net.dmsg.android.core.*
                 Button(onClick = { confirming = true }, enabled = !working && form.valid && policy.valueOrNull()?.let { pending != null || it.mode != form.mode || it.allow.toSet() != form.allow.toSet() } == true) { Text(if (pending != null) str(R.string.text_retry_original_change_670ac66) else str(R.string.text_save_receiving_policy_8dcc597)) }
             }
             if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
-            AccountRow(str(R.string.text_blocked_accounts_c7f6322)) { client.navigation.push(Route("blocked-accounts")) }
+            ListRow(str(R.string.text_blocked_accounts_c7f6322)) { client.navigation.push(Route("blocked-accounts")) }
         }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_apply_these_receiving_rules_f6a2126)) }, text = { Column { Text(receivingMode((pending ?: form)?.mode.orEmpty())); Text(str(R.string.text_blocked_accounts_remain_blocked_choosing_a_free_or_closed_policy_c088050)) } }, confirmButton = { TextButton(onClick = { confirming = false; client.safety.savePolicy() }) { Text(str(R.string.text_save_settings_a01ddf9)) } }, dismissButton = { TextButton(onClick = { confirming = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
@@ -165,7 +166,7 @@ import net.dmsg.android.core.*
     if (id != null) Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadFeedback(detail, { client.safety.reviewReport(id) }); detail.valueOrNull()?.takeIf { it.report.id == id }?.let { ReportReviewContent(client, it) }
     } else LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { ReadFeedback(reports, { client.safety.loadReports() }); if (reports is ReadState.Empty) EmptyPanel(str(R.string.text_no_reports_22f7dd6)) }
+        item { ReadFeedback(reports, { client.safety.loadReports() }); if (reports is ReadState.Empty) EmptyState(str(R.string.text_no_reports_22f7dd6)) }
         items(reports.valueOrNull().orEmpty(), key = { it.id }) { report ->
             Text(reportState(report.state), style = MaterialTheme.typography.titleMedium)
             SelectionContainer { Text(report.id, style = MaterialTheme.typography.bodySmall) }

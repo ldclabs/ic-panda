@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -11,8 +12,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,26 +32,26 @@ import net.dmsg.core.*
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(pagePadding(bottomInset = LocalWorkspaceBarInset.current))) {
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
-        SettingsGroup {
-            AccountRow(str(R.string.text_approvals_1b5e94c), Icons.AutoMirrored.Outlined.FactCheck,
-                state.session?.approvalsWaiting?.takeIf { it > 0u }?.let(::localizedNumber)) { go("approvals") }
-            AccountRow(str(R.string.text_account_security_41c2886), Icons.Outlined.Security) { go("security") }
-            AccountRow(str(R.string.text_devices_bebe058), Icons.Outlined.Devices) { go("devices") }
-            AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") }
+        Section {
+            ListRow(str(R.string.text_approvals_1b5e94c), glyph = R.drawable.glyph_approvals,
+                value = state.session?.approvalsWaiting?.takeIf { it > 0u }?.let(::localizedNumber)) { go("approvals") }
+            ListRow(str(R.string.text_account_security_41c2886), glyph = R.drawable.glyph_security) { go("security") }
+            ListRow(str(R.string.text_devices_bebe058), glyph = R.drawable.glyph_device) { go("devices") }
+            ListRow(str(R.string.text_switch_account_52f71df), glyph = R.drawable.glyph_account) { go("accounts") }
         }
         SectionTitle(str(R.string.text_sync_and_storage_6513532))
-        SettingsGroup(MaterialTheme.colorScheme.secondaryContainer) {
-            AccountRow(str(R.string.text_account_synchronization_77ccb72), Icons.Outlined.Sync) { go("sync") }
-            AccountRow(str(R.string.text_plan_and_usage_acf1a9a), Icons.Outlined.Verified) { go("membership") }
-            AccountRow(str(R.string.text_system_integrations_9ea81ce), Icons.Outlined.Layers) { go("system-integrations") }
+        Section(iconColor = MaterialTheme.colorScheme.secondaryContainer) {
+            ListRow(str(R.string.text_account_synchronization_77ccb72), glyph = R.drawable.glyph_sync) { go("sync") }
+            ListRow(str(R.string.text_plan_and_usage_acf1a9a), glyph = R.drawable.glyph_plan) { go("membership") }
+            ListRow(str(R.string.text_system_integrations_9ea81ce), icon = Icons.Outlined.Layers) { go("system-integrations") }
         }
         SectionTitle(str(R.string.text_settings_8d4d0d8))
-        SettingsGroup(MaterialTheme.colorScheme.tertiaryContainer) {
-            AccountRow(str(R.string.text_send_feedback_73e1781), Icons.Outlined.Feedback) { go("feedback") }
-            AccountRow(str(R.string.text_notifications_3e7769a), Icons.Outlined.NotificationsNone) { go("notifications") }
+        Section(iconColor = MaterialTheme.colorScheme.tertiaryContainer) {
+            ListRow(str(R.string.text_send_feedback_73e1781), icon = Icons.Outlined.Feedback) { go("feedback") }
+            ListRow(str(R.string.text_notifications_3e7769a), icon = Icons.Outlined.NotificationsNone) { go("notifications") }
             AccountLanguageRow()
-            AccountRow(str(R.string.text_advanced), Icons.Outlined.Tune) { go("advanced") }
-            AccountRow(str(R.string.text_about_dmsg_630408f), Icons.Outlined.Info) { go("about") }
+            ListRow(str(R.string.text_advanced), icon = Icons.Outlined.Tune) { go("advanced") }
+            ListRow(str(R.string.text_about_dmsg_630408f), icon = Icons.Outlined.Info) { go("about") }
         }
         Spacer(Modifier.height(12.dp))
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -67,36 +66,26 @@ import net.dmsg.core.*
     }
 }
 
-@Composable internal fun AccountRow(label: String, icon: ImageVector? = null, value: String? = null, click: () -> Unit) {
-    ListItem(headlineContent = { Text(label) },
-        leadingContent = icon?.let { glyph -> { TonalIcon(glyph) } },
-        trailingContent = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            value?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        } },
-        modifier = Modifier.clickable(role = Role.Button, onClick = click).heightIn(min = 56.dp))
-}
-
 @Composable fun SystemIntegrationsScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:system-integrations")).padding(pagePadding())) {
-        SettingsGroup {
-            AccountRow(str(R.string.text_password_autofill_872af78), Icons.Outlined.Key) { client.navigation.push(Route("system-autofill")) }
-            AccountRow(str(R.string.text_files_app_copies_96ebae6), Icons.Outlined.Folder) { client.navigation.push(Route("system-files")) }
-            AccountRow(str(R.string.text_shared_with_dmsg_0df2fa8), Icons.Outlined.Share) { client.navigation.push(Route("incoming-shares")) }
-            AccountRow(str(R.string.text_home_screen_entries_7e5f087), Icons.Outlined.Widgets) { client.navigation.push(Route("workspace-entries")) }
+        Section {
+            ListRow(str(R.string.text_password_autofill_872af78), icon = Icons.Outlined.Key) { client.navigation.push(Route("system-autofill")) }
+            ListRow(str(R.string.text_files_app_copies_96ebae6), icon = Icons.Outlined.Folder) { client.navigation.push(Route("system-files")) }
+            ListRow(str(R.string.text_shared_with_dmsg_0df2fa8), icon = Icons.Outlined.Share) { client.navigation.push(Route("incoming-shares")) }
+            ListRow(str(R.string.text_home_screen_entries_7e5f087), icon = Icons.Outlined.Widgets) { client.navigation.push(Route("workspace-entries")) }
         }
     }
 }
 
 @Composable fun AdvancedAccountScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:advanced")).padding(pagePadding())) {
-        SettingsGroup {
-            AccountRow(str(R.string.text_agents_dcfd6ed), Icons.Outlined.SmartToy) { client.navigation.push(Route("agents")) }
-            AccountRow(str(R.string.text_multisig_wallets_451404c), Icons.Outlined.AccountBalanceWallet) { client.navigation.push(Route("wallets")) }
-            AccountRow(str(R.string.text_connected_browsers_e404840), Icons.Outlined.Language) { client.navigation.push(Route("browser-connections")) }
-            AccountRow(str(R.string.text_hardware_security_04e42f4), Icons.Outlined.Memory) { client.navigation.push(Route("hardware")) }
-            AccountRow(str(R.string.text_activity_on_this_device_288740a), Icons.Outlined.History) { client.navigation.push(Route("secret-activity")) }
-            AccountRow(str(R.string.text_cached_data_b29fb6f), Icons.Outlined.Storage) { client.navigation.push(Route("display-cache")) }
+        Section {
+            ListRow(str(R.string.text_agents_dcfd6ed), glyph = R.drawable.glyph_agents) { client.navigation.push(Route("agents")) }
+            ListRow(str(R.string.text_multisig_wallets_451404c), glyph = R.drawable.glyph_coins) { client.navigation.push(Route("wallets")) }
+            ListRow(str(R.string.text_connected_browsers_e404840), glyph = R.drawable.glyph_browser) { client.navigation.push(Route("browser-connections")) }
+            ListRow(str(R.string.text_hardware_security_04e42f4), icon = Icons.Outlined.Memory) { client.navigation.push(Route("hardware")) }
+            ListRow(str(R.string.text_activity_on_this_device_288740a), glyph = R.drawable.glyph_audit) { client.navigation.push(Route("secret-activity")) }
+            ListRow(str(R.string.text_cached_data_b29fb6f), icon = Icons.Outlined.Storage) { client.navigation.push(Route("display-cache")) }
         }
     }
 }
@@ -104,24 +93,24 @@ import net.dmsg.core.*
 @Composable fun SecurityScreen(client: ClientController, state: UiState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding())) {
         SectionTitle(str(R.string.text_security_and_unlock_7ba00a7))
-        SettingsGroup {
+        Section {
             SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d))
             SettingToggle(str(R.string.text_lock_immediately_in_background_67ea031), state.immediateLock, client::immediateLock)
-            AccountRow(str(R.string.text_hardware_security_04e42f4)) { client.navigation.open("hardware") }
-            AccountRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
-            AccountRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
-            AccountRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
+            ListRow(str(R.string.text_hardware_security_04e42f4)) { client.navigation.open("hardware") }
+            ListRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
+            ListRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
+            ListRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
         }
         SectionTitle(str(R.string.text_appearance_7bcd380))
-        SettingsGroup {
+        Section {
             listOf(null to str(R.string.text_system_b9dd0f7), false to str(R.string.text_light_f3bfabb), true to str(R.string.text_dark_0bea023)).forEach { (value, label) ->
                 RadioChoiceRow(label, state.dark == value) { if (value == null) client.systemAppearance() else client.dark(value) }
             }
         }
         SectionTitle(str(R.string.text_account_4ab56e9))
-        SettingsGroup {
-            AccountRow(str(R.string.text_remove_local_data_c45125e)) { client.navigation.push(Route("account-remove")) }
-            AccountRow(str(R.string.text_delete_service_account_1475636)) { client.navigation.push(Route("account-delete")) }
+        Section {
+            ListRow(str(R.string.text_remove_local_data_c45125e)) { client.navigation.push(Route("account-remove")) }
+            ListRow(str(R.string.text_delete_service_account_1475636)) { client.navigation.push(Route("account-delete")) }
         }
     }
 }
@@ -135,19 +124,13 @@ private fun approvalSource(source: String): String = when {
 
 @Composable private fun ApprovalQueueRows(title: String, entries: List<Approval>, select: (String) -> Unit) {
     if (entries.isEmpty()) return
-    SectionTitle(title)
-    entries.forEach { entry ->
-        ListItem(
-            headlineContent = { Text(approvalTitle(entry.kind)) },
-            supportingContent = {
-                Column {
-                    Text(approvalSource(entry.source))
-                    Text(if (entry.state == "awaiting_user") str(R.string.approval_request_expires) + " · " + messageTime(entry.expiresAt) else secretStateName(entry.state))
-                }
-            },
-            trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null) },
-            modifier = Modifier.clickable(role = Role.Button) { select(entry.id) }
-        )
+    Section(title = title) {
+        entries.forEach { entry ->
+            val status = if (entry.state == "awaiting_user") str(R.string.approval_request_expires) + " · " + messageTime(entry.expiresAt)
+                else secretStateName(entry.state)
+            ListRow(approvalTitle(entry.kind), glyph = if (entry.kind == "device_pair") R.drawable.glyph_device else R.drawable.glyph_signature,
+                supporting = approvalSource(entry.source) + "\n" + status) { select(entry.id) }
+        }
     }
 }
 
@@ -223,7 +206,7 @@ private fun approvalSource(source: String): String = when {
                 val (waiting, processing) = entries.partition { it.state == "awaiting_user" }
                 ApprovalQueueRows(str(R.string.text_waiting_for_approval_45d78c0), waiting.sortedBy { it.expiresAt }, select)
                 ApprovalQueueRows(str(R.string.text_in_progress_6906b67), processing, select)
-                if (listing is ReadState.Empty) EmptyPanel(str(R.string.text_no_pending_approvals_58ba7ee))
+                if (listing is ReadState.Empty) EmptyState(str(R.string.text_no_pending_approvals_58ba7ee), glyph = R.drawable.glyph_approvals)
                 Text(str(R.string.text_desktop_local_requests_stay_on_that_desktop_only_requests_availab_7e3389e),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {

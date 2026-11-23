@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -81,14 +82,14 @@ import net.dmsg.android.core.*
                     LabelValue(str(R.string.text_this_wallet_s_public_key_ec6ea29), it.key ?: str(R.string.text_derived_when_registered_94de52b))
                 }
             }
-            AccountRow(str(R.string.text_hardware_cosigners_dbe97a0)) { client.navigation.push(Route("wallet-cosigners")) }
+            ListRow(str(R.string.text_hardware_cosigners_dbe97a0)) { client.navigation.push(Route("wallet-cosigners")) }
         }
         walletDetails?.takeIf { it.canPropose }?.let { walletState ->
             item {
                 val movable = walletState.addresses.filter { address -> address.control == "taproot_2of2" && !address.archived && walletState.cosigners.any { it.id == address.cosigner && it.local != true && it.member == walletState.me?.id } }
                 if (movable.isNotEmpty()) {
                     SectionTitle(str(R.string.text_move_native_addresses_to_this_device_42b112f))
-                    movable.forEach { address -> AccountRow(address.label.ifBlank { address.text }) { client.navigation.push(Route("wallet-native-move", wallet, sequence = address.id.toULong())) } }
+                    movable.forEach { address -> ListRow(address.label.ifBlank { address.text }) { client.navigation.push(Route("wallet-native-move", wallet, sequence = address.id.toULong())) } }
                 }
                 val replaceable = walletState.cosigners.filter { key -> key.member == walletState.me?.id && key.local != true && key.curve != "Bip340" && walletState.addresses.none { it.cosigner == key.id } }
                 val spare = keys.valueOrNull().orEmpty().filter { key -> walletState.cosigners.none { it.publicKey == key.publicKey } }
@@ -141,9 +142,9 @@ import net.dmsg.android.core.*
                 LabelValue(str(R.string.text_next_step_f524c42), walletMoveStep(move.next))
                 if (l2) LabelValue(str(R.string.text_required_block_depth_3641e4e), move.chainKeyAfter.toString())
                 else Notice(str(R.string.text_the_old_device_must_cosign_the_l1_sweep_8e6c5a5))
-                move.pending?.let { id -> AccountRow(str(R.string.text_proposal_4301b5a) + id + " · " + walletProposalState(move.pendingState.orEmpty())) { client.navigation.push(Route("wallet-proposal", wallet, sequence = id)) } }
+                move.pending?.let { id -> ListRow(str(R.string.text_proposal_4301b5a) + id + " · " + walletProposalState(move.pendingState.orEmpty())) { client.navigation.push(Route("wallet-proposal", wallet, sequence = id)) } }
                 move.cooldown?.let { LabelValue(str(R.string.text_wait_until_d7bc115), displayTime(it)) }
-                if (move.next == "root") AccountRow(str(R.string.text_create_this_device_s_key_root_d7c3d57)) { client.navigation.push(Route("wallet-keys", wallet)) }
+                if (move.next == "root") ListRow(str(R.string.text_create_this_device_s_key_root_d7c3d57)) { client.navigation.push(Route("wallet-keys", wallet)) }
                 move.sweep?.let { sweep ->
                     SectionTitle(str(R.string.text_sweep_preview_b682610))
                     LabelValue(str(R.string.text_chain_tip_c986d2d), sweep.tip.toString())

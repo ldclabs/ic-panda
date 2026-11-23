@@ -35,7 +35,7 @@ class LanguageFlowTest {
                 android.content.res.Configuration(previousActivity.resources.configuration).apply {
                     setLocales(android.os.LocaleList.forLanguageTags(tag))
                 }).getString(R.string.app_language)
-            compose.revealAccountRow(compose.onNodeWithText(str(R.string.app_language))).performClick()
+            compose.revealListRow(compose.onNodeWithText(str(R.string.app_language))).performClick()
             compose.onNodeWithTag("language-search").performTextInput(tag)
             compose.onNodeWithTag("language-$tag").performClick()
             try {

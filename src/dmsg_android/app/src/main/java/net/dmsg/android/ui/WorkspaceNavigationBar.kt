@@ -31,10 +31,10 @@ import net.dmsg.android.platform.str
 internal data class WorkspaceDestination(val id: String, val label: Int, @param:DrawableRes val icon: Int)
 
 internal val workspaceDestinations = listOf(
-    WorkspaceDestination("vault", R.string.text_vault_ede2a06, R.drawable.workspace_vault),
-    WorkspaceDestination("messages", R.string.text_messages_3a9ab2d, R.drawable.workspace_channels),
-    WorkspaceDestination("files", R.string.text_files_c79ddc2, R.drawable.workspace_folder),
-    WorkspaceDestination("account", R.string.text_account_4ab56e9, R.drawable.workspace_account),
+    WorkspaceDestination("vault", R.string.text_vault_ede2a06, R.drawable.glyph_vault),
+    WorkspaceDestination("messages", R.string.text_messages_3a9ab2d, R.drawable.glyph_channels),
+    WorkspaceDestination("files", R.string.text_files_c79ddc2, R.drawable.glyph_folder),
+    WorkspaceDestination("account", R.string.text_account_4ab56e9, R.drawable.glyph_account),
 )
 
 internal val LocalWorkspaceBarInset = compositionLocalOf { 0.dp }

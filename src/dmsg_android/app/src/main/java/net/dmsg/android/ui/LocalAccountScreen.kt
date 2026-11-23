@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,10 +23,10 @@ fun LocalSettings(client: ClientController, go: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(bottomInset = LocalWorkspaceBarInset.current)) {
         item { SectionTitle(str(R.string.saved_on_device)) }
         item {
-            SettingsGroup {
-                AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") }
-                AccountRow(str(R.string.text_remove_local_data_c45125e), Icons.Outlined.DeleteOutline) { go("account-remove") }
-                AccountRow(str(R.string.text_lock_workspace_78665ed), Icons.Outlined.Lock) { client.lock() }
+            Section {
+                ListRow(str(R.string.text_switch_account_52f71df), glyph = R.drawable.glyph_account) { go("accounts") }
+                ListRow(str(R.string.text_remove_local_data_c45125e), icon = Icons.Outlined.DeleteOutline) { go("account-remove") }
+                ListRow(str(R.string.text_lock_workspace_78665ed), icon = Icons.Outlined.Lock) { client.lock() }
             }
         }
     }

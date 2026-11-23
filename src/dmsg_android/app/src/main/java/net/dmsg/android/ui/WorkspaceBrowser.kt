@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -129,62 +128,4 @@ internal fun LazyListScope.browseScopesItem(searching: Boolean, controls: @Compo
     if (searching) stickyHeader(key = "browse-scopes") {
         Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.page)) { controls() }
     } else item(key = "browse-scopes") { controls() }
-}
-
-@Composable internal fun BrowseScopes(
-    trailing: @Composable () -> Unit = {}, content: @Composable RowScope.() -> Unit,
-) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val actionWidth = maxWidth * 0.45f
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically, content = content)
-            Box(Modifier.widthIn(max = actionWidth)) { trailing() }
-        }
-    }
-}
-
-@Composable internal fun BrowseChoice(label: String, selected: Boolean, toggle: Boolean = false, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val select = if (toggle) Modifier.toggleable(selected, role = Role.Checkbox) { onClick() }
-        else Modifier.selectable(selected, role = Role.Tab, onClick = onClick)
-    Box(Modifier.heightIn(min = 48.dp).clip(CircleShape).then(select), contentAlignment = Alignment.Center) {
-        Text(label, Modifier.background(if (selected) colors.primary.copy(alpha = 0.10f) else Color.Transparent, CircleShape)
-            .padding(horizontal = 12.dp, vertical = 7.dp), style = MaterialTheme.typography.labelLarge,
-            color = if (selected) colors.primary else colors.onSurfaceVariant)
-    }
-}
-
-@Composable internal fun BrowseIcon(icon: ImageVector) {
-    val ink = MaterialTheme.colorScheme.primary
-    Box(Modifier.size(36.dp).background(ink.copy(alpha = 0.09f), MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
-        Icon(icon, null, Modifier.size(19.dp), tint = ink)
-    }
-}
-
-@Composable internal fun BrowseRow(
-    title: String, modifier: Modifier, leading: @Composable () -> Unit,
-    chevron: Boolean = true, trailing: @Composable RowScope.() -> Unit = {}, supporting: @Composable () -> Unit = {},
-) {
-    val colors = MaterialTheme.colorScheme
-    val largeText = LocalDensity.current.fontScale >= 1.5f
-    Box(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { leading() }
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
-                    maxLines = if (largeText) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis)
-                CompositionLocalProvider(LocalContentColor provides colors.onSurfaceVariant) {
-                    ProvideTextStyle(MaterialTheme.typography.bodySmall, supporting)
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                trailing()
-                if (chevron) Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(18.dp), tint = colors.outline)
-            }
-        }
-        HorizontalDivider(Modifier.align(Alignment.BottomCenter).padding(start = 46.dp), thickness = Dp.Hairline,
-            color = colors.outlineVariant)
-    }
 }

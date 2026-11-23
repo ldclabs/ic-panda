@@ -27,6 +27,20 @@ class UiConventionsTest {
             """|verticalScroll\((?:[^()]|\([^()]*\))*\)(?:\.(?:imePadding|systemBarsPadding)\(\))*\.padding\(\d+\.dp\)""" +
             """|fillMaxSize\(\)(?:\.(?:imePadding|systemBarsPadding)\(\))*\.padding\(\d+\.dp\)"""))
 
+    @Test fun rowsHaveNoChevrons() = assertNone("row chevron; a row's trailing side shows its value or badge",
+        Regex("""\b(KeyboardArrowRight|ChevronRight|NavigateNext)\b"""))
+
+    @Test fun overflowMenusUseTheVerticalIcon() = assertNone("horizontal ellipsis; overflow menus use Icons.Outlined.MoreVert",
+        Regex("""\bMoreHoriz\b"""))
+
+    @Test fun sharedComponentsLiveInTheKit() {
+        val kit = File(root, "ui/kit")
+        assertTrue(listOf("Section.kt", "Rows.kt", "Notice.kt", "EmptyState.kt", "Skeleton.kt", "Filters.kt").all { File(kit, it).isFile })
+        assertNone("shared component defined outside ui/kit", Regex(
+            """fun (Section|ListRow|RowIcon|LabelValue|SettingToggle|SelectionRow|RadioChoiceRow|BrowseRow|BrowseIcon|BrowseChoice|SortMenu|Notice|EmptyState|DetailCard)\("""),
+            *kit.list().orEmpty())
+    }
+
     private fun assertNone(reason: String, pattern: Regex, vararg allowed: String) {
         val found = sources.filter { it.name !in allowed }.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->

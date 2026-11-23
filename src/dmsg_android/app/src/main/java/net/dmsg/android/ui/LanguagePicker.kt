@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import android.app.Activity
 import android.content.res.Resources
 import android.content.ContextWrapper
@@ -52,7 +53,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
     val clearance = with(LocalDensity.current) { LocalWorkspaceBarInset.current.toPx() }
 
     Box(Modifier.fillMaxWidth().focusRequester(focus).bringIntoViewRequester(scroll).onSizeChanged { height = it.height }) {
-        AccountRow(str(R.string.app_language), Icons.Outlined.Translate) { open = true }
+        ListRow(str(R.string.app_language), glyph = R.drawable.glyph_language) { open = true }
     }
     if (open) LanguagePicker(onSelected = { tag ->
         returnLocale = tag.ifEmpty { Resources.getSystem().configuration.locales[0].toLanguageTag() }
@@ -84,7 +85,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
                 WorkspaceSearchField(query, { query = it }, str(R.string.language_search), Modifier.padding(horizontal = 16.dp).testTag("language-search"))
                 LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
                     val visible = choices.filter { query.isBlank() || it.tag.contains(query, true) || it.name.contains(query, true) || it.localizedName?.contains(query, true) == true }
-                    if (visible.isEmpty()) item { EmptyPanel(str(R.string.no_matches), Icons.Outlined.Search) }
+                    if (visible.isEmpty()) item { EmptyState(str(R.string.no_matches), icon = Icons.Outlined.Search) }
                     items(visible, key = { it.tag }) { (tag, name, localizedName) ->
                         ListItem(
                             headlineContent = { Text(name) },

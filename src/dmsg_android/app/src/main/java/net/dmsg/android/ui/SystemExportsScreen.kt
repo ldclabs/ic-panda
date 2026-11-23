@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import android.content.Intent
@@ -90,7 +91,7 @@ import net.dmsg.android.platform.*
             LazyColumn(Modifier.heightIn(max = 400.dp)) {
                 item { ReadFeedback(choices, { coordinator.browseFiles(parents.last()) }) }
                 if (parents.size > 1) item { TextButton(onClick = { parents = parents.dropLast(1); coordinator.browseFiles(parents.last()) }) { Text(str(R.string.text_parent_folder_3af9479)) } }
-                items(choices.valueOrNull()?.folders.orEmpty(), key = { "folder:" + it.id }) { folder -> AccountRow(folder.name) { parents = parents + folder.id; coordinator.browseFiles(folder.id) } }
+                items(choices.valueOrNull()?.folders.orEmpty(), key = { "folder:" + it.id }) { folder -> ListRow(folder.name) { parents = parents + folder.id; coordinator.browseFiles(folder.id) } }
                 items(choices.valueOrNull()?.files.orEmpty(), key = { it.id }) { file ->
                     val selected = chosenFiles.any { it.id == file.id }
                     SelectionRow(file.name, selected, subtitle = fileSize(file.size), enabled = selected || chosenFiles.size < 10 && file.size <= SystemExportStore.MAX_FILE.toULong() && chosenFiles.sumOf { it.size } + file.size <= 200uL * SystemExportStore.PART.toULong()) { coordinator.toggle(file) }

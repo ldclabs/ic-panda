@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -113,7 +114,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             ListItem(modifier = Modifier.clickable { client.navigation.push(Route("secret-share", job.id)) }, headlineContent = { Text(job.title) },
                 supportingContent = { Text(secretStateName(job.state) + " · " + fileSize(job.bytes)) }, leadingContent = { Icon(if (job.channel == null) Icons.Outlined.Link else Icons.Outlined.Forum, null) })
         }
-        if (read is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_snapshots_on_this_device_1710ceb)) }
+        if (read is ReadState.Empty) item { EmptyState(str(R.string.text_no_snapshots_on_this_device_1710ceb)) }
         item { TextButton(onClick = client.secretSharing::list) { Text(str(R.string.text_refresh_snapshots_9680f9d)) } }
     }
 }
@@ -245,7 +246,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
         item {
             WorkspaceSearchField(query.text, { picker.browse(VaultQuery(text = it)) }, str(R.string.text_search_vault_f6e42b2))
             ReadFeedback(read) { picker.browse() }
-            if (read is ReadState.Empty) EmptyPanel(str(if (query.text.isBlank()) R.string.autofill_no_items else R.string.text_no_matching_items_b35c7c3))
+            if (read is ReadState.Empty) EmptyState(str(if (query.text.isBlank()) R.string.autofill_no_items else R.string.text_no_matching_items_b35c7c3))
         }
         items(read.valueOrNull()?.items.orEmpty(), key = { it.id }) { item ->
             ListItem(modifier = Modifier.clickable(enabled = !item.reserved && !item.deleted && !item.conflict) { client.navigation.push(Route("secret-compose", item.id, channel = channel)) },

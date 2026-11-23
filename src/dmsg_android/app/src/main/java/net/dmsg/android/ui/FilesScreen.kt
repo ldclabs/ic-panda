@@ -1,5 +1,7 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
+import androidx.compose.ui.res.painterResource
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.numericExpression
@@ -46,7 +48,7 @@ import java.io.File
         if (file != null) {
             DetailCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TonalIcon(Icons.Outlined.Description, MaterialTheme.colorScheme.secondaryContainer)
+                    RowIcon(painterResource(R.drawable.glyph_file), MaterialTheme.colorScheme.secondaryContainer)
                     Column { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size) + " · " + fileState(file), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
@@ -57,12 +59,12 @@ import java.io.File
                 if (file.local) Button(onClick = { client.navigation.push(Route("file-preview", id = file.id, revision = file.version)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Visibility, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_verified_contents_49f2c13)) }
                 if (file.local) OutlinedButton(onClick = { confirmation = "share" }, enabled = !state.working("file:open:" + file.id), modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_a_verified_copy_fc77423)) }
                 else Notice(str(R.string.text_this_version_has_no_local_copy_restore_its_verified_cloud_backup_4068c35))
-                if (state.session?.accountKind != "local" && file.local && file.backup == null && file.version == current.file.version) OutlinedButton(onClick = { client.navigation.push(Route("file-backup", id = file.id, revision = file.version)) }, enabled = !state.working("file:backup:" + file.id), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_back_up_this_version_f74abb5)) }
+                if (state.session?.accountKind != "local" && file.local && file.backup == null && file.version == current.file.version) OutlinedButton(onClick = { client.navigation.push(Route("file-backup", id = file.id, revision = file.version)) }, enabled = !state.working("file:backup:" + file.id), modifier = Modifier.fillMaxWidth()) { Icon(painterResource(R.drawable.glyph_cloud_up), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_back_up_this_version_f74abb5)) }
                 if (state.session?.accountKind != "local" && !file.local && file.backup != null) OutlinedButton(onClick = {
                     client.fileWork.restore(file.backup!!.upload, file.folder)
-                }, enabled = !state.working("file:restore:" + file.id)) { Text(str(R.string.text_restore_to_this_device_802102f)) }
+                }, enabled = !state.working("file:restore:" + file.id)) { Icon(painterResource(R.drawable.glyph_cloud_down), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_restore_to_this_device_802102f)) }
                 if (state.session?.accountKind != "local" && file.local && file.backup != null) TextButton(onClick = { confirmation = "evict" }) { Text(str(R.string.text_free_local_space_89b2267)) }
-                if (state.session?.accountKind != "local" && (file.local || file.backup != null)) OutlinedButton(onClick = { client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version)) }, enabled = file.size <= 100uL * 1024u * 1024u, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
+                if (state.session?.accountKind != "local" && (file.local || file.backup != null)) OutlinedButton(onClick = { client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version)) }, enabled = file.size <= 100uL * 1024u * 1024u, modifier = Modifier.fillMaxWidth()) { Icon(painterResource(R.drawable.glyph_link), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TextButton(onClick = { rename = true }) { Text(str(R.string.text_rename_dd3a2f7)) }
                     TextButton(onClick = { moveError = null; move = true }) { Text(str(R.string.text_move_207d5fe)) }
@@ -80,7 +82,7 @@ import java.io.File
                 Text(if (backup.verified) str(R.string.text_all_chunks_read_back_and_verified_153e284) else str(R.string.text_backup_has_not_been_fully_read_back_30e3810), style = MaterialTheme.typography.bodySmall)
             }
             SectionTitle(str(R.string.text_versions_0ff2bdb))
-            SettingsGroup {
+            Section {
                 current.versions.reversed().forEach { version ->
                     RadioChoiceRow(messageTime(version.createdAt) + if (version.current) str(R.string.text_current_de083b6) else "", file.version == version.id,
                         subtitle = fileSize(version.size) + " · " + version.device) { selectedVersion = version.id }

@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
@@ -61,7 +62,7 @@ import net.dmsg.core.MessageItem
         str(R.string.text_search_messages_ee3eb59), actions = {
             TextButton(onClick = { client.channels.openSetup(true) }) { Text(str(R.string.text_join_5f4ca2d)) }
             IconButton(onClick = { client.channels.openSetup(false) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_channel_6ea7fcc)) }
-            IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_message_settings_1a28455)) }
+            IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
         }) { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = scroll,
             contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
@@ -120,9 +121,9 @@ import net.dmsg.core.MessageItem
                             TextButton(onClick = { client.messages.moreMatches(group, blocked) }, enabled = matches !is ReadState.Loading) { Text(str(R.string.text_load_earlier_messages_1e9b531)) }
                         }
                     }
-                    if (matchingChannels.isEmpty() && matches is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyPanel(str(R.string.no_matches)) }
+                    if (matchingChannels.isEmpty() && matches is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyState(str(R.string.no_matches)) }
                 }
-            } else if (listing is ReadState.Empty) item { EmptyPanel(str(R.string.no_conversations_yet), Icons.Outlined.Forum,
+            } else if (listing is ReadState.Empty) item { EmptyState(str(R.string.no_conversations_yet), glyph = R.drawable.glyph_channels, detail =
                 str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
         }
     }
@@ -289,7 +290,7 @@ import net.dmsg.core.MessageItem
             }
             if (currentTimeline != null && (timeline is ReadState.Ready || timeline is ReadState.Empty) && !currentTimeline.hasMore &&
                 blockedAccounts != null && (outgoing is ReadState.Ready || outgoing is ReadState.Empty) && rows.isEmpty() && pending.isEmpty()) {
-                item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_messages_yet_1d23127 else R.string.no_matches)) }
+                item { EmptyState(str(if (search.isBlank()) R.string.text_no_messages_yet_1d23127 else R.string.no_matches)) }
             }
         }
         HorizontalDivider()

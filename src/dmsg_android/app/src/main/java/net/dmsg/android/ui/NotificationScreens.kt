@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -125,9 +126,9 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
                             client.notifications.edit(global = value.global.copy(quiet = next))
                         }, minutes / 60, minutes % 60, android.text.format.DateFormat.is24HourFormat(context)).show()
                     }
-                    AccountRow(str(R.string.text_from_6fe638c) + minuteTime(quiet.start)) { pickTime(true) }
-                    AccountRow(str(R.string.text_until_186ebd7) + minuteTime(quiet.end)) { pickTime(false) }
-                    AccountRow(quiet.timezone) { client.navigation.push(Route("notification-timezone")) }
+                    ListRow(str(R.string.text_from_6fe638c) + minuteTime(quiet.start)) { pickTime(true) }
+                    ListRow(str(R.string.text_until_186ebd7) + minuteTime(quiet.end)) { pickTime(false) }
+                    ListRow(quiet.timezone) { client.navigation.push(Route("notification-timezone")) }
                     if (!quiet.valid) Notice(str(R.string.text_choose_different_start_and_end_times_4c03d76), true)
                     NoticeSwitch(str(R.string.text_allow_security_alerts_during_quiet_hours_fe394b7), value.global.securityException) { client.notifications.edit(global = value.global.copy(securityException = it)) }
                     Text(str(R.string.text_this_never_overrides_the_system_s_notification_controls_cab21e8), style = MaterialTheme.typography.bodySmall)
@@ -153,7 +154,7 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
                 }
             }
         }
-        item { AccountRow(str(R.string.text_reminders_e43c7b0)) { client.navigation.push(Route("reminders")) } }
+        item { ListRow(str(R.string.text_reminders_e43c7b0)) { client.navigation.push(Route("reminders")) } }
     }
     if (confirmingAccount) AlertDialog(onDismissRequest = { confirmingAccount = false }, title = { Text(str(R.string.text_enable_this_account_s_reminders_5429cc5)) }, text = {
         Text(str(R.string.text_this_is_a_separate_choice_for_this_account_when_remote_delivery_i_76004c5))
@@ -183,7 +184,7 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
         WorkspaceSearchField(query, { query = it }, str(R.string.text_search_time_zones_e44910f))
         LazyColumn {
             val visible = zones.filter { (id, city, region) -> listOf(id, city, region).any { it.contains(query.trim(), ignoreCase = true) } }
-            if (visible.isEmpty()) item { EmptyPanel(str(R.string.no_matches)) }
+            if (visible.isEmpty()) item { EmptyState(str(R.string.no_matches)) }
             items(visible, key = { it.first }) { (id, city, region) ->
                 ListItem(headlineContent = { Text(city) }, supportingContent = { Text(region + " · " + id) },
                     trailingContent = { if (current == id) Text(str(R.string.text_selected_fea261f)) },
@@ -231,11 +232,11 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
                 }
             }
         }
-        if (reminders is ReadState.Empty) item { EmptyPanel(if (recent) str(R.string.text_no_reminders_yet_13d6558) else str(R.string.text_nothing_needs_your_attention_e946421)) }
+        if (reminders is ReadState.Empty) item { EmptyState(if (recent) str(R.string.text_no_reminders_yet_13d6558) else str(R.string.text_nothing_needs_your_attention_e946421)) }
         if (reminders.valueOrNull()?.next != null) item { OutlinedButton(onClick = { client.notifications.list(true) }, enabled = reminders !is ReadState.Loading) { Text(str(R.string.text_load_more_4e1d9f8)) } }
         item {
             HorizontalDivider()
-            AccountRow(str(R.string.text_notification_preferences_d625ba4)) { client.navigation.push(Route("notifications")) }
+            ListRow(str(R.string.text_notification_preferences_d625ba4)) { client.navigation.push(Route("notifications")) }
             TextButton(onClick = { markAll = true }) { Text(str(R.string.text_mark_reminders_for_all_accounts_as_read_681d591)) }
             TextButton(onClick = { clearing = true }) { Text(str(R.string.text_clear_recent_history_d9e41d3)) }
         }

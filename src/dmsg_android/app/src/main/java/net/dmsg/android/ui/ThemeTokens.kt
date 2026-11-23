@@ -20,6 +20,9 @@ internal val DMsgShapes = Shapes(
     large = RoundedCornerShape(24.dp), extraLarge = RoundedCornerShape(28.dp),
 )
 
+/** Inner corners of rows inside a section; the section keeps the large outer corners. */
+internal val segmentShape = RoundedCornerShape(4.dp)
+
 private val ideographic = setOf("zh", "ja", "ko")
 
 /** M3 type scale on the system sans; Chinese, Japanese and Korean drop the Latin tracking, which only spaces ideographs apart. */

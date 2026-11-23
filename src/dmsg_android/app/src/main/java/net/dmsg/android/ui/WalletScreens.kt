@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.str
@@ -32,12 +33,12 @@ import net.dmsg.core.WalletChange
                 Column(Modifier.padding(18.dp)) { Text(value.name, style = MaterialTheme.typography.titleMedium); Text(value.id, style = MaterialTheme.typography.bodySmall) }
             }
         }
-        if (wallets is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_wallets_in_this_account_f1c61ea)) }
+        if (wallets is ReadState.Empty) item { EmptyState(str(R.string.text_no_wallets_in_this_account_f1c61ea), glyph = R.drawable.glyph_coins) }
         item {
             SectionTitle(str(R.string.text_join_an_existing_wallet_88a36c6))
             OutlinedTextField(wallet, { wallet = it }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_wallet_canister_id_a1a88b6)) }, singleLine = true)
             Button(onClick = { client.wallets.join(wallet) }, enabled = wallet.isNotBlank() && wallet.length <= 63 && !state.working("approval:request:wallet:join:" + wallet)) { Text(str(R.string.text_review_joining_wallet_e505988)) }
-            AccountRow(str(R.string.text_hardware_cosigners_dbe97a0)) { client.navigation.push(Route("wallet-cosigners")) }
+            ListRow(str(R.string.text_hardware_cosigners_dbe97a0)) { client.navigation.push(Route("wallet-cosigners")) }
         }
         item { SectionTitle(str(R.string.text_unconfirmed_proposals_a6e0a01)); ReadFeedback(pending, client.wallets::pending) }
         items(pending.valueOrNull().orEmpty(), key = { it.id }) { item ->
@@ -65,9 +66,9 @@ import net.dmsg.core.WalletChange
                 Text(value.name, style = MaterialTheme.typography.headlineSmall)
                 Text(if (value.frozen) str(R.string.text_frozen_427478b) else str(R.string.text_wallet_available_87d44fd), style = MaterialTheme.typography.labelLarge)
                 value.me?.let { LabelValue(str(R.string.text_your_role_2f39a6c), walletRole(it.role) + " · " + it.status) }
-                if (value.canPropose && !value.frozen) AccountRow(str(R.string.text_propose_transfer_275bacf)) { client.navigation.push(Route("wallet-transfer", wallet)) }
-                AccountRow(str(R.string.text_wallet_controls_8173ebf)) { client.navigation.push(Route("wallet-controls", wallet)) }
-                AccountRow(str(R.string.text_this_device_s_wallet_keys_41832c8)) { client.navigation.push(Route("wallet-keys", wallet)) }
+                if (value.canPropose && !value.frozen) ListRow(str(R.string.text_propose_transfer_275bacf)) { client.navigation.push(Route("wallet-transfer", wallet)) }
+                ListRow(str(R.string.text_wallet_controls_8173ebf)) { client.navigation.push(Route("wallet-controls", wallet)) }
+                ListRow(str(R.string.text_this_device_s_wallet_keys_41832c8)) { client.navigation.push(Route("wallet-keys", wallet)) }
                 SectionTitle(str(R.string.text_receiving_addresses_3fc4d1e))
                 value.addresses.filterNot { it.archived }.forEach { address ->
                     Text(address.label.ifBlank { address.chain }, style = MaterialTheme.typography.titleSmall)

@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -28,11 +29,11 @@ import net.dmsg.android.core.*
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text(str(R.string.text_the_new_device_asks_to_replace_an_administrator_the_old_device_re_4c92532))
-            AccountRow(str(R.string.text_review_a_replacement_request_2ef5a94)) { client.navigation.push(Route("handover-review")) }
+            ListRow(str(R.string.text_review_a_replacement_request_2ef5a94)) { client.navigation.push(Route("handover-review")) }
             ReadFeedback(listing, client.handovers::load)
             ReadFeedback(local, client.accountWorkspace::local)
             local.valueOrNull()?.let { LocalContentPanel(it) }
-            if (listing is ReadState.Empty) EmptyPanel(str(R.string.text_no_handovers_on_this_device_a165d2c))
+            if (listing is ReadState.Empty) EmptyState(str(R.string.text_no_handovers_on_this_device_a165d2c))
         }
         listing.valueOrNull().orEmpty().filter { id == null || it.id == id }.forEach { task ->
             item(key = task.id) {
@@ -60,7 +61,7 @@ import net.dmsg.android.core.*
                                 "native_addresses" -> {
                                     OutlinedButton(onClick = { client.handovers.run(task, step.name) }, enabled = fresh && !busy) { Text(str(R.string.text_check_native_addresses_6942295)) }
                                     client.handovers.addresses(task.id).forEach { address ->
-                                        AccountRow(address.wallet + " #" + address.from) { client.navigation.push(Route("wallet-native-move", address.wallet, sequence = address.from.toULong())) }
+                                        ListRow(address.wallet + " #" + address.from) { client.navigation.push(Route("wallet-native-move", address.wallet, sequence = address.from.toULong())) }
                                     }
                                     TextButton(onClick = { confirming = task to "native_addresses" }, enabled = fresh && !busy && results[task.id]?.get("addresses") is JsonArray) { Text(str(R.string.text_leave_native_addresses_behind_691ba11), color = MaterialTheme.colorScheme.error) }
                                 }
@@ -72,7 +73,7 @@ import net.dmsg.android.core.*
                         }
                     }
                     results[task.id]?.let { result ->
-                        (result["requests"] as? JsonArray)?.forEach { request -> AccountRow(str(R.string.text_review_pending_wallet_approval_9e99b62)) { client.approvals.open(request.objectValue().required("id")) } }
+                        (result["requests"] as? JsonArray)?.forEach { request -> ListRow(str(R.string.text_review_pending_wallet_approval_9e99b62)) { client.approvals.open(request.objectValue().required("id")) } }
                         if (result["rotations"] != null) Notice(str(R.string.text_some_wallets_still_need_their_own_approvals_check_those_wallets_t_4fa3689))
                     }
                     if (task.complete) Notice(str(R.string.text_handover_completed_keep_an_approval_key_and_cosigner_on_another_t_f404cb0))

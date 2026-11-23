@@ -1,5 +1,29 @@
 # Android implementation validation
 
+## Component kit and shared icons — 2026-11-23
+
+Shared components moved to `ui/kit/` and pages now compose them: sections with
+2 dp gaps and 4 dp inner corners, rows without chevrons, inline banners with
+actions at their end, centred empty states, skeleton rows for a first read, and
+Material filter and sort chips whose row fades at a scrolling edge.
+`scripts/ios/sync-icons.py` now generates all 35 business icons for Android as
+well as iOS and checks the Android vault type mapping against the desktop; the
+navigation bar, vault types, account rows, approvals, empty states and file
+actions use them. Overflow menus use ⋮. `UiConventionsTest` now also rejects row
+chevrons, the horizontal ellipsis and shared components defined outside the kit.
+
+`KitGalleryTest` rendered the kit in light, dark and Arabic right to left at
+200% text on the API 36 emulator; every visible click target was at least 48 dp,
+and the screenshots were reviewed. Chips grow with their text at 200%. Light and
+dark screenshots of the vault, Account and Files were compared with the previous
+build.
+
+The debug variant passed 137 JVM tests, and lint reported no errors and the same
+87 warnings as before. Of 140 QA device tests, 132 passed and 7 were skipped.
+`cloudInventoryAndVerificationProgressRemainDistinctFromCompletedTransfers`
+missed its progress label once while the host was swapping heavily; it passed
+both times it ran alone.
+
 ## Design system foundation — 2026-11-23
 
 Colour roles come from HCT tonal palettes seeded with the brand forest and gem

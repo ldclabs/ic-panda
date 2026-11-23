@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
@@ -31,14 +32,9 @@ fun vaultKindName(kind: String): String = when (kind) {
     "identity" -> str(R.string.text_identity_1cadaac); "server" -> str(R.string.text_server_9770cd5); "database" -> str(R.string.text_database_7bc9ec0)
     "license" -> str(R.string.text_software_license_12e336e); else -> str(R.string.text_note_9917199)
 }
-private fun kindIcon(kind: String): ImageVector = when (kind) {
-    "login" -> Icons.Outlined.Key; "api" -> Icons.Outlined.Code; "ssh" -> Icons.Outlined.Terminal
-    "wallet" -> Icons.Outlined.AccountBalanceWallet; "card" -> Icons.Outlined.CreditCard; "identity" -> Icons.Outlined.Badge
-    "server" -> Icons.Outlined.Dns; "database" -> Icons.Outlined.Storage; "license" -> Icons.Outlined.Verified
-    "key" -> Icons.Outlined.VpnKey; else -> Icons.Outlined.Description
-}
+
 @Composable internal fun SecretIcon(kind: String) {
-    BrowseIcon(kindIcon(kind))
+    BrowseIcon(vaultGlyph(kind))
 }
 
 @Composable fun VaultScreen(client: ClientController, select: (String) -> Unit) {
@@ -66,7 +62,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                 else {
                     IconButton(onClick = { client.vaultDrafts.open(null) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_item_9916f9f)) }
                     Box {
-                        IconButton(onClick = { tools = true }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_vault_tools_14fe2cc)) }
+                        IconButton(onClick = { tools = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_vault_tools_14fe2cc)) }
                         DropdownMenu(tools, { tools = false }) {
                             DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { tools = false; client.vault.toggleTrash() })
                             DropdownMenuItem(text = { Text(str(R.string.vault_backup_title)) }, onClick = { tools = false; client.navigation.open("vault-backup") })
@@ -128,8 +124,9 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                         })
                 }
                 if (read is ReadState.Empty) item {
-                    EmptyPanel(str(when { query.filtered -> R.string.text_no_matching_items_b35c7c3; query.trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.autofill_no_items }),
-                        when { query.trash -> Icons.Outlined.DeleteOutline; query.filtered -> Icons.Outlined.Search; else -> Icons.Outlined.Lock }) {
+                    EmptyState(str(when { query.filtered -> R.string.text_no_matching_items_b35c7c3; query.trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.autofill_no_items }),
+                        icon = when { query.trash -> Icons.Outlined.DeleteOutline; query.filtered -> Icons.Outlined.Search; else -> null },
+                        glyph = if (!query.trash && !query.filtered) R.drawable.glyph_vault else null) {
                         if (!query.trash && !query.filtered) TextButton(onClick = { client.navigation.open("vault-backup") }) { Text(str(R.string.vault_backup_import)) }
                         if (query.text.isNotEmpty()) {
                             TextButton(onClick = { changeQuery(query.copy(text = "")) }) { Text(str(R.string.text_clear_search_3f4dec6)) }

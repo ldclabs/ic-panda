@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -72,7 +73,7 @@ import net.dmsg.android.core.*
                 }
             }
         }
-        if (pairings is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_connected_browsers_9df2681)) }
+        if (pairings is ReadState.Empty) item { EmptyState(str(R.string.text_no_connected_browsers_9df2681), glyph = R.drawable.glyph_browser) }
     }
     grant?.let { choice ->
         AlertDialog(onDismissRequest = { grant = null }, title = { Text(str(R.string.text_connect_this_browser_8b0cd9a)) }, text = {

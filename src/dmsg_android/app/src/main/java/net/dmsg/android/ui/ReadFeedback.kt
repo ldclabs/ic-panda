@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -10,7 +11,9 @@ import net.dmsg.android.core.ReadState
 
 @Composable fun <T> ReadFeedback(state: ReadState<T>, retry: () -> Unit) {
     when (state) {
-        ReadState.Idle, is ReadState.Loading -> LinearProgressIndicator(Modifier.fillMaxWidth())
+        // The first read shows the shape of the content; a refresh keeps the content and a thin bar.
+        ReadState.Idle -> SkeletonRows()
+        is ReadState.Loading -> if (state.previous == null) SkeletonRows() else LinearProgressIndicator(Modifier.fillMaxWidth())
         is ReadState.Failed -> Notice(errorText(state.code), warning = true) {
             TextButton(onClick = retry, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_try_again_672e778)) }
         }

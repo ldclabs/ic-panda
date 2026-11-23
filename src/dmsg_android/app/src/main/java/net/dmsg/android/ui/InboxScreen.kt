@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.clickable
@@ -53,7 +54,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                 actions = {
                     IconButton(onClick = { editing = client.letters.create() }) { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
-                    IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_message_settings_1a28455)) }
+                    IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
                 }) {
                 Row(Modifier.padding(horizontal = pageMargin())) {
                     BrowseScopes(trailing = {
@@ -83,7 +84,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                             val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
                             items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.sender, row.text, messageTime(row.createdAt), !row.read) { client.navigation.push(Route("inbox", id = row.id)) } }
                             if (rows.isEmpty() && blocked.valueOrNull() != null && (incoming is ReadState.Ready || incoming is ReadState.Empty || incoming is ReadState.Stale)) item {
-                                EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches))
+                                EmptyState(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches), glyph = if (search.isBlank()) R.drawable.glyph_inbox else null)
                                 if (folder == LetterFolder.INBOX && search.isBlank()) OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
                             }
                             if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
@@ -92,7 +93,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                             item { ReadFeedback(history, { client.letters.refresh(false) }); Notice(str(R.string.text_sending_history_is_saved_on_this_device_older_records_may_not_con_b7b9992)) }
                             val rows = history.valueOrNull().orEmpty().filter { it.pending == (folder == LetterFolder.PENDING) && (search.isBlank() || it.recipient.contains(search, true) || it.text?.contains(search, true) == true) }
                             items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient, row.text ?: str(R.string.text_message_body_unavailable_6b03555), letterState(row.state) + " · " + messageTime(row.createdAt), false) { client.navigation.push(Route("inbox", id = row.id, field = "sent")) } }
-                            if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches)) }
+                            if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyState(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches), glyph = if (search.isBlank()) R.drawable.glyph_inbox else null) }
                             if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
                         }
                         LetterFolder.DRAFTS -> {
@@ -100,7 +101,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                             val rows = drafts.values.filter { it.text.isNotBlank() || it.recipient.isNotBlank() || !it.invitation.isNullOrBlank() }
                                 .filter { search.isBlank() || it.text.contains(search, true) || it.recipient.contains(search, true) }.sortedByDescending { it.updatedAt }
                             items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient.ifBlank { str(R.string.text_no_recipient_4b720be) }, row.text, str(R.string.text_draft_ce89527), false) { editing = row.id } }
-                            if (rows.isEmpty() && (saved is ReadState.Ready || saved is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_drafts_46c70ab else R.string.no_matches)) }
+                            if (rows.isEmpty() && (saved is ReadState.Ready || saved is ReadState.Empty)) item { EmptyState(str(if (search.isBlank()) R.string.text_no_drafts_46c70ab else R.string.no_matches)) }
                             if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
                         }
                     }
@@ -137,7 +138,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
             val source = if (sent == null) incoming else history
             ReadFeedback(source) { client.letters.refresh() }
             if ((sent != null || blocked.valueOrNull() != null) && (source is ReadState.Ready || source is ReadState.Empty || source is ReadState.Stale)) {
-                EmptyPanel(str(R.string.text_message_body_unavailable_6b03555))
+                EmptyState(str(R.string.text_message_body_unavailable_6b03555))
             }
         }
     }

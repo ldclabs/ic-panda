@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -31,12 +32,12 @@ import net.dmsg.android.BuildConfig
             Text(str(R.string.text_a_product_of_icpanda_dao_44dd8fa), style = MaterialTheme.typography.bodySmall)
             Text(str(R.string.text_dao_proposals_can_upgrade_on_chain_code_app_and_cloud_service_rel_24439eb), style = MaterialTheme.typography.bodySmall)
         }
-        SettingsGroup {
-            AccountRow(str(R.string.text_privacy_policy_d216307), click = privacy)
-            AccountRow(str(R.string.text_terms_of_service_01b68b7)) { browser("https://dmsg.net/_/terms") }
-            AccountRow(str(R.string.text_contact_support_70c3b08)) { browser("https://dmsg.net/_/support") }
-            AccountRow(str(R.string.text_website_ad80f52)) { browser("https://dmsg.net/") }
-            AccountRow(str(R.string.text_dao_governance_8b8d8f9)) { browser("https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai") }
+        Section {
+            ListRow(str(R.string.text_privacy_policy_d216307), onClick = privacy)
+            ListRow(str(R.string.text_terms_of_service_01b68b7)) { browser("https://dmsg.net/_/terms") }
+            ListRow(str(R.string.text_contact_support_70c3b08)) { browser("https://dmsg.net/_/support") }
+            ListRow(str(R.string.text_website_ad80f52)) { browser("https://dmsg.net/") }
+            ListRow(str(R.string.text_dao_governance_8b8d8f9)) { browser("https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai") }
         }
     }
 }

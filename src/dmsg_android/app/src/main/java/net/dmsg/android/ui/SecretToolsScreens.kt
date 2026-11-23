@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.approvalTitle
@@ -39,7 +40,7 @@ import net.dmsg.android.core.*
                     } }, leadingContent = { Icon(Icons.Outlined.AttachFile, null) })
             }
         }
-        if (listing != null && listing.files.isEmpty()) item { EmptyPanel(str(R.string.text_no_item_attachments_343bf1e)) }
+        if (listing != null && listing.files.isEmpty()) item { EmptyState(str(R.string.text_no_item_attachments_343bf1e)) }
     }
 }
 
@@ -196,7 +197,7 @@ import net.dmsg.android.core.*
                 }
             } }
         }
-        if (read is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_activity_on_this_device_b992006)) }
+        if (read is ReadState.Empty) item { EmptyState(str(R.string.text_no_activity_on_this_device_b992006), glyph = R.drawable.glyph_audit) }
         if (page?.next != null) item { TextButton(onClick = { client.secretTools.activity(more = true) }, enabled = !state.working("secret:activity")) { Text(str(R.string.text_load_earlier_activity_ef7d280)) } }
         item { TextButton(onClick = { client.secretTools.activity() }) { Text(str(R.string.text_refresh_activity_10e1e16)) } }
     }

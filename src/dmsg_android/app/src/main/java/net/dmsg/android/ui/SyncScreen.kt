@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -22,7 +23,7 @@ import net.dmsg.android.core.*
     var automatic by remember { mutableStateOf(client.synchronization.automatic) }
     LaunchedEffect(session.epoch, status?.lastSuccessAtMs) { client.accountWorkspace.local() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsGroup {
+        Section {
             SettingToggle(str(R.string.text_automatic_synchronization_dde4f07), automatic,
                 { automatic = it; client.automaticSync(it) }, description = str(R.string.text_while_dmsg_is_open_and_unlocked_99d4594))
         }
@@ -45,9 +46,9 @@ import net.dmsg.android.core.*
         }
         ReadFeedback(local, client.accountWorkspace::local)
         local.valueOrNull()?.let { LocalContentPanel(it) { client.navigation.push(Route("file-unbacked")) } }
-        SettingsGroup {
-            AccountRow(str(R.string.text_cloud_backups_ab4daf1)) { client.navigation.push(Route("cloud-files")) }
-            AccountRow(str(R.string.text_version_conflicts_0df1b3c)) { client.navigation.push(Route("conflicts")) }
+        Section {
+            ListRow(str(R.string.text_cloud_backups_ab4daf1)) { client.navigation.push(Route("cloud-files")) }
+            ListRow(str(R.string.text_version_conflicts_0df1b3c)) { client.navigation.push(Route("conflicts")) }
         }
         Notice(str(R.string.text_account_synchronization_does_not_automatically_back_up_local_file_422bc19))
     }

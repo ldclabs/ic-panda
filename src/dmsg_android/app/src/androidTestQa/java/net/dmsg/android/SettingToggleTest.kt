@@ -1,5 +1,6 @@
 package net.dmsg.android
 
+import net.dmsg.android.ui.kit.*
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,7 +12,6 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import net.dmsg.android.ui.DMsgTheme
-import net.dmsg.android.ui.SettingToggle
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

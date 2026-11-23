@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -29,7 +30,7 @@ import net.dmsg.android.core.*
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Notice(str(R.string.text_deleting_this_service_account_permanently_removes_its_cloud_ciphe_77889e6), true)
             Text(str(R.string.text_account_deletion_does_not_cancel_a_subscription_purchased_through_6e817fb), style = MaterialTheme.typography.bodySmall)
-            AccountRow(str(R.string.text_membership_and_subscription_source_58d228f)) { client.navigation.push(Route("membership")) }
+            ListRow(str(R.string.text_membership_and_subscription_source_58d228f)) { client.navigation.push(Route("membership")) }
             ReadFeedback(status, client.accountDeletion::load)
             failure?.let { Notice(errorText(it), true) }
             if (job != null) {
@@ -43,22 +44,22 @@ import net.dmsg.android.core.*
                 job.requestedAt?.let { LabelValue(str(R.string.text_requested_at_878a0ba), displayTime(it)) }
                 job.lastError?.let { Notice(errorText(it), true) }
                 OutlinedButton(onClick = client.accountDeletion::load, enabled = !working) { Text(str(R.string.text_check_deletion_status_32d09ee)) }
-                if (job.state == "deleted") AccountRow(str(R.string.text_remove_this_account_s_local_data_a2189f8)) { client.navigation.push(Route("account-remove")) }
+                if (job.state == "deleted") ListRow(str(R.string.text_remove_this_account_s_local_data_a2189f8)) { client.navigation.push(Route("account-remove")) }
             } else {
                 ReadFeedback(preview, client.accountDeletion::load)
                 preview.valueOrNull()?.let { review ->
                     SelectionContainer { Text(review.account) }
                     if (review.pendingSync > 0u) Notice(str(R.string.text_this_device_has_unsynced_changes_save_anything_you_need_before_de_eaddda5))
                     LabelValue(str(R.string.text_changes_waiting_to_sync_344814b), review.pendingSync.toString())
-                    if (review.pendingOperation) AccountRow(str(R.string.text_resolve_the_pending_account_operation_92a2f53)) { client.navigation.push(Route("approvals")) }
+                    if (review.pendingOperation) ListRow(str(R.string.text_resolve_the_pending_account_operation_92a2f53)) { client.navigation.push(Route("approvals")) }
                     if (review.channels.isNotEmpty()) {
                         SectionTitle(str(R.string.text_transfer_or_archive_owned_conversations_first_eb26d5f))
-                        review.channels.forEach { channel -> AccountRow(channel.name) { client.navigation.push(Route("channel-settings", channel = channel.id)) } }
+                        review.channels.forEach { channel -> ListRow(channel.name) { client.navigation.push(Route("channel-settings", channel = channel.id)) } }
                     }
                     if (review.requiresWalletReview) {
                         SectionTitle(str(R.string.text_wallet_and_external_credential_access_7351124))
                         if (!review.walletsAvailable) Notice(str(R.string.text_wallet_access_could_not_be_checked_verify_it_independently_before_9b16c58))
-                        review.wallets.forEach { wallet -> AccountRow(wallet.name) { client.navigation.push(Route("wallet", wallet.id)) } }
+                        review.wallets.forEach { wallet -> ListRow(wallet.name) { client.navigation.push(Route("wallet", wallet.id)) } }
                         Text(str(R.string.text_deletion_does_not_transfer_funds_removing_keys_or_cloud_copies_ca_548d61b))
                         NoticeSwitch(str(R.string.text_i_have_secured_wallet_access_and_external_credentials_6899552), draft.walletsReviewed, !working) { client.accountDeletion.edit(draft.copy(walletsReviewed = it)) }
                     }
@@ -67,7 +68,7 @@ import net.dmsg.android.core.*
                     OutlinedTextField(draft.confirmation, { client.accountDeletion.edit(draft.copy(confirmation = it)) }, Modifier.fillMaxWidth().revealFocusedInput().testTag("deletion-confirmation"), label = { Text(str(R.string.text_type_this_account_id_to_confirm_303e2ed)) }, singleLine = true, enabled = !working)
                 }
             }
-            AccountRow(str(R.string.text_privacy_policy_d216307)) { client.navigation.push(Route("privacy")) }
+            ListRow(str(R.string.text_privacy_policy_d216307)) { client.navigation.push(Route("privacy")) }
         }
         if (job == null) Surface {
             Button(onClick = { confirming = true }, enabled = client.accountDeletion.ready() && !working, modifier = Modifier.fillMaxWidth().padding(pagePadding()), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_request_account_deletion_b443c94)) }

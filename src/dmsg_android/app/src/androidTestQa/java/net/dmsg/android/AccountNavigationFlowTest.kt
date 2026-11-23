@@ -107,7 +107,7 @@ class AccountNavigationFlowTest {
     }
 
     private fun row(resource: Int): SemanticsNodeInteraction =
-        compose.revealAccountRow(compose.onNode(hasText(str(resource)) and hasClickAction())).assertIsDisplayed()
+        compose.revealListRow(compose.onNode(hasText(str(resource)) and hasClickAction())).assertIsDisplayed()
 
     private fun back() = compose.onNodeWithContentDescription(str(R.string.text_back_5db5cac)).performClick()
 
@@ -127,7 +127,7 @@ class AccountNavigationFlowTest {
 
 
 /** performScrollTo uses the list bounds. A sighted user scrolls past the floating tab hit targets before tapping a row. */
-internal fun ComposeContentTestRule.revealAccountRow(row: SemanticsNodeInteraction): SemanticsNodeInteraction {
+internal fun ComposeContentTestRule.revealListRow(row: SemanticsNodeInteraction): SemanticsNodeInteraction {
     row.performScrollTo()
     val bar = onAllNodesWithTag("workspace-navigation").fetchSemanticsNodes().singleOrNull() ?: return row
     val overlap = row.fetchSemanticsNode().boundsInRoot.bottom - bar.boundsInRoot.top

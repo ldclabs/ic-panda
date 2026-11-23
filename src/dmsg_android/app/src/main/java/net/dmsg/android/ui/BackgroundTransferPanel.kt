@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.CipherPhase
 import net.dmsg.android.platform.str
@@ -30,7 +31,7 @@ import net.dmsg.android.core.*
             Text(str(R.string.text_background_encrypted_transfer_d77c9cc), style = MaterialTheme.typography.titleMedium)
             if (job.plan.account != state.session?.account) {
                 Notice(str(R.string.text_this_device_has_a_transfer_for_another_account_switch_to_that_acc_061f573))
-                AccountRow(str(R.string.text_switch_account_52f71df)) { client.navigation.push(Route("accounts")) }
+                ListRow(str(R.string.text_switch_account_52f71df)) { client.navigation.push(Route("accounts")) }
             } else {
                 Text(if (job.plan.method == "PUT") str(R.string.text_encrypted_backup_upload_5b29d9b) else str(R.string.text_encrypted_backup_download_9382fee))
                 LinearProgressIndicator(progress = { if (job.plan.parts.isEmpty()) 1f else job.completed.size.toFloat() / job.plan.parts.size }, modifier = Modifier.fillMaxWidth())

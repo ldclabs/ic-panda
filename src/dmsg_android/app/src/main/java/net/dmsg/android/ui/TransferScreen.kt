@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.CipherPhase
 import net.dmsg.android.platform.str
@@ -81,7 +82,7 @@ import net.dmsg.android.core.*
                 HorizontalDivider()
             }
         }
-        if (tasks.isEmpty() && attachments.values.none { it.saving || it.error != null } && durable is ReadState.Empty && background is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_pending_transfers_e636c2e)) }
+        if (tasks.isEmpty() && attachments.values.none { it.saving || it.error != null } && durable is ReadState.Empty && background is ReadState.Empty) item { EmptyState(str(R.string.text_no_pending_transfers_e636c2e)) }
     }
 }
 

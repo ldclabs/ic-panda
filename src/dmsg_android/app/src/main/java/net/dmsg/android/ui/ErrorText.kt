@@ -1,44 +1,9 @@
 package net.dmsg.android.ui
 
 import android.app.KeyguardManager
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import net.dmsg.android.R
 import net.dmsg.android.platform.AppLanguage
 import net.dmsg.android.platform.str
-
-@Composable fun Notice(text: String, warning: Boolean = false, action: (@Composable () -> Unit)? = null) {
-    val colors = MaterialTheme.colorScheme
-    val ink = if (warning) colors.onErrorContainer else colors.onSecondaryContainer
-    Column(Modifier.fillMaxWidth().background(if (warning) colors.errorContainer else colors.secondaryContainer, MaterialTheme.shapes.medium)
-        .padding(horizontal = 14.dp, vertical = 12.dp)) {
-        Row(Modifier.semantics(mergeDescendants = true) { if (warning) liveRegion = LiveRegionMode.Polite },
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(if (warning) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, Modifier.size(20.dp), tint = ink)
-            Text(text, style = MaterialTheme.typography.bodyMedium, color = ink)
-        }
-        action?.invoke()
-    }
-}
-
-@Composable fun SectionTitle(text: String) {
-    Text(text, Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp).semantics { heading() },
-        style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-}
 
 fun errorText(code: String): String = when (code) {
     "OPERATION_FAILED" -> str(R.string.operation_failed_retry)

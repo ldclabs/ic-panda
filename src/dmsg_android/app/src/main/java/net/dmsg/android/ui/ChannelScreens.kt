@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -121,7 +122,7 @@ import net.dmsg.android.core.*
     val hidden by client.channels.hidden.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { client.channels.browseHidden() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
-        item { ReadFeedback(hidden, client.channels::browseHidden); if (hidden is ReadState.Empty) EmptyPanel(str(R.string.text_no_hidden_conversations_1471673)) }
+        item { ReadFeedback(hidden, client.channels::browseHidden); if (hidden is ReadState.Empty) EmptyState(str(R.string.text_no_hidden_conversations_1471673)) }
         items(hidden.valueOrNull().orEmpty(), key = { it.id }) { channel -> ListItem(headlineContent = { Text(channel.name) }, supportingContent = { Text(channelType(channel.kind)) }, trailingContent = {
             TextButton(onClick = { client.channels.hide(channel.id, false) }) { Text(str(R.string.text_show_again_1409301)) }
         }) }
@@ -163,7 +164,7 @@ import net.dmsg.android.core.*
             } else if (form.invitation.isNotEmpty()) Notice(str(R.string.text_the_invitation_is_invalid_0374805), true)
         } else {
             OutlinedTextField(form.name, { client.channels.editSetup(form.copy(name = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_conversation_name_428c56e)) }, enabled = !working && form.request == null, singleLine = true, isError = form.name.isNotEmpty() && !validChannelName(form.name))
-            SettingsGroup {
+            Section {
                 listOf("direct" to R.string.text_a_conversation_for_two_accounts_7ba9e18,
                     "collaboration" to R.string.text_every_member_can_send_messages_020f52c,
                     "distribution" to R.string.text_only_the_owner_administrators_and_publishers_can_send_messages_6811c29).forEach { (kind, description) ->
@@ -235,7 +236,7 @@ import net.dmsg.android.core.*
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
         item { ParticipantIdentity(client, account, true); ReadFeedback(channels, client.messages::browse) }
         items(channels.valueOrNull().orEmpty().filter { it.canInvite }, key = { it.id }) { channel ->
-            AccountRow(channel.name) { client.channels.editInvite(channel.id, ChannelInvite(account)); client.navigation.push(Route("channel-invite", channel = channel.id)) }
+            ListRow(channel.name) { client.channels.editInvite(channel.id, ChannelInvite(account)); client.navigation.push(Route("channel-invite", channel = channel.id)) }
         }
         item { Button(onClick = { client.channels.openSetup(false, invitee = account) }) { Text(str(R.string.text_new_conversation_8687862)) } }
     }

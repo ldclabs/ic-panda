@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
@@ -90,7 +91,7 @@ import net.dmsg.android.core.*
                     leadingContent = { Icon(if (link.password) Icons.Outlined.Lock else Icons.Outlined.Link, null) },
                     supportingContent = { Text(fileLinkState(link.state) + " · " + str(R.string.text_downloads_35a65b7) + localizedNumber(link.downloads)) })
             }
-            if (snapshots && links.valueOrNull() != null && rows.isEmpty()) item { EmptyPanel(str(R.string.no_matches)) }
+            if (snapshots && links.valueOrNull() != null && rows.isEmpty()) item { EmptyState(str(R.string.no_matches)) }
             if (!snapshots && links.valueOrNull() != null && rows.isEmpty() && intents.valueOrNull().orEmpty().none { it.stage != "complete" }) item { Notice(str(R.string.text_choose_share_by_link_on_a_file_or_cloud_backup_secret_snapshots_a_e246762)) }
         } else if (current != null) item { FileLinkDetails(client, current) }
         else if (links !is ReadState.Loading) item { Notice(str(R.string.text_this_link_is_not_available_in_the_current_account_s_saved_list_fab3a8d)) }
@@ -109,7 +110,7 @@ import net.dmsg.android.core.*
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(intents, client.fileLinks::loadIntents)
         if (job == null && (intents is ReadState.Ready || intents is ReadState.Empty)) {
-            EmptyPanel(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), Icons.Outlined.LinkOff) {
+            EmptyState(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), icon = Icons.Outlined.LinkOff) {
                 TextButton(onClick = client.fileLinks::loadIntents) { Text(str(R.string.text_refresh_cba212b)) }
             }
         }

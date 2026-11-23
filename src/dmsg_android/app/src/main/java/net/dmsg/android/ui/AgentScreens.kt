@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -33,16 +34,16 @@ import net.dmsg.android.platform.numericExpression
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Notice(str(R.string.text_manage_agent_identities_and_permissions_here_android_does_not_run_2cd2699))
-            AccountRow(str(R.string.text_controllers_and_delegations_8ce7d82)) { client.navigation.push(Route("agent-delegations")) }
+            ListRow(str(R.string.text_controllers_and_delegations_8ce7d82)) { client.navigation.push(Route("agent-delegations")) }
             ReadFeedback(listing, client.agents::load)
             if (quota is ReadState.Ready) quota.valueOrNull()?.let {
                 LabelValue(str(R.string.hosted_agent_ids), numericExpression(localizedNumber(it.used) + " / " + (it.limit?.let(::localizedNumber) ?: "—")))
             }
-            if (listing is ReadState.Empty) EmptyPanel(str(R.string.text_no_agents_f2fe175))
+            if (listing is ReadState.Empty) EmptyState(str(R.string.text_no_agents_f2fe175), glyph = R.drawable.glyph_agents)
             listing.valueOrNull().orEmpty().forEach { agent ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AccountRow(agent.label) { client.navigation.push(Route("agent", agent.id)) }
+                        ListRow(agent.label) { client.navigation.push(Route("agent", agent.id)) }
                         Text(if (agent.paused) str(R.string.text_paused_cf54b60) else str(R.string.text_enabled_b62610f), style = MaterialTheme.typography.labelMedium)
                         SelectionContainer { Text(agent.id, style = MaterialTheme.typography.bodySmall) }
                     }
@@ -101,7 +102,7 @@ import net.dmsg.android.platform.numericExpression
                 AgentPermissionPicker(client, id, draft)
                 AgentDaysField(draft.days) { client.agents.editPermissions(id, draft.copy(days = it)) }
                 TextButton(onClick = { removing = true }, enabled = fresh && !busy) { Text(str(R.string.text_remove_this_local_agent_27c101c), color = MaterialTheme.colorScheme.error) }
-            } else if (listing is ReadState.Ready || listing is ReadState.Empty) EmptyPanel(str(R.string.text_this_local_agent_was_removed_e18a5d0))
+            } else if (listing is ReadState.Ready || listing is ReadState.Empty) EmptyState(str(R.string.text_this_local_agent_was_removed_e18a5d0))
         }
         Surface {
             Button(onClick = { focus.clearFocus(); agent?.let(client.agents::requestPermissions) }, enabled = agent != null && fresh && draft.valid && !busy && !state.working("approval:request:agent:permissions:" + id),
@@ -246,8 +247,8 @@ internal fun permissionDescription(value: String): String {
                     } }
                 }
                 Text(str(R.string.text_retiring_a_controller_does_not_retrieve_copied_private_keys_or_cr_5018e54), style = MaterialTheme.typography.bodySmall)
-                if (manages && fresh) AccountRow(str(R.string.text_new_controller_4d1faa5)) { client.navigation.push(Route("agent-controller")) }
-                if (manages && fresh && record.published) AccountRow(str(R.string.text_grant_delegation_ab521bf)) { client.navigation.push(Route("agent-grant")) }
+                if (manages && fresh) ListRow(str(R.string.text_new_controller_4d1faa5)) { client.navigation.push(Route("agent-controller")) }
+                if (manages && fresh && record.published) ListRow(str(R.string.text_grant_delegation_ab521bf)) { client.navigation.push(Route("agent-grant")) }
                 SectionTitle(str(R.string.text_issued_credentials_0417e9e))
                 ReadFeedback(credentials, client.agents::loadCredentials)
                 if (credentials is ReadState.Empty) Text(str(R.string.text_no_credentials_f01d2bc))

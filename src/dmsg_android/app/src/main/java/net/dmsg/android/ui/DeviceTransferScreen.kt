@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
@@ -67,7 +68,7 @@ import net.dmsg.android.core.*
             }
             pending?.let { request ->
                 Notice(str(R.string.text_the_export_is_waiting_for_your_approval_after_approval_return_her_317b84d))
-                AccountRow(str(R.string.text_review_export_approval_b30cfe8)) { client.deviceTransfers.openApproval() }
+                ListRow(str(R.string.text_review_export_approval_b30cfe8)) { client.deviceTransfers.openApproval() }
                 OutlinedButton(onClick = client.deviceTransfers::sendApproved, enabled = !busy) { Text(str(R.string.text_send_approved_library_d949500)) }
                 TransferIdentity(str(R.string.text_approval_id_46a3c7c), request.approval.id)
             }

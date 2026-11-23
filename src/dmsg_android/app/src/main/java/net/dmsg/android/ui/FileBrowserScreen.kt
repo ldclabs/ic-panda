@@ -1,5 +1,7 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
+import androidx.compose.ui.res.painterResource
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
@@ -101,9 +103,10 @@ import net.dmsg.android.core.*
             str(R.string.text_search_files_notes_and_tags_9013c74), actions = {
                 if (!trash) FileIntakeButton(client, folder = folder)
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_more_file_actions_65e84ee)) }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
                         if (canBrowseUnbacked) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
+                            leadingIcon = { Icon(painterResource(R.drawable.glyph_cloud_off), null) },
                             trailingIcon = { local.valueOrNull()?.let { Text(localizedNumber(it.unbacked)) } },
                             onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
                         if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
@@ -165,8 +168,7 @@ import net.dmsg.android.core.*
                     val file = filesById[entry.id]
                     BrowseRow(entry.name, Modifier.semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
                         .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
-                            onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }),
-                        chevron = false, supporting = {
+                            onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }), supporting = {
                             if (preferences.query.isNotBlank() || file != null) Column {
                                 if (preferences.query.isNotBlank()) {
                                     val path = file?.path ?: folderMap[entry.id]?.path.orEmpty()
@@ -178,7 +180,7 @@ import net.dmsg.android.core.*
                         leading = { if (selection.isNotEmpty()) Checkbox(entry.id in selection, onCheckedChange = null) else if (file != null) FileThumbnail(client, file) else BrowseIcon(Icons.Outlined.Folder) },
                         trailing = {
                             if (file?.starred == true) Icon(Icons.Outlined.Star, str(R.string.text_favorite_898f4c6), Modifier.size(16.dp))
-                            IconButton(onClick = { target = entry }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_actions_for_342986f) + entry.name) }
+                            IconButton(onClick = { target = entry }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_actions_for_342986f) + entry.name) }
                         })
                 }
                 if (all.size > preferences.limit) item { TextButton(onClick = { update(preferences.copy(limit = preferences.limit + 100)) }) { Text(str(R.string.text_show_more_items_688023e)) } }
@@ -186,8 +188,9 @@ import net.dmsg.android.core.*
                 val privacy = str(if (state.session?.accountKind == "local") R.string.saved_on_device else R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b)
                 if (empty) item {
                     val filtered = preferences.query.isNotBlank() || preferences.favorites
-                    EmptyPanel(str(when { filtered -> R.string.text_no_matching_files_2fc3030; trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.empty_folder }),
-                        when { filtered -> Icons.Outlined.Search; trash -> Icons.Outlined.DeleteOutline; else -> Icons.Outlined.FolderOpen },
+                    EmptyState(str(when { filtered -> R.string.text_no_matching_files_2fc3030; trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.empty_folder }),
+                        icon = when { filtered -> Icons.Outlined.Search; trash -> Icons.Outlined.DeleteOutline; else -> null },
+                        glyph = if (!filtered && !trash) R.drawable.glyph_folder else null,
                         detail = if (!filtered && !trash) privacy else null,
                         action = if (filtered) ({ TextButton(onClick = { update(preferences.copy(query = "", favorites = false, limit = 100)) }) { Text(str(R.string.text_clear_filters_5ea61be)) } }) else null)
                 }

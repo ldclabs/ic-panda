@@ -1,5 +1,7 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
+import net.dmsg.android.R
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
@@ -26,5 +28,5 @@ import net.dmsg.android.platform.BoundedImages
     }
     DisposableEffect(operation) { onDispose { client.cancelOperation(operation); bitmap = null } }
     if (bitmap != null) Image(bitmap!!.asImageBitmap(), null, Modifier.size(36.dp).clip(MaterialTheme.shapes.small), contentScale = ContentScale.Crop)
-    else BrowseIcon(if (file.mime.startsWith("image/")) Icons.Outlined.Image else Icons.Outlined.Description)
+    else BrowseIcon(if (file.mime.startsWith("image/")) R.drawable.glyph_image else R.drawable.glyph_file)
 }
