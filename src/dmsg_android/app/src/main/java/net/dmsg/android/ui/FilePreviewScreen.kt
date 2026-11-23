@@ -7,7 +7,6 @@ import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -33,11 +32,11 @@ import net.dmsg.android.core.*
     val pickers = LocalFilePickers.current
     LaunchedEffect(id, version, state.epoch) { client.filePreview.open(id, version) }
     DisposableEffect(id, version) { onDispose { client.filePreview.clear() } }
-    ScreenBar(content?.file?.name)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(preview, { client.filePreview.open(id, version) })
         content?.let { value ->
             DetailCard {
+                Text(value.file.name, style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RowIcon(Icons.Outlined.VerifiedUser)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -50,7 +49,8 @@ import net.dmsg.android.core.*
                 "text" -> {
                     if (value.truncated) Notice(str(R.string.text_showing_the_first_128_kib_the_complete_file_was_verified_export_t_fec615a))
                     DetailCard {
-                        SelectionContainer { Text(value.text.orEmpty(), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyLarge) }
+                        // Copy decrypted contents through the private clipboard action below.
+                        Text(value.text.orEmpty(), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyLarge)
                     }
                     OutlinedButton(onClick = { client.clipboard.copy(value.text.orEmpty()) }, enabled = !value.text.isNullOrEmpty(), modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_displayed_text_1254da5))

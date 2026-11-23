@@ -219,7 +219,7 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     val saved by client.profile.saved.state.collectAsStateWithLifecycle()
     val publication by client.profile.publication.state.collectAsStateWithLifecycle()
-    val form by client.profile.form.collectAsStateWithLifecycle()
+    val form = client.profile.form.collectAsStateWithLifecycle().value
     val image by client.profile.bitmap.collectAsStateWithLifecycle()
     val conflict by client.profile.conflict.collectAsStateWithLifecycle()
     val failure by client.profile.error.collectAsStateWithLifecycle()
@@ -241,9 +241,9 @@ import net.dmsg.android.core.*
                 !form.valid -> str(R.string.text_check_field_lengths_and_use_named_https_links_a6e7f91) to true
                 devices.valueOrNull()?.canManage == false -> str(R.string.text_an_administrator_device_is_required_to_publish_this_profile_3a6fada) to false
                 pending -> str(R.string.text_the_original_profile_is_saved_or_awaiting_confirmation_directory_fb8bd6f) to false
-                else -> str(R.string.text_this_profile_is_public_only_publish_details_you_want_others_to_se_6415611) to false
+                else -> null
             }
-            Notice(banner.first, banner.second)
+            banner?.let { (message, warning) -> Notice(message, warning) }
             if (conflict) {
                 DetailCard {
                     saved.valueOrNull()?.let {
@@ -269,6 +269,8 @@ import net.dmsg.android.core.*
                 }
             }
             DetailCard {
+                Text(str(R.string.text_this_profile_is_public_only_publish_details_you_want_others_to_se_6415611),
+                    style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(form.name, { client.profile.edit(form.copy(name = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_name_dd4dc4c)) }, singleLine = true, enabled = editable, supportingText = { Text(localizedNumber(form.name.codePointCount(0, form.name.length)) + " / " + localizedNumber(80)) })
                 OutlinedTextField(form.about, { client.profile.edit(form.copy(about = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_about_1816eae)) }, minLines = 3, enabled = editable, supportingText = { Text(localizedNumber(form.about.codePointCount(0, form.about.length)) + " / " + localizedNumber(2000)) })
             }
@@ -305,7 +307,7 @@ import net.dmsg.android.core.*
             ReadFeedback(devices, client.account::devices)
             ReadFeedback(publication, client.profile::status)
         }
-        val canPublish = !working && (pending || (form to publication to conflict to devices to saved).let { client.profile.ready() })
+        val canPublish = !working && (pending || client.profile.ready())
         BottomActionBar {
             Button(
                 onClick = { if (pending) client.profile.retryPublication() else confirming = true },

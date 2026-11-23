@@ -45,7 +45,7 @@ import net.dmsg.android.core.*
         }
     }
     if (selected.isNotEmpty()) {
-        ScreenBar(current?.name ?: str(R.string.text_encrypted_backup_2ad5848)) { refresh() }
+        ScreenBar(str(R.string.text_encrypted_backup_2ad5848)) { refresh() }
     }
     val content: @Composable (Boolean) -> Unit = { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = if (selected.isEmpty()) workspaceListState(client.navigation, "cloud-files:list") else rememberLazyListState(),
@@ -98,7 +98,8 @@ import net.dmsg.android.core.*
                             RowIcon(painterResource(if (current.needsRoot) R.drawable.glyph_key else R.drawable.glyph_sync),
                                 MaterialTheme.colorScheme.secondaryContainer)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(statusText, style = MaterialTheme.typography.titleMedium)
+                                current.name?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                                Text(statusText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 current.size?.let { size ->
                                     Text(fileSize(size), style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -129,7 +130,7 @@ import net.dmsg.android.core.*
                             else -> {
                                 Section {
                                     ListRow(str(R.string.text_restore_destination_431edf6), icon = Icons.Outlined.Folder,
-                                        value = destination.folderLabel) { choosing = true }
+                                        supporting = destination.folderLabel) { choosing = true }
                                 }
                                 Button(onClick = { client.fileWork.restore(current.id, folder) },
                                     enabled = !state.working("file:restore:${current.id}"), modifier = Modifier.fillMaxWidth()) {
@@ -203,10 +204,11 @@ import net.dmsg.android.core.*
         LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { ReadFeedback(state, client.cloudFiles::listUnbacked) }
             if (state is ReadState.Empty) item { EmptyState(str(R.string.backup_all_caught_up), glyph = R.drawable.glyph_sync) }
-            items(groups, key = { it.file.id }) { group ->
+            groups.forEach { group ->
                 val path = (group.file.path + group.file.name).joinToString(" / ")
-                Section(title = path) {
-                    group.versions.asReversed().forEach { v ->
+                item { SectionTitle(path) }
+                items(group.versions.asReversed(), key = { group.file.id + ":" + it.id }) { v ->
+                    Section {
                         val key = BackupVersionKey(group.file.id, v.id)
                         val version = versionLabel(v.current, v.createdAt)
                         val details = listOfNotNull(fileSize(v.size), str(R.string.text_in_progress_6906b67).takeIf { v.status == "backing_up" }).joinToString(" · ")

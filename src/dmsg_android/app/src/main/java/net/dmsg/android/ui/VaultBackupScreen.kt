@@ -117,7 +117,7 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(str(R.string.text_pending_upload_3dce896) + chosen.count { it.text("save_state") == "pending" || (it.text("save_state") == null && !it.requiredFlag("synced")) },
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton({ selection = rows.map { it.required("id") }.toSet() }, enabled = !working) { Text(str(R.string.text_all_eae0ae1)) }
                             TextButton({ selection = emptySet() }, enabled = !working) { Text(str(R.string.text_clear_selection_66ecd44)) }
                         }
@@ -137,8 +137,10 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
                             SelectionRow(str(R.string.vault_backup_files) + " (" + files.size + " · " + fileSize(bytes) + ")", include, !working) { include = it }
                         }
                         if (missing && include) Notice(str(R.string.vault_backup_unavailable), true)
-                        else if (chosen.any { it.required("kind") == "wallet" }) Notice(str(R.string.vault_backup_wallet))
                         DetailCard {
+                            if (chosen.any { it.required("kind") == "wallet" }) {
+                                Text(str(R.string.vault_backup_wallet), style = MaterialTheme.typography.bodyMedium)
+                            }
                             SecretTextField(password, { password = it }, str(R.string.vault_backup_password), enabled = !working)
                             Text(str(R.string.vault_backup_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             TextButton({ controller.generate { password = it } }, enabled = !working) {
@@ -199,7 +201,7 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
                         LabelValue(str(R.string.vault_backup_omitted), form.view["omitted"].toString())
                         Text(str(R.string.vault_backup_new) + " " + preview.count { it.required("status") == "new" } + " · " + str(R.string.vault_backup_same) + " " + preview.count { it.required("status") == "same" } + " · " + str(R.string.text_review_9a1a906) + " " + preview.count { it.required("status") in setOf("changed", "deleted") },
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton({ picks = preview.filter { it.required("status") == "new" }.map { it.requiredUInt("index") }.toSet() }, enabled = !working) { Text(str(R.string.vault_backup_new)) }
                             TextButton({ picks = emptySet() }, enabled = !working) { Text(str(R.string.text_clear_selection_66ecd44)) }
                         }

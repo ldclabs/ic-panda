@@ -8,6 +8,7 @@ import net.dmsg.android.platform.str
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -79,7 +80,7 @@ import net.dmsg.android.core.*
         if (snapshots) it.source == "vault_snapshot" && (vaultItem == null || it.vaultItem == vaultItem) else it.source != "vault_snapshot"
     }
     val current = links.valueOrNull()?.find { it.id == selected }
-    val title = if (snapshots) str(R.string.text_share_links_fe69aa5) else if (selected.isEmpty()) str(R.string.text_shared_files_b3cfe3a) else current?.name ?: str(R.string.text_share_link_b335ffa)
+    val title = if (snapshots) str(R.string.text_share_links_fe69aa5) else if (selected.isEmpty()) str(R.string.text_shared_files_b3cfe3a) else str(R.string.text_share_link_b335ffa)
     ScreenBar(title) {
         IconButton(onClick = { client.fileLinks.browse() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_links_5941c71)) }
     }
@@ -88,27 +89,23 @@ import net.dmsg.android.core.*
         if (selected.isEmpty()) {
             if (!snapshots) item { ReadFeedback(intents, client.fileLinks::loadIntents) }
             val pendingJobs = intents.valueOrNull().orEmpty().filter { !snapshots && it.stage != "complete" }
-            if (pendingJobs.isNotEmpty()) item {
+            items(pendingJobs, key = { "intent:" + it.id }) { job ->
                 Section {
-                    pendingJobs.forEach { job ->
-                        ListRow(
-                            headline = job.name,
-                            supporting = str(R.string.text_unfinished_creation_continue_the_original_link_059e094),
-                            icon = Icons.Outlined.PendingActions,
-                        ) { client.navigation.push(Route("file-link-job", id = job.id)) }
-                    }
+                    ListRow(
+                        headline = job.name,
+                        supporting = str(R.string.text_unfinished_creation_continue_the_original_link_059e094),
+                        icon = Icons.Outlined.PendingActions,
+                    ) { client.navigation.push(Route("file-link-job", id = job.id)) }
                 }
             }
-            if (rows.isNotEmpty()) item {
+            items(rows, key = { "link:" + it.id }) { link ->
                 Section {
-                    rows.forEach { link ->
-                        ListRow(
-                            headline = link.name ?: str(R.string.text_encrypted_share_34c22e9),
-                            supporting = fileLinkState(link.state) + " · " + str(R.string.text_downloads_35a65b7) + localizedNumber(link.downloads),
-                            icon = if (link.password) Icons.Outlined.Lock else Icons.Outlined.Link,
-                        ) {
-                            if (snapshots) client.navigation.push(Route("file-links", link.id)) else client.navigation.select(link.id)
-                        }
+                    ListRow(
+                        headline = link.name ?: str(R.string.text_encrypted_share_34c22e9),
+                        supporting = fileLinkState(link.state) + " · " + str(R.string.text_downloads_35a65b7) + localizedNumber(link.downloads),
+                        icon = if (link.password) Icons.Outlined.Lock else Icons.Outlined.Link,
+                    ) {
+                        if (snapshots) client.navigation.push(Route("file-links", link.id)) else client.navigation.select(link.id)
                     }
                 }
             }
@@ -116,7 +113,12 @@ import net.dmsg.android.core.*
             if (!snapshots && links.valueOrNull() != null && rows.isEmpty() && pendingJobs.isEmpty()) item {
                 EmptyState(str(R.string.text_shared_files_b3cfe3a), detail = str(R.string.text_choose_share_by_link_on_a_file_or_cloud_backup_secret_snapshots_a_e246762), glyph = R.drawable.glyph_link)
             }
-        } else if (current != null) item { FileLinkDetails(client, current) }
+        } else if (current != null) item {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                current.name?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+                FileLinkDetails(client, current)
+            }
+        }
         else if (links !is ReadState.Loading) item { Notice(str(R.string.text_this_link_is_not_available_in_the_current_account_s_saved_list_fab3a8d)) }
     }
 }

@@ -62,33 +62,28 @@ import net.dmsg.android.core.*
             }
         }
         val batches = intents.valueOrNull().orEmpty().filter { it.stage != "complete" }.groupBy { it.batch }.toList()
-        if (batches.isNotEmpty()) item {
+        items(batches, key = { "batch:" + it.first }) { (batch, jobs) ->
             Section {
-                batches.forEach { (batch, jobs) ->
-                    ListRow(
-                        headline = jobs.first().title,
-                        supporting = str(R.string.text_unfinished_creations_43bb280) + localizedNumber(jobs.size),
-                        icon = Icons.Outlined.Pending,
-                    ) { client.navigation.push(Route("file-request-batch", id = batch)) }
-                }
+                ListRow(
+                    headline = jobs.first().title,
+                    supporting = str(R.string.text_unfinished_creations_43bb280) + localizedNumber(jobs.size),
+                    icon = Icons.Outlined.Pending,
+                ) { client.navigation.push(Route("file-request-batch", id = batch)) }
             }
         }
         item { ReadFeedback(links, { client.fileRequests.browse() }) }
-        val rows = links.valueOrNull().orEmpty()
-        if (rows.isNotEmpty()) item {
+        items(links.valueOrNull().orEmpty(), key = { it.id }) { link ->
             Section {
-                rows.forEach { link ->
-                    val sub = buildList {
-                        link.label?.takeIf(String::isNotBlank)?.let(::add)
-                        add(requestState(link.status) + " · " + quantity(R.plurals.files, link.files))
-                    }.joinToString("\n")
-                    ListRow(
-                        headline = link.title ?: str(R.string.text_encrypted_request_acd01c8),
-                        supporting = sub,
-                        icon = Icons.Outlined.MoveToInbox,
-                        trailing = if (link.unread) ({ Badge { Text(str(R.string.text_new_426a93d)) } }) else null,
-                    ) { client.navigation.select(link.id) }
-                }
+                val sub = buildList {
+                    link.label?.takeIf(String::isNotBlank)?.let(::add)
+                    add(requestState(link.status) + " · " + quantity(R.plurals.files, link.files))
+                }.joinToString("\n")
+                ListRow(
+                    headline = link.title ?: str(R.string.text_encrypted_request_acd01c8),
+                    supporting = sub,
+                    icon = Icons.Outlined.MoveToInbox,
+                    trailing = if (link.unread) ({ Badge { Text(str(R.string.text_new_426a93d)) } }) else null,
+                ) { client.navigation.select(link.id) }
             }
         }
         if (links is ReadState.Empty) item { EmptyState(str(R.string.text_no_collection_links_yet_d10e09a), icon = Icons.Outlined.MoveToInbox) }
@@ -152,10 +147,10 @@ import net.dmsg.android.core.*
     var discard by remember(batch) { mutableStateOf<String?>(null) }
     LaunchedEffect(batch, state.epoch) { client.fileRequests.loadIntents() }
     DisposableEffect(batch) { onDispose { if (client.fileRequests.publication.value?.batch == batch) client.fileRequests.pausePublication() } }
-    ScreenBar(jobs.firstOrNull()?.title)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                jobs.firstOrNull()?.let { Text(it.title, style = MaterialTheme.typography.titleLarge) }
                 if (jobs.isEmpty() && (intents is ReadState.Ready || intents is ReadState.Empty)) {
                     EmptyState(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), icon = Icons.Outlined.LinkOff) {
                         TextButton(onClick = client.fileRequests::loadIntents) { Text(str(R.string.text_refresh_cba212b)) }
@@ -222,7 +217,7 @@ import net.dmsg.android.core.*
     val files = received.valueOrNull()?.takeIf { it.request == id }?.files.orEmpty()
     LaunchedEffect(id, state.epoch, link?.url) { if (link != null) client.fileRequests.select(id) }
     DisposableEffect(id) { onDispose { client.fileRequests.leaveDetail() } }
-    ScreenBar(link?.title ?: str(R.string.text_collection_link_5c12570)) {
+    ScreenBar(str(R.string.text_collection_link_5c12570)) {
         IconButton(onClick = { client.fileRequests.select(id) }) {
             Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_received_files_ace2ac4))
         }
@@ -232,6 +227,7 @@ import net.dmsg.android.core.*
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 link?.let {
                     DetailCard {
+                        it.title?.let { title -> Text(title, style = MaterialTheme.typography.titleLarge) }
                         it.label?.takeIf(String::isNotBlank)?.let { label -> Text(label, style = MaterialTheme.typography.titleMedium) }
                         Text(requestState(it.status), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         LabelValue(str(R.string.text_expires_4972e43).trimEnd(' ', '·', ':'), messageTime(it.expiresAt))

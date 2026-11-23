@@ -41,11 +41,10 @@ import net.dmsg.android.core.*
             }
             if (read !is ReadState.Idle) item { ReadFeedback(read, client.vaultImport::retry) }
             form?.completed?.let { imported ->
-                item {
-                    Section(title = str(R.string.text_imported_on_this_device_3a765bd)) {
-                        imported.forEach { (id, title) ->
-                            ListRow(title, icon = Icons.Outlined.Key) { client.navigation.push(Route("vault", id)) }
-                        }
+                item { SectionTitle(str(R.string.text_imported_on_this_device_3a765bd)) }
+                items(imported, key = { it.first }) { (id, title) ->
+                    Section {
+                        ListRow(title, icon = Icons.Outlined.Key) { client.navigation.push(Route("vault", id)) }
                     }
                 }
             }
@@ -69,7 +68,7 @@ import net.dmsg.android.core.*
                             Text(str(R.string.text_skipped_901756c) + localizedNumber(preview.skipped) + str(R.string.text_incomplete_542ffc1) + localizedNumber(preview.incomplete),
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(str(R.string.text_selected_26244a5) + localizedNumber(form?.selected?.size ?: 0), style = MaterialTheme.typography.bodyMedium)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { client.vaultImport.edit { it.copy(selected = preview.items.filterNot(VaultImportItem::duplicate).take(1000).map { it.index }.toSet()) } }, enabled = editable) { Text(str(R.string.text_select_non_duplicates_c01238f)) }
                                 TextButton(onClick = { client.vaultImport.edit { it.copy(selected = emptySet()) } }, enabled = editable) { Text(str(R.string.text_clear_selection_66ecd44)) }
                             }

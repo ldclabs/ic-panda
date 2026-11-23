@@ -104,7 +104,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                 AccessPage.HANDOVER -> str(R.string.text_replace_a_device_fbe5457)
                 else -> ""
             }
-            Column(Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 TopAppBar(
                     title = { Text(pageTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {

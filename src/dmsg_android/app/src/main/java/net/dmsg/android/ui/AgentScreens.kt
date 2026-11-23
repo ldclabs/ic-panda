@@ -87,11 +87,11 @@ import net.dmsg.android.platform.numericExpression
     var revoking by remember { mutableStateOf<AgentDeviceGrant?>(null) }
     val focus = LocalFocusManager.current
     LaunchedEffect(id, state.epoch) { client.agents.load(); client.approvals.settle() }
-    ScreenBar(agent?.label)
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ReadFeedback(listing, client.agents::load)
             if (agent != null) {
+                Text(agent.label, style = MaterialTheme.typography.titleLarge)
                 Section {
                     CodeRow(str(R.string.text_agent_id_badfded), agent.id) { client.clipboard.copy(agent.id) }
                     NoticeSwitch(str(R.string.text_pause_this_agent_10ad216), agent.paused, fresh && !busy) { client.agents.pause(agent, it) }

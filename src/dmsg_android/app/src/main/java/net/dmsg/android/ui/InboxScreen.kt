@@ -249,7 +249,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                         client.navigation.push(Route("inbox", id = id, field = "sent"))
                     }
                 } }, enabled = form.valid && !state.working("letter:queue:" + id), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_send_06acd73)) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     TextButton(onClick = { discard = true }) { Text(str(R.string.text_discard_draft_6008f2b), color = MaterialTheme.colorScheme.error) }
                     TextButton(onClick = { editing = null }) { Text(str(R.string.text_keep_draft_89639c8)) }
                 }

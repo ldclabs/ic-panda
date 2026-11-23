@@ -1454,6 +1454,12 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Complete file verified").assertExists()
         compose.onNodeWithText(content).assertExists()
         capture("qa-file-verified-text")
+        compose.onNodeWithText("Copy displayed text").performScrollTo().performClick()
+        val clipboard = app.getSystemService(android.content.ClipboardManager::class.java)
+        compose.runOnIdle {
+            assertEquals(content, clipboard.primaryClip?.getItemAt(0)?.text)
+            assertTrue(clipboard.primaryClipDescription?.extras?.getBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE) == true)
+        }
         val target = File(app.cacheDir, "dmsg-shared/export-${UUID.randomUUID()}/Saved copy.txt")
         target.parentFile!!.mkdirs(); target.createNewFile()
         val destination = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", target)
@@ -1988,6 +1994,10 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("040g2082040g2082040g").assertIsDisplayed()
         compose.waitUntil(10_000) { client.participants.people.value["040g2082040g2082040g"]?.name == "Mina" }
         capture("qa-channel-member-identity")
+        compose.onNodeWithContentDescription("More · 040g2082040g2082040g").performClick()
+        compose.onNodeWithText("Allow key updates").performScrollTo().performClick()
+        compose.onNodeWithText("Apply these permissions to this exact account.").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Archive conversation"))
         compose.onNodeWithText("Archive conversation").performClick()
         compose.onNodeWithText("Archive this conversation?").assertExists()
@@ -2010,7 +2020,8 @@ class WorkspaceFlowTest {
         runBlocking { native.seedUiChannelMembers("member") }
         compose.runOnIdle { client.navigation.open("messages"); client.navigation.push(net.dmsg.android.core.Route("channel-settings", channel = channel)) }
         compose.waitUntil(10_000) { client.channels.review.value()?.details?.members?.size == 3 }
-        compose.onNodeWithText("Leave conversation").performScrollTo().assertExists()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Leave conversation"))
+        compose.onNodeWithText("Leave conversation").assertIsDisplayed()
         compose.onNodeWithText("Archive conversation").assertDoesNotExist()
         compose.onNodeWithText("Update conversation keys").assertDoesNotExist()
         compose.onNodeWithText("Remove member").assertDoesNotExist()
@@ -2104,6 +2115,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Studio account").performClick()
         compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
         val item = client.vault.detail.value()!!
+        compose.waitUntil(5_000) { compose.onAllNodesWithContentDescription("More").fetchSemanticsNodes().size == 1 }
         compose.onNodeWithContentDescription("More").performClick()
         compose.onNodeWithText("Share secret snapshot").performClick()
         compose.waitUntil(10_000) { client.secretSharing.draft.value != null }
@@ -2310,17 +2322,22 @@ class WorkspaceFlowTest {
             captureLook("channel-settings")
 
             // 5. Cloud backup detail
+            val backupName = "Contacts archive from the design team for November 2026 with the verified local copy.vcf"
             compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("cloud-files")) }
             compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("cloud:list:") } }
             compose.runOnIdle {
                 client.cloudFiles.inventory.accept(client.cloudFiles.inventory.begin(), net.dmsg.android.core.CloudInventory(listOf(
-                    net.dmsg.android.core.CloudBackup("qa-cloud", "file-one", "version-one", "Contacts.vcf", listOf("my"), 1_150_000uL,
+                    net.dmsg.android.core.CloudBackup("qa-cloud", "file-one", "version-one", backupName, listOf("my"), 1_150_000uL,
                         "text/vcard", "0eda56e5f9c49699ae9a9dfd69c9dc2a2377c4fec3921bc078d9328b64c69cad",
                         "42b1cd0238b01ee3b6e354a9e476a08bbd6af695d99a7c6c0dfecc4af77c018c", 4u, null, 1_800_000_000_000u, 1_150_000uL, false, true)
                 ), true, 1_800_000_000_000u))
                 client.navigation.select("qa-cloud")
             }
-            compose.onNodeWithText("Contacts.vcf").assertExists()
+            compose.onNodeWithText(backupName).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayout ->
+                val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+                assertTrue(getLayout(layouts))
+                assertFalse(layouts.single().hasVisualOverflow)
+            }
             captureLook("cloud-detail")
 
             // 6. File detail

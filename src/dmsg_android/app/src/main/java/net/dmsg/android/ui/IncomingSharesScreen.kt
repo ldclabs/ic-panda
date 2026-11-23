@@ -84,7 +84,7 @@ import net.dmsg.android.platform.IncomingShare
                         }
                         previews[entry.id]?.let { preview ->
                             Text(str(R.string.text_preview_up_to_128_kib_87caec2), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            SelectionContainer { Text(preview, style = MaterialTheme.typography.bodySmall.code(), modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) }
+                            SelectionContainer { Text(preview, modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) }
                         }
                         if (entry.account != null) LabelValue(str(R.string.text_destination_63c1289), displayFolder(entry.folder))
                         Button(onClick = { importing = entry }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {

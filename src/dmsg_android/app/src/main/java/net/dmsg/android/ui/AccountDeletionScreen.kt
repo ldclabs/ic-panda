@@ -20,28 +20,29 @@ import net.dmsg.android.core.*
 @Composable fun AccountDeletionScreen(client: ClientController) {
     val status by client.accountDeletion.status.state.collectAsStateWithLifecycle()
     val preview by client.accountDeletion.preview.state.collectAsStateWithLifecycle()
-    val draft by client.accountDeletion.draft.collectAsStateWithLifecycle()
+    val draft = client.accountDeletion.draft.collectAsStateWithLifecycle().value
     val failure by client.accountDeletion.error.collectAsStateWithLifecycle()
     val devices by client.account.devices.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
     val job = status.valueOrNull()?.deletion
     val working = state.working("account-deletion:request")
-    val canDelete = status is ReadState.Ready && preview is ReadState.Ready && devices is ReadState.Ready &&
-        draft.let { client.accountDeletion.ready() } && !working
+    val canDelete = !working && client.accountDeletion.ready()
     LaunchedEffect(state.epoch) { client.accountDeletion.load() }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val currentFailure = failure
             val review = preview.valueOrNull()
-            val banner = when {
-                currentFailure != null -> errorText(currentFailure) to true
-                job?.lastError != null -> errorText(job.lastError) to true
-                job == null && devices.valueOrNull()?.canManage == false -> str(R.string.text_an_administrator_with_account_management_permission_must_request_c8f3fa3) to false
-                job == null && review != null && review.pendingSync > 0u -> str(R.string.text_this_device_has_unsynced_changes_save_anything_you_need_before_de_eaddda5) to true
-                else -> str(R.string.text_deleting_this_service_account_permanently_removes_its_cloud_ciphe_77889e6) to true
+            val warnings = buildList {
+                add(str(R.string.text_deleting_this_service_account_permanently_removes_its_cloud_ciphe_77889e6))
+                (failure ?: job?.lastError)?.let { add(errorText(it)) }
+                if (job == null && devices.valueOrNull()?.canManage == false) {
+                    add(str(R.string.text_an_administrator_with_account_management_permission_must_request_c8f3fa3))
+                }
+                if (job == null && review != null && review.pendingSync > 0u) {
+                    add(str(R.string.text_this_device_has_unsynced_changes_save_anything_you_need_before_de_eaddda5))
+                }
             }
-            Notice(banner.first, banner.second)
+            Notice(warnings.joinToString("\n\n"), true)
             Section(footer = str(R.string.text_account_deletion_does_not_cancel_a_subscription_purchased_through_6e817fb)) {
                 ListRow(str(R.string.text_membership_and_subscription_source_58d228f), icon = Icons.Outlined.CardMembership) { client.navigation.push(Route("membership")) }
             }

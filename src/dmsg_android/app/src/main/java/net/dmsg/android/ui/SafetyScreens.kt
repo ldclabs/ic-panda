@@ -7,6 +7,7 @@ import net.dmsg.android.platform.localizedNumber
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -96,19 +97,18 @@ import net.dmsg.android.core.*
             }
         }
         if (form != null && form.mode == "contacts") {
-            if (form.allow.isNotEmpty()) item {
-                Section(title = str(R.string.text_selected_accounts_e482d88)) {
-                    form.allow.forEachIndexed { index, id ->
-                        ListItem(
-                            headlineContent = { ParticipantIdentity(client, id, true) },
-                            trailingContent = {
-                                TextButton(
-                                    onClick = { client.safety.editReceiving(form.copy(allow = form.allow.filterIndexed { i, _ -> i != index })) },
-                                    enabled = !working && pending == null,
-                                ) { Text(str(R.string.text_remove_78190c6), color = MaterialTheme.colorScheme.error) }
-                            },
-                        )
-                    }
+            item { SectionTitle(str(R.string.text_selected_accounts_e482d88)) }
+            itemsIndexed(form.allow) { index, id ->
+                Section {
+                    ListItem(
+                        headlineContent = { ParticipantIdentity(client, id, true) },
+                        trailingContent = {
+                            TextButton(
+                                onClick = { client.safety.editReceiving(form.copy(allow = form.allow.filterIndexed { i, _ -> i != index })) },
+                                enabled = !working && pending == null,
+                            ) { Text(str(R.string.text_remove_78190c6), color = MaterialTheme.colorScheme.error) }
+                        },
+                    )
                 }
             }
             item {

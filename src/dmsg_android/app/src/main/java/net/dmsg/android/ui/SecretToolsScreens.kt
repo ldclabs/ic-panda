@@ -169,26 +169,19 @@ import net.dmsg.android.core.*
                 }
             }
             if (findings.isEmpty()) item { EmptyState(str(R.string.text_no_findings_from_this_device_s_checks_c1564e4), glyph = R.drawable.glyph_security) }
-            if (report.rotations.isNotEmpty()) {
-                item {
-                    Section(title = str(R.string.text_rotation_checklists_6fca54f)) {
-                        report.rotations.sortedByDescending { it.updatedAt }.forEach { rotation ->
-                            ListRow(
-                                headline = report.subjects[rotation.item]?.title ?: rotation.field,
-                                supporting = if (rotation.completedAt == null) str(R.string.text_in_progress_6906b67) else str(R.string.text_checklist_completed_38e6d28),
-                                icon = Icons.Outlined.Loop,
-                            ) { client.navigation.push(Route("secret-rotation", rotation.id)) }
-                        }
-                    }
+            item { SectionTitle(str(R.string.text_rotation_checklists_6fca54f)) }
+            items(report.rotations.sortedByDescending { it.updatedAt }, key = { "rotation:" + it.id }) { rotation ->
+                Section {
+                    ListRow(
+                        headline = report.subjects[rotation.item]?.title ?: rotation.field,
+                        supporting = if (rotation.completedAt == null) str(R.string.text_in_progress_6906b67) else str(R.string.text_checklist_completed_38e6d28),
+                        icon = Icons.Outlined.Loop,
+                    ) { client.navigation.push(Route("secret-rotation", rotation.id)) }
                 }
-            } else {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionTitle(str(R.string.text_rotation_checklists_6fca54f))
-                        Text(str(R.string.text_start_a_checklist_from_a_field_s_reference_page_88740fc),
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+            }
+            if (report.rotations.isEmpty()) item {
+                Text(str(R.string.text_start_a_checklist_from_a_field_s_reference_page_88740fc),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

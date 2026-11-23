@@ -59,17 +59,11 @@ fun LocalImportScreen(client: ClientController) {
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val reviewed = plan
-        if (working) item {
-            DetailCard {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-                if (reviewed != null) Text(android.text.format.Formatter.formatFileSize(androidx.compose.ui.platform.LocalContext.current, copied),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
         if (reviewed == null) {
             item {
                 DetailCard {
                     Text(str(R.string.vault_backup_sync), style = MaterialTheme.typography.bodyMedium)
+                    if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
                     Button(enabled = !working, modifier = Modifier.fillMaxWidth(), onClick = {
                         working = true
                         client.clearNotice()
@@ -123,6 +117,13 @@ fun LocalImportScreen(client: ClientController) {
                     SelectionRow(path, index in files || index in required, !working && index !in required && row.requiredFlag("local"), summary) { on ->
                         files = if (on) files + index else files - index
                     }
+                }
+            }
+            if (working) item {
+                DetailCard {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text(android.text.format.Formatter.formatFileSize(androidx.compose.ui.platform.LocalContext.current, copied),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             item {

@@ -112,31 +112,30 @@ import net.dmsg.android.core.*
                         { value -> client.channels.hide(channel, value) }, enabled = !working, icon = Icons.Outlined.VisibilityOff)
                 }
             }
+            item { SectionTitle(str(R.string.text_members_437a10e) + " · " + localizedNumber(info.members.size)) }
+            items(info.members, key = { it.account }) { member ->
+                val otherMember = !info.left && info.status != "archived" && member.account != state.session?.account && pending == null
+                val manageable = otherMember && (mine?.role == "owner" || info.canRemove(state.session?.account, member))
+                val meta = buildList {
+                    add(channelRole(member.role) + if (member.canRotate) str(R.string.text_may_update_keys_df6de73) else "")
+                    add(str(R.string.text_joined_at_key_epoch_0f80f11) + member.joinedEpoch)
+                    if (member.history.isNotEmpty()) add(str(R.string.text_granted_older_history_c0fd324) + member.history.joinToString { "${it.first}–${it.second}" })
+                }.joinToString("\n")
+                Section {
+                    ListItem(
+                        headlineContent = { ParticipantIdentity(client, member.account, showId = true) },
+                        supportingContent = { Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        trailingContent = if (manageable) { {
+                            IconButton(onClick = { managing = member }, enabled = !working) {
+                                Icon(Icons.Outlined.MoreVert, str(R.string.more) + " · " + member.account)
+                            }
+                        } } else null,
+                        modifier = Modifier.clipTo(rowShape()),
+                    )
+                }
+            }
             item {
-                Section(
-                    title = str(R.string.text_members_437a10e) + " · " + localizedNumber(info.members.size),
-                    footer = str(R.string.text_new_members_may_read_the_current_key_epoch_including_earlier_mess_8fd599a),
-                ) {
-                    info.members.forEach { member ->
-                        val canEditRole = !info.left && info.status != "archived" && member.account != state.session?.account && pending == null && mine?.role == "owner"
-                        val canRemove = !info.left && info.status != "archived" && member.account != state.session?.account && pending == null && info.canRemove(state.session?.account, member)
-                        val manageable = canEditRole || canRemove
-                        val meta = buildList {
-                            add(channelRole(member.role) + if (member.canRotate) str(R.string.text_may_update_keys_df6de73) else "")
-                            add(str(R.string.text_joined_at_key_epoch_0f80f11) + member.joinedEpoch)
-                            if (member.history.isNotEmpty()) add(str(R.string.text_granted_older_history_c0fd324) + member.history.joinToString { "${it.first}–${it.second}" })
-                        }.joinToString("\n")
-                        ListItem(
-                            headlineContent = { ParticipantIdentity(client, member.account, showId = true) },
-                            supportingContent = { Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            trailingContent = if (manageable) { {
-                                IconButton(onClick = { managing = member }, enabled = !working) {
-                                    Icon(Icons.Outlined.MoreVert, str(R.string.more))
-                                }
-                            } } else null,
-                            modifier = Modifier.clipTo(rowShape()),
-                        )
-                    }
+                Section(footer = str(R.string.text_new_members_may_read_the_current_key_epoch_including_earlier_mess_8fd599a)) {
                     if (info.canManage(state.session?.account)) {
                         ListRow(str(R.string.text_invite_an_account_96d0472), icon = Icons.Outlined.PersonAdd, enabled = !working) {
                             client.navigation.push(Route("channel-invite", channel = channel))
@@ -249,19 +248,16 @@ import net.dmsg.android.core.*
             ReadFeedback(hidden, client.channels::browseHidden)
             if (hidden is ReadState.Empty) EmptyState(str(R.string.text_no_hidden_conversations_1471673), icon = Icons.Outlined.VisibilityOff)
         }
-        val rows = hidden.valueOrNull().orEmpty()
-        if (rows.isNotEmpty()) item {
+        items(hidden.valueOrNull().orEmpty(), key = { it.id }) { channel ->
             Section {
-                rows.forEach { channel ->
-                    ListItem(
-                        headlineContent = { Text(channel.name) },
-                        supportingContent = { Text(channelType(channel.kind)) },
-                        leadingContent = { Avatar(channel.name, channel.id) },
-                        trailingContent = {
-                            TextButton(onClick = { client.channels.hide(channel.id, false) }) { Text(str(R.string.text_show_again_1409301)) }
-                        },
-                    )
-                }
+                ListItem(
+                    headlineContent = { Text(channel.name) },
+                    supportingContent = { Text(channelType(channel.kind)) },
+                    leadingContent = { Avatar(channel.name, channel.id) },
+                    trailingContent = {
+                        TextButton(onClick = { client.channels.hide(channel.id, false) }) { Text(str(R.string.text_show_again_1409301)) }
+                    },
+                )
             }
         }
     }
@@ -424,14 +420,11 @@ import net.dmsg.android.core.*
             DetailCard { ParticipantIdentity(client, account, true) }
             ReadFeedback(channels, client.messages::browse)
         }
-        val invitable = channels.valueOrNull().orEmpty().filter { it.canInvite }
-        if (invitable.isNotEmpty()) item {
+        items(channels.valueOrNull().orEmpty().filter { it.canInvite }, key = { it.id }) { channel ->
             Section {
-                invitable.forEach { channel ->
-                    ListRow(channel.name, icon = Icons.Outlined.Forum) {
-                        client.channels.editInvite(channel.id, ChannelInvite(account))
-                        client.navigation.push(Route("channel-invite", channel = channel.id))
-                    }
+                ListRow(channel.name, icon = Icons.Outlined.Forum) {
+                    client.channels.editInvite(channel.id, ChannelInvite(account))
+                    client.navigation.push(Route("channel-invite", channel = channel.id))
                 }
             }
         }

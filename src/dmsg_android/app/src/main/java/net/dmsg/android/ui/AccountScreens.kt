@@ -231,13 +231,18 @@ private fun approvalSource(source: String): String = when {
                 ReadFeedback(detail, { client.approvals.select(selected) })
                 current?.let { value ->
                     val body = value.detail as? JsonObject
+                    val disclosure = when {
+                        value.state == "awaiting_user" && value.kind == "device_pair" -> R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488
+                        value.kind == "connect" -> R.string.text_the_source_is_relayed_by_the_browser_through_connect_dmsg_net_a_b_8ce6a30
+                        value.kind == "account" && body?.text("change") == "recovery_policy" ->
+                            if (body.flag("enabled")) R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9
+                            else R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07
+                        else -> null
+                    }
                     val banner = when {
                         value.error != null -> errorText(value.error) to true
                         value.state == "awaiting_user" && !value.supported -> str(R.string.text_this_action_requires_a_supported_desktop_client_85a09eb) to false
                         value.state in setOf("executing", "unknown") -> str(R.string.text_the_result_is_not_confirmed_check_the_original_operation_before_r_57342fb) to false
-                        value.state == "awaiting_user" && value.kind == "device_pair" -> str(R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488) to false
-                        value.kind == "connect" -> str(R.string.text_the_source_is_relayed_by_the_browser_through_connect_dmsg_net_a_b_8ce6a30) to false
-                        value.kind == "account" && body?.text("change") == "recovery_policy" -> (if (body.flag("enabled")) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9) else str(R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07)) to false
                         else -> null
                     }
                     banner?.let { (message, warning) -> Notice(message, warning) }
@@ -254,6 +259,7 @@ private fun approvalSource(source: String): String = when {
                         SelectionContainer { LabelValue(str(R.string.text_source_fcdba0f), approvalSource(value.source)) }
                         if (value.state == "awaiting_user") LabelValue(str(R.string.approval_request_expires), messageTime(value.expiresAt))
                         SelectionContainer { LabelValue(str(R.string.text_account_id_43f0a66), state.session?.account.orEmpty(), code = true) }
+                        disclosure?.let { Text(str(it), style = MaterialTheme.typography.bodyMedium) }
                     }
                     if (value.kind == "attest" || value.kind == "connect") StatementReview(value)
                     val webLogin = value.browserLogin()

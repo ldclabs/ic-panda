@@ -57,29 +57,37 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
     var confirmingRetry by remember { mutableStateOf(false) }
     LaunchedEffect(state.epoch) { client.notifications.load() }
     LazyColumn(
-        Modifier.fillMaxSize().testTag("notification-settings")
-            .openedReminderVisible(client, preferences is ReadState.Ready) { it.kind == "service" && it.id?.startsWith("registration:") == true },
+        Modifier.fillMaxSize().testTag("notification-settings"),
         contentPadding = pagePadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val currentFailure = failure
-                val banner = when {
+                val preferenceProblem = when {
                     currentFailure != null -> errorText(currentFailure) to true
                     preferences.valueOrNull()?.conflict == true -> str(R.string.text_notification_preferences_changed_elsewhere_review_your_choices_be_43a8495) to false
-                    else -> when (push) {
-                        PushCoordinator.Status.UNCONFIGURED -> str(R.string.text_background_delivery_is_unavailable_in_this_build_opening_dmsg_ref_c768a1b) to false
-                        PushCoordinator.Status.CONSENT -> str(R.string.text_enable_account_reminders_below_then_register_this_device_for_back_d2141d8) to false
-                        PushCoordinator.Status.PERMISSION -> str(R.string.text_allow_notifications_in_android_settings_before_registering_c3ab5c2) to false
-                        PushCoordinator.Status.LOCKED -> str(R.string.text_unlock_dmsg_to_renew_this_device_registration_524a0c3) to false
-                        PushCoordinator.Status.INACTIVE -> str(R.string.text_background_delivery_is_paused_for_this_account_811c146) to false
-                        PushCoordinator.Status.READY -> str(R.string.text_device_registered_delivery_still_follows_your_preferences_and_and_545ba62) to false
-                        PushCoordinator.Status.WORKING -> str(R.string.text_verifying_this_installation_3fd71b5) to false
-                        PushCoordinator.Status.FAILED -> str(R.string.text_registration_was_not_confirmed_check_the_connection_and_retry_6a52481) to true
-                    }
+                    else -> null
                 }
-                Notice(banner.first, banner.second)
+                val delivery = str(when (push) {
+                    PushCoordinator.Status.UNCONFIGURED -> R.string.text_background_delivery_is_unavailable_in_this_build_opening_dmsg_ref_c768a1b
+                    PushCoordinator.Status.CONSENT -> R.string.text_enable_account_reminders_below_then_register_this_device_for_back_d2141d8
+                    PushCoordinator.Status.PERMISSION -> R.string.text_allow_notifications_in_android_settings_before_registering_c3ab5c2
+                    PushCoordinator.Status.LOCKED -> R.string.text_unlock_dmsg_to_renew_this_device_registration_524a0c3
+                    PushCoordinator.Status.INACTIVE -> R.string.text_background_delivery_is_paused_for_this_account_811c146
+                    PushCoordinator.Status.READY -> R.string.text_device_registered_delivery_still_follows_your_preferences_and_and_545ba62
+                    PushCoordinator.Status.WORKING -> R.string.text_verifying_this_installation_3fd71b5
+                    PushCoordinator.Status.FAILED -> R.string.text_registration_was_not_confirmed_check_the_connection_and_retry_6a52481
+                })
+                val deliveryFailed = push == PushCoordinator.Status.FAILED
+                preferenceProblem?.let { (message, warning) -> Notice(message, warning) }
+                Box(Modifier.openedReminderVisible(client, preferences is ReadState.Ready) {
+                    it.kind == "service" && it.id?.startsWith("registration:") == true
+                }) {
+                    if (preferenceProblem == null) Notice(delivery, deliveryFailed)
+                    else Text(delivery, style = MaterialTheme.typography.bodyMedium,
+                        color = if (deliveryFailed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (currentFailure != null) {
                     OutlinedButton(onClick = { confirmingRetry = true }, enabled = preferences is ReadState.Ready && !state.working("notices:save"), modifier = Modifier.fillMaxWidth()) {
                         Text(str(R.string.text_review_and_retry_saved_edits_3c4f724))

@@ -32,8 +32,11 @@ import net.dmsg.android.core.*
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 BackgroundTransferPanel(client)
-                failures.entries.firstOrNull()?.let { (kind, failure) ->
-                    Notice((if (kind == "upload") str(R.string.text_backup_paused_e3353a0) else str(R.string.text_restore_paused_2b71ae2)) + errorText(failure.code), true)
+                if (failures.isNotEmpty()) {
+                    Notice(failures.entries.joinToString("\n") { (kind, failure) ->
+                        val label = if (kind == "upload") R.string.text_backup_paused_e3353a0 else R.string.text_restore_paused_2b71ae2
+                        str(label) + errorText(failure.code)
+                    }, true)
                 }
                 DetailCard {
                     Text(str(R.string.text_the_foreground_queue_runs_while_dmsg_is_open_and_unlocked_explici_a1289c4),

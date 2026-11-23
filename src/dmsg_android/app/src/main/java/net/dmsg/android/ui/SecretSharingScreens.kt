@@ -44,11 +44,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             val item = value.source.item
             val working = state.working("secret:prepare:" + value.id)
             val enabled = !working && value.prepared == null && !value.uncertain
-            when {
-                value.uncertain -> Notice(str(R.string.text_preparation_did_not_return_a_confirmed_result_check_the_saved_sna_01a2b53), true)
-                item.fields.any { it.id in value.fields && it.kind == "otp" } -> OtpSnapshotNotice()
-                value.channel != null -> ChannelSnapshotNotice()
-            }
+            if (value.uncertain) Notice(str(R.string.text_preparation_did_not_return_a_confirmed_result_check_the_saved_sna_01a2b53), true)
             DetailCard {
                 Text(item.title, style = MaterialTheme.typography.titleLarge)
                 Text(str(R.string.text_choose_the_exact_content_of_this_independent_snapshot_editing_the_a26f334),
@@ -76,10 +72,16 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                         }
                     }
                 }
+                if (value.channel != null) Text(str(R.string.text_members_with_access_to_this_channel_epoch_including_later_history_a29d046),
+                    style = MaterialTheme.typography.bodyMedium)
             }
             val selectableFields = item.fields.filter { it.value.isNotEmpty() }
             if (selectableFields.isNotEmpty() || item.notes.isNotEmpty()) {
-                Section(title = str(R.string.text_select_fields_to_share_290fe99)) {
+                val sharesOtp = selectableFields.any { it.kind == "otp" && it.id in value.fields }
+                Section(
+                    title = str(R.string.text_select_fields_to_share_290fe99),
+                    footer = if (sharesOtp) str(R.string.text_selected_otp_fields_include_the_reusable_seed_not_just_a_current_4a6ddda) else null,
+                ) {
                     selectableFields.forEach { field ->
                         SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in value.fields, enabled, field.section.takeIf(String::isNotEmpty)) { checked ->
                             client.secretSharing.edit { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) }
@@ -161,16 +163,13 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             }
         }
         item { ReadFeedback(read, client.secretSharing::list) }
-        val jobs = read.valueOrNull().orEmpty()
-        if (jobs.isNotEmpty()) item {
+        items(read.valueOrNull().orEmpty(), key = { it.id }) { job ->
             Section {
-                jobs.forEach { job ->
-                    ListRow(
-                        headline = job.title,
-                        supporting = secretStateName(job.state) + " · " + fileSize(job.bytes),
-                        icon = if (job.channel == null) Icons.Outlined.Link else Icons.Outlined.Forum,
-                    ) { client.navigation.push(Route("secret-share", job.id)) }
-                }
+                ListRow(
+                    headline = job.title,
+                    supporting = secretStateName(job.state) + " · " + fileSize(job.bytes),
+                    icon = if (job.channel == null) Icons.Outlined.Link else Icons.Outlined.Forum,
+                ) { client.navigation.push(Route("secret-share", job.id)) }
             }
         }
         if (read is ReadState.Empty) item { EmptyState(str(R.string.text_no_snapshots_on_this_device_1710ceb), glyph = R.drawable.glyph_link) }
@@ -188,7 +187,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     LaunchedEffect(id) { client.secretSharing.select(id) }
     DisposableEffect(id) { onDispose { client.secretSharing.hideLink(id) } }
     val working = state.working("secret:reconcile:" + id) || state.working("secret:revoke:" + id) || state.working("approval:request:secret-share:" + id)
-    ScreenBar(job?.title) {
+    ScreenBar(null) {
         IconButton(onClick = { client.secretSharing.select(id) }, enabled = !working) {
             Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_original_snapshot_e83960f))
         }
@@ -199,9 +198,9 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             when {
                 value.error != null -> Notice(errorText(value.error), true)
                 value.state in setOf("unknown", "publishing", "uploading", "encrypting", "revoke_pending") -> Notice(str(R.string.text_the_outcome_is_uncertain_check_this_original_snapshot_before_retr_83e738c))
-                value.channel != null -> ChannelSnapshotNotice()
             }
             DetailCard {
+                Text(value.title, style = MaterialTheme.typography.titleLarge)
                 Text(secretStateName(value.state), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 LabelValue(str(R.string.text_package_size_04b1f98).trimEnd(' ', '·', ':'), fileSize(value.bytes))
                 if (value.chunks > 0u) {
@@ -249,7 +248,9 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Section {
+            Section(
+                footer = if (value.channel != null) str(R.string.text_members_with_access_to_this_channel_epoch_including_later_history_a29d046) else null,
+            ) {
                 if (value.channel != null) {
                     InfoRow(str(R.string.text_destination_channel_d035e1e), value.channel.name)
                     CodeRow(str(R.string.text_channel_0126d4b).trimEnd(' ', '·', ':'), value.channel.id) { client.clipboard.copy(value.channel.id) }
@@ -287,11 +288,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (current == null) return@Column
         val editable = !working && current.request == null && current.completed == null && current.pending == null
-        when {
-            current.pending != null && current.request == null -> Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
-            preview?.fields?.any { it.id in current.fields && it.kind == "otp" } == true -> OtpSnapshotNotice()
-            preview != null && preview.imported.isNotEmpty() -> Notice(str(R.string.text_this_package_was_already_imported_here_existing_copies_remain_ind_54592ed))
-        }
+        if (current.pending != null && current.request == null) Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
         DetailCard {
             if (source.channel == null) {
                 OutlinedTextField(current.link, { link -> client.secretSharing.editIncoming { it.copy(link = link.take(8192)) } }, Modifier.fillMaxWidth(), enabled = editable,
@@ -321,6 +318,8 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             DetailCard {
                 Text(value.title, style = MaterialTheme.typography.titleLarge)
                 Text(displayTime(value.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (value.imported.isNotEmpty()) Text(str(R.string.text_this_package_was_already_imported_here_existing_copies_remain_ind_54592ed),
+                    style = MaterialTheme.typography.bodyMedium)
             }
             value.channel?.let { origin ->
                 Section {
@@ -329,7 +328,11 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 }
             }
             if (value.fields.isNotEmpty() || value.notes) {
-                Section(title = str(R.string.text_select_fields_to_import_97581a6)) {
+                val importsOtp = value.fields.any { it.kind == "otp" && it.id in current.fields }
+                Section(
+                    title = str(R.string.text_select_fields_to_import_97581a6),
+                    footer = if (importsOtp) str(R.string.text_selected_otp_fields_include_the_reusable_seed_not_just_a_current_4a6ddda) else null,
+                ) {
                     value.fields.forEach { field ->
                         SelectionRow(packageFieldTitle(field), field.id in current.fields, editable, field.section) { checked ->
                             client.secretSharing.editIncoming { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) }
@@ -352,7 +355,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     }
                     ListRow(
                         headline = str(R.string.text_destination_843a557).trimEnd(' ', '·', ':'),
-                        value = current.folderName.ifBlank { str(R.string.text_files_c79ddc2) },
+                        supporting = current.folderName.ifBlank { str(R.string.text_files_c79ddc2) },
                         icon = Icons.Outlined.Folder,
                         enabled = editable,
                     ) { choosingFolder = true }

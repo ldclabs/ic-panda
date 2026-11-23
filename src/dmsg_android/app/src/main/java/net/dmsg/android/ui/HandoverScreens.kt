@@ -142,7 +142,7 @@ import net.dmsg.android.core.*
 @Composable fun HandoverReviewScreen(client: ClientController) {
     val needsFresh by client.handovers.needsFreshRequest.collectAsStateWithLifecycle()
     val token by client.handovers.token.collectAsStateWithLifecycle()
-    val confirmation by client.handovers.confirmation.collectAsStateWithLifecycle()
+    val confirmation = client.handovers.confirmation.collectAsStateWithLifecycle().value
     val review by client.handovers.review.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     val qr by client.qr.state.collectAsStateWithLifecycle()
@@ -183,7 +183,7 @@ import net.dmsg.android.core.*
                 }
             }
         }
-        val canApprove = (review to confirmation to local to now).let { client.handovers.canApprove(now) } && !state.working("handover:approve")
+        val canApprove = !state.working("handover:approve") && client.handovers.canApprove(now)
         BottomActionBar {
             Button(onClick = { focus.clearFocus(); client.handovers.approve() }, enabled = canApprove, modifier = Modifier.fillMaxWidth()) {
                 Text(str(R.string.text_review_replacement_approval_a633998))

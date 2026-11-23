@@ -37,17 +37,14 @@ import net.dmsg.android.core.*
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        val rows = wallets.valueOrNull().orEmpty()
-        if (rows.isNotEmpty()) item {
+        items(wallets.valueOrNull().orEmpty(), key = { "wallet:" + it.id }) { value ->
             Section {
-                rows.forEach { value ->
-                    ListItem(
-                        headlineContent = { Text(value.name) },
-                        supportingContent = { Text(value.id, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        leadingContent = { RowIcon(painterResource(R.drawable.glyph_wallet)) },
-                        modifier = Modifier.clickable { client.navigation.push(Route("wallet", value.id)) },
-                    )
-                }
+                ListItem(
+                    headlineContent = { Text(value.name) },
+                    supportingContent = { Text(value.id, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingContent = { RowIcon(painterResource(R.drawable.glyph_wallet)) },
+                    modifier = Modifier.clickable { client.navigation.push(Route("wallet", value.id)) },
+                )
             }
         }
         if (wallets is ReadState.Empty) item { EmptyState(str(R.string.text_no_wallets_in_this_account_f1c61ea), glyph = R.drawable.glyph_coins) }
@@ -95,12 +92,13 @@ import net.dmsg.android.core.*
     var limit by remember(wallet) { mutableIntStateOf(30) }
     val current = details.valueOrNull()?.takeIf { it.id == wallet }
     LaunchedEffect(wallet, state.epoch) { client.wallets.select(wallet) }
-    ScreenBar(current?.name) {
+    ScreenBar(null) {
         IconButton(onClick = { client.wallets.select(wallet, true) }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { ReadFeedback(details, { client.wallets.select(wallet, true) }) }
         current?.let { value ->
+            item { Text(value.name, style = MaterialTheme.typography.titleLarge) }
             item {
                 Section {
                     CodeRow(str(R.string.text_wallet_canister_id_a1a88b6), wallet) { client.clipboard.copy(wallet) }
@@ -170,15 +168,14 @@ import net.dmsg.android.core.*
             ReadFeedback(history, { client.wallets.select(wallet, true) })
         }
         val proposals = history.valueOrNull()?.proposals.orEmpty().take(limit)
-        if (proposals.isNotEmpty()) item {
-            Section(title = str(R.string.text_proposals_e12178d)) {
-                proposals.forEach { proposal ->
-                    ListRow(
-                        headline = str(R.string.text_proposal_4301b5a) + proposal.id,
-                        supporting = walletProposalState(proposal.status),
-                        icon = Icons.Outlined.Description,
-                    ) { client.navigation.push(Route("wallet-proposal", wallet, sequence = proposal.id)) }
-                }
+        if (proposals.isNotEmpty()) item { SectionTitle(str(R.string.text_proposals_e12178d)) }
+        items(proposals, key = { it.id.toString() }) { proposal ->
+            Section {
+                ListRow(
+                    headline = str(R.string.text_proposal_4301b5a) + proposal.id,
+                    supporting = walletProposalState(proposal.status),
+                    icon = Icons.Outlined.Description,
+                ) { client.navigation.push(Route("wallet-proposal", wallet, sequence = proposal.id)) }
             }
         }
         if ((history.valueOrNull()?.proposals?.size ?: 0) > limit) item {
