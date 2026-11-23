@@ -81,7 +81,9 @@ final class FileLibraryUITests: FileLibraryTestCase {
         tap(review, in: app)
         for version in ["v1", "v0"] {
             let row = app.descendants(matching: .any).matching(identifier: "backup.revision.fixture-note:" + version).firstMatch
-            XCTAssertTrue(row.waitForExistence(timeout: 4), version)
+            // The list is lazy: a version below the fold exists only once scrolled to.
+            for _ in 0..<3 where !row.waitForExistence(timeout: 2) { app.swipeUp() }
+            XCTAssertTrue(row.exists, version)
         }
         tap(app.buttons["files.backup.submit"], in: app)
         XCTAssertTrue(app.buttons["File transfers"].waitForExistence(timeout: 5))
