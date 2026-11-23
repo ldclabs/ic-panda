@@ -37,7 +37,7 @@ import net.dmsg.android.core.*
     var action by remember(channel) { mutableStateOf<ChannelAction?>(null) }
     var leaveDraft by remember(channel) { mutableStateOf(false) }
     LaunchedEffect(channel, state.epoch) { client.channels.load(channel) }
-    BackHandler(detail != null && name != detail.name) { leaveDraft = true }
+    BackHandler(LocalPageActive.current && detail != null && name != detail.name) { leaveDraft = true }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             ReadFeedback(loaded, { client.channels.load(channel) })

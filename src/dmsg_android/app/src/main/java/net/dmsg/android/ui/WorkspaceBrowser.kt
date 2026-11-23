@@ -60,6 +60,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val active = LocalPageActive.current
     val editor = remember { FocusRequester() }
     val cancelFocus = remember { FocusRequester() }
     fun dismiss() {
@@ -68,7 +69,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
         focus.clearFocus()
         keyboard?.hide()
     }
-    BackHandler(enabled = mode != BrowseSearchMode.Browse && !imeVisible, onBack = ::dismiss)
+    BackHandler(enabled = active && mode != BrowseSearchMode.Browse && !imeVisible, onBack = ::dismiss)
     Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (mode == BrowseSearchMode.Editing) {
             WorkspaceSearchField(query, change, prompt, Modifier.weight(1f).focusRequester(editor).testTag("browse-search-editor"), onSearch = {
@@ -76,7 +77,7 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
                 setMode(BrowseSearchMode.Results)
                 keyboard?.hide()
             })
-            LaunchedEffect(Unit) {
+            if (active) LaunchedEffect(Unit) {
                 editor.requestFocus()
                 keyboard?.show()
             }

@@ -145,6 +145,9 @@ import net.dmsg.android.core.*
                     }
                 }
                 item {
+                    if (searching && selection.isEmpty() && visible.isNotEmpty()) {
+                        TextButton(onClick = ::selectVisible) { Text(str(R.string.text_select_visible_items_5b34cd2)) }
+                    }
                     if (selection.isNotEmpty()) {
                         Text(str(R.string.text_selected_26244a5) + localizedNumber(selection.size), style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

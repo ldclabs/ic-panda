@@ -99,6 +99,12 @@ import net.dmsg.core.*
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
         )
+        failure?.takeUnless { it in setOf("INVALID_TITLE", "INVALID_TAGS", "INVALID_FIELDS") }?.let { reason ->
+            Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) { Notice(errorText(reason), true) }
+        }
+        if (!ready) TextButton(onClick = { client.vaultDrafts.load() }, modifier = Modifier.padding(horizontal = pageMargin())) {
+            Text(str(R.string.text_retry_563171c))
+        }
         Column(Modifier.weight(1f).imePadding().verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()).navigationBarsPadding().padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(current.title, { value -> update { it.copy(title = value) } }, Modifier.testTag("vault-editor-title").focusRequester(titleFocus).revealFocusedInput().fillMaxWidth(), label = { Text(str(R.string.text_title_4c18fa6)) }, singleLine = true, enabled = !working,
@@ -207,8 +213,6 @@ import net.dmsg.core.*
                 }
                 TextButton(onClick = { client.vault.loadAttachmentFiles(); attachment = true }, enabled = !working && current.files.size < 20) { Text(str(R.string.text_choose_from_files_c1e8160)) }
             }
-            failure?.takeUnless { it in setOf("INVALID_TITLE", "INVALID_TAGS", "INVALID_FIELDS") }?.let { Notice(errorText(it), true) }
-            if (!ready) TextButton(onClick = { client.vaultDrafts.load() }) { Text(str(R.string.text_retry_563171c)) }
             if (failure == null && state.session?.accountKind != "local") Text(str(R.string.text_saved_on_this_device_first_then_synchronized_unsynced_changes_can_0921bb4),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

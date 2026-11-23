@@ -67,7 +67,7 @@ android {
         applicationId = "net.dmsg.android"
         minSdk = 31
         targetSdk = 36
-        versionCode = 7
+        versionCode = 8
         versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_CONFIG", quoted(""))

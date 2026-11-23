@@ -151,7 +151,7 @@ import kotlinx.coroutines.launch
                     val pageFrame: @Composable (PageKey, @Composable (Boolean) -> Unit) -> Unit = { key, content ->
                         val page = key.route
                         val id = page.id.orEmpty()
-                        val current = page == navigation.current
+                        val current = key.workspace == navigation.workspace && key.depth == navigation.stack.size && page == navigation.current
                         val conversation = page.page == "messages" && id.isNotEmpty()
                         val browsing = !wide && id.isEmpty() && page.page in browseRoutes
                         val bar = !browsing && (wide || !conversation || !current || threadSearch == BrowseSearchMode.Browse)
@@ -162,12 +162,18 @@ import kotlinx.coroutines.launch
                         val pageRoot = page.page in destinations.map { it.id }
                         val rootLike = pageRoot && (wide || id.isEmpty()) || pageScopeList
                         val pageBar = remember { PageBar() }
-                        val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-                        Column(Modifier.fillMaxSize().then(if (bar) Modifier.nestedScroll(collapse.nestedScrollConnection) else Modifier.statusBarsPadding())) {
+                        val compactBar = pageRoot && (wide || conversation || page.page == "files" && id.isNotEmpty())
+                        val collapse = if (bar && !compactBar) TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState()) else null
+                        val pageModifier = when {
+                            !bar -> Modifier.statusBarsPadding()
+                            collapse != null -> Modifier.nestedScroll(collapse.nestedScrollConnection)
+                            else -> Modifier
+                        }
+                        Column(Modifier.fillMaxSize().then(pageModifier)) {
                             if (bar) {
                                 val label = pageBar.title ?: when {
                                     local && page.page == "account" -> str(R.string.offline_account)
-                                    conversation -> channelListing.valueOrNull()?.find { it.id == id }?.name ?: str(R.string.text_conversation_654b88b)
+                                    conversation && !wide -> channelListing.valueOrNull()?.find { it.id == id }?.name ?: str(R.string.text_conversation_654b88b)
                                     // A vault item names itself through ScreenBar.
                                     page.page == "vault" && id.isNotEmpty() && !wide -> ""
                                     pageScopeList -> str(destinations.first { it.id == key.workspace.route }.label)
@@ -185,7 +191,7 @@ import kotlinx.coroutines.launch
                                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
                                 // Wide roots keep one bar over both panes and a conversation or an open file stays compact;
                                 // other pages, a vault item included, show a large title that collapses.
-                                if (pageRoot && (wide || conversation || page.page == "files" && id.isNotEmpty())) TopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors)
+                                if (compactBar) TopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors)
                                 else LargeTopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors, scrollBehavior = collapse)
                             }
                             if (conversation && current) {
@@ -195,7 +201,11 @@ import kotlinx.coroutines.launch
                                     if (notice.visuals.message != headerNotice) Snackbar(notice)
                                 }
                             }
-                            CompositionLocalProvider(LocalBrowseChrome provides BrowseChrome(if (bar) null else back, if (rootLike && !bar) activityButton else { {} }), LocalPageBar provides pageBar) {
+                            CompositionLocalProvider(
+                                LocalBrowseChrome provides BrowseChrome(if (bar) null else back, if (rootLike && !bar) activityButton else { {} }),
+                                LocalPageBar provides pageBar,
+                                LocalPageActive provides current,
+                            ) {
                                 Box(Modifier.weight(1f).fillMaxWidth()) { content(pageScopeList) }
                             }
                         }
@@ -338,12 +348,12 @@ import kotlinx.coroutines.launch
                                         if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                             list = { pageFrame(PageKey(Workspace.ACCOUNT, 1, Route("account"))) { AccountScreen(client, state, ::go, openLogin) } },
                                             detail = {
-                                                AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = false) { key ->
+                                                AnimatedPage(navigation, !imeVisible && !showEditor, client.navigation::back, itemPages = false) { key ->
                                                     if (key.route.page == "account") Box(Modifier.statusBarsPadding()) { EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) }
                                                     else framedPage(key)
                                                 }
                                             })
-                                        else AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = !wide, content = framedPage)
+                                        else AnimatedPage(navigation, !imeVisible && !showEditor, client.navigation::back, itemPages = !wide, content = framedPage)
                                     }
                                     // Work in progress shows over the page instead of reserving a strip on every page.
                                     if (state.busy) LinearProgressIndicator(Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth())
@@ -386,22 +396,24 @@ private data class PageKey(val workspace: Workspace, val depth: Int, val route: 
     val target = PageKey(navigation.workspace, navigation.stack.size, navigation.current)
     val currentTarget by rememberUpdatedState(target)
     val previous = navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.let { PageKey(navigation.workspace, navigation.stack.lastIndex, it) }
+    fun contentKey(page: PageKey): Any = if (itemPages && page.route.page in setOf("vault", "messages")) page else page.workspace to page.route.page
+    // A shared slot cannot show both routes. Keep it intact until back commits.
+    val preview = previous?.takeIf { contentKey(it) != contentKey(target) }
     val pages = remember { SeekableTransitionState(target) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(target) { pages.animateTo(target) }
     PredictiveBackHandler(enabled = backEnabled && previous != null) { progress ->
-        val to = checkNotNull(previous)
         try {
-            progress.collect { event -> pages.seekTo(event.progress, to) }
+            progress.collect { event -> if (preview != null) pages.seekTo(event.progress, preview) }
             back()
         } catch (cancelled: CancellationException) {
-            scope.launch { pages.animateTo(currentTarget) }
+            if (preview != null) scope.launch { pages.animateTo(currentTarget) }
             throw cancelled
         }
     }
     rememberTransition(pages, label = "page").AnimatedContent(
         modifier = Modifier.fillMaxSize(),
-        contentKey = { if (itemPages && it.route.page in setOf("vault", "messages")) it else it.workspace to it.route.page },
+        contentKey = ::contentKey,
         transitionSpec = {
             val from = initialState
             val to = targetState

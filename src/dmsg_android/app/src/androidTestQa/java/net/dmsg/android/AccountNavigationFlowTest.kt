@@ -11,8 +11,12 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
+import net.dmsg.android.core.FileDetails
 import net.dmsg.android.core.Route
+import net.dmsg.android.core.decode
+import net.dmsg.android.core.parseFileDetails
 import net.dmsg.android.platform.str
+import net.dmsg.android.ui.messageTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -81,6 +85,43 @@ class AccountNavigationFlowTest {
         compose.onNode(parent).assertExists()
         assertEquals("account", client.navigation.state.value.current.page)
         compose.mainClock.autoAdvance = true
+    }
+
+    @Test fun cancellingBackKeepsTheSelectedFileVersion() {
+        compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
+        val client = compose.activity.qaClient
+        var seeded: FileDetails? = null
+        compose.runOnIdle {
+            client.perform({ parseFileDetails(it.seedUiFileHistory().decode()) }, key = "qa:file-history") { seeded = it }
+        }
+        compose.waitUntil(10_000) { seeded != null }
+        val file = checkNotNull(seeded)
+        val earlier = file.versions.first { !it.current }
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.select(file.file.id) }
+        compose.waitUntil(10_000) { client.library.detail.value()?.file?.id == file.file.id }
+        val versions = compose.onNodeWithText(str(R.string.text_versions_0ff2bdb))
+        val beforeSwipe = versions.getUnclippedBoundsInRoot().top
+        compose.onNodeWithTag("workspace-content").performTouchInput {
+            swipeUp(startY = height * 0.75f, endY = height * 0.4f, durationMillis = 400)
+        }
+        assertTrue("A swipe must scroll the file details under the compact bar", versions.getUnclippedBoundsInRoot().top < beforeSwipe - 32.dp)
+        compose.onNode(hasText(messageTime(earlier.createdAt)) and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick) { it() }
+        val restore = compose.onNodeWithText(str(R.string.text_make_this_the_current_version_ddcd50e))
+        restore.assertExists()
+
+        val dispatcher = compose.activity.onBackPressedDispatcher
+        compose.mainClock.autoAdvance = false
+        compose.runOnUiThread {
+            dispatcher.dispatchOnBackStarted(BackEventCompat(0f, 1_300f, 0f, BackEventCompat.EDGE_LEFT))
+            dispatcher.dispatchOnBackProgressed(BackEventCompat(240f, 1_300f, 0.4f, BackEventCompat.EDGE_LEFT))
+        }
+        compose.mainClock.advanceTimeBy(64)
+        compose.runOnUiThread { dispatcher.dispatchOnBackCancelled() }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.mainClock.autoAdvance = true
+        assertEquals(file.file.id, client.navigation.state.value.current.id)
+        restore.assertExists()
     }
 
     @Test fun groupedAccountActionsKeepTheirParentAndWorkspaceRootsStayUsable() {
@@ -162,4 +203,3 @@ class AccountNavigationFlowTest {
         }
     }
 }
-

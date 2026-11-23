@@ -123,7 +123,8 @@ extension SessionModel {
             if ProcessInfo.processInfo.arguments.contains("--ui-vault-field-failure") && attempt == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
             let secret = item.id == "fixture-api" ? "L0ng_API-key_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\nSecond-line_0O1Il_0123456789" : "fixture-secret"
             return SecretValue(generation: 0, value: field.kind == "otp" ? "123456" : field.concealed ? secret : field.value,
-                remainingMs: field.kind == "otp" ? (ProcessInfo.processInfo.arguments.contains("--ui-vault-long-code") ? 6000 : 2000) : nil)
+                remainingMs: field.kind == "otp" ? (ProcessInfo.processInfo.arguments.contains("--ui-vault-long-code") ? 6000 : 2000) : nil,
+                periodMs: field.kind == "otp" ? 30_000 : nil)
         }
         #endif
         guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }

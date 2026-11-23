@@ -5,6 +5,8 @@ import net.dmsg.android.core.objectValue
 import net.dmsg.android.core.rows
 import net.dmsg.android.core.required
 import android.graphics.Bitmap
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -203,9 +205,7 @@ class WorkspaceFlowTest {
         val field = compose.onNodeWithTag("browse-search-editor")
         field.performTextInput("Matching")
         field.performImeAction()
-        val first = compose.onNodeWithText("Matching one.txt")
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Matching one.txt").fetchSemanticsNodes().isNotEmpty() }
-        first.performTouchInput { longClick() }
         compose.onNodeWithText("Select visible items").performClick()
         compose.runOnIdle { assertEquals(ids, client.library.selection.value) }
         compose.onNodeWithTag("browse-search-entry").assertTextContains("Matching")
@@ -1572,6 +1572,12 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Local copy saved to Files").assertExists()
         assertFalse(client.state.value.operations.any { it.startsWith("message:file-save:") })
         capture("qa-message-saved-attachment")
+        val message = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.OnLongClick) and hasText("Local copy saved to Files"))
+        compose.onRoot().performKeyInput { pressKey(Key.Tab) }
+        message.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        message.assertIsFocused().performKeyInput { pressKey(Key.Enter) }
+        compose.onNodeWithText("Report message").assertIsDisplayed()
+        assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
         compose.onNodeWithText("Preview", substring = false).performScrollTo().performClick()
         compose.waitUntil(10_000) { client.filePreview.preview.value()?.bitmap != null }
         compose.onNodeWithText("Complete file verified").assertExists()
@@ -1771,6 +1777,7 @@ class WorkspaceFlowTest {
         capture("qa-vault-history")
         compose.onNodeWithTag("vault-version:" + previous.revision).performClick()
         compose.waitUntil(10_000) { client.vaultHistory.historical.value()?.revision == previous.revision }
+        compose.onNodeWithText(previous.title).assertIsDisplayed()
         compose.onNodeWithText("You are viewing an immutable historical version.").assertExists()
         compose.onNodeWithText("Offline QA fixture · no real credentials").assertExists()
         assertEquals(current.revision, client.vault.detail.value()?.revision)

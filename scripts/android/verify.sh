@@ -44,9 +44,12 @@ build() {
   done
 }
 
-device() {
+device() (
   : "${ANDROID_SERIAL:?Select the dedicated test device with ANDROID_SERIAL}"
   adb -s "$ANDROID_SERIAL" get-state
+  local marker
+  marker="$(adb -s "$ANDROID_SERIAL" shell mktemp /data/local/tmp/dmsg-captures.XXXXXX | tr -d '\r')"
+  trap 'adb -s "$ANDROID_SERIAL" shell rm -f "$marker" >/dev/null || true' EXIT
   (
     cd src/dmsg_android
     ./gradlew --console=plain --dependency-verification=strict \
@@ -62,22 +65,25 @@ device() {
       -Pandroid.testInstrumentationRunnerArguments.networkProbe=true \
       :app:connectedProductionNoneDebugAndroidTest
   )
-  screenshots
-}
+  screenshots "$marker"
+)
 
 # The QA suite copies its captures (kit gallery, root pages, languages, windows) to
-# /sdcard/Download/dmsg-*. Keep them with the reports so a change's before/after runs
-# can be compared directory by directory.
+# /sdcard/Download/dmsg-*. Keep this run's captures with the reports for comparison.
 screenshots() {
   local output="src/dmsg_android/app/build/reports/dmsg/screenshots"
+  local paths png target
+  paths="$(adb -s "$ANDROID_SERIAL" shell "for d in /sdcard/Download/dmsg-*; do
+    if [ -d \"\$d\" ]; then find \"\$d\" -type f -name '*.png' -newer '$1' || exit; fi
+  done" | tr -d '\r')"
   rm -rf "$output"
   mkdir -p "$output"
-  local dir
-  while IFS= read -r dir; do
-    [[ -n "$dir" ]] || continue
-    adb -s "$ANDROID_SERIAL" pull -q "$dir" "$output/"
-  done < <(adb -s "$ANDROID_SERIAL" shell 'for d in /sdcard/Download/dmsg-*; do [ -d "$d" ] && printf "%s\n" "$d"; done' | tr -d '\r')
-  find "$output" -type f ! -name '*.png' -delete
+  while IFS= read -r png; do
+    [[ -n "$png" ]] || continue
+    target="$output/${png#/sdcard/Download/}"
+    mkdir -p "${target%/*}"
+    adb -s "$ANDROID_SERIAL" pull -q "$png" "$target"
+  done <<< "$paths"
   printf 'Screenshots: %s (%s files)\n' "$output" "$(find "$output" -name '*.png' | wc -l | tr -d ' ')"
 }
 

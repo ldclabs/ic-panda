@@ -167,6 +167,7 @@ async fn local_password_reads_do_not_require_an_ii_session() {
         .await
         .unwrap();
     assert_eq!(value.value, "synthetic-password");
+    assert_eq!(value.period_ms, None);
     let locked = engine.lock().await.unwrap();
     assert_eq!(locked.state, "locked");
     assert!(
@@ -175,6 +176,37 @@ async fn local_password_reads_do_not_require_an_ii_session() {
             .await
             .is_err()
     );
+}
+
+#[tokio::test]
+async fn otp_reveal_returns_the_configured_period() {
+    let fixture = Fixture::new(None).await;
+    let engine = &fixture.engine;
+    let item = engine
+        .host
+        .with(|c| {
+            c.vault_create(
+                "login",
+                &dmsg_client::vault::Changes {
+                    title: Some("Local OTP".into()),
+                    fields: Some(vec![dmsg_client::vault::FieldChange {
+                        id: Some("otp".into()),
+                        kind: Some("otp".into()),
+                        value: Some("otpauth://totp/Test?secret=GEZDGNBVGY3TQOJQ&period=17".into()),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    let value = engine
+        .reveal_field(item.id, item.revision, "otp".into())
+        .await
+        .unwrap();
+    assert_eq!(value.period_ms, Some(17_000));
+    assert!((1..=17_000).contains(&value.remaining_ms.unwrap()));
 }
 
 #[tokio::test]

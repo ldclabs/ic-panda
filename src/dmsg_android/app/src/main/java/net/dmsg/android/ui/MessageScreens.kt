@@ -6,7 +6,11 @@ import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
 import net.dmsg.android.platform.str
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.ui.graphics.Color
@@ -15,6 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -185,6 +194,7 @@ import net.dmsg.core.MessageItem
     val noticeOwner = remember(channel) { java.util.UUID.randomUUID().toString() }
     val noticeView = androidx.compose.ui.platform.LocalView.current
     val noticeFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    val pageActive by rememberUpdatedState(LocalPageActive.current)
     var noticeActive by remember(channel) { mutableStateOf(true) }
     var visibleThrough by remember(channel) { mutableStateOf<ULong?>(null) }
     DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner) } }
@@ -227,18 +237,18 @@ import net.dmsg.core.MessageItem
         queuedId = null
     }
     LaunchedEffect(channel, state.epoch) { client.messages.browse(); client.safety.loadBlocks(); client.messages.load(channel, search = "") }
-    LaunchedEffect(channel, rows, search, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
-        if (search.isNotBlank()) {
+    LaunchedEffect(channel, rows, search, pageActive, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
+        if (!pageActive || search.isNotBlank()) {
             visibleThrough = null
             client.notifications.hide(noticeOwner)
             return@LaunchedEffect
         }
         snapshotFlow { scroll.layoutInfo.visibleItemsInfo.mapNotNull { visible -> sequences[visible.key] }.maxOrNull() }
             .distinctUntilChanged().collect { through ->
-                if (through != null && noticeFocused && state.unlocked && !state.concealed && timeline is ReadState.Ready) {
+                if (through != null && pageActive && noticeFocused && state.unlocked && !state.concealed && timeline is ReadState.Ready) {
                     if (through > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, through)
                     visibleThrough = through
-                    if (timeline is ReadState.Ready) client.notifications.observed(NoticeTarget("channel", channel), through, noticeOwner) { noticeActive && noticeView.hasWindowFocus() && visibleThrough != null }
+                    client.notifications.observed(NoticeTarget("channel", channel), through, noticeOwner) { pageActive && noticeActive && noticeView.hasWindowFocus() && visibleThrough != null }
                 } else {
                     visibleThrough = null; client.notifications.hide(noticeOwner)
                 }
@@ -477,10 +487,25 @@ internal fun listTime(ms: ULong?, now: Long = System.currentTimeMillis()): Strin
     }
 }
 
-/** A message's actions open on a long press; a tap does nothing, so reading never opens a menu by accident. */
-private fun Modifier.longPressActions(key: Any, label: String, haptics: HapticFeedback, open: () -> Unit): Modifier =
-    pointerInput(key) { detectTapGestures(onLongPress = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); open() }) }
-        .semantics { onLongClick(label) { open(); true } }
+/** Open actions with a long press, an accessibility action, or keyboard activation. */
+@Composable private fun Modifier.longPressActions(key: Any, label: String, haptics: HapticFeedback, open: () -> Unit): Modifier {
+    val latestOpen by rememberUpdatedState(open)
+    val interaction = remember { MutableInteractionSource() }
+    return pointerInput(key, haptics) {
+        detectTapGestures(onLongPress = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); latestOpen() })
+    }.semantics(mergeDescendants = true) { onLongClick(label) { open(); true } }
+        .onKeyEvent { event ->
+            when (event.key) {
+                Key.Enter, Key.NumPadEnter, Key.DirectionCenter, Key.Spacebar -> {
+                    if (event.type == KeyEventType.KeyUp) open()
+                    true
+                }
+                else -> false
+            }
+        }
+        .indication(interaction, LocalIndication.current)
+        .focusable(interactionSource = interaction)
+}
 
 @Composable private fun SheetAction(label: String, icon: ImageVector, destructive: Boolean = false, onClick: () -> Unit) {
     val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface

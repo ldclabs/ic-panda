@@ -46,9 +46,12 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
     val outgoing = history.valueOrNull()?.find { it.id == sent }
     val owner = remember(state.epoch) { client.currentStamp() }
     val location by rememberUpdatedState(LetterLocation(folder.name, search, editing))
+    val active = LocalPageActive.current
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
-    LaunchedEffect(selected, letter?.id) { letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) } }
+    LaunchedEffect(active, selected, letter?.id) {
+        if (active) letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) }
+    }
     Column(Modifier.fillMaxSize()) {
         if (route.id == null) {
             WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),

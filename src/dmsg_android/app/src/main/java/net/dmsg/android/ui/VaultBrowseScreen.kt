@@ -53,7 +53,7 @@ fun vaultKindName(kind: String): String = when (kind) {
     val savedAccounts by client.accountWorkspace.accounts.state.collectAsStateWithLifecycle()
     LaunchedEffect(tools, localMode) { if (tools && !localMode) client.accountWorkspace.accounts(resolveNames = false) }
     LaunchedEffect(Unit) { client.vault.browse() }
-    BackHandler(enabled = query.trash, onBack = client.vault::toggleTrash)
+    BackHandler(enabled = LocalPageActive.current && query.trash, onBack = client.vault::toggleTrash)
     key(query.trash) {
         WorkspaceBrowser(str(if (query.trash) R.string.text_trash_8af1079 else R.string.text_vault_ede2a06),
             query.text, { changeQuery(query.copy(text = it.take(1000))) }, str(R.string.text_search_vault_f6e42b2),

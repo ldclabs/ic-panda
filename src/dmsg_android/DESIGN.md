@@ -266,6 +266,7 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
 - **Predictive back** scrubs the back transition with the gesture
   (`SeekableTransitionState`), so the parent page and its bar show as the
   finger moves; cancelling returns and releasing completes the transition.
+  Routes that update a shared pane keep its selection until the gesture commits.
 - **Lists** move inserted, removed and reordered rows with `animateItem()`.
 - **Small feedback.** Switches tick on and off, a segmented choice ticks once,
   copying confirms, and a long press on a message buzzes as the sheet opens
@@ -347,7 +348,7 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
    - the card is lighter than the page in light and dark;
    - beside the matching Android 16 Settings page or Google app on the same
      emulator, nothing reads heavier or busier.
-4. `scripts/android/verify.sh device` ends by pulling the suite's captures
+4. `scripts/android/verify.sh device` ends by pulling the current run's captures
    (`/sdcard/Download/dmsg-*`, including the kit gallery) into
    `app/build/reports/dmsg/screenshots/`; keep the run from before a visual
    change and compare the two directories, and attach before/after pairs to

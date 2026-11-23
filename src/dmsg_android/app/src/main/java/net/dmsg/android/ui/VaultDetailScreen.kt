@@ -132,6 +132,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
+            if (historical) Text(item.title, style = MaterialTheme.typography.headlineSmall)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SecretIcon(item.kind)
                 Column(Modifier.weight(1f)) {
@@ -160,8 +161,17 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                 historical -> Notice(str(R.string.text_you_are_viewing_an_immutable_historical_version_0b9544a))
                 item.reserved -> Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
             }
-            item.fields.filter { it.value.isNotEmpty() }.groupBy { it.section }.forEach { (section, fields) ->
-                Section(title = section.ifBlank { null }) {
+            val sections = remember(item.fields) {
+                val groups = mutableListOf<MutableList<VaultField>>()
+                item.fields.filter { it.value.isNotEmpty() }.forEach { field ->
+                    val group = groups.lastOrNull()
+                    if (group != null && group.first().section == field.section) group.add(field)
+                    else groups.add(mutableListOf(field))
+                }
+                groups
+            }
+            sections.forEach { fields ->
+                Section(title = fields.first().section.ifBlank { null }) {
                     fields.forEach { field -> key(item.revision, field.id) { SecretValueRow(client, item, field, historical) } }
                 }
             }
@@ -169,7 +179,10 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                 ListItem(headlineContent = { SelectionContainer { Text(item.notes) } }, modifier = Modifier.clipTo(rowShape()))
             }
             if (item.files.isNotEmpty()) Section(title = str(R.string.text_attachments_be5733e)) {
-                if (historical) item.files.forEach { file -> ListRow(file) }
+                if (historical) item.files.forEach { file ->
+                    ListItem(headlineContent = { SelectionContainer { Text(file, style = MaterialTheme.typography.bodySmall.code()) } },
+                        modifier = Modifier.clipTo(rowShape()))
+                }
                 else ListRow(str(R.string.text_view_attachments_50edfcd), icon = Icons.Outlined.AttachFile, value = localizedNumber(item.files.size),
                     onClick = { client.navigation.push(Route("secret-attachments", id)) })
             }
@@ -206,7 +219,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     var revealed by remember { mutableStateOf<String?>(null) }
     var otp by remember { mutableStateOf<String?>(null) }
     var deadline by remember { mutableLongStateOf(0) }
-    var period by remember { mutableLongStateOf(30_000) }
+    var period by remember { mutableLongStateOf(0) }
     var tick by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
     var menu by remember { mutableStateOf(false) }
     var large by remember { mutableStateOf<String?>(null) }
@@ -229,14 +242,15 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
         val requested = SystemClock.elapsedRealtime()
         client.perform({ it.revealField(item.id, item.revision, field.id) }, key = resource, replace = true,
             onError = { if (isOtp) otpFailed = true }) { received ->
-            val left = received.remainingMs?.let { duration -> secretRemaining(duration, requested, SystemClock.elapsedRealtime()) }
+            val now = SystemClock.elapsedRealtime()
+            val left = received.remainingMs?.let { duration -> secretRemaining(duration, requested, now) }
             if (isOtp && (left == null || left == 0uL)) { otp = null; return@perform }
             val value = received.copy(remainingMs = left)
             if (isOtp) {
-                otp = value.value; tick = SystemClock.elapsedRealtime()
+                otp = value.value; tick = now
                 val remaining = (left ?: 0u).coerceAtMost(300_000u).toLong()
                 deadline = tick + remaining
-                period = ((remaining + 29_999) / 30_000).coerceAtLeast(1) * 30_000
+                period = received.periodMs?.toLong() ?: 0
             }
             action(value)
         }
@@ -269,7 +283,9 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     val code = otp?.takeIf { tick < deadline }
     val shown = if (isOtp) code != null else revealed != null
     val value = if (isOtp) code ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
-    val website = runCatching { URI(field.value) }.getOrNull()?.takeIf { field.kind == "url" && !field.concealed && it.scheme?.lowercase() in listOf("https", "http") && !it.host.isNullOrEmpty() }
+    val website = if (field.kind == "url" && !field.concealed) {
+        runCatching { URI(field.value) }.getOrNull()?.takeIf { it.scheme?.lowercase() in listOf("https", "http") && !it.host.isNullOrEmpty() }
+    } else null
     val style = when {
         isOtp -> MaterialTheme.typography.headlineSmall.tabular()
         field.concealed -> MaterialTheme.typography.bodyLarge.code()
@@ -290,7 +306,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             },
             trailingContent = if (readOnly) null else { {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (code != null) CircularProgressIndicator(progress = { ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) },
+                    if (code != null && period > 0) CircularProgressIndicator(progress = { ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) },
                         Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.5.dp)
                     if (field.concealed && (!isOtp || historical)) IconButton(onClick = ::toggleReveal) {
                         Icon(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,

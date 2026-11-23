@@ -12,8 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
 
 /**
- * What the displayed page adds to the shared scaffold. Pages declare it while they are shown;
- * during a transition the entering page's declaration wins.
+ * What the active page adds to the shared scaffold.
  */
 @Stable internal class ScreenChrome {
     var fab by mutableStateOf<(@Composable () -> Unit)?>(null)
@@ -23,9 +22,11 @@ import androidx.compose.ui.unit.dp
 internal val FabClearance = 88.dp
 
 internal val LocalScreenChrome = staticCompositionLocalOf { ScreenChrome() }
+internal val LocalPageActive = staticCompositionLocalOf { true }
 
 /** The page's floating action button, shown by the scaffold above the navigation bar and below snackbars. */
 @Composable internal fun ScreenFab(content: @Composable () -> Unit) {
+    if (!LocalPageActive.current) return
     val chrome = LocalScreenChrome.current
     val latest by rememberUpdatedState(content)
     DisposableEffect(chrome) {

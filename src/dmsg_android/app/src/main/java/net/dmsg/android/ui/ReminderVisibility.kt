@@ -22,13 +22,13 @@ internal fun Modifier.reminderVisible(client: ClientController, target: NoticeTa
     val lifecycleState by lifecycle.currentStateFlow.collectAsState()
     val focused = LocalWindowInfo.current.isWindowFocused
     var visible by remember { mutableStateOf(false) }
+    val active by rememberUpdatedState(LocalPageActive.current)
     val currentThrough by rememberUpdatedState(through)
     DisposableEffect(client, owner) { onDispose { visible = false; client.notifications.hide(owner) } }
-    LaunchedEffect(visible, focused, lifecycleState, currentThrough, revision) {
+    LaunchedEffect(active, visible, focused, lifecycleState, currentThrough, revision) {
         client.notifications.hide(owner)
-        if (visible && focused && lifecycleState.isAtLeast(Lifecycle.State.RESUMED))
-            client.notifications.observed(target, currentThrough, owner) { visible && view.hasWindowFocus() && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
-        else client.notifications.hide(owner)
+        if (active && visible && focused && lifecycleState.isAtLeast(Lifecycle.State.RESUMED))
+            client.notifications.observed(target, currentThrough, owner) { active && visible && view.hasWindowFocus() && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
     }
     onGloballyPositioned {
         val bounds = it.boundsInWindow()

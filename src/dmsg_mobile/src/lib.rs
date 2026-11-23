@@ -1072,17 +1072,18 @@ impl MobileEngine {
                         Error::Forbidden,
                     )?;
                     let field = entry.item.field(&field).ok_or(Error::NotFound)?;
-                    let (value, remaining_ms) = if field.kind == "otp" {
+                    let (value, remaining_ms, period_ms) = if field.kind == "otp" {
                         let code = dmsg_client::vault::otp::parse(&field.value)?
                             .code(dmsg_client::now_ms());
-                        (code.code, Some(code.remaining_ms))
+                        (code.code, Some(code.remaining_ms), Some(code.period_ms))
                     } else {
-                        (field.value.clone(), None)
+                        (field.value.clone(), None, None)
                     };
                     Ok(SecretValue {
                         generation,
                         value,
                         remaining_ms,
+                        period_ms,
                     })
                 })
             })

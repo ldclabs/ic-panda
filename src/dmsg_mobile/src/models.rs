@@ -257,6 +257,7 @@ pub struct SecretValue {
     pub generation: u64,
     pub value: String,
     pub remaining_ms: Option<u64>,
+    pub period_ms: Option<u64>,
 }
 
 #[derive(uniffi::Record)]
