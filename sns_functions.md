@@ -80,3 +80,4 @@
 3_044 mpld4-maaaa-aaaas-qhepa-cai admin_set_admission_key
 3_045 mpld4-maaaa-aaaas-qhepa-cai admin_set_android_signers
 3_046 uwist-sqaaa-aaaaj-qsjyq-cai set_google_play_config
+3_047 uwist-sqaaa-aaaaj-qsjyq-cai set_promo_config
