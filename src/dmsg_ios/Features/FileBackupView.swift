@@ -41,7 +41,7 @@ struct FileBackupView: View {
                             }
                             LabeledContent("Version", value: file.current).textSelection(.enabled)
                                 .accessibilityIdentifier("backup.revision." + file.backupKey)
-                        }.font(.caption)
+                        }.font(.footnote)
                     }
                     if let outcome = outcomes[file.backupKey] {
                         Label(outcome.message, systemImage: outcome.failed ? "exclamationmark.circle" : "checkmark.circle").font(.footnote)
@@ -126,8 +126,8 @@ struct UnbackedVersionsView: View {
                         })) {
                             VStack(alignment: .leading) {
                                 Text(fileDate(version.createdAt), format: .dateTime)
-                                Text(fileSize(version.size) + " · " + String(localized: version.current ? "Current version" : "Historical version")).font(.caption)
-                                if version.status == "backing_up" { Text("Backing up…").font(.caption) }
+                                Text(fileSize(version.size) + " · " + String(localized: version.current ? "Current version" : "Historical version")).font(.footnote)
+                                if version.status == "backing_up" { Text("Backing up…").font(.footnote) }
                             }
                         }.accessibilityIdentifier("backup.choose." + key)
                     }
@@ -141,7 +141,7 @@ struct UnbackedVersionsView: View {
                     } label: {
                         VStack {
                             Text("Back up to cloud")
-                            if !selection.isEmpty { Text(verbatim: "\(selection.count.formatted()) · \(fileSize(selected.reduce(0) { $0 + $1.size }))").font(.caption) }
+                            if !selection.isEmpty { Text(verbatim: "\(selection.count.formatted()) · \(fileSize(selected.reduce(0) { $0 + $1.size }))").font(.footnote) }
                         }.frame(maxWidth: .infinity)
                     }.buttonStyle(.borderedProminent).disabled(selection.isEmpty || loading).padding().background(.bar)
                         .accessibilityIdentifier("backup.review-selected")

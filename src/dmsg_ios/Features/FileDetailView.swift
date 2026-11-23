@@ -206,8 +206,8 @@ struct FileDetailView: View {
                 if let time = file.updatedAt ?? file.createdAt { LabeledContent("Modified") { Text(fileDate(time), format: .dateTime) } }
                 if let backup = file.backup { LabeledContent("Backed up") { Text(fileDate(backup.backedUpAt), format: .dateTime) } }
                 DisclosureGroup("Integrity") {
-                    LabeledContent("Version", value: file.current).font(.caption).textSelection(.enabled)
-                    Text(file.sha256).font(.caption.monospaced()).textSelection(.enabled)
+                    LabeledContent("Version", value: file.current).font(.footnote).textSelection(.enabled)
+                    Text(file.sha256).font(.footnote.monospaced()).textSelection(.enabled)
                     Button("Copy SHA-256") { model.clipboard.copy(file.sha256); model.notice = String(localized: "Copied") }
                 }
             }

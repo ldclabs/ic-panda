@@ -45,7 +45,7 @@ struct VaultLargeTypeView: View {
                         .disabled(text == nil).accessibilityIdentifier("vault.large.copy")
                 }
             }
-        }.privateScreen().navigationTitle(vaultFieldTitle(target.field)).navigationBarTitleDisplayMode(.inline)
+        }.privateScreen(.plain).navigationTitle(vaultFieldTitle(target.field)).navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier("vault.large.done") } }
             .presentationDetents([.large]).presentationDragIndicator(.visible)
             .task(id: "\(model.epoch):\(model.concealed):\(reload)") { await load() }

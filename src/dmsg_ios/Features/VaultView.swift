@@ -36,7 +36,7 @@ struct VaultView: View {
                     }
                     }.plainListRows(selectable: selection != nil)
                 }.listStyle(.plain).refreshable { await model.synchronize() }
-            }.privateScreen().navigationTitle("Vault")
+            }.privateScreen(.plain).navigationTitle("Vault")
                 .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search your vault")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
@@ -143,7 +143,7 @@ private struct VaultBrowseBar: View {
                         } label: {
                             HStack(spacing: 5) {
                                 Text(moreSelected ? vaultKindName(model.vaultFilter) : "More types")
-                                Image(systemName: "chevron.down").font(.caption)
+                                Image(systemName: "chevron.down").font(.footnote)
                             }.browseTabShape(selected: moreSelected)
                         }.id("types").accessibilityAddTraits(moreSelected ? .isSelected : []).accessibilityIdentifier("vault.types")
                     }.padding(.horizontal, 16)
@@ -206,12 +206,12 @@ struct VaultRow: View {
             ObjectIcon(glyph: .vaultItem(item.kind))
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                if item.subtitle.isEmpty { Text(vaultKindName(item.kind)).font(.caption).foregroundStyle(.secondary) }
-                else { Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1) }
+                if item.subtitle.isEmpty { Text(vaultKindName(item.kind)).rowSubtitle() }
+                else { Text(item.subtitle).rowSubtitle().lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1) }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            if item.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Theme.forest).accessibilityLabel("Favorite") }
+            if item.favorite { Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite") }
             if item.conflict { Image(systemName: "arrow.triangle.branch").accessibilityLabel("Sync conflicts") }
-            else if !item.synced && item.saveState != "local_only" { Image(systemName: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary).accessibilityLabel("Waiting to sync") }
+            else if !item.synced && item.saveState != "local_only" { Image(systemName: "arrow.triangle.2.circlepath").font(.footnote).foregroundStyle(.secondary).accessibilityLabel("Waiting to sync") }
         }
     }
 }

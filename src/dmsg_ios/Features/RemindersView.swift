@@ -195,14 +195,14 @@ private struct ReminderRow: View {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) { metadata }
                     VStack(alignment: .leading, spacing: 4) { metadata }
-                }.font(.caption).foregroundStyle(.secondary)
+                }.font(.footnote).foregroundStyle(.secondary)
                 if let deadline = item.deadline, item.open {
                     Text("Due \(ConversationTimeline.date(deadline).formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption).foregroundStyle(.primary)
+                        .font(.footnote).foregroundStyle(.primary)
                 }
             }
             if !typeSize.isAccessibilitySize {
-                Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary).padding(.top, 12).accessibilityHidden(true)
+                Image(systemName: "chevron.forward").font(.footnote).foregroundStyle(.tertiary).padding(.top, 12).accessibilityHidden(true)
             }
         }.padding(.vertical, 6).contentShape(Rectangle()).accessibilityElement(children: .combine)
     }

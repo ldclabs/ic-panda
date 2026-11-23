@@ -85,7 +85,7 @@ struct WalletDetailView: View {
             NavigationLink("This iPhone's keys") { WalletDeviceKeysView(wallet: wallet) }
             Section("Proposals") {
                 ForEach(proposals) { proposal in NavigationLink { WalletProposalView(wallet: wallet, proposal: proposal.id) } label: {
-                    VStack(alignment: .leading, spacing: 4) { Text("Proposal \(proposal.id)"); Text(proposal.status).font(.caption).foregroundStyle(.secondary) }
+                    VStack(alignment: .leading, spacing: 4) { Text("Proposal \(proposal.id)"); Text(proposal.status).font(.footnote).foregroundStyle(.secondary) }
                 } }
                 if next != nil { LoadMoreRow(title: "Load earlier proposals", working: reading, trigger: proposals.count) { await load(more: true) } }
             }
@@ -134,12 +134,12 @@ struct WalletProposalView: View {
                     LabeledContent("Signatures collected", value: "\(cosign.collected) / \(cosign.required)")
                     if let stale = cosign.stale, !stale.isEmpty {
                         Label("Signatures from cosigners \(stale.map { "#\($0)" }.joined(separator: ", ")) no longer match their current keys and were set aside; they need to sign again.", systemImage: "exclamationmark.triangle")
-                            .font(.caption).foregroundStyle(.orange)
+                            .font(.footnote).foregroundStyle(.orange)
                     }
                     Button("Cosign on this device") { work = Task { await cosignHere() } }.disabled(cosign.canCosign != true)
-                    if cosign.canCosign == false { Text("This device has no cosigner key for this proposal.").font(.caption).foregroundStyle(.secondary) }
+                    if cosign.canCosign == false { Text("This device has no cosigner key for this proposal.").font(.footnote).foregroundStyle(.secondary) }
                     if cosign.collected > 0 { ShareLink(item: cosign.packet) { Label("Share cosign packet", systemImage: "square.and.arrow.up") } }
-                    TextField("Cosign packet from another device", text: $packet, axis: .vertical).lineLimit(2...6).font(.caption.monospaced()).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    TextField("Cosign packet from another device", text: $packet, axis: .vertical).lineLimit(2...6).font(.footnote.monospaced()).textInputAutocapitalization(.never).autocorrectionDisabled()
                     Button("Import cosign packet") { work = Task { await importPacket() } }.disabled(packet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     Button("Execute with collected signatures") { executeCollected = true }.disabled(!cosign.ready)
                 } header: { Text("Cosignatures") } footer: {

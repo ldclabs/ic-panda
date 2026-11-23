@@ -302,7 +302,7 @@ struct AgentDelegationsView: View {
                             Text(controller.name ?? String(controller.generation))
                             FingerprintRow(title: "Controller ID", value: controller.agentId)
                             if controller.retiredAt == nil { Button("Review retiring controller", role: .destructive) { Task { await action { try await $0.retireAgentController(generation: controller.generation) } } } }
-                            else { Text("Revoked").font(.caption).foregroundStyle(.secondary) }
+                            else { Text("Revoked").font(.footnote).foregroundStyle(.secondary) }
                         }.buttonStyle(.borderless)
                     }
                 }
@@ -327,8 +327,8 @@ struct AgentDelegationsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             FingerprintRow(title: "Subject Agent ID", value: credential.subject)
                             Text(credentialStateTitle(credential.status)).font(.subheadline)
-                            Text(credential.scopes.joined(separator: ", ")).font(.caption)
-                            Text(credential.audiences.joined(separator: "\n")).font(.caption).environment(\.layoutDirection, .leftToRight)
+                            Text(credential.scopes.joined(separator: ", ")).font(.footnote)
+                            Text(credential.audiences.joined(separator: "\n")).font(.footnote).environment(\.layoutDirection, .leftToRight)
                             if let expiry = credential.expiresAt { LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(expiry) / 1000), style: .date) } }
                             DisclosureGroup("Details") { FingerprintRow(title: "Credential ID", value: credential.id) }
                             if credential.status != "revoked" { Button("Review revocation", role: .destructive) { Task { await action { try await $0.revokeAgentDelegation(id: credential.id, reason: nil) } } } }
@@ -382,7 +382,7 @@ private struct AuthorityFields: View {
     var body: some View {
         SettingsField("Scopes, one per line") { TextField("Scopes, one per line", text: $value.scopes, axis: .vertical).lineLimit(2...6).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
         SettingsField("Audience origins or Agent IDs, one per line") { TextField("Audience origins or Agent IDs, one per line", text: $value.audiences, axis: .vertical).lineLimit(2...6).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-        Text("Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.").font(.caption).foregroundStyle(value.valid ? Color.secondary : Color.orange)
+        Text("Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.").font(.footnote).foregroundStyle(value.valid ? Color.secondary : Color.orange)
     }
 }
 

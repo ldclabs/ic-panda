@@ -1,0 +1,69 @@
+---
+name: dMsg iOS
+colors:                       # Shared/Palette.xcassets, light / dark
+  Forest: ['#145C45', '#70C7A3']        # tint, links, selected states
+  ForestFill: ['#145C45', '#145C45']    # filled actions and own bubbles, under white labels
+  Paper: ['#F7F8F4', '#0E1512']         # plain pages: workspace lists, conversation, brand screens
+  PaperGrouped: ['#EEF2EB', '#000000']  # grouped pages: settings, details, forms
+  Card: ['#FFFFFF', '#1A2621']          # cards the app draws itself
+  Fill: ['#E8F0E9', '#233A30']          # icon tiles, quotes, selected capsules
+radii: { small: 8, regular: 12, large: 18 }   # NativeTheme.radius*
+type:
+  row-title: body (unread or emphasis: semibold)
+  row-subtitle: subheadline, secondary      # rowSubtitle()
+  metadata: footnote, secondary
+  badge: caption2 (counts and tiny glyphs only)
+---
+
+# dMsg iOS design
+
+The iOS app keeps the system's skeleton: `List`/`Form`, `Section`, `LabeledContent`,
+toolbars, `Menu`, `confirmationDialog`, `ContentUnavailableView` and the materials the
+SDK gives them. dMsg only paints a few things itself, and those follow this file.
+The diagnosis behind it is the 2026-11-23 UI quality review.
+
+## Rules
+
+- Colours come from `Shared/Palette.xcassets` through `Theme` (SwiftUI) or `NativeTheme`
+  (UIKit and extensions). No colour literals, no `Theme.forest.opacity(…)`: a quiet tint
+  is `Theme.fill`. System semantic colours (`.secondary`, `.separator`, `.red`) are fine.
+- Radii are `Theme.radiusSmall` / `radius` / `radiusLarge` (or `NativeTheme.*` in
+  extensions). Icon tiles are relative to their size.
+- Text uses text styles, never `.font(.system(size:))` with a number. `.caption` is
+  retired; metadata is `.footnote`, `caption2` is only for badges.
+- Sizes that sit next to text (icon tiles, avatars, badges) use `@ScaledMetric`.
+- `scripts/ios/test_ui_conventions.py` enforces the literal rules and the palette
+  contrasts; `verify.sh` runs it. Do not widen its exemptions to make it pass.
+
+## Surfaces
+
+- `privateScreen(.plain)` puts a page on `Paper`: the three workspace lists, the
+  conversation, large type and other scroll pages that read like a document.
+- `privateScreen()` (grouped) puts a page on `PaperGrouped`: everything with sections.
+- Grouped rows keep the system row colour. A custom `listRowBackground` loses the
+  pressed highlight, so the palette pairs the page with the system row instead: light
+  `#EEF2EB` against white (1.13:1), dark black against `#1C1C1E` (1.23:1).
+- `Card` is for what the app draws: other people's bubbles, the composer field,
+  floating notices, plan cards. On dark `Paper` it is `#1A2621` (1.18:1), as on desktop.
+
+## Words on screen
+
+- An explanation goes in its section's footer, one paragraph per section. A toggle with
+  its own explanation gets its own section, as in Settings.
+- `NoticeBar` is for a problem to act on or wait for: a failure, a pending step, a risk.
+- Placeholders do not repeat a field's label.
+
+## Icons
+
+- System actions use SF Symbols. Business objects use the desktop's Remix paths through
+  `AppGlyph` (see the README). Within one section or menu, use one family.
+
+## Checking a change
+
+Before handing over a visual change:
+
+1. `python3 -B -m unittest discover -s scripts/ios -p 'test_*.py'`.
+2. Build the `dMsg` scheme and run the UI tests of the touched screens.
+3. Screenshot the touched screens in light and dark, Simplified Chinese, Arabic (RTL)
+   and an accessibility text size, next to the matching system app (Settings,
+   Passwords, Messages, Files). Report what was actually run.

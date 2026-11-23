@@ -21,6 +21,8 @@ settings:
     # builds continue to use the prefix from their actual signing profile.
     "AppIdentifierPrefix[sdk=iphonesimulator*]": "$(DEVELOPMENT_TEAM)."
     CODE_SIGN_STYLE: Automatic
+    # System alerts, extensions and widgets take the brand green from the shared palette.
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: Forest
 packages:
   DMsgCore:
     path: CoreBridge
@@ -65,6 +67,7 @@ targets:
       - Extensions/Share
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
+      - Shared/Palette.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
@@ -82,6 +85,7 @@ targets:
     sources:
       - Extensions/Widget
       - Shared/NativeTheme.swift
+      - Shared/Palette.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
@@ -103,6 +107,7 @@ targets:
       - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
+      - Shared/Palette.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
@@ -123,6 +128,7 @@ targets:
       - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
+      - Shared/Palette.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
@@ -143,6 +149,7 @@ targets:
       - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
+      - Shared/Palette.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:

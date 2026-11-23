@@ -26,8 +26,9 @@ struct DevicesView: View {
                 NavigationLink { DeviceTransferView() } label: {
                     DeviceChoice(title: "Transfer between devices", detail: "Copy files between two authorized devices.")
                 }.accessibilityIdentifier("devices.transfer")
+            } footer: {
+                if display.loaded && !canManage { Text("An administrator device is required to change account security.") }
             }
-            if display.loaded && !canManage { Text("An administrator device is required to change account security.").font(.footnote).foregroundStyle(.secondary) }
             SettingsLoadStatus(loading: false, failed: auxiliaryFailed) { Task { await load(force: true) } }
             MovedImportSection(copies: copies, handovers: handovers) { await load() }
             Section("Authorized devices") {
@@ -37,8 +38,8 @@ struct DevicesView: View {
                             ObjectIcon(name: device.current ? "iphone" : "laptopcomputer.and.iphone")
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(model.deviceLabel(device.id) ?? (device.current ? String(localized: "This iPhone") : deviceRoleTitle(device.role))).font(.headline)
-                                Text(device.deviceId).font(.caption.monospaced()).lineLimit(1).foregroundStyle(.secondary)
-                                if device.revokedAt != nil { Text("Revoked").font(.caption).foregroundStyle(.red) }
+                                Text(device.deviceId).font(.footnote.monospaced()).lineLimit(1).foregroundStyle(.secondary)
+                                if device.revokedAt != nil { Text("Revoked").font(.footnote).foregroundStyle(.red) }
                             }
                         }
                     }.compactObjectRow()
@@ -98,15 +99,20 @@ struct DeviceDetail: View {
                 SettingsAction("Copy device ID") { model.clipboard.copy(device.deviceId); model.notice = String(localized: "Copied") }
                 if let revoked = device.revokedAt { LabeledContent("Revoked") { Text(Date(timeIntervalSince1970: Double(revoked) / 1000), style: .date) } }
                 LabeledContent("Added") { Text(Date(timeIntervalSince1970: Double(device.addedAt) / 1000), style: .date) }
-                if let source = device.addedBy { LabeledContent("Approved by") { Text(source).font(.caption.monospaced()).textSelection(.enabled) } }
+                if let source = device.addedBy { LabeledContent("Approved by") { Text(source).font(.footnote.monospaced()).textSelection(.enabled) } }
             }
             Section("Permissions") { ForEach(device.capabilities, id: \.self) { Text(deviceCapabilityTitle($0)) } }
             if device.revokedAt == nil {
-                SettingsAction("Revoke this device", role: .destructive) { confirming = true }.disabled(working || !canManage || receipts["device.revoke"] != nil)
-                ApprovalReceiptRow(receipts: receipts, key: "device.revoke") { request = $0 }
-                if !canManage { Text("An administrator device is required to change account security.").font(.footnote).foregroundStyle(.secondary) }
+                Section {
+                    SettingsAction("Revoke this device", role: .destructive) { confirming = true }.disabled(working || !canManage || receipts["device.revoke"] != nil)
+                    ApprovalReceiptRow(receipts: receipts, key: "device.revoke") { request = $0 }
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if !canManage { Text("An administrator device is required to change account security.") }
+                        Text("Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.")
+                    }
+                }
             }
-            NoticeBar(text: String(localized: "Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled."))
         }.privateScreen().navigationTitle(LocalizedStringKey(device.current ? "This iPhone" : "Device"))
             .onAppear { label = model.deviceLabel(device.id) ?? "" }
             .task(id: model.contentRevision) { await refresh() }

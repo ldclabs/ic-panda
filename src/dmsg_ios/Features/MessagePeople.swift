@@ -26,13 +26,13 @@ struct MessageIdentity: View {
             Group {
                 if let avatar = model.people.avatar(account) { Image(uiImage: avatar).resizable().scaledToFill() }
                 else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(7) }
-            }.frame(width: 36, height: 36).background(Theme.forest.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 9)).foregroundStyle(Theme.forest).accessibilityHidden(true)
+            }.frame(width: 36, height: 36).background(Theme.fill)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall)).foregroundStyle(Theme.forest).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(name ?? account).font(.subheadline.weight(.medium))
                     .lineLimit(showID ? nil : 1)
                 if showID && name != nil {
-                    Text(account).font(.caption.monospaced()).foregroundStyle(.secondary).environment(\.layoutDirection, .leftToRight)
+                    Text(account).font(.footnote.monospaced()).foregroundStyle(.secondary).environment(\.layoutDirection, .leftToRight)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
             if showID {
@@ -65,7 +65,7 @@ struct MessageAccountInput: View {
                     if wasFocused && !nowFocused { leftField = true }
                 }
         }
-        if invalid { Text("Enter a valid account ID.").font(.caption).foregroundStyle(.red) }
+        if invalid { Text("Enter a valid account ID.").font(.footnote).foregroundStyle(.red) }
     }
 }
 

@@ -41,7 +41,7 @@ struct SecretPackageImportView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(preview.preview.title).font(.title3.bold())
                         Text(Date(timeIntervalSince1970: Double(preview.preview.createdAt) / 1000), style: .date)
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.footnote).foregroundStyle(.secondary)
                     }
                     if let origin = preview.channelSource {
                         FingerprintRow(title: "Sender account", value: origin.senderAccount)
@@ -65,7 +65,7 @@ struct SecretPackageImportView: View {
                             Toggle(isOn: Binding(get: { attachments.contains(index) }, set: { if $0 { attachments.insert(index) } else { attachments.remove(index) } })) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(file.name).lineLimit(2)
-                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.caption).foregroundStyle(.secondary)
+                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -78,7 +78,7 @@ struct SecretPackageImportView: View {
             }
             if let completed {
                 Section("Already imported") {
-                    ForEach(completed, id: \.self) { Text($0).font(.caption.monospaced()).textSelection(.enabled) }
+                    ForEach(completed, id: \.self) { Text($0).font(.footnote.monospaced()).textSelection(.enabled) }
                 }
             }
             Text("The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.")

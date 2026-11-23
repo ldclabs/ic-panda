@@ -27,12 +27,12 @@ struct LetterComposerView: View {
                         SettingsField("Message", counter: utf8ByteCounter(draft.text, limit: 6000), invalid: draft.text.utf8.count > 6000) {
                             TextField("Message", text: binding(\.text), axis: .vertical).lineLimit(5...12).accessibilityIdentifier("letter.text")
                         }
-                        if draft.text.utf8.count > 6000 { Text("This letter is too long.").font(.caption).foregroundStyle(.red) }
+                        if draft.text.utf8.count > 6000 { Text("This letter is too long.").font(.footnote).foregroundStyle(.red) }
                         DisclosureGroup("Contact invitation, if provided", isExpanded: Binding(get: { showsInvitation || draft.invitation != nil }, set: { showsInvitation = $0 })) {
                             TextField("Contact invitation, if provided", text: Binding(get: { draft.invitation ?? "" }, set: { value in
                                 var next = draft; next.invitation = value.isEmpty ? nil : value; model.letters.update(next, model: model)
                             })).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
-                            if !draft.invitationValid { Text("The invitation is invalid.").font(.caption).foregroundStyle(.red) }
+                            if !draft.invitationValid { Text("The invitation is invalid.").font(.footnote).foregroundStyle(.red) }
                         }
                     } footer: {
                         Text("Write directly to an account. The recipient decides whether to reply. Sending here is free.")
@@ -40,7 +40,7 @@ struct LetterComposerView: View {
                     if let error = model.letters.failures[initial.id] { NoticeBar(text: error) }
                     if working { ProgressView("Sending") }
                     if !draft.empty {
-                        Text(model.letters.dirty.contains(initial.id) ? "Saving draft…" : "Draft saved").font(.caption).foregroundStyle(.secondary)
+                        Text(model.letters.dirty.contains(initial.id) ? "Saving draft…" : "Draft saved").font(.footnote).foregroundStyle(.secondary)
                         SettingsAction("Discard draft", role: .destructive) { discarding = true }.disabled(working)
                     }
                 }
@@ -82,7 +82,7 @@ struct SentLetterContent: View {
         List {
             Section("Recipient") {
                 MessageIdentity(account: letter.recipient, showID: true)
-                if let date = letter.createdAt { Text(Date(timeIntervalSince1970: Double(date) / 1000), format: .dateTime).font(.caption).foregroundStyle(.secondary) }
+                if let date = letter.createdAt { Text(Date(timeIntervalSince1970: Double(date) / 1000), format: .dateTime).font(.footnote).foregroundStyle(.secondary) }
             }
             Section {
                 if let text = letter.text { Text(text).textSelection(.enabled) }
@@ -99,7 +99,7 @@ struct SentLetterContent: View {
                     if letter.editable { SettingsAction("Edit draft") { Task { editing = await model.letters.edit(letter.id, model: model) } }.disabled(working) }
                 } else { SettingsAction("Check delivery status") { Task { await model.letters.check(letter.id, model: model) } }.disabled(working) }
             }
-            DisclosureGroup("Details") { Text(letter.id).font(.caption.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight) }
+            DisclosureGroup("Details") { Text(letter.id).font(.footnote.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight) }
         }.sheet(item: $editing) { draft in NavigationStack { LetterComposerView(draft: draft) } }
     }
 }

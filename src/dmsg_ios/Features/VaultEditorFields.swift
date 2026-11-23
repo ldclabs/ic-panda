@@ -36,19 +36,19 @@ struct VaultEditorField: View {
                         Text("Field name")
                         if !textSize.isAccessibilitySize { Spacer() }
                         Text(vaultFieldKindTitle(field.kind))
-                    }.font(.caption).foregroundStyle(.secondary)
+                    }.font(.footnote).foregroundStyle(.secondary)
                     TextField("Field name", text: $field.label, prompt: Text(namePrompt))
                         .font(.body.weight(.medium)).focused(focus, equals: .name(field.id))
                         .submitLabel(.next).onSubmit { focus.wrappedValue = .value(field.id) }
                         .accessibilityIdentifier("vault.edit.name.\(field.id)")
                     if (nameVisited || validationRequested), let error = vaultFieldNameError(field) {
-                        Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("vault.edit.name-error.\(field.id)")
+                        Text(error).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("vault.edit.name-error.\(field.id)")
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
-                if compactLogin { Text(label).font(.caption).foregroundStyle(.secondary) }
-                else { Text("Value").font(.caption).foregroundStyle(.secondary) }
+                if compactLogin { Text(label).font(.footnote).foregroundStyle(.secondary) }
+                else { Text("Value").font(.footnote).foregroundStyle(.secondary) }
                 if field.concealed && !showingDraft {
                     SecureField(compactLogin ? "Password" : placeholder, text: valueBinding).focused(focus, equals: .value(field.id))
                         .submitLabel(.done).onSubmit { if let submitLogin { submitLogin() } else { focus.wrappedValue = nil } }
@@ -70,7 +70,7 @@ struct VaultEditorField: View {
                         .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
                 }
                 if (valueVisited || validationRequested), let error = vaultFieldValueError(field, existing: existing) {
-                    Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("vault.edit.field-error.\(field.id)")
+                    Text(error).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("vault.edit.field-error.\(field.id)")
                 }
             }
             if field.concealed {
@@ -85,20 +85,20 @@ struct VaultEditorField: View {
                     }
                 }.font(.footnote).buttonStyle(.borderless)
                 if existing && field.changed {
-                    Text("An empty replacement clears the saved value.").font(.caption).foregroundStyle(.secondary)
+                    Text("An empty replacement clears the saved value.").font(.footnote).foregroundStyle(.secondary)
                     Button("Keep existing value") { field.value = ""; field.changed = false }.font(.footnote)
                 }
             }
             if ["date", "month"].contains(field.kind) {
-                Text(verbatim: field.kind == "date" ? "YYYY-MM-DD" : "YYYY-MM").font(.caption).foregroundStyle(.secondary)
+                Text(verbatim: field.kind == "date" ? "YYYY-MM-DD" : "YYYY-MM").font(.footnote).foregroundStyle(.secondary)
                 Button(field.kind == "date" ? "Date" : "Month", systemImage: "calendar") { tool = .date }
                     .accessibilityIdentifier("vault.edit.calendar.\(field.id)")
                 if !field.value.isEmpty { Button("Clear") { field.value = ""; field.changed = true } }
             }
-            if field.kind == "otp" { Text("Enter a setup key or otpauth URL.").font(.caption).foregroundStyle(.secondary) }
+            if field.kind == "otp" { Text("Enter a setup key or otpauth URL.").font(.footnote).foregroundStyle(.secondary) }
             if cameraDenied {
                 Text("Camera access is unavailable. Enter a setup key or allow camera access in Settings.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if !compactLogin {
                 DisclosureGroup(isExpanded: $sectionExpanded) {
@@ -175,7 +175,7 @@ struct VaultTagEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Tags").font(.caption).foregroundStyle(.secondary)
+            Text("Tags").font(.footnote).foregroundStyle(.secondary)
             if !list.isEmpty {
                 FlowLayout(spacing: 6) {
                     ForEach(Array(list.enumerated()), id: \.offset) { index, tag in
@@ -184,7 +184,7 @@ struct VaultTagEditor: View {
                                 Text(tag).font(.subheadline).lineLimit(1)
                                 Image(systemName: "xmark").font(.caption2).accessibilityHidden(true)
                             }.padding(.horizontal, 10).frame(minHeight: 32)
-                                .foregroundStyle(Theme.forest).background(Theme.forest.opacity(0.1), in: Capsule())
+                                .foregroundStyle(Theme.forest).background(Theme.fill, in: Capsule())
                         }.buttonStyle(.borderless).accessibilityLabel(Text("Remove") + Text(verbatim: " · " + tag))
                     }
                 }

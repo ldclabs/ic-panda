@@ -12,6 +12,8 @@ struct SyncSettingsView: View {
                 SettingsAction(LocalizedStringKey(model.synchronizing ? "Syncing…" : "Sync now"), systemImage: "arrow.triangle.2.circlepath") {
                     Task { await model.synchronize(); local = await LocalOnly.load(model) }
                 }.disabled(model.busy || model.syncCoolingDown).accessibilityIdentifier("account.sync")
+            } footer: {
+                Text("Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.")
             }
             LocalOnlySection(value: local, always: true)
             Section("Cloud backups") {
@@ -21,8 +23,6 @@ struct SyncSettingsView: View {
                 else if model.cloudBackupsKnown {
                     LabeledContent("Backups found", value: model.cloudBackups.count.formatted())
                 }
-                Text("Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.")
-                    .font(.footnote).foregroundStyle(.secondary)
             }
         }.privateScreen().navigationTitle("Account synchronization")
             .task { local = await LocalOnly.load(model) }
@@ -55,8 +55,8 @@ struct AboutDMsgView: View {
                     .accessibilityIdentifier("about.website")
                 Link("See who controls the rules", destination: URL(string: "https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai")!)
                     .accessibilityIdentifier("about.governance")
+            } footer: {
                 Text("A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.")
-                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section {
                 LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")

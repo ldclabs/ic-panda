@@ -38,7 +38,7 @@ struct VaultDetailField: View {
                 HStack(spacing: 4) {
                     if let remaining, value != nil { VaultCodeCountdown(remaining: remaining) }
                     Menu("Actions", systemImage: copied ? "checkmark.circle.fill" : "ellipsis.circle.fill") { actions }
-                        .labelStyle(.iconOnly).font(.system(size: 24)).symbolRenderingMode(.palette)
+                        .labelStyle(.iconOnly).font(.title2).symbolRenderingMode(.palette)
                         .foregroundStyle(copied ? Theme.forest : Color.secondary, Color.secondary.opacity(0.12))
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                         .buttonStyle(.borderless).menuOrder(.fixed).disabled(busy)
@@ -95,7 +95,7 @@ struct VaultCodeCountdown: View {
 
     var body: some View {
         ZStack {
-            Circle().stroke(Theme.forest.opacity(0.15), lineWidth: 3)
+            Circle().stroke(Theme.fill, lineWidth: 3)
             Circle().trim(from: 0, to: CGFloat(min(remaining, 30)) / 30)
                 .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
             Text(remaining.formatted()).font(.caption2.monospacedDigit())

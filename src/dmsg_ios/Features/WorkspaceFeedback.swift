@@ -73,13 +73,13 @@ struct WorkspaceFeedback: View {
                         Button { showing = true; dismissed = status.key } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(status.title).font(.subheadline.weight(.medium))
-                                if status.count > 0 { Text(status.count.formatted()).font(.caption.monospacedDigit()) }
+                                if status.count > 0 { Text(status.count.formatted()).font(.footnote.monospacedDigit()) }
                             }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }.buttonStyle(.plain)
                         Button("Dismiss", systemImage: "xmark") { dismissed = status.key }
                             .labelStyle(.iconOnly).frame(width: 44, height: 44)
                     }.padding(.leading, 14).padding(.trailing, 4).padding(.vertical, 4)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+                        .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius))
                         .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
                         .padding(.horizontal, 16).padding(.bottom, bottomInset)
                         .accessibilityIdentifier("workspace.feedback")
@@ -108,7 +108,7 @@ struct TransientNotice: View {
         let revision = model.noticeRevision
         if let notice = model.notice, !model.concealed, model.notifications.presented == nil {
             NoticeBar(text: notice)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius))
                 .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
                 .padding(12).allowsHitTesting(false)
                 .accessibilityElement(children: .ignore).accessibilityLabel(notice).accessibilityAddTraits(.isStaticText)

@@ -55,7 +55,7 @@ struct ChannelSettingsView: View {
                 ForEach((details?.ledger?.members ?? [:]).keys.sorted(), id: \.self) { account in
                     VStack(alignment: .leading, spacing: 6) {
                         MessageIdentity(account: account, showID: true)
-                        Text(channelRoleTitle(details?.ledger?.members[account]?.role ?? "")).font(.caption)
+                        Text(channelRoleTitle(details?.ledger?.members[account]?.role ?? "")).font(.footnote)
                         if myRole == "owner" && account != model.session?.account && details?.ledger?.status != "archived" {
                             Toggle("Allow key rotation", isOn: Binding(get: { details?.ledger?.members[account]?.canRotate ?? false }, set: { allowed in
                                 selectedAction = Change(action: "role", account: account, role: details?.ledger?.members[account]?.role, canRotate: allowed)

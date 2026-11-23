@@ -140,7 +140,7 @@ struct SubscriptionView: View {
                 if let execution = usage?.execution {
                     LabeledContent("Monthly execution units", value: "\(execution.charged.formatted()) / \(execution.allowed.formatted())")
                     LabeledContent("Remaining", value: execution.remaining.formatted())
-                    Text(verbatim: "UTC · \(execution.month / 100)-\(String(format: "%02d", execution.month % 100))").font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: "UTC · \(execution.month / 100)-\(String(format: "%02d", execution.month % 100))").font(.footnote).foregroundStyle(.secondary)
                 }
                 if usageFailed || usage?.otherFailure == true {
                     NoticeBar(text: String(localized: "Some usage could not be refreshed. Unavailable values are not zero."))

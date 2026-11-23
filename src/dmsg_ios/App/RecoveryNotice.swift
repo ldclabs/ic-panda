@@ -41,11 +41,11 @@ struct RecoveryNotice: View {
                     .font(.subheadline.weight(.semibold))
                 if observation?.pending == true {
                     Text(LocalizedStringKey(model.unlocked ? "Review the request and dispute it if it is not yours." : "Unlock dMsg to review this request."))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 if model.recoveryRefreshFailed || observation?.isStale(at: date) == true {
                     Text("The last verified observation is kept. Current status could not be confirmed.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
             if model.unlocked, observation?.pending == true {
@@ -57,7 +57,7 @@ struct RecoveryNotice: View {
                 }.frame(minWidth: 44, minHeight: 44).accessibilityLabel("Check recovery status")
                     .disabled(model.checkingRecovery)
             }
-        }.padding(.horizontal, 16).padding(.vertical, 6).background(Theme.surface)
+        }.padding(.horizontal, 16).padding(.vertical, 6).background(Theme.card)
         .accessibilityIdentifier("recovery.warning")
         .sheet(isPresented: $reviewing) { NavigationStack { RecoveryView() } }
         .onChange(of: model.epoch) { _, _ in reviewing = false }

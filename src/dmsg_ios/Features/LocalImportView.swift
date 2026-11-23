@@ -37,7 +37,7 @@ struct LocalImportView: View {
                         Toggle(isOn: selection($items, entry.index)) {
                             Text(entry.title)
                             Text(verbatim: entry.state == "same" ? String(localized: "Already here") : entry.state == "deleted" ? String(localized: "Deleted here · save a copy") : entry.state == "changed" ? String(localized: "Different content · save a copy") : String(localized: "New items"))
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(.secondary)
                             let omitted = entry.attachments.filter { $0 == nil }.count
                             if omitted > 0 { LabeledContent("Omitted attachments", value: omitted.formatted()).font(.footnote) }
                         }.disabled(entry.state == "same")
@@ -50,7 +50,7 @@ struct LocalImportView: View {
                             Text(verbatim: ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file)
                                  + " · " + Date(timeIntervalSince1970: Double(file.createdAt) / 1000).formatted()
                                  + " · " + file.version.prefix(8))
-                            if file.current { Text("Current version").font(.caption).foregroundStyle(.secondary) }
+                            if file.current { Text("Current version").font(.footnote).foregroundStyle(.secondary) }
                         }.disabled(!file.local || required.contains(file.index))
                     }
                 }

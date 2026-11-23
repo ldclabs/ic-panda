@@ -17,8 +17,8 @@ struct SecretActivityView: View {
                     NavigationLink { ApprovalDetailView(request: entry) } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(approvalTitle(entry.type)).font(.headline)
-                            Text(secretStateTitle(entry.state)).font(.caption).foregroundStyle(.secondary)
-                            Text(entry.source).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            Text(secretStateTitle(entry.state)).font(.footnote).foregroundStyle(.secondary)
+                            Text(entry.source).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
                         }
                     }
                     if entry.state == "awaiting_user" { Button("Cancel pending request", role: .destructive) { cancelling = entry }.disabled(working) }

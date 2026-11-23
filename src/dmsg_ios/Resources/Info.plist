@@ -44,7 +44,7 @@
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
-		<string>LaunchBackground</string>
+		<string>Paper</string>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

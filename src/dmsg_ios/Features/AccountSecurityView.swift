@@ -86,18 +86,19 @@ struct AccountSecurityView: View {
 
     @ViewBuilder private var overview: some View {
         @Bindable var model = model
-        Section("Privacy") {
-            Toggle(Biometry.quickUnlockTitle, isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task { await model.setFastUnlock(enabled: enabled) } })).disabled(model.busy)
-            Text("Device authentication unlocks local content even after your Internet Identity login expires.")
-                .font(.footnote).foregroundStyle(.secondary)
-            Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
-            Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.").font(.footnote).foregroundStyle(.secondary)
-            NavigationLink("Hardware security") { HardwareSecurityView() }.accessibilityIdentifier("account.hardware")
-        }
-        Section { NotificationSetupPrompt { settingUp = true } }
         Section {
+            Toggle(Biometry.quickUnlockTitle, isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task { await model.setFastUnlock(enabled: enabled) } })).disabled(model.busy)
+        } header: { Text("Privacy") } footer: {
+            Text("Device authentication unlocks local content even after your Internet Identity login expires.")
+        }
+        Section {
+            Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
+        } footer: { Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.") }
+        Section {
+            NavigationLink("Hardware security") { HardwareSecurityView() }.accessibilityIdentifier("account.hardware")
             NavigationLink("Login identities") { AccountSecurityView(page: .logins) }.accessibilityIdentifier("security.logins")
         }
+        Section { NotificationSetupPrompt { settingUp = true } }
     }
 
     @ViewBuilder private var logins: some View {
@@ -110,7 +111,7 @@ struct AccountSecurityView: View {
                         IDCopyButton(value: login.principal, label: "Copy")
                             .accessibilityIdentifier("security.copy-login.\(login.principal)")
                     }
-                    if login.current { Text("Current login").font(.caption).foregroundStyle(Theme.forest) }
+                    if login.current { Text("Current login").font(.footnote).foregroundStyle(Theme.forest) }
                     Button("Review removing this login", role: .destructive) { Task { await remove(login.principal) } }
                         .buttonStyle(.borderless).disabled(busy || canManage != true || login.current || (security?.logins.count ?? 0) <= 1)
                 }
@@ -137,8 +138,10 @@ struct AccountSecurityView: View {
             if model.session?.loginRenewable == true {
                 SettingsAction("Sign out all devices", role: .destructive) { passkeyBinding.cancel(); Task { await model.login(passkeyOperation: .logoutAll) } }
                     .disabled(busy || model.busy).accessibilityIdentifier("security.logout-all")
+            }
+        } footer: {
+            if model.session?.loginRenewable == true {
                 Text("Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.")
-                    .font(.footnote).foregroundStyle(.secondary)
             }
         }
         Section("Approve a binding request") {
@@ -151,15 +154,16 @@ struct AccountSecurityView: View {
     @ViewBuilder private var recoveryPolicy: some View {
         let submitted = receipts["recovery.policy"] != nil
         Section {
-            Text("Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.")
-                .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("recovery.preparation")
             Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil || submitted)
             NoticeBar(text: String(localized: recoveryEnabled ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time." : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content."))
             if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy || submitted) }
-            if security?.recoveryUpdating == true { Text("Finishing the security update. New content waits until it completes.").font(.caption) }
+            if security?.recoveryUpdating == true { Text("Finishing the security update. New content waits until it completes.").font(.footnote) }
             SettingsAction("Review request") { Task { await reviewRecovery() } }
                 .disabled(busy || security == nil || submitted || (recoveryEnabled == security?.recoveryEnabled && (!recoveryEnabled || delay == Int((security?.recoveryDelayMs ?? 0) / 86_400_000))))
             ApprovalReceiptRow(receipts: receipts, key: "recovery.policy") { request = $0 }
+        } footer: {
+            Text("Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.")
+                .accessibilityIdentifier("recovery.preparation")
         }
         .disabled(busy || canManage != true)
     }

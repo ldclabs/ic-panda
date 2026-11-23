@@ -34,22 +34,25 @@ struct InboxSettingsView: View {
     var body: some View {
         Form {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
-            Text("Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.").font(.footnote).foregroundStyle(.secondary)
-            Section("Receiving policy") {
+            Section {
                 Picker("Who may contact you", selection: $draft.mode) {
                     Text("Closed").tag("closed")
                     Text("Selected accounts").tag("contacts")
                     Text("Anyone, free of charge").tag("free")
                     if draft.mode == "paid" { Text("Current policy requires payment").tag("paid") }
                 }.accessibilityIdentifier("inbox.policy.mode")
-                Text(ruleSummary).font(.footnote).foregroundStyle(.secondary)
+            } header: { Text("Receiving policy") } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(ruleSummary)
+                    Text("Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.")
+                }
             }.disabled(!loaded || working || pending != nil)
             if usesAllowList {
                 Section("Selected accounts") {
                     ForEach(draft.allow.indices, id: \.self) { index in
                         VStack(alignment: .leading, spacing: 6) {
                             MessageAccountInput(title: "Account ID", account: $draft.allow[index], identifier: "inbox.account.\(index)", required: true)
-                            if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.caption) }
+                            if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.footnote) }
                             Button("Remove", role: .destructive) { draft.allow.remove(at: index) }.buttonStyle(.borderless)
                         }
                     }
@@ -58,8 +61,11 @@ struct InboxSettingsView: View {
                     if Set(entered).count != entered.count { Text("Check account IDs and remove duplicates.").font(.footnote).foregroundStyle(.red) }
                 }.disabled(!loaded || working || pending != nil || draft.mode == "paid")
             }
-            NavigationLink("Blocked accounts") { BlockedAccountsView() }
-            Text("Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.").font(.footnote).foregroundStyle(.secondary)
+            Section {
+                NavigationLink("Blocked accounts") { BlockedAccountsView() }
+            } footer: {
+                Text("Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.")
+            }
             if pending != nil {
                 SettingsAction("Retry original change", prominent: true) { Task { if let pending { await save(pending) } } }.disabled(working)
             } else {

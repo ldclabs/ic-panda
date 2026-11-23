@@ -50,9 +50,8 @@ struct HardwareSecurityView: View {
 
     var body: some View {
         Form {
-            NoticeBar(text: String(localized: "Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions."))
             if let status {
-                Section("This device") {
+                Section {
                     LabeledContent("Hardware approval key", value: status.key?.here == true ? String(localized: "Registered on this device") : String(localized: "Not registered"))
                     if let key = status.key {
                         FingerprintRow(title: "Key fingerprint", value: key.keyId)
@@ -60,8 +59,6 @@ struct HardwareSecurityView: View {
                     }
                     if !status.available { NoticeBar(text: String(localized: "Secure Enclave is unavailable on this device.")) }
                     Toggle("Biometrics only", isOn: $biometryOnly).disabled(!status.biometry || busy)
-                    Text("Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.")
-                        .font(.footnote).foregroundStyle(.secondary)
                     if !status.policy.contains("account_control") || status.key?.here == true && status.key?.fingerprintsChanged != true {
                         SettingsAction(LocalizedStringKey(status.key?.here == true ? "Review replacement key" : "Review key registration")) { Task { await register() } }
                             .disabled(!status.available || busy || receipts["hardware.key"] != nil)
@@ -72,16 +69,21 @@ struct HardwareSecurityView: View {
                         SettingsAction("Review retiring this approval key", role: .destructive) { Task { await retire(nil) } }.disabled(busy || receipts["hardware.key"] != nil)
                     }
                     ApprovalReceiptRow(receipts: receipts, key: "hardware.key") { request = $0 }
-                }
-                if let enrollmentRequest {
-                    Section("Send to an administrator") {
-                        Text("Share this request with an authorized administrator. It does not register or approve the key by itself.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                        DeviceRequestCode(token: enrollmentRequest.token, deviceId: enrollmentRequest.deviceId, keyId: enrollmentRequest.keyId)
-                        SettingsAction("Copy enrollment request") { model.clipboard.copy(enrollmentRequest.token) }
+                } header: { Text("This device") } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.")
+                        Text("Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.")
                     }
                 }
-                Section("Device-bound workspace") {
+                if let enrollmentRequest {
+                    Section {
+                        DeviceRequestCode(token: enrollmentRequest.token, deviceId: enrollmentRequest.deviceId, keyId: enrollmentRequest.keyId)
+                        SettingsAction("Copy enrollment request") { model.clipboard.copy(enrollmentRequest.token) }
+                    } header: { Text("Send to an administrator") } footer: {
+                        Text("Share this request with an authorized administrator. It does not register or approve the key by itself.")
+                    }
+                }
+                Section {
                     Toggle("Require this device to unlock", isOn: Binding(get: { status.deviceBound }, set: { bindingChange = $0 })).disabled(busy || !status.available)
                     LocalOnlyWarning(value: local)
                     if status.deviceBound {
@@ -90,13 +92,13 @@ struct HardwareSecurityView: View {
                             NoticeBar(text: String(localized: "The local binding key is unavailable. Keep this workspace and review your recovery options before locking it."))
                         }
                     }
-                    Text("Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.")
-                        .font(.footnote).foregroundStyle(.secondary)
                     if status.unprotected.backgroundOnline || status.unprotected.residentAgents > 0 {
                         NoticeBar(text: String(localized: "Background signing and resident agent capabilities are separate from this workspace lock."))
                     }
+                } header: { Text("Device-bound workspace") } footer: {
+                    Text("Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.")
                 }
-                Section("Require hardware approval") {
+                Section {
                     let submitted = receipts["hardware.policy"] != nil
                     Toggle("Account, devices and identities", isOn: Binding(
                         get: { !policy.isDisjoint(with: controlPurposes) },
@@ -106,8 +108,8 @@ struct HardwareSecurityView: View {
                     SettingsAction("Review hardware policy changes") { Task { await changePolicy() } }
                         .disabled(busy || submitted || policy == Set(status.policy))
                     ApprovalReceiptRow(receipts: receipts, key: "hardware.policy") { request = $0 }
+                } header: { Text("Require hardware approval") } footer: {
                     Text("Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.")
-                        .font(.footnote).foregroundStyle(.secondary)
                 }.disabled(busy || !status.canManagePolicy)
                 Section("Other devices") {
                     ForEach(status.devices) { device in
@@ -121,7 +123,7 @@ struct HardwareSecurityView: View {
                                         .disabled(busy || !status.canManagePolicy || receipts["hardware.key.\(device.deviceId)"] != nil)
                                     ApprovalReceiptRow(receipts: receipts, key: "hardware.key.\(device.deviceId)") { request = $0 }
                                 }
-                            } else { Text("No registered approval key").font(.caption).foregroundStyle(.secondary) }
+                            } else { Text("No registered approval key").font(.footnote).foregroundStyle(.secondary) }
                         }.buttonStyle(.borderless).padding(.vertical, 4)
                     }
                 }
@@ -213,8 +215,8 @@ struct FingerprintRow: View {
     let value: String
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.caption.monospaced()).textSelection(.enabled)
+            Text(title).font(.footnote).foregroundStyle(.secondary)
+            Text(value).font(.footnote.monospaced()).textSelection(.enabled)
                 .environment(\.layoutDirection, .leftToRight).fixedSize(horizontal: false, vertical: true)
         }
     }

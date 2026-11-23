@@ -149,7 +149,7 @@ struct FilesView: View {
                     sheet = .imports(files, id)
                     return true
                 }
-        }.privateScreen().navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
+        }.privateScreen(.plain).navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
             .searchable(text: Binding(get: { model.filesSearches[id] ?? "" }, set: { model.setFileSearch($0, in: id) }),
                         placement: .navigationBarDrawer(displayMode: .always), prompt: root && model.filesScope == .cloud ? "Search cloud backups" : "Search files")
             .toolbar { toolbar(root: root) }
@@ -237,7 +237,7 @@ struct FilesView: View {
                 }
                 if !textSize.isAccessibilitySize {
                     Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
             }.font(.footnote).accessibilityElement(children: .contain).accessibilityIdentifier("files.unbacked")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -254,7 +254,7 @@ struct FilesView: View {
         } else {
             Button { model.route.file = file.id } label: { row.contentShape(Rectangle()) }
                 .buttonStyle(.plain)
-                .listRowBackground(model.route.file == file.id ? Theme.forest.opacity(0.1) : nil)
+                .listRowBackground(model.route.file == file.id ? Theme.fill : nil)
                 .accessibilityAddTraits(model.route.file == file.id ? .isSelected : [])
         }
     }

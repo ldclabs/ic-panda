@@ -115,10 +115,10 @@ struct FileTransferProgressView: View {
                 Text(title).font(.footnote).accessibilityIdentifier("transfer.stage.\(id)")
                 if failure == nil { ProgressView(value: min(Double(bytes), Double(total)), total: Double(max(1, total))).accessibilityLabel(Text(title)) }
             }
-            if !compact { Text(verbatim: fileSize(bytes) + " / " + fileSize(total)).font(.caption).foregroundStyle(.secondary) }
-            if let failure { Text(fileFailureCode(failure)).font(.caption).foregroundStyle(.secondary) }
+            if !compact { Text(verbatim: fileSize(bytes) + " / " + fileSize(total)).font(.footnote).foregroundStyle(.secondary) }
+            if let failure { Text(fileFailureCode(failure)).font(.footnote).foregroundStyle(.secondary) }
             if let retry {
-                (Text("Next retry") + Text(verbatim: " · " + fileDate(retry).formatted(date: .omitted, time: .shortened))).font(.caption).foregroundStyle(.secondary)
+                (Text("Next retry") + Text(verbatim: " · " + fileDate(retry).formatted(date: .omitted, time: .shortened))).font(.footnote).foregroundStyle(.secondary)
             }
         }.accessibilityElement(children: .contain)
     }

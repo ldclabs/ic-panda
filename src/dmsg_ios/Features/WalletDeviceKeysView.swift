@@ -82,8 +82,8 @@ struct WalletDeviceKeysView: View {
                         NavigationLink { WalletNativeMoveView(wallet: wallet, from: address.id) } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(verbatim: address.label.isEmpty ? "#\(address.id)" : address.label)
-                                Text(verbatim: address.text).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                                Text("Move to this device").font(.caption).foregroundStyle(Theme.forest)
+                                Text(verbatim: address.text).font(.footnote.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                                Text("Move to this device").font(.footnote).foregroundStyle(Theme.forest)
                             }
                         }
                     }
@@ -96,7 +96,7 @@ struct WalletDeviceKeysView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: key.label.isEmpty ? "#\(key.id)" : key.label)
-                                    Text(verbatim: "#\(key.id) · \(key.curve)").font(.caption).foregroundStyle(.secondary)
+                                    Text(verbatim: "#\(key.id) · \(key.curve)").font(.footnote).foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if replacing == key.id { Image(systemName: "checkmark").accessibilityHidden(true) }
@@ -142,7 +142,7 @@ struct WalletDeviceKeysView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Protector \(Int(protector.index) + 1)")
-                        if protector.biometryOnly { Text("Biometrics only").font(.caption).foregroundStyle(.secondary) }
+                        if protector.biometryOnly { Text("Biometrics only").font(.footnote).foregroundStyle(.secondary) }
                     }
                     Spacer()
                     Button("Remove", role: .destructive) { Task { await nativeRun { try await $0.walletNativeProtectorRemove(index: protector.index) } } }
@@ -284,13 +284,13 @@ struct WalletNativeMoveView: View {
             Section {
                 ForEach(sweep.utxos) { utxo in
                     HStack {
-                        Text(verbatim: "\(utxo.txid.prefix(16))…:\(utxo.vout)").font(.caption.monospaced()).lineLimit(1)
+                        Text(verbatim: "\(utxo.txid.prefix(16))…:\(utxo.vout)").font(.footnote.monospaced()).lineLimit(1)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text(verbatim: Self.btc(utxo.value)).font(.caption.monospacedDigit())
-                            if !l2 || utxo.spendableAt.map({ $0 <= sweep.tip + 1 }) == true { Text("Spendable now").font(.caption2).foregroundStyle(.green) }
-                            else if let height = utxo.spendableAt { Text("From block \(height)").font(.caption2).foregroundStyle(.orange) }
-                            else { Text("Unconfirmed").font(.caption2).foregroundStyle(.secondary) }
+                            Text(verbatim: Self.btc(utxo.value)).font(.footnote.monospacedDigit())
+                            if !l2 || utxo.spendableAt.map({ $0 <= sweep.tip + 1 }) == true { Text("Spendable now").font(.footnote).foregroundStyle(.green) }
+                            else if let height = utxo.spendableAt { Text("From block \(height)").font(.footnote).foregroundStyle(.orange) }
+                            else { Text("Unconfirmed").font(.footnote).foregroundStyle(.secondary) }
                         }
                     }
                 }

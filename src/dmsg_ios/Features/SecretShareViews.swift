@@ -60,7 +60,7 @@ struct SecretSnapshotComposer: View {
                             Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(file.name).lineLimit(2)
-                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.caption).foregroundStyle(.secondary)
+                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
                                 }
                             }.disabled(!entry.canShare)
                         } else { Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis").foregroundStyle(.secondary) }
@@ -147,7 +147,7 @@ struct SecretSharesView: View {
                             ObjectIcon(glyph: share.plan.channel == nil ? .link : .channels)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(share.plan.title).font(.headline)
-                                Text(secretStateTitle(share.state)).font(.caption).foregroundStyle(.secondary)
+                                Text(secretStateTitle(share.state)).font(.footnote).foregroundStyle(.secondary)
                             }.padding(.vertical, 4)
                         }
                     }
@@ -199,7 +199,7 @@ struct SecretShareDetailView: View {
                 }
                 if let error = share.error {
                     NoticeBar(text: String(localized: "This snapshot needs attention. Check its status before continuing."))
-                    DisclosureGroup("Error details") { Text(error).font(.caption.monospaced()).textSelection(.enabled) }
+                    DisclosureGroup("Error details") { Text(error).font(.footnote.monospaced()).textSelection(.enabled) }
                 }
                 Section {
                     if let requestID = share.requestId {
@@ -221,7 +221,7 @@ struct SecretShareDetailView: View {
                 }
                 if let link {
                     Section("Share link") {
-                        Text(link).font(.caption.monospaced()).lineLimit(3).environment(\.layoutDirection, .leftToRight)
+                        Text(link).font(.footnote.monospaced()).lineLimit(3).environment(\.layoutDirection, .leftToRight)
                         ShareLink(item: link) { Label("Share link", systemImage: "square.and.arrow.up") }
                         Button("Copy link") { model.clipboard.copy(link) }
                         Text("Anyone with the complete link and required password can retrieve it within its limits.").font(.footnote).foregroundStyle(.secondary)

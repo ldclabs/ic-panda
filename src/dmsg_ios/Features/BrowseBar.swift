@@ -5,7 +5,7 @@ extension View {
     func browseTabShape(selected: Bool) -> some View {
         padding(.horizontal, 12).frame(minHeight: 44)
             .foregroundStyle(selected ? Theme.forest : Color.secondary)
-            .background(selected ? Theme.forest.opacity(0.10) : .clear, in: Capsule())
+            .background(selected ? Theme.fill : .clear, in: Capsule())
             .contentShape(Capsule())
     }
 }
@@ -68,7 +68,7 @@ struct BrowseScopes<Value: Hashable>: View {
         } label: {
             HStack(spacing: 8) {
                 Text(current.title).fixedSize(horizontal: false, vertical: true)
-                Image(systemName: "chevron.down").font(.system(size: 16)).accessibilityHidden(true)
+                Image(systemName: "chevron.down").font(.callout).accessibilityHidden(true)
             }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).padding(.horizontal, 16).padding(.vertical, 8)
         }.accessibilityIdentifier(current.identifier)
     }

@@ -208,7 +208,7 @@ struct SuccessionsView: View {
         } header: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(LocalizedStringKey(task.side == "successor" ? "This device replaces" : "This device is replaced by"))
-                Text(verbatim: String((task.side == "successor" ? task.predecessor : task.successor).prefix(16))).font(.caption.monospaced())
+                Text(verbatim: String((task.side == "successor" ? task.predecessor : task.successor).prefix(16))).font(.footnote.monospaced())
                 if task.cancelledAt != nil { Text("Stopped").foregroundStyle(.orange) }
             }
         }
@@ -224,12 +224,12 @@ struct SuccessionsView: View {
                 Text(Succession.title(step.step)).font(.subheadline)
                 Spacer()
                 Text(LocalizedStringKey(state == .done ? "Done" : state == .left ? "Left behind" : state == .ready ? "Ready" : "Waiting"))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if state == .ready {
                 Text(Succession.hint(step.step)).font(.footnote).foregroundStyle(.secondary)
             } else if state == .left && !step.skipped.isEmpty {
-                Text(Succession.items(step.skipped).joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                Text(Succession.items(step.skipped).joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
             }
         }.padding(.vertical, 4).accessibilityElement(children: .contain).accessibilityIdentifier("succession.step.\(step.step)")
     }
@@ -251,7 +251,7 @@ struct SuccessionsView: View {
             ForEach(found[task.id] ?? []) { address in
                 NavigationLink { WalletNativeMoveView(wallet: address.wallet, from: address.from) } label: {
                     LabeledContent { Text("Move to this device") } label: {
-                        Text(verbatim: "\(address.wallet.prefix(11))… #\(address.from)").font(.caption.monospaced())
+                        Text(verbatim: "\(address.wallet.prefix(11))… #\(address.from)").font(.footnote.monospaced())
                     }
                 }
             }
@@ -574,7 +574,7 @@ struct DeviceTransferView: View {
                 Text(LocalizedStringKey(Self.state(status.state)))
             }
             if status.role == "receive" && status.running {
-                LabeledContent("Session code") { Text(verbatim: status.session).font(.caption.monospaced()).textSelection(.enabled) }
+                LabeledContent("Session code") { Text(verbatim: status.session).font(.footnote.monospaced()).textSelection(.enabled) }
                 Button("Copy") { model.clipboard.copy(status.session) }
                 FingerprintRow(title: "Device ID", value: status.to)
                 if !status.addresses.isEmpty {
@@ -584,7 +584,7 @@ struct DeviceTransferView: View {
             if status.state == "running" {
                 ProgressView(value: Double(status.report.bytes), total: Double(max(1, status.report.totalBytes)))
                 Text(verbatim: "\(LocalOnly.size(Int64(clamping: status.report.bytes))) / \(LocalOnly.size(Int64(clamping: status.report.totalBytes)))")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             } else if status.state == "waiting" { ProgressView() }
             if !status.running && status.report.peer != nil {
                 LabeledContent("Records added", value: String(status.report.records))
@@ -627,8 +627,8 @@ struct MovedImportSection: View {
                 ForEach(copies) { copy in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: String(copy.deviceId.prefix(16))).font(.caption.monospaced())
-                            Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+                            Text(verbatim: String(copy.deviceId.prefix(16))).font(.footnote.monospaced())
+                            Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.footnote).foregroundStyle(.secondary)
                         }
                         Spacer()
                         Button("Import files") { Task { await importFiles(copy) } }.buttonStyle(.borderless).disabled(working)

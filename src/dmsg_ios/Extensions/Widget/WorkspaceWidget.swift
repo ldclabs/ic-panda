@@ -24,7 +24,7 @@ private struct WorkspaceWidgetView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(forest)
                     Text("dMsg").font(.headline)
-                    Text("Open private workspace").font(.caption).foregroundStyle(.secondary)
+                    Text("Open private workspace").font(.footnote).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                     .widgetURL(URL(string: "dmsg://open/vault"))
             }
@@ -35,9 +35,9 @@ private struct WorkspaceWidgetView: View {
         Link(destination: URL(string: "dmsg://open/" + destination)!) {
             VStack(spacing: 8) {
                 Image(systemName: symbol).font(.title2).foregroundStyle(forest)
-                Text(title).font(.caption).lineLimit(1).minimumScaleFactor(0.8)
+                Text(title).font(.footnote).lineLimit(1).minimumScaleFactor(0.8)
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(forest.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                .background(Color("Fill"), in: RoundedRectangle(cornerRadius: NativeTheme.radius, style: .continuous))
         }
     }
 }

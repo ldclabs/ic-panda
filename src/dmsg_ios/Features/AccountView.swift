@@ -43,7 +43,7 @@ struct AccountView: View {
                 NavigationLink { AccountSecurityView() } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Label("Account security", glyph: .security)
-                        if model.recoveryWarning?.pending == true { Text("Account recovery is pending").font(.caption).foregroundStyle(.orange) }
+                        if model.recoveryWarning?.pending == true { Text("Account recovery is pending").font(.footnote).foregroundStyle(.orange) }
                     }
                 }.accessibilityIdentifier("account.security")
                 NavigationLink { DevicesView() } label: { Label("Authorized devices", glyph: .device) }.accessibilityIdentifier("account.devices")
@@ -54,7 +54,7 @@ struct AccountView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Label("Account synchronization", systemImage: "arrow.triangle.2.circlepath")
                         if let count = model.session?.pendingSync, count > 0 {
-                            LabeledContent("Waiting to sync", value: count.formatted()).font(.caption).foregroundStyle(.secondary)
+                            LabeledContent("Waiting to sync", value: count.formatted()).font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                 }.accessibilityIdentifier("account.sync-settings")
@@ -125,11 +125,11 @@ struct AccountView: View {
                 HStack(spacing: 8) {
                     AppGlyph.plan.image
                     Text(verbatim: plan.plan)
-                    Image(systemName: "chevron.forward").font(.caption.weight(.semibold))
+                    Image(systemName: "chevron.forward").font(.footnote.weight(.semibold))
                 }
                 .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.forest)
                 .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(Theme.forest.opacity(0.08), in: Capsule())
+                .background(Theme.fill, in: Capsule())
                 .frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(model.purchases.working)
                 .accessibilityLabel(Text("Plan") + Text(verbatim: ": \(plan.plan)"))
@@ -145,8 +145,8 @@ struct AccountView: View {
         Group {
             if let avatar { Image(uiImage: avatar).resizable().scaledToFill() }
             else { AppGlyph.profile.image.resizable().scaledToFit().padding(8).foregroundStyle(Theme.forest) }
-        }.frame(width: 52, height: 52).background(Theme.forest.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 14)).accessibilityIdentifier("account.avatar")
+        }.frame(width: 52, height: 52).background(Theme.fill)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius)).accessibilityIdentifier("account.avatar")
     }
 
     private var identityText: some View {
@@ -157,7 +157,7 @@ struct AccountView: View {
             HStack(spacing: 4) {
                 Text("Public profile")
                 Image(systemName: "chevron.forward").font(.caption2).accessibilityHidden(true)
-            }.font(.caption).foregroundStyle(Theme.forest)
+            }.font(.footnote).foregroundStyle(Theme.forest)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 

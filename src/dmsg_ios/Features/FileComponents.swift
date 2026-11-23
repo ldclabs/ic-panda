@@ -66,7 +66,7 @@ struct FileBrowseBar: View {
                     ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             } label: {
-                Image(systemName: "arrow.up.arrow.down").font(.system(size: 18)).frame(width: 44, height: 44)
+                Image(systemName: "arrow.up.arrow.down").font(.body).frame(width: 44, height: 44)
             }.accessibilityLabel("Sort by").accessibilityValue(Text(sort.title))
                 .accessibilityIdentifier("files.options")
         }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
@@ -87,14 +87,15 @@ struct FileSummaryRow: View {
             else {
                 ObjectIcon(name: fileSymbol(mime)).overlay {
                     if let thumbnail, ThumbnailStore.supports(thumbnail) {
-                        LibraryThumbnail(file: thumbnail).frame(width: 36, height: 36).clipShape(RoundedRectangle(cornerRadius: 10))
+                        LibraryThumbnail(file: thumbnail).frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(name).font(.body.weight(.medium)).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
                     .accessibilityLabel(name)
-                if !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).fixedSize(horizontal: false, vertical: true) }
+                if !subtitle.isEmpty { Text(subtitle).rowSubtitle().lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).fixedSize(horizontal: false, vertical: true) }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.accessibilityElement(children: .combine)
     }

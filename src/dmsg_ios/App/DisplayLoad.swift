@@ -66,7 +66,7 @@ struct DisplayLoadStatus: View {
         if state.refreshing && !state.loaded { ProgressView("Syncing…").controlSize(.small) }
         if state.stale, state.failed, let observed = state.observed {
             HStack { Text("Saved on this device"); Text(observed, style: .relative) }
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(.secondary)
         }
         if state.failed {
             NoticeBar(text: state.failureText)

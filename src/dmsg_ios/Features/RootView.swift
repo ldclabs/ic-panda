@@ -13,7 +13,7 @@ struct RootView: View {
         @Bindable var channelNavigation = ChannelNavigation.shared
         VStack(spacing: 0) {
             if model.environment == "staging" {
-                Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
+                Text("Test environment · Separate accounts and test purchases").font(.footnote.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
             }
             Group {
                 if let failure = model.keychainPreparationFailure {
@@ -101,7 +101,7 @@ private struct WorkspaceOverlays: ViewModifier {
                         Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
                         Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
                         Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
-                    }.padding(14).background(Theme.surface, in: RoundedRectangle(cornerRadius: 14)).padding(.horizontal, 16).padding(.bottom, bottomInset)
+                    }.padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius)).padding(.horizontal, 16).padding(.bottom, bottomInset)
                 }.ignoresSafeArea(.all, edges: .bottom)
                 .accessibilityIdentifier("notifications.toast")
                 .task(id: plan.id) {
@@ -493,8 +493,8 @@ private struct MovedCopiesSection: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
                             if let account = copy.account { Text(verbatim: account).font(.footnote.monospaced()) }
-                            Text(verbatim: String(copy.deviceId.prefix(8))).font(.caption.monospaced()).foregroundStyle(.secondary)
-                            Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+                            Text(verbatim: String(copy.deviceId.prefix(8))).font(.footnote.monospaced()).foregroundStyle(.secondary)
+                            Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.footnote).foregroundStyle(.secondary)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 8) {

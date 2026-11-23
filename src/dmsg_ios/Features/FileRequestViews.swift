@@ -35,8 +35,8 @@ struct FileRequestsView: View {
                         Text(link.title ?? String(link.id.prefix(12)) + "…").lineLimit(2)
                         if let label = link.label { Text(label).font(.footnote).foregroundStyle(.secondary).lineLimit(1) }
                         (Text(link.stateTitle) + Text(verbatim: " · ") + Text("\(Int(clamping: link.files)) files · \(fileSize(link.bytes))"))
-                            .font(.caption).foregroundStyle(link.active ? Color.secondary : Color.orange)
-                        if link.unread { Text("New files").font(.caption.weight(.medium)).foregroundStyle(Theme.forest).accessibilityIdentifier("file.request.unread") }
+                            .font(.footnote).foregroundStyle(link.active ? Color.secondary : Color.orange)
+                        if link.unread { Text("New files").font(.footnote.weight(.medium)).foregroundStyle(Theme.forest).accessibilityIdentifier("file.request.unread") }
                     }.padding(.vertical, 2)
                 }.accessibilityIdentifier("file.request.item.\(link.id)")
             }
@@ -178,13 +178,13 @@ struct FileRequestComposer: View {
             VStack(alignment: .leading, spacing: 4) {
                 TextField("Instructions (optional)", text: $instructions, axis: .vertical).lineLimit(2...6)
                     .focused($editing).accessibilityIdentifier("file.request.instructions")
-                Text("Whoever has the link sees these, as plain text.").font(.caption).foregroundStyle(.secondary)
+                Text("Whoever has the link sees these, as plain text.").font(.footnote).foregroundStyle(.secondary)
             }
             VStack(alignment: .leading, spacing: 4) {
                 TextField("Who is it for? (optional)", text: $names, axis: .vertical).lineLimit(2...8)
                     .textInputAutocapitalization(.words).focused($editing).accessibilityIdentifier("file.request.names")
-                Text("One name per line makes a separate link for each. Only you see the names.").font(.caption).foregroundStyle(.secondary)
-                if tooMany { Text("At most \(Self.maxNames) names at a time.").font(.caption).foregroundStyle(.red).accessibilityIdentifier("file.request.toomany") }
+                Text("One name per line makes a separate link for each. Only you see the names.").font(.footnote).foregroundStyle(.secondary)
+                if tooMany { Text("At most \(Self.maxNames) names at a time.").font(.footnote).foregroundStyle(.red).accessibilityIdentifier("file.request.toomany") }
             }
         }.disabled(working)
         Section {
@@ -301,7 +301,7 @@ struct FileRequestDetailView: View {
             }
             if let note = file.sender?.note, !note.isEmpty { Text(note).font(.footnote).foregroundStyle(.secondary) }
             if let old = file.replaces {
-                Text("Replaces \(files.first { $0.id == old }?.name ?? String(old.prefix(8)))").font(.caption).foregroundStyle(.secondary)
+                Text("Replaces \(files.first { $0.id == old }?.name ?? String(old.prefix(8)))").font(.footnote).foregroundStyle(.secondary)
             }
             switch file.state {
             case "unreadable": Text("This file cannot be opened. You can delete it.").font(.footnote).foregroundStyle(.orange).accessibilityIdentifier("file.request.unreadable")
@@ -311,7 +311,7 @@ struct FileRequestDetailView: View {
             }
             if saving == file.id {
                 ProgressView("Saving…").accessibilityIdentifier("file.request.saving")
-                Text("Keep dMsg open until this finishes.").font(.caption).foregroundStyle(.secondary)
+                Text("Keep dMsg open until this finishes.").font(.footnote).foregroundStyle(.secondary)
             }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 16) { actions(file) }

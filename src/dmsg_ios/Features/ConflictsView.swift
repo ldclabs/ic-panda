@@ -9,7 +9,7 @@ struct ConflictsView: View {
     var body: some View {
         List {
             ForEach(conflicts) { conflict in NavigationLink { ConflictDetail(conflict: conflict) } label: {
-                VStack(alignment: .leading, spacing: 4) { Text(conflict.head.item.title).font(.headline); Text("Two versions need your decision").font(.caption).foregroundStyle(.secondary) }
+                VStack(alignment: .leading, spacing: 4) { Text(conflict.head.item.title).font(.headline); Text("Two versions need your decision").font(.footnote).foregroundStyle(.secondary) }
             } }
             if loading { ProgressView() }
             else if failed { Button("Retry") { Task { await load() } } }

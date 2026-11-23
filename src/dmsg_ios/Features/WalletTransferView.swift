@@ -90,7 +90,7 @@ struct WalletTransferView: View {
                 SettingsField("Recipient address") { TextField("Recipient address", text: $draft.recipient, axis: .vertical).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
                 SettingsField("Amount") { TextField("Amount", text: $draft.amount).keyboardType(.decimalPad).environment(\.layoutDirection, .leftToRight) }
                 if !draft.amount.isEmpty && amount == nil { Text("Enter an exact amount within the asset's precision.").font(.footnote).foregroundStyle(.red) }
-                if let amount { LabeledContent("Amount in base units", value: amount).font(.caption) }
+                if let amount { LabeledContent("Amount in base units", value: amount).font(.footnote) }
                 if feeDecimals != nil {
                     SettingsField("Maximum fee") { TextField("Suggested fee", text: $draft.maxFee).keyboardType(.decimalPad).environment(\.layoutDirection, .leftToRight) }
                 }

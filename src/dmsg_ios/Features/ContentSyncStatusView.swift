@@ -19,11 +19,11 @@ struct ContentSyncStatusView: View {
                 if status.total > 0 {
                     ProgressView(value: Double(status.entries), total: Double(status.total))
                     Text(verbatim: "\(status.entries.formatted()) / \(status.total.formatted())")
-                        .font(.caption.monospacedDigit()).accessibilityIdentifier("sync.entries")
+                        .font(.footnote.monospacedDigit()).accessibilityIdentifier("sync.entries")
                 }
                 if status.downloadedBytes > 0 {
                     Label(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file), systemImage: "arrow.down")
-                        .font(.caption).accessibilityLabel(Text("Downloaded") + Text(verbatim: " ") + Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file)))
+                        .font(.footnote).accessibilityLabel(Text("Downloaded") + Text(verbatim: " ") + Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file)))
                 }
             }
             if let error = status?.error, status?.running != true {
@@ -48,7 +48,7 @@ struct ContentSyncStatusView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
             Text(Date(timeIntervalSince1970: Double(value) / 1000), style: .relative)
-        }.font(.caption).foregroundStyle(.secondary)
+        }.font(.footnote).foregroundStyle(.secondary)
     }
 
     static func title(_ status: ContentSyncStatus?) -> LocalizedStringKey {

@@ -235,8 +235,8 @@ struct FileVersionsView: View {
                 NavigationLink { FileDetailDestination(id: file.id, version: version.id) } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(fileDate(version.createdAt), format: .dateTime).font(.body.weight(.medium))
-                        Text(fileSize(version.size) + " · " + String(localized: version.local ? "On this device" : "Only in cloud")).font(.caption).foregroundStyle(.secondary)
-                        if version.current { Text("Current version").font(.caption).foregroundStyle(Theme.forest) }
+                        Text(fileSize(version.size) + " · " + String(localized: version.local ? "On this device" : "Only in cloud")).font(.footnote).foregroundStyle(.secondary)
+                        if version.current { Text("Current version").font(.footnote).foregroundStyle(Theme.forest) }
                         if !version.local { Label("Restore to this device", glyph: .cloudDown).font(.footnote) }
                     }
                 }.compactObjectRow().accessibilityIdentifier("file.version.\(version.id)")

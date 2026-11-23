@@ -132,7 +132,7 @@ struct SettingsField<Content: View>: View {
                 Text(title)
                 Spacer()
                 if let counter { Text(verbatim: counter).foregroundStyle(invalid ? Color.red : Color.secondary) }
-            }.font(.caption).foregroundStyle(.secondary)
+            }.font(.footnote).foregroundStyle(.secondary)
             content().accessibilityLabel(title)
         }.padding(.vertical, 2)
     }

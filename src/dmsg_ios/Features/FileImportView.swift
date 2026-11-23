@@ -21,7 +21,7 @@ struct FileImportView: View {
                     Text(url.lastPathComponent).font(.body.weight(.medium))
                     if let result = results[url.absoluteString] {
                         Label(result.message, systemImage: result.failed ? "exclamationmark.circle" : "checkmark.circle").font(.footnote)
-                    } else { Text("Waiting").font(.caption).foregroundStyle(.secondary) }
+                    } else { Text("Waiting").font(.footnote).foregroundStyle(.secondary) }
                 }
             }
             if !working {

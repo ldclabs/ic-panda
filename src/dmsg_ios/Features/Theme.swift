@@ -1,36 +1,66 @@
 import SwiftUI
 
+/// Colours come from `Shared/Palette.xcassets` and radii from here; pages use
+/// these names rather than literals. See DESIGN.md.
 enum Theme {
-    static let forest = Color(uiColor: NativeTheme.forest)
-    /// Filled actions keep the dark brand green so white labels remain legible in both themes.
-    static let forestFill = Color(uiColor: NativeTheme.forest.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
-    static let paper = Color(uiColor: NativeTheme.paper)
-    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Tint, links and selected states.
+    static let forest = Color("Forest")
+    /// Filled actions and own message bubbles: the dark brand green in both themes, under white labels.
+    static let forestFill = Color("ForestFill")
+    /// Plain pages: the workspace lists and the conversation.
+    static let paper = Color("Paper")
+    /// Grouped pages: settings, details and forms. System list rows keep their own
+    /// colour, since a custom row background loses the pressed highlight; in dark
+    /// mode the page is black so those rows still stand apart.
+    static let paperGrouped = Color("PaperGrouped")
+    /// Cards the app draws itself: bubbles, the composer field, floating notices.
+    static let card = Color("Card")
+    /// Quiet tinted fill behind icons, quotes and selected capsules.
+    static let fill = Color("Fill")
+
+    static let radiusSmall = NativeTheme.radiusSmall
+    static let radius = NativeTheme.radius
+    static let radiusLarge = NativeTheme.radiusLarge
 }
 
+/// The tinted square behind an object's icon. It scales with the text size.
 struct ObjectIcon: View {
     private let image: Image
-    private var size: CGFloat = 36
+    @ScaledMetric private var size: CGFloat
 
-    init(name: String) { image = Image(systemName: name) }
+    init(name: String) { image = Image(systemName: name); _size = ScaledMetric(wrappedValue: 36, relativeTo: .body) }
 
-    init(glyph: AppGlyph, size: CGFloat = 36) { image = glyph.image; self.size = size }
+    init(glyph: AppGlyph, size: CGFloat = 36) { image = glyph.image; _size = ScaledMetric(wrappedValue: size, relativeTo: .body) }
 
     var body: some View {
         image.resizable().scaledToFit().frame(width: size / 2, height: size / 2).foregroundStyle(Theme.forest)
-            .frame(width: size, height: size).background(Theme.forest.opacity(0.08), in: RoundedRectangle(cornerRadius: size * 0.28))
+            .frame(width: size, height: size).background(Theme.fill, in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
             .accessibilityHidden(true)
     }
 }
 
+/// A problem to act on or wait for: a failure, a pending step or a risk.
+/// Plain explanations go in a section footer instead.
 struct NoticeBar: View {
     let text: String
     var body: some View { Label(text, systemImage: "info.circle").font(.footnote).foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading).padding(12).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 12)) }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(12).background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radius)) }
+}
+
+enum ScreenSurface {
+    /// Workspace lists and the conversation sit on paper.
+    case plain
+    /// Settings, details and forms put their rows on the deeper grouped paper.
+    case grouped
 }
 
 extension View {
-    func privateScreen() -> some View { modifier(PrivateScreen()) }
+    /// The second line of an object row and its time: 15 pt secondary text, as in the system apps.
+    func rowSubtitle() -> some View { font(.subheadline).foregroundStyle(.secondary) }
+}
+
+extension View {
+    func privateScreen(_ surface: ScreenSurface = .grouped) -> some View { modifier(PrivateScreen(surface: surface)) }
 
     /// Two-line object rows are 56 pt at the default text size and grow with
     /// their content. Keep the full row tappable, including its outer insets.
@@ -66,11 +96,12 @@ private struct WorkspaceAlert: ViewModifier {
 }
 
 private struct PrivateScreen: ViewModifier {
+    let surface: ScreenSurface
     @Environment(SessionModel.self) private var model
     @State private var noticeHost = UUID()
     @State private var bottomInset: CGFloat = 0
     func body(content: Content) -> some View {
-        content.scrollDismissesKeyboard(.interactively).scrollContentBackground(.hidden).background(Theme.paper).privacySensitive()
+        content.scrollDismissesKeyboard(.interactively).scrollContentBackground(.hidden).background(surface == .plain ? Theme.paper : Theme.paperGrouped).privacySensitive()
             .listSectionSpacing(.compact)
             .overlay(alignment: .bottom) { if model.noticeHosts.last == noticeHost { TransientNotice() } }
             .workspaceAlert(presenting: model.noticeHosts.last == noticeHost)

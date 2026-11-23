@@ -14,7 +14,7 @@ struct SecretFieldReferenceView: View {
         List {
             Section("Field reference") {
                 if let reference {
-                    Text(reference).font(.caption.monospaced()).textSelection(.enabled)
+                    Text(reference).font(.footnote.monospaced()).textSelection(.enabled)
                         .environment(\.layoutDirection, .leftToRight)
                     Button("Copy reference", systemImage: "link") { model.clipboard.copy(reference) }
                     NavigationLink("Dependencies on this device") { SecretDependenciesView(reference: reference) }
@@ -66,7 +66,7 @@ struct SecretItemAttachmentsView: View {
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis")
-                            Text(entry.id).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2)
+                            Text(entry.id).font(.footnote.monospaced()).foregroundStyle(.secondary).lineLimit(2)
                         }
                     }
                 }
@@ -116,9 +116,9 @@ struct SecretDependencyRows: View {
         ForEach(index.dependencies, id: \.listID) { dependency in
             VStack(alignment: .leading, spacing: 5) {
                 Text(dependency.label.isEmpty ? secretDependencyKind(dependency.kind) : dependency.label).font(.headline)
-                Text(secretStateTitle(dependency.state)).font(.caption).foregroundStyle(.secondary)
+                Text(secretStateTitle(dependency.state)).font(.footnote).foregroundStyle(.secondary)
                 Text(secretNextAction(dependency.action)).font(.subheadline)
-                Text(dependency.id).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2)
+                Text(dependency.id).font(.footnote.monospaced()).foregroundStyle(.secondary).lineLimit(2)
             }.padding(.vertical, 4)
         }
         if index.dependencies.isEmpty { Text("No dependencies recorded on this device.").foregroundStyle(.secondary) }

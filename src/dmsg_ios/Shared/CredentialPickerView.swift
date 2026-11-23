@@ -94,7 +94,7 @@ struct CredentialPickerView: View {
         }
         .padding(.leading, 12).padding(.trailing, 4)
         .frame(minHeight: 44)
-        .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: NativeTheme.radius))
         .padding(.horizontal, 16).padding(.bottom, 6)
     }
 
@@ -153,7 +153,7 @@ struct CredentialPickerView: View {
         Text(verbatim: String((entry.title.isEmpty ? entry.username : entry.title).prefix(1)).uppercased())
             .font(.headline).foregroundStyle(Color(uiColor: NativeTheme.forest))
             .frame(width: 36, height: 36)
-            .background(Color(uiColor: NativeTheme.forest).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .background(Color("Fill"), in: RoundedRectangle(cornerRadius: NativeTheme.radius, style: .continuous))
             .accessibilityHidden(true)
     }
 
@@ -176,7 +176,7 @@ struct CredentialPickerView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading).padding(16)
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: NativeTheme.radius))
                 VStack(spacing: 6) {
                     Button { picker.confirm(remember: false) } label: { Text("Fill once").frame(maxWidth: .infinity) }
                         .buttonStyle(.borderedProminent).accessibilityIdentifier("autofill.once")

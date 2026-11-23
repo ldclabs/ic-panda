@@ -52,13 +52,13 @@ struct ApprovalsView: View {
                             HStack(spacing: 4) {
                                 Text("Request expires")
                                 Text(Date(timeIntervalSince1970: Double(request.expiresAt) / 1000), format: .dateTime.month().day().hour().minute())
-                            }.font(.caption).foregroundStyle(.secondary)
+                            }.font(.footnote).foregroundStyle(.secondary)
                         } else {
-                            Text(secretStateTitle(request.state)).font(.caption).foregroundStyle(.secondary)
+                            Text(secretStateTitle(request.state)).font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 4)
-                    Image(systemName: "chevron.forward").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
                 }.contentShape(Rectangle())
             }.buttonStyle(.plain).compactObjectRow()
@@ -182,7 +182,7 @@ struct ApprovalDetailView: View {
                         Text(approvalSource(request.source)).font(.subheadline).foregroundStyle(.secondary).textSelection(.enabled)
                             .accessibilityIdentifier("approval.source")
                         if request.risk == "high", state == "awaiting_user" {
-                            Label("High risk", systemImage: "exclamationmark.triangle").font(.caption.weight(.semibold))
+                            Label("High risk", systemImage: "exclamationmark.triangle").font(.footnote.weight(.semibold))
                                 .foregroundStyle(.orange)
                         }
                         if let state, state != "awaiting_user" {
@@ -211,7 +211,7 @@ struct ApprovalDetailView: View {
                     NoticeBar(text: String(localized: "This request requires a supported desktop client."))
                 }
                 LabeledContent("Account ID") {
-                    Text(model.session?.account ?? "").font(.caption.monospaced()).textSelection(.enabled)
+                    Text(model.session?.account ?? "").font(.footnote.monospaced()).textSelection(.enabled)
                         .environment(\.layoutDirection, .leftToRight)
                 }
                 Section("Review the complete request") {
@@ -233,7 +233,7 @@ struct ApprovalDetailView: View {
                             let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
                             VStack(spacing: 8) {
                                 Text(LocalizedStringKey(working ? "Waiting for confirmation" : expired ? "This request has expired" : "Your decision applies only to this request."))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.footnote).foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                                     .accessibilityIdentifier("approval.decision-hint")
                                 if expired {
@@ -256,7 +256,7 @@ struct ApprovalDetailView: View {
                     } else if state == "executing" || state == "unknown" {
                         VStack(spacing: 8) {
                             Text("The result is not confirmed. Check it again before retrying.")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(.secondary)
                             Button("Refresh") { Task { await reconcile() } }.disabled(working || readID != nil)
                         }.padding(16).background(.bar)
                     }
@@ -578,7 +578,7 @@ struct CanonicalDetails: View {
     var body: some View {
         ForEach(rows) { row in
             VStack(alignment: .leading, spacing: 4) {
-                if !row.label.isEmpty { Text(row.label).font(.caption).foregroundStyle(.secondary) }
+                if !row.label.isEmpty { Text(row.label).font(.footnote).foregroundStyle(.secondary) }
                 Text(row.text).font(.subheadline).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             }.padding(.vertical, 4).frame(maxWidth: .infinity, alignment: .leading)
         }

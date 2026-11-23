@@ -18,7 +18,7 @@ struct IncomingSharesView: View {
                     LabeledContent("Current account") {
                         VStack(alignment: .trailing) {
                             if let name = model.accountIdentities[account]?.name { Text(name) }
-                            Text(verbatim: account).font(.caption.monospaced()).textSelection(.enabled)
+                            Text(verbatim: account).font(.footnote.monospaced()).textSelection(.enabled)
                                 .environment(\.layoutDirection, .leftToRight)
                         }
                     }
@@ -29,7 +29,7 @@ struct IncomingSharesView: View {
             ForEach(entries) { entry in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(entry.name).font(.headline)
-                    Text(ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary)
+                    Text(ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
                     if entry.sha256.isEmpty {
                         Text("The source copy was interrupted. Discard it and select the source again.").font(.footnote).foregroundStyle(.secondary)
                     } else if entry.accountHash == nil || entry.accountHash == model.session?.account.map(IncomingShares.accountHash) {

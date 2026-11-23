@@ -42,7 +42,7 @@ struct VaultDetailView: View {
                 if item.reserved { NoticeBar(text: String(localized: "This key is managed by dMsg and cannot be copied or edited.")) }
                 if revision != nil {
                     NoticeBar(text: String(localized: "You are viewing an immutable historical version."))
-                    Text(item.revision).font(.caption.monospaced()).textSelection(.enabled)
+                    Text(item.revision).font(.footnote.monospaced()).textSelection(.enabled)
                 }
                 if item.conflict { NavigationLink("Review sync conflicts") { ConflictsView() } }
                 ForEach(groups(item), id: \.self) { group in
@@ -175,7 +175,7 @@ struct VaultDetailView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
                         if item.favorite {
-                            Image(systemName: "star.fill").font(.caption).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
+                            Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
                         }
                     }
                     HStack(spacing: 8) {
@@ -185,7 +185,7 @@ struct VaultDetailView: View {
                     }.font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            if !item.tags.isEmpty { Text(item.tags.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.forest) }
+            if !item.tags.isEmpty { Text(item.tags.joined(separator: " · ")).font(.footnote).foregroundStyle(Theme.forest) }
         }.padding(.vertical, 8).listRowBackground(Color.clear).listRowSeparator(.hidden)
     }
 

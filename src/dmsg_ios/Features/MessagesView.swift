@@ -63,7 +63,7 @@ struct MessagesView: View {
                     }.plainListRows(selectable: listSelection != nil)
                 }.listStyle(.plain)
                     .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
-            }.privateScreen().navigationTitle("Messages")
+            }.privateScreen(.plain).navigationTitle("Messages")
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: mode == 0 ? "Search messages" : "Search letters")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
@@ -125,7 +125,7 @@ struct MessagesView: View {
             Menu {
                 Picker("Folder", selection: $folder) { ForEach(LetterFolder.allCases) { Text($0.title).tag($0) } }
             } label: {
-                HStack(spacing: 5) { Text(folder.title); Image(systemName: "chevron.down").font(.caption) }.browseTabShape(selected: true)
+                HStack(spacing: 5) { Text(folder.title); Image(systemName: "chevron.down").font(.footnote) }.browseTabShape(selected: true)
             }.accessibilityLabel("Folder").accessibilityValue(folder.title).accessibilityIdentifier("letters.folder")
             if folder == .inbox {
                 BrowseTab(selected: unreadOnly) { unreadOnly.toggle() } label: { Text("Unread only") }
@@ -164,7 +164,7 @@ struct MessagesView: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             if !message.text.isEmpty { Text(message.text).lineLimit(2) }
                                             if !message.attachmentDeleted, let name = message.attachmentName { Label(name, systemImage: "paperclip").lineLimit(2) }
-                                            Text(ConversationTimeline.date(message.createdAtMs), format: .dateTime).font(.caption).foregroundStyle(.secondary)
+                                            Text(ConversationTimeline.date(message.createdAtMs), format: .dateTime).font(.footnote).foregroundStyle(.secondary)
                                         }
                                     }.tag(route).accessibilityIdentifier("messages.hit." + group.id + ".\(message.sequence)")
                                 }
@@ -387,7 +387,7 @@ private struct ChannelRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Text(String(channel.name.prefix(1)).uppercased()).font(.body.weight(.semibold)).foregroundStyle(Theme.forest)
-                .frame(width: 36, height: 36).background(Theme.forest.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                .frame(width: 36, height: 36).background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radius))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 ViewThatFits(in: .horizontal) {
@@ -396,7 +396,7 @@ private struct ChannelRow: View {
                 }
                 HStack(alignment: .top, spacing: 6) {
                     Text(preview)
-                        .font(.caption).foregroundStyle(channel.unread > 0 ? .primary : .secondary)
+                        .font(.subheadline).foregroundStyle(channel.unread > 0 ? .primary : .secondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if channel.unread > 0 {
@@ -413,7 +413,7 @@ private struct ChannelRow: View {
                     HStack {
                         if channel.pendingSends > 0 { Label("Waiting to submit", systemImage: "clock") }
                         if channel.status == "archived" { Text("Archived") }
-                    }.font(.caption2).foregroundStyle(.secondary)
+                    }.font(.footnote).foregroundStyle(.secondary)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -428,7 +428,7 @@ private struct ChannelRow: View {
 
     @ViewBuilder private var time: some View {
         if channel.lastAt > 0 {
-            Text(listDateText(ConversationTimeline.date(channel.lastAt))).font(.caption2).foregroundStyle(.secondary).fixedSize()
+            Text(listDateText(ConversationTimeline.date(channel.lastAt))).rowSubtitle().fixedSize()
         }
     }
 }
@@ -441,8 +441,8 @@ struct LetterSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             if !account.isEmpty { MessageIdentity(account: account) }
-            Text(text).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-            HStack { Text(status); Spacer(); if let date, date > 0 { Text(Date(timeIntervalSince1970: Double(date) / 1000), style: .date) } }.font(.caption2).foregroundStyle(.secondary)
+            Text(text).rowSubtitle().lineLimit(2)
+            HStack { Text(status); Spacer(); if let date, date > 0 { Text(Date(timeIntervalSince1970: Double(date) / 1000), style: .date) } }.font(.footnote).foregroundStyle(.secondary)
         }
     }
 }

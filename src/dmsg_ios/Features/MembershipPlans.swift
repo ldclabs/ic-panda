@@ -96,9 +96,9 @@ struct MembershipPlanCard<Action: View>: View {
                     .accessibilityIdentifier("plan.name.\(plan.planId)")
                 Spacer(minLength: 8)
                 if current {
-                    Text("Current plan").font(.caption.weight(.semibold)).foregroundStyle(Theme.forest)
+                    Text("Current plan").font(.footnote.weight(.semibold)).foregroundStyle(Theme.forest)
                         .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(Theme.forest.opacity(0.1), in: Capsule())
+                        .background(Theme.fill, in: Capsule())
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -111,8 +111,8 @@ struct MembershipPlanCard<Action: View>: View {
             if let price { Text(verbatim: price).font(.title3.weight(.semibold)).foregroundStyle(Theme.forest).fixedSize(horizontal: false, vertical: true) }
             action()
         }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(current ? Theme.forest.opacity(0.5) : Color.secondary.opacity(0.18), lineWidth: 1))
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radiusLarge))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge).strokeBorder(current ? AnyShapeStyle(Theme.forest) : AnyShapeStyle(.separator), lineWidth: 1))
     }
 
     private func benefit(_ item: MembershipBenefit) -> some View {
@@ -190,7 +190,7 @@ struct MembershipComparisonView: View {
             HStack(alignment: .top, spacing: 6) {
                 ForEach(catalogue.ordered) { plan in
                     VStack(spacing: 8) {
-                        Text(verbatim: plan.planId).font(.caption.weight(.medium))
+                        Text(verbatim: plan.planId).font(.footnote.weight(.medium))
                         Text(verbatim: benefit.value(plan)).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                     }.multilineTextAlignment(.center).frame(maxWidth: .infinity, alignment: .top)
                         .foregroundStyle(plan.id == currentPlan ? Theme.forest : .primary)

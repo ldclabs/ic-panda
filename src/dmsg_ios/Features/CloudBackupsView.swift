@@ -19,7 +19,7 @@ struct CloudBackupSection: View {
                             Label {
                                 Text(backup.needsRoot ? "The required content key is not available yet." : backup.local ? "On this device" : "Only in cloud")
                             } icon: { backup.needsRoot ? Image(systemName: "key") : backup.local ? Image(systemName: "checkmark.circle") : AppGlyph.sync.image }
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                 }.compactObjectRow().accessibilityIdentifier("backup.item.\(backup.id)")
@@ -56,15 +56,15 @@ struct CloudBackupStatusView: View {
                     } else if !model.cloudBackupsKnown { Text("Refresh to check cloud backups").font(.subheadline) }
                     if let at = model.cloudBackupsObservedAt {
                         (Text("Last refreshed") + Text(verbatim: " · " + fileDate(at).formatted(date: .abbreviated, time: .shortened)))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.footnote).foregroundStyle(.secondary)
                     }
                     if model.cloudBackupsFailed {
                         Text(model.cloudBackupsError ?? String(localized: "Showing saved content. The latest sync did not finish."))
-                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Button { Task { await model.loadCloudBackups(refresh: true) } } label: {
-                    Image(systemName: "arrow.clockwise").font(.system(size: 18)).frame(width: 44, height: 44)
+                    Image(systemName: "arrow.clockwise").font(.body).frame(width: 44, height: 44)
                 }.buttonStyle(.borderless).disabled(model.loadingCloudBackups)
                     .accessibilityLabel(model.cloudBackupsFailed ? "Retry" : "Refresh backup list")
                     .accessibilityIdentifier("backups.refresh")
@@ -138,8 +138,8 @@ struct CloudBackupDetailView: View {
                 if current.date > 0 { LabeledContent("Backed up") { Text(fileDate(current.date), format: .dateTime) } }
                 if let device = current.device { LabeledContent("Source device", value: model.fileSourceDevice(device)) }
                 LabeledContent("Original folder", value: (current.path ?? []).joined(separator: " / ").nonEmpty ?? String(localized: "Files"))
-                if let version = current.versionId { LabeledContent("Version", value: version).font(.caption).textSelection(.enabled) }
-                if let hash = current.sha256 { DisclosureGroup("Integrity") { Text(hash).font(.caption.monospaced()).textSelection(.enabled) } }
+                if let version = current.versionId { LabeledContent("Version", value: version).font(.footnote).textSelection(.enabled) }
+                if let hash = current.sha256 { DisclosureGroup("Integrity") { Text(hash).font(.footnote.monospaced()).textSelection(.enabled) } }
             }
             Section {
                 SettingsAction("Delete cloud backup", systemImage: "trash", role: .destructive) { deleting = true }.disabled(working || pending)

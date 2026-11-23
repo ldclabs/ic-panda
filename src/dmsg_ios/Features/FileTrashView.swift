@@ -31,9 +31,9 @@ struct FileTrashView: View {
         VStack(alignment: .leading, spacing: 8) {
             FileSummaryRow(name: name, mime: mime, subtitle: "")
             if let time {
-                LabeledContent("Deleted") { Text(fileDate(time), format: .dateTime) }.font(.caption).foregroundStyle(.secondary)
+                LabeledContent("Deleted") { Text(fileDate(time), format: .dateTime) }.font(.footnote).foregroundStyle(.secondary)
                 if let days = listing.trashDays {
-                    LabeledContent("Removal date") { Text(fileDate(time).addingTimeInterval(Double(days) * 86_400), style: .date) }.font(.caption).foregroundStyle(.secondary)
+                    LabeledContent("Removal date") { Text(fileDate(time).addingTimeInterval(Double(days) * 86_400), style: .date) }.font(.footnote).foregroundStyle(.secondary)
                 }
             }
             if let error = errors[id] { Text(error).font(.footnote).foregroundStyle(.red) }

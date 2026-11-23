@@ -104,24 +104,24 @@ private struct LocalAccountRow: View {
         HStack(spacing: 12) {
             if let bytes = identity?.avatar, let image = UIImage(data: bytes) {
                 Image(uiImage: image).resizable().scaledToFill().frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
             } else { ObjectIcon(glyph: .account) }
             VStack(alignment: .leading, spacing: 4) {
                 if let name = identity?.name {
                     Text(name).font(.headline).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
                 }
-                Text(verbatim: account.accountKind == "local" ? String(localized: "Local account") : account.account).font(identity?.name == nil ? .body.monospaced() : .caption.monospaced())
+                Text(verbatim: account.accountKind == "local" ? String(localized: "Local account") : account.account).font(identity?.name == nil ? .body.monospaced() : .footnote.monospaced())
                     .foregroundStyle(identity?.name == nil ? .primary : .secondary).environment(\.layoutDirection, .leftToRight)
                     .lineLimit(1).truncationMode(.middle)
-                if account.moved == true { Text("Workspace copied from another iPhone").font(.caption) }
-                else if !account.current { Text("Unlock workspace").font(.caption).foregroundStyle(.secondary) }
+                if account.moved == true { Text("Workspace copied from another iPhone").font(.footnote) }
+                else if !account.current { Text("Unlock workspace").font(.footnote).foregroundStyle(.secondary) }
             }
             Spacer()
             if reminders > 0 {
                 Label(reminders > 99 ? "99+" : reminders.formatted(), systemImage: "bell")
-                    .font(.caption.weight(.semibold)).monospacedDigit()
+                    .font(.footnote.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(Theme.forest).padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Theme.forest.opacity(0.1), in: Capsule())
+                    .background(Theme.fill, in: Capsule())
                     .fixedSize().accessibilityLabel(NoticeCopy.text("noticeTitle"))
                     .accessibilityValue(reminders.formatted())
             }

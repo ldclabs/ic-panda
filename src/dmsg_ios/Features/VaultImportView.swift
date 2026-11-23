@@ -72,8 +72,8 @@ struct VaultImportView: View {
                     Toggle(isOn: Binding(get: { selected.contains(item.index) }, set: { if $0 { selected.insert(item.index) } else { selected.remove(item.index) } })) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.title).font(.headline)
-                            Text(item.username).font(.caption).foregroundStyle(.secondary)
-                            if item.duplicate { Text("Already present").font(.caption).foregroundStyle(.secondary) }
+                            Text(item.username).font(.footnote).foregroundStyle(.secondary)
+                            if item.duplicate { Text("Already present").font(.footnote).foregroundStyle(.secondary) }
                         }
                     }
                 }

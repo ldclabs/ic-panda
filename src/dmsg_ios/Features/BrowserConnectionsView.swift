@@ -35,11 +35,11 @@ struct BrowserConnectionsView: View {
             ForEach(invitations) { invite in
                 Section("Waiting for browser confirmation") {
                     if let url = URL(string: invite.url) { Link("Open invitation in browser", destination: url) }
-                    LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(invite.expiresAt) / 1000), style: .relative) }.font(.caption)
+                    LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(invite.expiresAt) / 1000), style: .relative) }.font(.footnote)
                     SettingsAction("Close invitation", role: .destructive) { Task { await close(invite) } }.disabled(working)
                     ForEach(candidates[invite.id] ?? []) { candidate in
                         Button { confirming = CandidateApproval(invite: invite, candidate: candidate) } label: {
-                            VStack(alignment: .leading, spacing: 6) { Text(candidate.label); Text(candidate.id).font(.caption.monospaced()).foregroundStyle(.secondary) }
+                            VStack(alignment: .leading, spacing: 6) { Text(candidate.label); Text(candidate.id).font(.footnote.monospaced()).foregroundStyle(.secondary) }
                         }.disabled(working)
                     }
                 }
@@ -48,9 +48,9 @@ struct BrowserConnectionsView: View {
                 ForEach(pairings) { pairing in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(pairing.label ?? pairing.id).font(.headline)
-                        Text(pairing.id).font(.caption.monospaced()).textSelection(.enabled)
-                        Text(LocalizedStringKey(pairing.state == "active" ? "Active" : pairing.state == "revoked" ? "Revoked" : pairing.state == "expired" ? "Expired" : pairing.state)).font(.caption).foregroundStyle(.secondary)
-                        if let expiry = pairing.expiresAt { LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(expiry) / 1000), style: .relative) }.font(.caption) }
+                        Text(pairing.id).font(.footnote.monospaced()).textSelection(.enabled)
+                        Text(LocalizedStringKey(pairing.state == "active" ? "Active" : pairing.state == "revoked" ? "Revoked" : pairing.state == "expired" ? "Expired" : pairing.state)).font(.footnote).foregroundStyle(.secondary)
+                        if let expiry = pairing.expiresAt { LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(expiry) / 1000), style: .relative) }.font(.footnote) }
                         if pairing.state == "active" { Button("Revoke browser", role: .destructive) { revoking = pairing }.disabled(working) }
                     }.buttonStyle(.borderless)
                 }

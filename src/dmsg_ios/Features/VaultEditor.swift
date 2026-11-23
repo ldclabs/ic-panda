@@ -119,7 +119,7 @@ struct VaultEditor: View {
             Form {
                 Section {
                     VStack(alignment: .leading) {
-                        Text("Title").font(.caption).foregroundStyle(.secondary)
+                        Text("Title").font(.footnote).foregroundStyle(.secondary)
                         TextField("Title", text: form.title).focused($focus, equals: .title).accessibilityIdentifier("vault.edit.title")
                             .submitLabel(quickLogin ? .next : .done).onSubmit { focus = quickLogin ? .value("username") : nil }
                     }
@@ -148,7 +148,7 @@ struct VaultEditor: View {
                                 if editMode.isEditing {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(field.title)
-                                        Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
+                                        Text(vaultFieldKindTitle(field.kind)).font(.footnote).foregroundStyle(.secondary)
                                     }.padding(.vertical, 4)
                                 } else {
                                     VaultEditorField(field: $field, existing: entry.itemID != nil, validationRequested: saveAttempts > 0,
@@ -186,7 +186,7 @@ struct VaultEditor: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(attachmentFiles[id]?.name ?? id).lineLimit(2)
-                                if attachmentFiles[id] == nil { Text("File not available on this device").font(.caption).foregroundStyle(.secondary) }
+                                if attachmentFiles[id] == nil { Text("File not available on this device").font(.footnote).foregroundStyle(.secondary) }
                             }
                             Spacer()
                             Button("Remove attachment reference", systemImage: "minus.circle", role: .destructive) { draft.files.removeAll { $0 == id } }

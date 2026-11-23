@@ -43,9 +43,9 @@ struct ConversationComposer: View {
             if let replying {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading) {
-                        Text(model.personName(replying.account)).font(.caption.bold())
+                        Text(model.personName(replying.account)).font(.footnote.bold())
                             .loadMessagePerson(replying.account, model: model)
-                        Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.caption).lineLimit(2)
+                        Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.footnote).lineLimit(2)
                     }
                     Spacer()
                     Button("Cancel reply", systemImage: "xmark.circle") { self.replying = nil }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
@@ -57,7 +57,7 @@ struct ConversationComposer: View {
                 attachMenu
                 TextField("Write a message", text: Binding(get: { draft }, set: { model.activity(); model.setDraft(channel: channel.id, text: $0) }), axis: .vertical)
                     .lineLimit(1...5).focused($focused)
-                    .padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
+                    .padding(12).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radiusLarge))
                     .accessibilityIdentifier("message.draft").disabled(!channel.canPublish)
                 Button { actionTask = Task { await send() } } label: { Image(systemName: "arrow.up").font(.headline).frame(width: 44, height: 44) }
                     .buttonStyle(.borderedProminent).buttonBorderShape(.circle).accessibilityLabel("Send message")
@@ -68,7 +68,7 @@ struct ConversationComposer: View {
                 VStack {
                     Text("This message is too long.")
                     Text(utf8ByteCounter(draft, limit: Int64(ComposerQueue.maxTextBytes)))
-                }.font(.caption).foregroundStyle(.red).accessibilityElement(children: .combine)
+                }.font(.footnote).foregroundStyle(.red).accessibilityElement(children: .combine)
             }
         }
         .sheet(isPresented: $choosingFile) {
@@ -144,16 +144,16 @@ struct ConversationComposer: View {
                     HStack(spacing: 8) {
                         Group {
                             if ThumbnailStore.supports(file) {
-                                LibraryThumbnail(file: file).frame(width: 36, height: 36).clipShape(RoundedRectangle(cornerRadius: 8))
+                                LibraryThumbnail(file: file).frame(width: 36, height: 36).clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                             } else { ObjectIcon(name: fileSymbol(file.mime)) }
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(file.name).font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                            Text(fileSize(file.size)).font(.caption2).foregroundStyle(.secondary)
+                            Text(file.name).font(.footnote.weight(.medium)).lineLimit(1).truncationMode(.middle)
+                            Text(fileSize(file.size)).font(.footnote).foregroundStyle(.secondary)
                         }.frame(maxWidth: 160, alignment: .leading)
                         Button("Remove", systemImage: "xmark.circle") { attachments.removeAll { $0.id == file.id } }
                             .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                    }.padding(.leading, 8).background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                    }.padding(.leading, 8).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius))
                 }
             }.padding(.horizontal)
         }.accessibilityIdentifier("message.attachment.draft")

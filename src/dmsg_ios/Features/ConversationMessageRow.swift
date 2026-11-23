@@ -18,8 +18,8 @@ struct ConversationMessageRow<Content: View, Actions: View>: View {
             else { Color.clear.frame(width: 32, height: 1) }
             content
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(own ? Theme.forest.opacity(0.12) : Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 16))
+                .background(own ? Theme.fill : Theme.card, in: RoundedRectangle(cornerRadius: Theme.radiusLarge))
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: Theme.radiusLarge))
                 .contextMenu { actions }
                 .environment(\.layoutDirection, textDirection)
             if !own { Spacer(minLength: 36) }
@@ -29,9 +29,9 @@ struct ConversationMessageRow<Content: View, Actions: View>: View {
     private var portrait: some View {
         Group {
             if let avatar { Image(uiImage: avatar).resizable().scaledToFill() }
-            else { Text(String(name.prefix(1)).uppercased()).font(.caption.weight(.semibold)) }
+            else { Text(String(name.prefix(1)).uppercased()).font(.footnote.weight(.semibold)) }
         }.frame(width: 32, height: 32)
-            .background(Theme.forest.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 8)).accessibilityHidden(true)
+            .background(Theme.fill)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall)).accessibilityHidden(true)
     }
 }

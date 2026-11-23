@@ -21,12 +21,12 @@ struct SecretHealthView: View {
                             Label(secretFindingTitle(finding.rule), systemImage: finding.severity == "high" ? "exclamationmark.shield" : "info.circle")
                                 .font(.headline).foregroundStyle(finding.severity == "high" ? Color.red : Color.primary)
                             Text(LocalizedStringKey(finding.evidence == "last_known_cloud_state" ? "Last known cloud state" : "Observed on this device"))
-                                .font(.caption).foregroundStyle(.secondary)
-                            Text(Date(timeIntervalSince1970: Double(finding.observedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Text(Date(timeIntervalSince1970: Double(finding.observedAt) / 1000), style: .date).font(.footnote).foregroundStyle(.secondary)
                             if let field = finding.field {
                                 if let item = subjects[finding.subject] {
                                     Text(item.title).font(.subheadline.weight(.medium))
-                                    Text(item.fields.first(where: { $0.id == field }).map(vaultFieldTitle) ?? vaultFieldName(field)).font(.caption)
+                                    Text(item.fields.first(where: { $0.id == field }).map(vaultFieldTitle) ?? vaultFieldName(field)).font(.footnote)
                                     if item.canEdit { Button("Edit item") { Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model, presenter: editorPresenter) } } }
                                 }
                                 Text(secretNextAction(finding.action)).font(.footnote).foregroundStyle(.secondary)
@@ -34,7 +34,7 @@ struct SecretHealthView: View {
                                 NavigationLink("Open secret") { VaultDetailView(id: finding.subject) }
                             } else {
                                 Text(secretNextAction(finding.action)).font(.subheadline)
-                                Text(finding.subject).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2)
+                                Text(finding.subject).font(.footnote.monospaced()).foregroundStyle(.secondary).lineLimit(2)
                             }
                             if !finding.dismissed { Button("Dismiss this observation") { dismissing = finding }.disabled(working) }
                         }.padding(.vertical, 5)
@@ -48,8 +48,8 @@ struct SecretHealthView: View {
                         NavigationLink { SecretRotationView(initial: rotation) } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(vaultFieldName(rotation.reference.fieldId)).font(.headline)
-                                Text(LocalizedStringKey(rotation.completedAt == nil ? "In progress" : "Checklist completed")).font(.caption).foregroundStyle(.secondary)
-                                Text(rotation.reference.itemId).font(.caption.monospaced()).lineLimit(1).foregroundStyle(.secondary)
+                                Text(LocalizedStringKey(rotation.completedAt == nil ? "In progress" : "Checklist completed")).font(.footnote).foregroundStyle(.secondary)
+                                Text(rotation.reference.itemId).font(.footnote.monospaced()).lineLimit(1).foregroundStyle(.secondary)
                             }
                         }
                     }

@@ -1,10 +1,15 @@
 import UIKit
 
+/// The palette lives in `Shared/Palette.xcassets`, which the app and every
+/// extension compile into their own bundles. Radii are the only shape tokens.
 enum NativeTheme {
-    static let forest = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.44, green: 0.78, blue: 0.64, alpha: 1)
-        : UIColor(red: 0.078, green: 0.36, blue: 0.27, alpha: 1) }
-    static let paper = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.055, green: 0.082, blue: 0.071, alpha: 1)
-        : UIColor(red: 0.97, green: 0.973, blue: 0.957, alpha: 1) }
+    static let forest = UIColor(named: "Forest")!
+    static let paper = UIColor(named: "Paper")!
+
+    /// Thumbnails, quotes and small avatars.
+    static let radiusSmall: CGFloat = 8
+    /// Cards, fields and notices.
+    static let radius: CGFloat = 12
+    /// Message bubbles and feature cards.
+    static let radiusLarge: CGFloat = 18
 }

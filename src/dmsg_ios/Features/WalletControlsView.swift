@@ -68,7 +68,7 @@ struct WalletControlsView: View {
                     ForEach(details.members) { value in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(value.label.isEmpty ? value.id : value.label).font(.headline)
-                            Text(walletRoleTitle(value.role) + " · " + value.status).font(.caption).foregroundStyle(.secondary)
+                            Text(walletRoleTitle(value.role) + " · " + value.status).font(.footnote).foregroundStyle(.secondary)
                             Button("Edit member") { member = value.id; memberLabel = value.label; role = value.role }
                             Button("Propose removing member", role: .destructive) { confirming = .removeMember(identity: value.id) }
                         }

@@ -118,7 +118,7 @@ struct FileLinksView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(link.name ?? String(link.id.prefix(12)) + "…").lineLimit(2)
                         (Text(link.stateTitle) + Text(verbatim: " · ") + Text("Downloads") + Text(verbatim: " \(link.downloadsText)"))
-                            .font(.caption).foregroundStyle(link.active ? Color.secondary : Color.orange)
+                            .font(.footnote).foregroundStyle(link.active ? Color.secondary : Color.orange)
                     }.padding(.vertical, 2)
                 }.accessibilityIdentifier("file.link.item.\(link.id)")
             }

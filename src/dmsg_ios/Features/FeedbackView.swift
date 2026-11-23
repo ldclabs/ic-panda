@@ -20,7 +20,7 @@ struct FeedbackView: View {
         Form {
             Section {
                 Text("Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.").font(.footnote).foregroundStyle(.secondary)
-                Text(FeedbackWorkspace.recipient).font(.caption.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight)
+                Text(FeedbackWorkspace.recipient).font(.footnote.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight)
             }
             if !form.loaded {
                 if let failure = form.failure { NoticeBar(text: failure).accessibilityIdentifier("feedback.failure") }
@@ -37,7 +37,7 @@ struct FeedbackView: View {
                     ForEach(form.screenshots) { screenshot in
                         VStack(alignment: .leading, spacing: 8) {
                             LibraryThumbnail(file: screenshot.libraryFile, contentMode: .fit).frame(height: 130).clipped()
-                            Text(screenshot.name).font(.caption).lineLimit(3)
+                            Text(screenshot.name).font(.footnote).lineLimit(3)
                             if !frozen {
                                 Button("Remove", role: .destructive) { form.update(form.text, screenshots: form.screenshots.filter { $0.id != screenshot.id }, model: model) }
                                     .accessibilityIdentifier("feedback.remove")

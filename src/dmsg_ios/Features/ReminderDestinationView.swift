@@ -43,7 +43,7 @@ struct ReminderDestinationView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(model.accountIdentities[destination.account]?.name ?? destination.account).font(.headline)
                         if model.accountIdentities[destination.account]?.name != nil {
-                            Text(destination.account).font(.caption.monospaced()).foregroundStyle(.secondary)
+                            Text(destination.account).font(.footnote.monospaced()).foregroundStyle(.secondary)
                         }
                     }.accessibilityIdentifier("reminders.originalAccount")
                     Button("Switch account") { choosingAccount = true }.buttonStyle(.borderedProminent).tint(Theme.forestFill)
@@ -72,7 +72,7 @@ struct ReminderDestinationView: View {
                 state(title: String(localized: "Opening reminder…"), detail: "", symbol: "bell") { ProgressView() }
             }
         }
-        .privateScreen()
+        .privateScreen(.plain)
         .task(id: scope) { await load() }
         .sheet(isPresented: $accessed) {
             NavigationStack {

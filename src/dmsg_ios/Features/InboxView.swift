@@ -28,10 +28,10 @@ struct InboxRow: View {
                 header {
                     MessageIdentity(account: letter.sender)
                     Text(Date(timeIntervalSince1970: Double(letter.createdAt) / 1000), style: .date)
-                        .font(.caption2).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).fixedSize(horizontal: true, vertical: false)
+                        .font(.subheadline).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).fixedSize(horizontal: true, vertical: false)
                 }
                 Text(letter.state == "aborted" ? String(localized: "Not delivered") : letter.text)
-                    .font(.caption).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .font(.subheadline).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
         }.accessibilityElement(children: .combine)
             .accessibilityValue(letter.read ? "" : String(localized: "Unread messages"))
@@ -61,12 +61,12 @@ struct InboxDetail: View {
             Section("Sender") {
                 MessageIdentity(account: letter.sender, showID: true)
                 Text(Date(timeIntervalSince1970: Double(letter.createdAt) / 1000), format: .dateTime)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section {
                 if letter.state == "aborted" {
                     NoticeBar(text: String(localized: "Not delivered"))
-                    if let reason = letter.abortReason { DisclosureGroup("Details") { Text(reason).font(.caption).foregroundStyle(.secondary) } }
+                    if let reason = letter.abortReason { DisclosureGroup("Details") { Text(reason).font(.footnote).foregroundStyle(.secondary) } }
                 } else {
                     Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1)
                     ForEach(feedbackScreenshotURLs(letter.text), id: \.absoluteString) { url in

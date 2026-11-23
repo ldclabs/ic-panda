@@ -80,8 +80,8 @@ struct ConversationView: View {
                         }.accessibilityIdentifier("conversation.empty")
                     }
                     if !searchQuery.isEmpty {
-                        Text("Searches messages saved on this device.").font(.caption).foregroundStyle(.secondary)
-                        LabeledContent("Messages", value: (shown.count + pending.count).formatted() + (hasEarlier ? "+" : "")).font(.caption).foregroundStyle(.secondary)
+                        Text("Searches messages saved on this device.").font(.footnote).foregroundStyle(.secondary)
+                        LabeledContent("Messages", value: (shown.count + pending.count).formatted() + (hasEarlier ? "+" : "")).font(.footnote).foregroundStyle(.secondary)
                     }
                     if hasEarlier {
                         LoadMoreRow(title: searchQuery.isEmpty ? "Load earlier messages" : "Load more", working: loadingEarlier, trigger: shown.count) { await loadEarlier() }
@@ -91,10 +91,10 @@ struct ConversationView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             if row.startsDay {
                                 Text(ConversationTimeline.dayTitle(ConversationTimeline.date(row.message.createdAtMs)))
-                                    .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 8)
+                                    .font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 8)
                             }
                             if row.message.sequence == firstUnread && searchQuery.isEmpty {
-                                Label("Unread messages", systemImage: "circle.fill").font(.caption).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
+                                Label("Unread messages", systemImage: "circle.fill").font(.footnote).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
                             bubble(row, own: row.message.account == own, references: references) { sequence in
                                 actionTask = Task { await reveal(sequence, proxy: proxy) }
@@ -157,7 +157,7 @@ struct ConversationView: View {
                         MessageTiming.record(.ackVisible, since: confirmation.at)
                     }
                 }
-        }.privateScreen().navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
+        }.privateScreen(.plain).navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
             .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
             .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -265,7 +265,7 @@ struct ConversationView: View {
         let message = row.message
         return ConversationMessageRow(own: own, name: model.personName(message.account), avatar: model.people.avatar(message.account), showsPortrait: row.firstOfGroup) {
             VStack(alignment: .leading, spacing: 6) {
-                if !own && row.firstOfGroup { Text(model.personName(message.account)).font(.caption.weight(.semibold)).foregroundStyle(Theme.forest).lineLimit(1) }
+                if !own && row.firstOfGroup { Text(model.personName(message.account)).font(.footnote.weight(.semibold)).foregroundStyle(Theme.forest).lineLimit(1) }
                 if message.hidden {
                     Text("Hidden message").foregroundStyle(.secondary)
                     Button("Show") { actionTask = Task { await hide(message, hidden: false) } }
@@ -296,11 +296,11 @@ struct ConversationView: View {
         Button { reveal(reference) } label: {
             VStack(alignment: .leading, spacing: 3) {
                 if let original {
-                    Text(model.personName(original.account)).font(.caption.bold())
+                    Text(model.personName(original.account)).font(.footnote.bold())
                         .loadMessagePerson(original.account, model: model)
-                    Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
-                } else { Text("Reply to message \(reference)").font(.caption) }
-            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                    Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.footnote).lineLimit(2)
+                } else { Text("Reply to message \(reference)").font(.footnote) }
+            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radiusSmall))
         }.buttonStyle(.plain).accessibilityLabel("Open original message")
     }
 
@@ -314,16 +314,16 @@ struct ConversationView: View {
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 if let saved, ThumbnailStore.supports(saved) {
-                    LibraryThumbnail(file: saved).frame(width: 220, height: 150).clipShape(RoundedRectangle(cornerRadius: 8))
+                    LibraryThumbnail(file: saved).frame(width: 220, height: 150).clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                 }
                 Label(name, systemImage: secret ? "lock.doc" : fileSymbol(message.attachmentMime ?? ""))
-                if let size = message.attachmentSize { Text(fileSize(size)).font(.caption).foregroundStyle(.secondary) }
-                if saved != nil { Text("On this device").font(.caption) }
+                if let size = message.attachmentSize { Text(fileSize(size)).font(.footnote).foregroundStyle(.secondary) }
+                if saved != nil { Text("On this device").font(.footnote) }
                 if receiving == message.sequence { ProgressView() }
-                if secret { Text("Preview and choose what to import").font(.caption) }
+                if secret { Text("Preview and choose what to import").font(.footnote) }
             }.font(.subheadline).padding(10)
         }.disabled(message.unreadable || message.attachmentDeleted || receiving != nil)
-            .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radius))
     }
 
     @ViewBuilder private func messageActions(_ message: MessageItem, own: Bool) -> some View {
@@ -355,7 +355,7 @@ struct ConversationView: View {
                     else if unconfirmed { Image(systemName: "clock").accessibilityHidden(true); Text("Waiting for confirmation") }
                     else if let error = item.error { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true); Text(MessageFailure.text(error)) }
                     else { Text("Waiting to submit") }
-                }.font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if !queued {
                     Button(LocalizedStringKey(item.attempted ? "Retry" : "Send message")) {
                         model.deliverMessage(channel: channel.id, item: item)
@@ -551,7 +551,7 @@ private struct MessageTextView: View {
     var body: some View {
         ScrollView {
             Text(text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16)
-        }.privateScreen().navigationTitle("Select text").navigationBarTitleDisplayMode(.inline)
+        }.privateScreen(.plain).navigationTitle("Select text").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }
@@ -573,7 +573,7 @@ struct MessageEditView: View {
             SettingsField("Message", counter: utf8ByteCounter(text, limit: Int64(ComposerQueue.maxTextBytes)), invalid: tooLong) {
                 TextEditor(text: $text).frame(minHeight: 180)
             }
-            if tooLong { Text("This message is too long.").font(.caption).foregroundStyle(.red) }
+            if tooLong { Text("This message is too long.").font(.footnote).foregroundStyle(.red) }
         }.disabled(working)
             .privateScreen().navigationTitle("Edit message").onAppear { scope = model.viewGeneration; text = model.formDraft(key, as: String.self) ?? message.text }
             .interactiveDismissDisabled(working || text != message.text)

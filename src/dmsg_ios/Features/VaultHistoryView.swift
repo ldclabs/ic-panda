@@ -24,11 +24,11 @@ struct VaultHistoryView: View {
                 NavigationLink { VaultDetailView(id: item.id, revision: version.revision, versionDate: version.at).id(version.revision) } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(Date(timeIntervalSince1970: Double(version.at) / 1000), format: .dateTime)
-                        if version.current { Text("Current version").font(.caption).foregroundStyle(.secondary) }
-                        if version.deleted { Label("In Trash", systemImage: "trash").font(.caption) }
-                        if version.conflict { Label("Sync conflicts", systemImage: "arrow.triangle.branch").font(.caption) }
-                        if !version.synced && version.saveState != "local_only" { Text("Waiting to sync").font(.caption) }
-                        Text(model.deviceLabel(version.device) ?? version.device).font(.caption.monospaced()).foregroundStyle(.secondary)
+                        if version.current { Text("Current version").font(.footnote).foregroundStyle(.secondary) }
+                        if version.deleted { Label("In Trash", systemImage: "trash").font(.footnote) }
+                        if version.conflict { Label("Sync conflicts", systemImage: "arrow.triangle.branch").font(.footnote) }
+                        if !version.synced && version.saveState != "local_only" { Text("Waiting to sync").font(.footnote) }
+                        Text(model.deviceLabel(version.device) ?? version.device).font(.footnote.monospaced()).foregroundStyle(.secondary)
                     }
                 }.accessibilityIdentifier("vault.version.\(version.revision)")
                 if !version.current && !version.deleted && !item.reserved {
