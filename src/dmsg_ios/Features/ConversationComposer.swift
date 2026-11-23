@@ -10,6 +10,7 @@ struct ConversationComposer: View {
     let willQueue: () -> Void
     let failed: () async -> Void
     @Environment(SessionModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focused: Bool
     private var attachments: [LibraryFile] {
         get { model.attachmentDrafts[channel.id] ?? [] }
@@ -51,7 +52,8 @@ struct ConversationComposer: View {
                     // Like Messages, the send button appears once there is something to send.
                     if !empty {
                         Button { actionTask = Task { await send() } } label: {
-                            Image(systemName: "arrow.up.circle.fill").font(.title).symbolRenderingMode(.palette)
+                            Image(systemName: "arrow.up.circle.fill").font(.title).dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, Theme.forestFill).frame(width: 44, height: 44).contentShape(Rectangle())
                         }.buttonStyle(.plain).accessibilityLabel("Send message")
                             .accessibilityIdentifier("message.send").keyboardShortcut(.return, modifiers: .command)
@@ -60,7 +62,7 @@ struct ConversationComposer: View {
                     }
                 }.frame(minHeight: 44)
                     .glassSurface(in: RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous), fallback: Theme.card)
-                    .animation(.snappy(duration: 0.2), value: empty)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: empty)
             }.padding(.horizontal, 12).padding(.vertical, 8)
         }
         .sensoryFeedback(.error, trigger: sendFailures)
@@ -149,14 +151,17 @@ struct ConversationComposer: View {
     }
 
     private var attachMenu: some View {
-        Menu("Attach", systemImage: "paperclip") {
+        Menu {
             Button("Import photos or videos", systemImage: "photo.on.rectangle") { choosingPhotos = true }
             if model.cameraAvailable { Button("Take photo or video", systemImage: "camera") { openingCamera = true } }
             Button("Import file", systemImage: "doc.badge.plus") { importing = true }
             Button("Attach file", systemImage: "doc") { choosingFile = true }
             if canPasteImage { Button("Paste image", systemImage: "doc.on.clipboard") { actionTask = Task { await pasteImage() } } }
             Button("Share secret snapshot", systemImage: "lock.doc") { sharingSecret = true }
-        }.labelStyle(.iconOnly).frame(width: 44, height: 44)
+        } label: {
+            Image(systemName: "paperclip").dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+        }.accessibilityLabel("Attach")
             .glassSurface(in: Circle(), interactive: true, fallback: Color.clear)
             .disabled(!channel.canPublish || queuing || working)
     }

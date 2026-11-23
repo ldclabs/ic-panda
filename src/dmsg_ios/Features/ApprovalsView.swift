@@ -124,6 +124,7 @@ struct ApprovalDetailView: View {
     @State private var readID: UUID?
     @State private var reviewedScope: String?
     @State private var state: String?
+    @State private var completedDecisions = 0
     @State private var observedVersion: UInt64?
     @State private var supported = false
     @State private var readyAt = Date.distantFuture
@@ -173,7 +174,7 @@ struct ApprovalDetailView: View {
     }
 
     var body: some View {
-        content.sensoryFeedback(.success, trigger: state) { (_: String?, outcome: String?) in outcome == "done" || outcome == "rejected" }
+        content.sensoryFeedback(.success, trigger: completedDecisions)
     }
 
     private var content: some View {
@@ -378,6 +379,7 @@ struct ApprovalDetailView: View {
             if case .object(let fields) = value, case .string(let outcome)? = fields["state"] {
                 state = outcome
                 if fields["detail"] != nil { payload = value }
+                if outcome == "done" || outcome == "rejected" { completedDecisions &+= 1 }
             }
             await model.updateSession(); await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }

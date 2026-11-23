@@ -20,6 +20,16 @@ final class ConversationTests: XCTestCase {
         shot.name = "Channel content during slow sync"; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testOpeningShortConversationKeepsTheWholeThreadAboveTheComposer() {
+        let app = open(["--ui-channel-thread", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        let first = app.staticTexts["Morning! The design review moved to 3 pm."]
+        let last = app.staticTexts["Perfect, thank you!"]
+        XCTAssertTrue(last.waitForExistence(timeout: 5))
+        XCTAssertTrue(first.exists)
+        XCTAssertGreaterThan(first.frame.minY, app.buttons["conversation.title"].frame.maxY)
+        XCTAssertLessThan(composer(app).frame.minY - last.frame.maxY, 80)
+    }
+
     func testFailedInitialRefreshOffersRetryAndLoadsContent() {
         let app = open(["--ui-channel-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
         let retry = app.buttons["conversation.retry"]

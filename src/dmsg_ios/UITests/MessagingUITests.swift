@@ -163,6 +163,22 @@ final class MessagingUITests: XCTestCase {
         capture(app, "Conversation attachment reflects its restored local version")
     }
 
+    func testSavedImageAttachmentFitsAtAccessibilityTextSize() throws {
+        let app = start(["--ui-channel", "--ui-channel-attachment", "--ui-channel-saved-attachment", "--ui-files-rich",
+                         "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        guard app.frame.width < 500 else { throw XCTSkip("Requires a compact-width iPhone") }
+        let channel = app.buttons["channel.row.fixture-channel"]
+        XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()
+        let attachment = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "plan.pdf")).firstMatch
+        XCTAssertTrue(attachment.waitForExistence(timeout: 5))
+        XCTAssertTrue(attachment.isHittable)
+        // The natural button width includes a 220 pt thumbnail and 20 pt padding.
+        XCTAssertLessThan(attachment.frame.width, 240)
+        XCTAssertGreaterThanOrEqual(attachment.frame.minX, app.frame.minX)
+        XCTAssertLessThanOrEqual(attachment.frame.maxX, app.frame.maxX)
+        capture(app, "Conversation image attachment at maximum Dynamic Type")
+    }
+
     func testReplyPreviewDoesNotRevealAHiddenMessage() {
         let app = start(["--ui-channel", "--ui-channel-hidden-reply"])
         let channel = app.buttons["channel.row.fixture-channel"]

@@ -7,6 +7,7 @@ colors:                       # Shared/Palette.xcassets, light / dark
   PaperGrouped: ['#EEF2EB', '#000000']  # grouped pages: settings, details, forms
   Card: ['#FFFFFF', '#1A2621']          # cards the app draws itself
   Fill: ['#E8F0E9', '#233A30']          # icon tiles, quotes, selected capsules
+  BadgeRed: ['#B42318', '#B42318']     # approval counts, under white labels
   AvatarForest/Sage/Amber: tones behind initials, each with an Ink pair (Android Avatar.kt)
 radii: { small: 8, regular: 12, large: 18 }   # NativeTheme.radius*
 type:

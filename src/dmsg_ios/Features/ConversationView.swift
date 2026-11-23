@@ -119,10 +119,11 @@ struct ConversationView: View {
             }.defaultScrollAnchor(.bottom)
                 .defaultScrollAnchor(shown.isEmpty && pending.isEmpty ? .center : .bottom, for: .alignment)
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: shown.count) { _, _ in
+                .onChange(of: shown.count) { previousCount, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
                     else if let historyAnchor, let target = shown.last, target.sequence == historyAnchor { proxy.scrollTo(target.id, anchor: .center) }
-                    else if nearBottom { proxy.scrollTo(Self.bottom, anchor: .bottom) }
+                    // The default anchor positions the first page while the composer lays out.
+                    else if previousCount > 0 && nearBottom { proxy.scrollTo(Self.bottom, anchor: .bottom) }
                 }
                 .onChange(of: pending.count) { old, count in
                     if count > old {
@@ -322,14 +323,16 @@ struct ConversationView: View {
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 if let saved, ThumbnailStore.supports(saved) {
-                    LibraryThumbnail(file: saved).frame(width: 220, height: 150).clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
+                    Color.clear.frame(minWidth: 0, maxWidth: 220).frame(height: 150)
+                        .overlay { LibraryThumbnail(file: saved) }
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
                 }
                 Label(name, systemImage: secret ? "lock.doc" : fileSymbol(message.attachmentMime ?? ""))
                 if let size = message.attachmentSize { Text(fileSize(size)).font(.footnote).foregroundStyle(.secondary) }
                 if saved != nil { Text("On this device").font(.footnote) }
                 if receiving == message.sequence { ProgressView() }
                 if secret { Text("Preview and choose what to import").font(.footnote) }
-            }.font(.subheadline).padding(10)
+            }.font(.subheadline).lineLimit(nil).fixedSize(horizontal: false, vertical: true).padding(10)
         }.disabled(message.unreadable || message.attachmentDeleted || receiving != nil)
             .background(.bubbleInset(own: own), in: RoundedRectangle(cornerRadius: Theme.radius))
     }
@@ -361,7 +364,7 @@ struct ConversationView: View {
                     if active { ProgressView().controlSize(.small); Text("Sending") }
                     else if queued { Text("Waiting to submit") }
                     else if unconfirmed { Image(systemName: "clock").accessibilityHidden(true); Text("Waiting for confirmation") }
-                    else if let error = item.error { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true); Text(MessageFailure.text(error)) }
+                    else if let error = item.error { Image(systemName: "exclamationmark.circle").accessibilityHidden(true); Text(MessageFailure.text(error)) }
                     else { Text("Waiting to submit") }
                 }.font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if !queued {

@@ -17,6 +17,8 @@ enum Theme {
     static let card = Color("Card")
     /// Quiet tinted fill behind icons, quotes and selected capsules.
     static let fill = Color("Fill")
+    /// Approval counts keep their white text legible against the red badge.
+    static let badgeRed = Color("BadgeRed")
 
     static let radiusSmall = NativeTheme.radiusSmall
     static let radius = NativeTheme.radius
@@ -182,12 +184,12 @@ struct TouchActivityProbe: UIViewRepresentable {
     }
 }
 
-/// A count that waits on the person, in the system's red badge.
+/// A red count badge for approvals waiting on the user.
 struct CountBadge: View {
     let count: UInt64
 
     var body: some View {
         Text(count.formatted()).font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(.white)
-            .padding(.horizontal, 7).frame(minWidth: 22, minHeight: 22).background(.red, in: Capsule())
+            .padding(.horizontal, 7).frame(minWidth: 22, minHeight: 22).background(Theme.badgeRed, in: Capsule())
     }
 }

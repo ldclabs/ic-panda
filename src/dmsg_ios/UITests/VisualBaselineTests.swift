@@ -60,7 +60,7 @@ final class VisualBaselineTests: XCTestCase {
 
     func testReturningAccount() {
         for look in looks {
-            let app = launch(look, ["--ui-reminder-services", "--ui-locked"])
+            let app = launch(look, ["--ui-access"])
             XCTAssertTrue(app.buttons["login.unlock"].waitForExistence(timeout: 10), look.name)
             shot(app, look, "returning")
             app.terminate()

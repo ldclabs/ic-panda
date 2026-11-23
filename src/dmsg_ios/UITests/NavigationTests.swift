@@ -39,7 +39,8 @@ final class NavigationTests: NavigationTestCase {
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: login)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
-        XCTAssertEqual(login.label, "Open an existing account")
+        XCTAssertEqual(login.label, "Continue with a passkey")
+        XCTAssertEqual(app.buttons["login.join"].label, "Open an existing account")
         XCTAssertTrue(app.buttons["login.new-workspace"].exists)
         XCTAssertTrue(app.buttons["login.ii"].exists)
         XCTAssertTrue(app.staticTexts["On your first visit, sign in and follow the steps to create your encrypted workspace."].exists)
@@ -819,42 +820,55 @@ final class AccountNavigationTests: NavigationTestCase {
         progress.name = "Manual sync progress"; progress.lifetime = .keepAlways; add(progress)
     }
 
+    /// Unlocking and approval never share a screen: a returning account unlocks, a new device waits.
+    private let accessScreens: [(flags: [String], actions: [String])] = [
+        ([], ["login.unlock", "login.join", "login.start"]),
+        (["--ui-pairing"], ["login.authorize", "login.succession", "login.start"]),
+    ]
+
     func testAccessActionsAreAlignedWithoutLegacyLogin() {
-        let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
-        app.launch()
-        let unlock = app.buttons["login.unlock"], authorize = app.buttons["login.authorize"], login = app.buttons["login.start"]
-        XCTAssertTrue(unlock.waitForExistence(timeout: 5))
-        XCTAssertEqual(unlock.frame.width, authorize.frame.width, accuracy: 2)
-        XCTAssertEqual(unlock.frame.width, login.frame.width, accuracy: 2)
-        XCTAssertTrue(unlock.isHittable && authorize.isHittable && login.isHittable)
-        XCTAssertEqual(app.switches.count, 0)
-        XCTAssertTrue(app.staticTexts["要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。"].exists)
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "Chinese access actions"; shot.lifetime = .keepAlways; add(shot)
+        for screen in accessScreens {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"] + screen.flags
+            app.launch()
+            let first = app.buttons[screen.actions[0]]
+            XCTAssertTrue(first.waitForExistence(timeout: 5))
+            for identifier in screen.actions {
+                let button = app.buttons[identifier]
+                XCTAssertTrue(button.isHittable, identifier)
+                XCTAssertEqual(button.frame.width, first.frame.width, accuracy: 2, identifier)
+            }
+            XCTAssertEqual(app.switches.count, 0)
+            if !screen.flags.isEmpty {
+                XCTAssertTrue(app.staticTexts["要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。"].exists)
+            }
+            capture(app, name: "Chinese access actions · \(screen.actions[0])")
+            app.terminate()
+        }
     }
 
     func testAccessActionsRemainReachableInDarkArabic() {
-        let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-dark", "-AppleLanguages", "(ar)", "-AppleLocale", "ar",
-                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
-        app.launch()
-        for identifier in ["login.unlock", "login.authorize", "login.start"] {
-            let button = app.buttons[identifier]
-            XCTAssertTrue(button.waitForExistence(timeout: 5))
-            for _ in 0..<6 where !button.isHittable { app.swipeUp() }
-            XCTAssertTrue(button.isHittable)
+        for screen in accessScreens {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-access", "--ui-dark", "-AppleLanguages", "(ar)", "-AppleLocale", "ar",
+                                   "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] + screen.flags
+            app.launch()
+            for identifier in screen.actions {
+                let button = app.buttons[identifier]
+                XCTAssertTrue(button.waitForExistence(timeout: 5), identifier)
+                for _ in 0..<6 where !button.isHittable { app.swipeUp() }
+                XCTAssertTrue(button.isHittable, identifier)
+            }
+            XCTAssertEqual(app.switches.count, 0)
+            capture(app, name: "Dark Arabic large-text access actions · \(screen.actions[0])")
+            for identifier in ["settings.language", "access.privacy"] {
+                let link = linkOrButton(app, identifier)
+                for _ in 0..<6 where !link.isHittable { app.swipeUp() }
+                XCTAssertTrue(link.isHittable, identifier)
+            }
+            capture(app, name: "Dark Arabic large-text access footer · \(screen.actions[0])")
+            app.terminate()
         }
-        XCTAssertEqual(app.switches.count, 0)
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "Dark Arabic large-text access actions"; shot.lifetime = .keepAlways; add(shot)
-        for identifier in ["settings.language", "access.privacy"] {
-            let link = linkOrButton(app, identifier)
-            for _ in 0..<6 where !link.isHittable { app.swipeUp() }
-            XCTAssertTrue(link.isHittable)
-        }
-        let footer = XCTAttachment(screenshot: app.screenshot())
-        footer.name = "Dark Arabic large-text access footer"; footer.lifetime = .keepAlways; add(footer)
     }
 
     func testCacheExplanationAndControlsInEnglishChineseFrenchAndArabic() {

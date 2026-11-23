@@ -5,6 +5,7 @@ import PhotosUI
 /// and the path all work as they do elsewhere on the system.
 struct FilesView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var columns: NavigationSplitViewVisibility = .automatic
@@ -110,7 +111,10 @@ struct FilesView: View {
             .navigationDestination(for: FilesRoute.self) { route in
                 switch route {
                 case .folder(let id): folderScreen(id).navigationBarTitleDisplayMode(.inline)
-                case .file(let id): FileDetailDestination(id: id).id(id).navigationTransition(.zoom(sourceID: id, in: zoom))
+                case .file(let id):
+                    let detail = FileDetailDestination(id: id).id(id)
+                    if reduceMotion { detail }
+                    else { detail.navigationTransition(.zoom(sourceID: id, in: zoom)) }
                 case .transfers: TransfersView()
                 case .unbacked: UnbackedVersionsView()
                 }

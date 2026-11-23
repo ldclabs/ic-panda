@@ -83,8 +83,9 @@ class UIConventionTests(unittest.TestCase):
             self.assertGreaterEqual(contrast(page, card), 1.12, name)
         for appearance in ("light", "dark"):
             self.assertGreaterEqual(contrast(colours[("Card", appearance)], colours[("Fill", appearance)]), 1.12, appearance)
-            # White labels on filled actions and own bubbles.
+            # White labels on filled actions, own bubbles and approval counts.
             self.assertGreaterEqual(contrast(colours[("ForestFill", appearance)], (1, 1, 1)), 4.5, appearance)
+            self.assertGreaterEqual(contrast(colours[("BadgeRed", appearance)], (1, 1, 1)), 4.5, appearance)
             for tone in ("AvatarForest", "AvatarSage", "AvatarAmber"):
                 self.assertGreaterEqual(contrast(colours[(tone, appearance)], colours[(tone + "Ink", appearance)]), 4.5, tone)
 

@@ -23,7 +23,9 @@ struct ConversationMessageRow<Content: View, Actions: View>: View {
             else if firstOfGroup { Avatar(name, seed: account, image: avatar, size: 32) }
             else { Color.clear.frame(width: portraitSize, height: 1) }
             content
-                .foregroundStyle(own ? AnyShapeStyle(.white) : AnyShapeStyle(.primary)).tint(own ? .white : Theme.forest)
+                .foregroundStyle(own ? AnyShapeStyle(.white) : AnyShapeStyle(.primary),
+                                 own ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
+                .tint(own ? .white : Theme.forest)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(own ? Theme.forestFill : Theme.card, in: shape)
                 .contentShape(.contextMenuPreview, shape)

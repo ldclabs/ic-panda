@@ -17,6 +17,7 @@ struct VaultDetailField: View {
     let reference: (() -> Void)?
     @Environment(\.dynamicTypeSize) private var size
     @Environment(\.layoutDirection) private var direction
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
 
     private var text: String { field.concealed && value == nil ? "••••••••" : value ?? field.value }
@@ -41,15 +42,19 @@ struct VaultDetailField: View {
                     // Showing a hidden value is the common action after copying, so it sits on the row.
                     if field.concealed && !live {
                         Button(action: reveal) {
-                            Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44).contentShape(Rectangle())
+                            Image(systemName: value == nil ? "eye" : "eye.slash").dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                .frame(width: 44, height: 44).contentShape(Rectangle())
                         }.buttonStyle(.borderless).foregroundStyle(.secondary).disabled(busy)
                             .accessibilityLabel(Text(LocalizedStringKey(value == nil ? "Reveal" : "Hide")) + Text(verbatim: " · " + vaultFieldTitle(field)))
                             .accessibilityIdentifier("vault.reveal.\(field.id)")
                     }
-                    Menu("Actions", systemImage: copied ? "checkmark.circle.fill" : "ellipsis") { actions }
-                        .labelStyle(.iconOnly).font(.body).contentTransition(.symbolEffect(.replace))
-                        .foregroundStyle(copied ? Theme.forest : Color.secondary)
-                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                    Menu { actions } label: {
+                        Image(systemName: copied ? "checkmark.circle.fill" : "ellipsis")
+                            .font(.body).dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                            .foregroundStyle(copied ? Theme.forest : Color.secondary)
+                            .frame(width: 44, height: 44).contentShape(Rectangle())
+                    }
                         .buttonStyle(.borderless).menuOrder(.fixed).disabled(busy)
                         .opacity(busy ? 0 : 1)
                         .overlay { if busy { ProgressView().accessibilityHidden(true) } }

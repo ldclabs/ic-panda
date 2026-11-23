@@ -14,6 +14,8 @@ extension SessionModel {
     func loadFixtures() {
         let passkey = ProcessInfo.processInfo.arguments.contains("--ui-passkey")
         let welcome = ProcessInfo.processInfo.arguments.contains("--ui-welcome")
+        // The access screen of a returning account with quick unlock; with --ui-pairing, of a
+        // device waiting for approval.
         let access = ProcessInfo.processInfo.arguments.contains("--ui-access")
         let setup = ProcessInfo.processInfo.arguments.contains("--ui-setup")
         let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
@@ -22,7 +24,7 @@ extension SessionModel {
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
         let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 30_000 : 86_400_000)
         installFixtures(
-            SessionSnapshot(generation: 0, sequence: 0, state: welcome ? "logged_out" : setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: (setup || welcome) ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
+            SessionSnapshot(generation: 0, sequence: 0, state: welcome ? "logged_out" : setup ? "no_account" : (access ? (pairing ? "pairing_required" : "locked") : "unlocked"), account: (setup || welcome) ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
                             pendingSync: storeScreens || storePreview ? 0 : 2, conflicts: 0, approvalsWaiting: storePreview ? 0 : 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, loginRenewable: passkey && !welcome && !ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity"), passkeyAvailable: fixturePasskeyAvailable, setupPending: false, lastSyncAtMs: nil, syncError: nil,
                             accountKind: ProcessInfo.processInfo.arguments.contains("--ui-local-files") ? "local" : "cloud"),
             items: [
@@ -66,11 +68,10 @@ extension SessionModel {
         }
         if storeScreens { loadStorePresentation() }
         if storePreview { loadStorePreview() }
-        // A returning account: locked with quick unlock, optionally opened from a reminder.
-        let reminderLocked = ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked")
-        if reminderLocked || ProcessInfo.processInfo.arguments.contains("--ui-locked"), let account = session?.account {
+        // A reminder opened on a locked account with quick unlock.
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked"), let account = session?.account {
             installFixtures(reminderFixtureState(account: account, state: "locked"), items: [])
-            if reminderLocked { reminderEntry = ReminderEntry(account: account, target: .service("registration:1")) }
+            reminderEntry = ReminderEntry(account: account, target: .service("registration:1"))
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-reminder-failed") || ProcessInfo.processInfo.arguments.contains("--ui-reminder-expired") {
             reminderEntry = ReminderEntry(account: session?.account, target: .service("registration:1"))

@@ -179,9 +179,9 @@ struct VaultDetailView: View {
                         Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
                         if item.favorite {
                             Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
-                                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+                                .transition(.scale.combined(with: .opacity))
                         }
-                    }.animation(reduceMotion ? .default : .bouncy, value: item.favorite)
+                    }.animation(reduceMotion ? nil : .bouncy, value: item.favorite)
                     let state: LocalizedStringKey = item.deleted ? "In Trash" : item.conflict ? "Sync conflicts"
                         : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync"
                     (Text(vaultKindName(item.kind)) + Text(verbatim: " · ") + Text(state)).font(.subheadline).foregroundStyle(.secondary)

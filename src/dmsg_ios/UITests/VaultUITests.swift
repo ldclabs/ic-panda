@@ -632,7 +632,7 @@ final class VaultUITests: XCTestCase {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
         // The detail enters the accessibility tree during the push transition.
-        for id in ["vault.edit.open", "vault.copy.password", "vault.field.more.password"] {
+        for id in ["vault.edit.open", "vault.copy.password", "vault.reveal.password", "vault.field.more.password"] {
             let element = app.descendants(matching: .any).matching(identifier: id).firstMatch
             wait(for: [expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: element)], timeout: 5)
             // Frames come back with floating-point noise such as 43.99999999999994.
