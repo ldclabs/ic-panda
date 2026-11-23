@@ -1,15 +1,18 @@
 package net.dmsg.android.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,13 +36,23 @@ internal fun fileActionError(code: String) = if (code == "IDEMPOTENCY_CONFLICT")
     val listing = read.valueOrNull()?.takeIf { it.folder == folder }
     LaunchedEffect(folder) { client.library.destination(folder) }
     AlertDialog(onDismissRequest = { if (!busy) close() }, title = { Text(title) }, text = {
-        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             review(folder)
-            Text(path.folderLabel, style = MaterialTheme.typography.titleSmall)
-            if (path.isNotEmpty()) TextButton(onClick = { path = path.dropLast(1) }, enabled = !busy) { Text(str(R.string.text_parent_folder_3af9479)) }
+            Text(path.folderLabel, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            if (path.isNotEmpty()) ListItem(
+                headlineContent = { Text(str(R.string.text_parent_folder_3af9479)) },
+                leadingContent = { Icon(Icons.Outlined.ArrowUpward, null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(enabled = !busy) { path = path.dropLast(1) },
+            )
             ReadFeedback(read) { client.library.destination(folder) }
             listing?.folders.orEmpty().filterNot { it.id in exclude }.forEach { child ->
-                TextButton(onClick = { path += child }, enabled = !busy) { Icon(Icons.Outlined.Folder, null); Spacer(Modifier.width(8.dp)); Text(child.name) }
+                ListItem(
+                    headlineContent = { Text(child.name) },
+                    leadingContent = { Icon(Icons.Outlined.Folder, null) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable(enabled = !busy) { path += child },
+                )
             }
         }
     }, confirmButton = {

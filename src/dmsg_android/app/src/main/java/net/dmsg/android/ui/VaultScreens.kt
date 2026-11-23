@@ -4,6 +4,7 @@ import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,15 +12,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShortText
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -111,9 +115,20 @@ import net.dmsg.core.*
                 isError = validation && (current.title.isBlank() || current.title.codePointCount(0, current.title.length) > 200),
                 supportingText = if (failure == "INVALID_TITLE") { { Text(errorText("INVALID_TITLE")) } } else null)
             if (current.id == null) Box {
-                OutlinedButton(onClick = { choosingType = true }, enabled = !working) { Text(vaultKindName(current.kind)); Icon(Icons.Outlined.ArrowDropDown, null) }
+                OutlinedButton(onClick = { choosingType = true }, enabled = !working) {
+                    Icon(painterResource(vaultGlyph(current.kind)), null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(vaultKindName(current.kind))
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Outlined.ArrowDropDown, null)
+                }
                 DropdownMenu(choosingType, { choosingType = false }) { vaultKinds().forEach { kind ->
-                    DropdownMenuItem(text = { Text(vaultKindName(kind)) }, onClick = { update { it.switchKind(kind) }; choosingType = false })
+                    DropdownMenuItem(
+                        text = { Text(vaultKindName(kind)) },
+                        leadingIcon = { Icon(painterResource(vaultGlyph(kind)), null) },
+                        trailingIcon = if (current.kind == kind) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                        onClick = { update { it.switchKind(kind) }; choosingType = false },
+                    )
                 } }
             }
             current.fields.forEachIndexed { index, field -> key(field.id) {
@@ -140,9 +155,19 @@ import net.dmsg.core.*
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (customizing) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Box {
-                                TextButton(onClick = { types = true }, enabled = !working && (current.id == null || !field.concealed || field.changed)) { Text(fieldKindName(field.kind)) }
+                                TextButton(onClick = { types = true }, enabled = !working && (current.id == null || !field.concealed || field.changed)) {
+                                    Icon(fieldKindIcon(field.kind), null, Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(fieldKindName(field.kind))
+                                    Icon(Icons.Outlined.ArrowDropDown, null)
+                                }
                                 DropdownMenu(types, { types = false }) { fieldKinds.forEach { kind ->
-                                    DropdownMenuItem(text = { Text(fieldKindName(kind)) }, onClick = { update { it.field(field.id) { f -> f.copy(kind = kind, concealed = kind in listOf("concealed", "otp"), changed = true) } }; types = false })
+                                    DropdownMenuItem(
+                                        text = { Text(fieldKindName(kind)) },
+                                        leadingIcon = { Icon(fieldKindIcon(kind), null) },
+                                        trailingIcon = if (field.kind == kind) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                        onClick = { update { it.field(field.id) { f -> f.copy(kind = kind, concealed = kind in listOf("concealed", "otp"), changed = true) } }; types = false },
+                                    )
                                 } }
                             }
                             Row {
@@ -193,14 +218,24 @@ import net.dmsg.core.*
                 }
                 if (customizing) DetailCard { fieldContent() } else fieldContent()
             } }
-            if (current.kind == "login") SettingToggle(str(R.string.customize_fields), customizing, { customizing = it }, enabled = !working)
+            if (current.kind == "login" || customizing) {
+                Section {
+                    if (current.kind == "login") SettingToggle(str(R.string.customize_fields), customizing, { customizing = it }, enabled = !working, icon = Icons.Outlined.Tune)
+                    if (customizing) SettingToggle(str(R.string.text_favorite_898f4c6), current.favorite, { value -> update { it.copy(favorite = value) } }, enabled = !working, icon = Icons.Outlined.StarBorder)
+                }
+            }
             if (customizing) {
-                SettingToggle(str(R.string.text_favorite_898f4c6), current.favorite, { value -> update { it.copy(favorite = value) } }, enabled = !working)
                 OutlinedTextField(current.tags, { value -> update { it.copy(tags = value) } }, Modifier.fillMaxWidth().focusRequester(tagFocus).revealFocusedInput(), label = { Text(str(R.string.text_tags_33e9c4d)) }, isError = failure == "INVALID_TAGS",
                     supportingText = { Text(if (failure == "INVALID_TAGS") errorText("INVALID_TAGS") else str(R.string.text_separate_with_commas_up_to_20_tags_11cf2a5)) }, enabled = !working)
                 Box {
-                    OutlinedButton(onClick = { adding = true }, enabled = !working && current.fields.size < 64) { Icon(Icons.Outlined.Add, null); Text(str(R.string.text_add_field_a6fc993)) }
-                    DropdownMenu(adding, { adding = false }) { fieldKinds.forEach { kind -> DropdownMenuItem(text = { Text(fieldKindName(kind)) }, onClick = { update { it.newField(kind) }; adding = false }) } }
+                    OutlinedButton(onClick = { adding = true }, enabled = !working && current.fields.size < 64) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_add_field_a6fc993)) }
+                    DropdownMenu(adding, { adding = false }) { fieldKinds.forEach { kind ->
+                        DropdownMenuItem(
+                            text = { Text(fieldKindName(kind)) },
+                            leadingIcon = { Icon(fieldKindIcon(kind), null) },
+                            onClick = { update { it.newField(kind) }; adding = false },
+                        )
+                    } }
                 }
                 OutlinedTextField(current.notes, { value -> update { it.copy(notes = value) } }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_notes_f7df47b)) }, minLines = 4, keyboardOptions = KeyboardOptions(autoCorrectEnabled = false), enabled = !working)
                 SectionTitle(str(R.string.text_attachments_be5733e))
@@ -227,13 +262,14 @@ import net.dmsg.core.*
                 LazyColumn(Modifier.heightIn(max = 320.dp)) {
                     items(matches, key = { it.id }) { file ->
                         val selected = file.id in current.files
-                        TextButton(onClick = { update { it.copy(files = it.files + file.id) }; attachment = false }, enabled = !selected, modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.weight(1f)) {
-                                Text(file.name)
-                                Text((listOf(str(R.string.text_files_c79ddc2)) + file.path).joinToString(" / ") + " · " + fileSize(file.size), style = MaterialTheme.typography.bodySmall)
-                            }
-                            if (selected) Icon(Icons.Outlined.Check, str(R.string.text_selected_fea261f))
-                        }
+                        ListItem(
+                            headlineContent = { Text(file.name) },
+                            supportingContent = { Text((listOf(str(R.string.text_files_c79ddc2)) + file.path).joinToString(" / ") + " · " + fileSize(file.size)) },
+                            leadingContent = { Icon(painterResource(R.drawable.glyph_file), null) },
+                            trailingContent = if (selected) ({ Icon(Icons.Outlined.Check, str(R.string.text_selected_fea261f), tint = MaterialTheme.colorScheme.primary) }) else null,
+                            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                            modifier = Modifier.clickable(enabled = !selected) { update { it.copy(files = it.files + file.id) }; attachment = false },
+                        )
                     }
                     if (matches.isEmpty() && (library is ReadState.Ready || library is ReadState.Empty)) item {
                         Text(str(if (term.isBlank()) R.string.text_import_a_file_in_files_first_d76a295 else R.string.text_no_matching_files_2fc3030))
@@ -250,17 +286,26 @@ internal fun fieldKindName(kind: String): String = when (kind) {
     "concealed" -> str(R.string.text_hidden_value_b28dd5f); "url" -> str(R.string.text_website_bbb4521); "email" -> str(R.string.text_email_6d5db1e)
     "phone" -> str(R.string.text_phone_9460aa6); "date" -> str(R.string.text_date_5da2748); "month" -> str(R.string.text_month_350fe84); "otp" -> str(R.string.text_one_time_code_c7b1bc6); else -> str(R.string.text_text_e349a14)
 }
+internal fun fieldKindIcon(kind: String): ImageVector = when (kind) {
+    "concealed" -> Icons.Outlined.Password
+    "url" -> Icons.Outlined.Link
+    "email" -> Icons.Outlined.Email
+    "phone" -> Icons.Outlined.Phone
+    "date", "month" -> Icons.Outlined.CalendarToday
+    "otp" -> Icons.Outlined.Timer
+    else -> Icons.AutoMirrored.Outlined.ShortText
+}
 @Composable private fun PasswordGenerator(onDismiss: () -> Unit, use: (String) -> Unit) {
     var length by remember { mutableIntStateOf(20) }
     var symbols by remember { mutableStateOf(true) }
     var value by remember { mutableStateOf(generatedPassword(length, symbols)) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(str(R.string.text_generate_password_4fe4cd0)) }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(value, style = MaterialTheme.typography.bodyLarge)
-            Text(str(R.string.text_length_889fe99) + localizedNumber(length))
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DetailCard { Text(value, style = MaterialTheme.typography.bodyLarge.code()) }
+            Text(str(R.string.text_length_889fe99) + localizedNumber(length), style = MaterialTheme.typography.labelLarge)
             Slider(length.toFloat(), { length = it.toInt(); value = generatedPassword(length, symbols) }, valueRange = 12f..64f, steps = 51)
-            SettingToggle(str(R.string.text_symbols_04fef1c), symbols, { symbols = it; value = generatedPassword(length, symbols) })
-            TextButton(onClick = { value = generatedPassword(length, symbols) }) { Text(str(R.string.text_generate_again_c8b3202)) }
+            Section { SettingToggle(str(R.string.text_symbols_04fef1c), symbols, { symbols = it; value = generatedPassword(length, symbols) }) }
+            TextButton(onClick = { value = generatedPassword(length, symbols) }) { Icon(Icons.Outlined.Refresh, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_generate_again_c8b3202)) }
         }
     }, confirmButton = { TextButton(onClick = { use(value) }) { Text(str(R.string.text_use_password_b417e48)) } }, dismissButton = { TextButton(onClick = onDismiss) { Text(str(R.string.text_cancel_998b9c4)) } })
 }

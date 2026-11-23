@@ -3,22 +3,24 @@ package net.dmsg.android.ui
 import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import net.dmsg.android.core.*
-import android.content.Intent
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.saveable.rememberSaveable
 import java.security.MessageDigest
 
 @Composable fun JoinAccountScreen(client: ClientController) {
@@ -28,23 +30,37 @@ import java.security.MessageDigest
     var submitted by remember { mutableStateOf<String?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(str(R.string.text_join_an_existing_account_cc7175b), style = MaterialTheme.typography.headlineSmall)
-        Notice(str(R.string.text_ask_an_authorized_administrator_to_approve_this_login_identity_ap_76d01ae))
-        OutlinedTextField(account, { account = it.trim(); token = null; submitted = null; failure = null }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(str(R.string.text_account_id_43f0a66)) })
-        Button(onClick = {
-            val requested = account
-            client.perform({ core -> (core.createBindingRequest(requested).decode() as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("INTEGRITY_FAILED") }, key = "access:binding", onError = { failure = it }) {
-                if (account == requested) { token = it; submitted = requested; failure = null }
-            }
-        }, enabled = validAccount(account) && !state.working("access:binding")) { Text(str(R.string.text_create_binding_request_598bc7a)) }
-        token?.let { request ->
-            state.session?.principal?.let { LabelValue(str(R.string.join_identity), it) }
-            QrCode(request)
-            TextButton(onClick = { client.clipboard.copy(request) }) { Text(str(R.string.text_copy_request_b707c92)) }
-            SelectionContainer { Text(request, style = MaterialTheme.typography.bodySmall, maxLines = 5) }
-            Button(onClick = { submitted?.let { target -> client.perform({ it.acceptBinding(target) }, transition = true, onError = { failure = it }) { client.showAccess(AccessPage.WELCOME) } } }, enabled = !state.busy) { Text(str(R.string.text_continue_after_approval_0bcc500)) }
-        }
         failure?.let { Notice(errorText(it), true) }
+            ?: Notice(str(R.string.text_ask_an_authorized_administrator_to_approve_this_login_identity_ap_76d01ae))
+        DetailCard {
+            Text(str(R.string.text_join_an_existing_account_cc7175b), style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(account, { account = it.trim(); token = null; submitted = null; failure = null }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(str(R.string.text_account_id_43f0a66)) })
+            Button(
+                onClick = {
+                    val requested = account
+                    client.perform({ core -> (core.createBindingRequest(requested).decode() as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("INTEGRITY_FAILED") }, key = "access:binding", onError = { failure = it }) {
+                        if (account == requested) { token = it; submitted = requested; failure = null }
+                    }
+                },
+                enabled = validAccount(account) && !state.working("access:binding"),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(str(R.string.text_create_binding_request_598bc7a)) }
+        }
+        token?.let { request ->
+            QrCode(request)
+            DetailCard {
+                state.session?.principal?.let { LabelValue(str(R.string.join_identity), it, code = true) }
+                SelectionContainer { Text(request, style = MaterialTheme.typography.bodySmall.code(), maxLines = 5) }
+                OutlinedButton(onClick = { client.clipboard.copy(request) }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_request_b707c92))
+                }
+                Button(
+                    onClick = { submitted?.let { target -> client.perform({ it.acceptBinding(target) }, transition = true, onError = { failure = it }) { client.showAccess(AccessPage.WELCOME) } } },
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(str(R.string.text_continue_after_approval_0bcc500)) }
+            }
+        }
     }
 }
 
@@ -81,29 +97,51 @@ import java.security.MessageDigest
         }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(str(R.string.text_authorize_this_android_device_051b886), style = MaterialTheme.typography.headlineSmall)
-        if (preparing) {
-            Notice(str(R.string.pair_preparing_vault))
-        } else if (state.session?.state == "pairing_required") {
-            Notice(str(R.string.text_your_existing_device_makes_the_final_decision_compare_the_complet_0fdf511))
+        val currentFailure = failure
+        when {
+            currentFailure != null -> Notice(errorText(currentFailure), true)
+            preparing -> Notice(str(R.string.pair_preparing_vault))
+            state.session?.state == "pairing_required" -> Notice(str(R.string.text_your_existing_device_makes_the_final_decision_compare_the_complet_0fdf511))
+        }
+        if (state.session?.state == "pairing_required") {
             token?.let { encoded ->
                 QrCode(encoded)
-                SelectionContainer { Text(state.session?.deviceId.orEmpty(), style = MaterialTheme.typography.bodySmall) }
-                TextButton(onClick = { client.clipboard.copy(encoded) }) { Text(str(R.string.text_copy_device_request_7bde6dd)) }
-                TextButton(onClick = ::request, enabled = !state.working("access:pair-request")) { Text(str(R.string.text_refresh_request_b86a6e2)) }
-            } ?: if (state.working("access:pair-request")) LinearProgressIndicator(Modifier.fillMaxWidth()) else TextButton(onClick = ::request) { Text(str(R.string.text_show_device_request_8145c2f)) }
-            OutlinedButton(onClick = { client.showAccountInvitation(true) }) { Text(str(R.string.text_scan_invitation_27f0014)) }
+                DetailCard {
+                    TransferIdentity(str(R.string.text_device_id_b31993b), state.session?.deviceId.orEmpty())
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { client.clipboard.copy(encoded) }) {
+                            Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_device_request_7bde6dd))
+                        }
+                        TextButton(onClick = ::request, enabled = !state.working("access:pair-request")) {
+                            Icon(Icons.Outlined.Refresh, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_refresh_request_b86a6e2))
+                        }
+                    }
+                }
+            } ?: DetailCard {
+                if (state.working("access:pair-request")) LinearProgressIndicator(Modifier.fillMaxWidth())
+                else OutlinedButton(onClick = ::request, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_show_device_request_8145c2f)) }
+            }
+            OutlinedButton(onClick = { client.showAccountInvitation(true) }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_scan_invitation_27f0014))
+            }
         }
-        failure?.let { Notice(errorText(it), true) }
-        if (needsLogin) TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Text(str(R.string.text_return_to_sign_in_b22d5c4)) }
-        else OutlinedButton(
-            onClick = { check(manual = true) },
-            enabled = !state.busy && !state.working("access:pair-request")
-        ) {
-            Text(str(if (!polling || state.session?.state == "locked") R.string.text_unlock_workspace_ec9cb2a else R.string.text_check_authorization_039f8a2))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (needsLogin) Button(onClick = { client.showAccess(AccessPage.WELCOME) }, modifier = Modifier.fillMaxWidth()) {
+                Text(str(R.string.text_return_to_sign_in_b22d5c4))
+            } else Button(
+                onClick = { check(manual = true) },
+                enabled = !state.busy && !state.working("access:pair-request"),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(str(if (!polling || state.session?.state == "locked") R.string.text_unlock_workspace_ec9cb2a else R.string.text_check_authorization_039f8a2))
+            }
+            OutlinedButton(onClick = { client.showAccess(AccessPage.HANDOVER) }, modifier = Modifier.fillMaxWidth()) {
+                Text(str(R.string.text_replace_an_old_device_186797a))
+            }
         }
-        OutlinedButton(onClick = { client.showAccess(AccessPage.HANDOVER) }) { Text(str(R.string.text_replace_an_old_device_186797a)) }
-        TextButton(onClick = { client.showAccess(AccessPage.RECOVERY) }) { Text(str(R.string.text_all_devices_lost_c768f48)) }
+        Section {
+            ListRow(str(R.string.text_all_devices_lost_c768f48), glyph = R.drawable.glyph_recovery) { client.showAccess(AccessPage.RECOVERY) }
+        }
     }
 }
 
@@ -116,17 +154,26 @@ import java.security.MessageDigest
 @Composable internal fun DeviceRequestCode(client: ClientController, token: String, device: String?, key: String? = null) {
     val context = LocalContext.current
     QrCode(token)
-    if (device != null) { Text(str(R.string.text_device_id_b31993b)); DeviceFingerprint(device) }
-    if (key != null) {
-        Text(str(R.string.pair_key_fingerprint))
-        DeviceFingerprint(key)
+    DetailCard {
+        if (device != null) {
+            Text(str(R.string.text_device_id_b31993b), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            DeviceFingerprint(device)
+        }
+        if (key != null) {
+            Text(str(R.string.pair_key_fingerprint), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            DeviceFingerprint(key)
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = {
+                client.beginExternalInteraction()
+                val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, token)
+                context.startActivity(Intent.createChooser(intent, null))
+            }) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.pair_share_request)) }
+            TextButton(onClick = { client.clipboard.copy(token) }) {
+                Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_request_b707c92))
+            }
+        }
     }
-    TextButton(onClick = {
-        client.beginExternalInteraction()
-        val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, token)
-        context.startActivity(Intent.createChooser(intent, null))
-    }) { Text(str(R.string.pair_share_request)) }
-    TextButton(onClick = { client.clipboard.copy(token) }) { Text(str(R.string.text_copy_request_b707c92)) }
 }
 
 private fun pairingReceipt(token: String): String =
@@ -166,46 +213,63 @@ private fun pairingReceipt(token: String): String =
     val qr by client.qr.state.collectAsStateWithLifecycle()
     LaunchedEffect(qr.result) { client.qr.consume("pair-approval")?.let { edit(it); review() } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (preview?.text("route") != "handoff") {
-            Text(str(if (enrollmentOnly) R.string.text_review_an_enrollment_request_65ae501 else R.string.text_authorize_another_device_d67d951), style = MaterialTheme.typography.headlineSmall)
-            OutlinedTextField(token, ::edit, Modifier.fillMaxWidth(), minLines = 2, maxLines = 5, label = { Text(str(R.string.text_device_request_a29f5e8)) })
-            OutlinedButton(onClick = { client.qr.open("pair-approval") }) { Text(str(R.string.text_scan_device_request_c50056e)) }
-            Button(onClick = ::review, enabled = token.isNotBlank() && !state.working("pair:inspect")) { Text(str(R.string.text_review_request_cb6fb73)) }
-            ApprovalReceipt(client, requestKey)
-        }
         reviewError?.let { code ->
             Notice(if (code == "EXPIRED" || code == "VERSION_CONFLICT") str(R.string.pair_refresh_request) else errorText(code), true)
         }
+        if (preview?.text("route") != "handoff") {
+            DetailCard {
+                Text(str(if (enrollmentOnly) R.string.text_review_an_enrollment_request_65ae501 else R.string.text_authorize_another_device_d67d951), style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(token, ::edit, Modifier.fillMaxWidth(), minLines = 2, maxLines = 5, label = { Text(str(R.string.text_device_request_a29f5e8)) })
+                OutlinedButton(onClick = { client.qr.open("pair-approval") }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_scan_device_request_c50056e))
+                }
+                Button(onClick = ::review, enabled = token.isNotBlank() && !state.working("pair:inspect"), modifier = Modifier.fillMaxWidth()) {
+                    Text(str(R.string.text_review_request_cb6fb73))
+                }
+            }
+            ApprovalReceipt(client, requestKey)
+        }
         preview?.let { inspected ->
-            inspected.text("principal")?.let { LabelValue(str(R.string.join_identity), it) }
+            inspected.text("principal")?.let {
+                Section { CodeRow(str(R.string.join_identity), it) }
+            }
             when (inspected.required("route")) {
                 "done" -> Notice(str(R.string.text_completed_6ff49bc))
                 "refresh" -> Notice(str(R.string.pair_refresh_request))
                 "handoff" -> {
-                    SectionTitle(str(if (enrollment == null) R.string.pair_continue_elsewhere else R.string.pair_enable_approvals))
-                    Text(str(R.string.pair_scan_with_admin))
+                    DetailCard {
+                        Text(str(if (enrollment == null) R.string.pair_continue_elsewhere else R.string.pair_enable_approvals), style = MaterialTheme.typography.titleMedium)
+                        Text(str(R.string.pair_scan_with_admin), style = MaterialTheme.typography.bodyMedium)
+                    }
                     if (enrollment == null) {
                         DeviceRequestCode(client, token.trim(), inspected.text("device_id"), inspected.text("key_id"))
                         val devices = inspected.strings("approvers")
                         if (devices.isEmpty()) {
                             Notice(str(R.string.pair_no_approver))
-                            TextButton(onClick = { client.navigation.open("recovery") }) { Text(str(R.string.text_account_recovery_04aaf7e)) }
+                            Section { ListRow(str(R.string.text_account_recovery_04aaf7e), glyph = R.drawable.glyph_recovery) { client.navigation.open("recovery") } }
+                        } else DetailCard {
+                            devices.forEach { id -> DeviceFingerprint(id) }
                         }
-                        devices.forEach { id -> DeviceFingerprint(id) }
                     }
                     if (enrollment == null && inspected.requiredFlag("can_enroll")) {
-                        OutlinedButton(onClick = {
-                            val input = token
-                            client.perform({ it.approvalKeyRequest(false).decode().objectValue() }, key = "pair:enrollment") {
-                                if (visible && token == input) enrollment = it
-                            }
-                        }, enabled = !state.working("pair:enrollment")) { Text(str(R.string.pair_enable_approvals)) }
+                        OutlinedButton(
+                            onClick = {
+                                val input = token
+                                client.perform({ it.approvalKeyRequest(false).decode().objectValue() }, key = "pair:enrollment") {
+                                    if (visible && token == input) enrollment = it
+                                }
+                            },
+                            enabled = !state.working("pair:enrollment"),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(str(R.string.pair_enable_approvals)) }
                     }
                     enrollment?.let { key ->
                         if (inspected.required("kind") == "device_pair") Notice(str(R.string.pair_after_registration))
                         DeviceRequestCode(client, key.required("token"), key.required("device_id"), key.required("key_id"))
                     }
-                    TextButton(onClick = { edit(""); client.qr.open("pair-approval") }) { Text(str(R.string.text_scan_device_request_c50056e)) }
+                    OutlinedButton(onClick = { edit(""); client.qr.open("pair-approval") }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Outlined.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_scan_device_request_c50056e))
+                    }
                 }
                 else -> Unit
             }
@@ -216,10 +280,14 @@ private fun pairingReceipt(token: String): String =
 @Composable fun MovedWorkspaceScreen(client: ClientController) {
     val state by client.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Text(str(R.string.text_this_workspace_came_from_another_device_d9830c7), style = MaterialTheme.typography.headlineSmall)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_its_device_bound_keys_cannot_be_replaced_automatically_keep_the_c_c11e52c))
-        Button(onClick = { confirming = true }, enabled = !state.busy) { Text(str(R.string.text_set_aside_and_start_a_new_device_1e89498)) }
+        DetailCard {
+            Text(str(R.string.text_this_workspace_came_from_another_device_d9830c7), style = MaterialTheme.typography.titleLarge)
+            Button(onClick = { confirming = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text(str(R.string.text_set_aside_and_start_a_new_device_1e89498))
+            }
+        }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_keep_this_copy_and_continue_4a04eef)) }, text = { Text(str(R.string.text_the_copied_workspace_stays_on_this_device_for_later_import_or_rev_2d360d1)) }, confirmButton = { TextButton(onClick = { confirming = false; client.perform({ it.setAsideMoved() }, transition = true) { client.showAccess(AccessPage.WELCOME) } }) { Text(str(R.string.text_continue_fd19155)) } }, dismissButton = { TextButton(onClick = { confirming = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }

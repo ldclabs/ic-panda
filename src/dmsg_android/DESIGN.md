@@ -183,10 +183,11 @@ Cards pad their content by 16 dp; rows inside a section bring their own padding.
 | Component | Use |
 | --- | --- |
 | `Section(title, footer, iconColor)` | Settings-style group: rows on the card colour 2 dp apart, large outer and 4 dp inner corners |
-| `ListRow`, `SettingToggle`, `SelectionRow`, `RadioChoiceRow` | Rows that open a page or change one setting; each is one accessible target of at least 56 dp; a `destructive` row (sign out) takes the error colour |
+| `ListRow`, `InfoRow`, `CodeRow`, `SettingToggle`, `SelectionRow`, `RadioChoiceRow` | Rows that open a page, display metadata/codes (with optional copy), or change one setting; each is one accessible target of at least 56 dp; a `destructive` row (sign out) takes the error colour |
+| `SheetAction`, `BottomActionBar`, `SecretTextField` | Shared modal sheet action row, sticky bottom primary action bar with hairline divider, and show/hide password/secret input field |
 | `SegmentedChoice` | Two or three exclusive choices, such as the theme or create/join; segments share the tallest label's height |
 | `RowIcon` | A row's leading icon on a tonal circle; the section may colour it |
-| `LabelValue`, `DetailCard` | A label with its value inside a card |
+| `LabelValue`, `DetailCard` | A label with its value inside a card (`DetailCard` automatically applies `OnCard`) |
 | `BrowseRow`, `BrowseIcon` | Compact rows of the vault, message and file lists, with a type glyph on a tonal square |
 | `Avatar` | A round avatar: the image, an icon (the profile glyph for an unnamed account), or the first letter, on a container tone chosen by the account ID |
 | `BrowseScopes`, `BrowseChoice`, `MenuChoice`, `SortMenu` | Filter chips that scroll sideways with fading edges, a chip that opens a menu of choices, and the sort chip |
@@ -357,10 +358,6 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
 
 ## Known Gaps
 
-- `Card` call sites without colours still use the filled default
-  (`surfaceContainerHighest`); the component kit will replace them with one card.
 - Dialogs use the Material defaults (`surfaceContainerHigh`, 28 dp).
-- Subpages outside the vault, messages, account and entry screens still stack
-  several notices and text buttons.
 - With dynamic colour on, the launch window and splash keep the brand page
   colour, so the first frame changes colour once Compose draws.

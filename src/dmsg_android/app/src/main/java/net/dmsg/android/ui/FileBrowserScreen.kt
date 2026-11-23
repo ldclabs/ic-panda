@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable fun FileBrowserScreen(client: ClientController, state: UiState, folder: String, trash: Boolean, select: (String) -> Unit) {
     val listing by client.library.listing.state.collectAsStateWithLifecycle()
     val tree by client.library.tree.state.collectAsStateWithLifecycle()
@@ -102,17 +104,49 @@ import net.dmsg.android.core.*
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
-                        if (canBrowseUnbacked) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
+                        if (!trash) DropdownMenuItem(
+                            text = { Text(str(R.string.text_new_folder_3b1862d)) },
+                            leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
+                            onClick = { menu = false; creating = true },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(str(R.string.text_select_visible_items_5b34cd2)) },
+                            leadingIcon = { Icon(Icons.Outlined.Checklist, null) },
+                            onClick = { menu = false; selectVisible() },
+                            enabled = all.isNotEmpty(),
+                        )
+                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        if (canBrowseUnbacked) DropdownMenuItem(
+                            text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
                             leadingIcon = { Icon(painterResource(R.drawable.glyph_cloud_off), null) },
-                            trailingIcon = { local.valueOrNull()?.let { Text(localizedNumber(it.unbacked)) } },
-                            onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
-                        if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
-                            onClick = { menu = false; creating = true })
-                        DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; selectVisible() }, enabled = all.isNotEmpty())
-                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
-                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
-                        DropdownMenuItem(text = { Text(str(R.string.text_transfers_6fdfd95)) }, onClick = { menu = false; client.navigation.push(Route("file-transfers")) })
-                        if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { menu = false; client.navigation.push(Route("file-trash")) })
+                            trailingIcon = local.valueOrNull()?.unbacked?.takeIf { it > 0u }?.let { count ->
+                                { Badge { Text(if (count > 99u) "99+" else localizedNumber(count)) } }
+                            },
+                            onClick = { menu = false; client.navigation.push(Route("file-unbacked")) },
+                        )
+                        if (state.session?.accountKind != "local") DropdownMenuItem(
+                            text = { Text(str(R.string.text_share_links_fe69aa5)) },
+                            leadingIcon = { Icon(painterResource(R.drawable.glyph_link), null) },
+                            onClick = { menu = false; client.navigation.push(Route("file-links")) },
+                        )
+                        if (state.session?.accountKind != "local") DropdownMenuItem(
+                            text = { Text(str(R.string.text_collect_files_3ad17e5)) },
+                            leadingIcon = { Icon(Icons.Outlined.MoveToInbox, null) },
+                            onClick = { menu = false; client.navigation.push(Route("file-requests")) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(str(R.string.text_transfers_6fdfd95)) },
+                            leadingIcon = { Icon(Icons.Outlined.SwapVert, null) },
+                            onClick = { menu = false; client.navigation.push(Route("file-transfers")) },
+                        )
+                        if (!trash) {
+                            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.text_trash_8af1079)) },
+                                leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                onClick = { menu = false; client.navigation.push(Route("file-trash")) },
+                            )
+                        }
                     }
                 }
             }) { searching ->
@@ -149,23 +183,37 @@ import net.dmsg.android.core.*
                         TextButton(onClick = ::selectVisible) { Text(str(R.string.text_select_visible_items_5b34cd2)) }
                     }
                     if (selection.isNotEmpty()) {
-                        Text(str(R.string.text_selected_26244a5) + localizedNumber(selection.size), style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = ::selectVisible, enabled = visible.any { it.id !in selection }) {
-                                Text(str(R.string.text_select_visible_items_5b34cd2))
+                        DetailCard(Modifier.padding(vertical = 6.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(str(R.string.text_selected_26244a5) + localizedNumber(selection.size), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                TextButton(onClick = client.library::clearSelection) { Text(str(R.string.text_done_selecting_7faa60b)) }
                             }
-                            if (!trash) TextButton(onClick = { start("move", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_move_207d5fe)) }
-                            TextButton(onClick = { start(if (trash) "restore" else "trash", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) { Text(if (trash) str(R.string.text_restore_b04c493) else str(R.string.text_move_to_trash_c4056f9)) }
-                            if (trash) TextButton(onClick = { start("purge", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_delete_permanently_994ca5c), color = MaterialTheme.colorScheme.error) }
-                            TextButton(onClick = client.library::clearSelection) { Text(str(R.string.text_done_selecting_7faa60b)) }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                OutlinedButton(onClick = ::selectVisible, enabled = visible.any { it.id !in selection }) {
+                                    Text(str(R.string.text_select_visible_items_5b34cd2))
+                                }
+                                if (!trash) OutlinedButton(onClick = { start("move", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) {
+                                    Text(str(R.string.text_move_207d5fe))
+                                }
+                                OutlinedButton(onClick = { start(if (trash) "restore" else "trash", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) {
+                                    Text(if (trash) str(R.string.text_restore_b04c493) else str(R.string.text_move_to_trash_c4056f9))
+                                }
+                                if (trash) OutlinedButton(onClick = { start("purge", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) {
+                                    Text(str(R.string.text_delete_permanently_994ca5c), color = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         }
                     }
                     ReadFeedback(listing, { client.library.browse(folder, preferences.query, trash) })
                     if (trash) {
                         ReadFeedback(usage, client.library::loadUsage)
-                        usage.valueOrNull()?.let { Text(str(R.string.text_local_encrypted_storage_b4f4abb) + fileSize(it.bytes), style = MaterialTheme.typography.bodySmall) }
-                        Notice(str(R.string.text_deleting_permanently_removes_all_local_versions_and_folder_conten_1d4b1ab))
-                        if (preferences.query.isBlank() && !preferences.favorites && all.isNotEmpty()) TextButton(onClick = { start("purge", all) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_empty_local_trash_3566898), color = MaterialTheme.colorScheme.error) }
+                        Column(Modifier.padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            usage.valueOrNull()?.let { Text(str(R.string.text_local_encrypted_storage_b4f4abb) + fileSize(it.bytes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            Notice(str(R.string.text_deleting_permanently_removes_all_local_versions_and_folder_conten_1d4b1ab),
+                                action = if (preferences.query.isBlank() && !preferences.favorites && all.isNotEmpty()) { {
+                                    TextButton(onClick = { start("purge", all) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_empty_local_trash_3566898), color = MaterialTheme.colorScheme.error) }
+                                } } else null)
+                        }
                     }
                 }
                 items(visible, key = { it.id }) { entry ->
@@ -206,16 +254,30 @@ import net.dmsg.android.core.*
             }
         }
     }
-    target?.let { item -> AlertDialog(onDismissRequest = { target = null }, title = { Text(item.name) }, text = {
-        Column {
-            if (!trash) {
-                TextButton(onClick = { renaming = item; target = null }) { Text(str(R.string.text_rename_dd3a2f7)) }
-                TextButton(onClick = { start("move", listOf(item)); target = null }) { Text(str(R.string.text_move_207d5fe)) }
+    target?.let { item ->
+        ModalBottomSheet(onDismissRequest = { target = null }) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (item.folder) BrowseIcon(Icons.Outlined.Folder) else BrowseIcon(R.drawable.glyph_file)
+                    Text(item.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                if (!trash) {
+                    SheetAction(str(R.string.text_rename_dd3a2f7), Icons.Outlined.Edit) { renaming = item; target = null }
+                    SheetAction(str(R.string.text_move_207d5fe), Icons.AutoMirrored.Outlined.DriveFileMove) { start("move", listOf(item)); target = null }
+                }
+                SheetAction(
+                    label = if (trash) str(R.string.text_restore_b04c493) else str(R.string.text_move_to_trash_c4056f9),
+                    icon = if (trash) Icons.Outlined.RestoreFromTrash else Icons.Outlined.DeleteOutline,
+                    destructive = !trash,
+                ) { start(if (trash) "restore" else "trash", listOf(item)); target = null }
+                if (trash) SheetAction(str(R.string.text_delete_permanently_994ca5c), Icons.Outlined.DeleteForever, destructive = true) {
+                    start("purge", listOf(item)); target = null
+                }
             }
-            TextButton(onClick = { start(if (trash) "restore" else "trash", listOf(item)); target = null }) { Text(if (trash) str(R.string.text_restore_b04c493) else str(R.string.text_move_to_trash_c4056f9)) }
-            if (trash) TextButton(onClick = { start("purge", listOf(item)); target = null }) { Text(str(R.string.text_delete_permanently_994ca5c), color = MaterialTheme.colorScheme.error) }
         }
-    }, confirmButton = { TextButton(onClick = { target = null }) { Text(str(R.string.text_close_6cf4a77)) } }) }
+    }
     if (creating || renaming != null) FileNameDialog(client, folder, renaming, { creating = false; renaming = null }) {
         if (creating) { client.library.clearSelection(); update(preferences.copy(query = "", favorites = false)) }
         creating = false; renaming = null

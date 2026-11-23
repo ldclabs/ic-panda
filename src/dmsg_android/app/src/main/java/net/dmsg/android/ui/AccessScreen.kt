@@ -67,6 +67,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     TextButton(onClick, modifier, enabled, contentPadding = PaddingValues(horizontal = 8.dp)) { Text(label, style = MaterialTheme.typography.labelMedium) }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun EntryScreen(client: ClientController, state: UiState, browser: (String) -> Unit, openLogin: (String) -> Unit, snackbar: SnackbarHostState) {
     val page by client.access.collectAsStateWithLifecycle()
     val anotherAccount = page == AccessPage.SIGN_IN_ANOTHER
@@ -93,11 +94,26 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     }
     BackHandler(page != AccessPage.WELCOME, onBack = ::backToWelcome)
     BackHandler(intent != null) { intent = null; client.cancelAuthentication() }
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.page, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         if (status == "moved" && !anotherAccount) { Box(Modifier.padding(padding)) { MovedWorkspaceScreen(client) }; return@Scaffold }
         if (page != AccessPage.WELCOME && !anotherAccount) {
+            val pageTitle = when (page) {
+                AccessPage.JOIN_ACCOUNT -> str(R.string.text_join_an_existing_account_cc7175b)
+                AccessPage.PAIRING -> str(R.string.text_authorize_this_device_3a0243f)
+                AccessPage.RECOVERY -> str(R.string.text_account_recovery_04aaf7e)
+                AccessPage.HANDOVER -> str(R.string.text_replace_a_device_fbe5457)
+                else -> ""
+            }
             Column(Modifier.fillMaxSize().padding(padding)) {
-                TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null); Text(str(R.string.text_back_5db5cac)) }
+                TopAppBar(
+                    title = { Text(pageTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        IconButton(onClick = { client.showAccess(AccessPage.WELCOME) }) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
+                )
                 when (page) {
                     AccessPage.JOIN_ACCOUNT -> JoinAccountScreen(client)
                     AccessPage.PAIRING -> DevicePairingScreen(client)
@@ -219,10 +235,18 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     information?.let { PublicInformationDialog(it, { information = null }, browser) }
     if (choosingAccount) androidx.compose.ui.window.Dialog(onDismissRequest = { choosingAccount = false }, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         SyncSystemBars()
-        Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                TextButton(onClick = { choosingAccount = false }) { Text(str(R.string.text_close_6cf4a77)) }
-                Box(Modifier.weight(1f)) { AccountsScreen(client) { choosingAccount = false } }
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.page) {
+            Column(Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text(str(R.string.text_saved_accounts_e314a1f)) },
+                    navigationIcon = {
+                        IconButton(onClick = { choosingAccount = false }) {
+                            Icon(Icons.Outlined.Close, str(R.string.text_close_6cf4a77))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
+                )
+                Box(Modifier.weight(1f).navigationBarsPadding()) { AccountsScreen(client) { choosingAccount = false } }
             }
         }
     }

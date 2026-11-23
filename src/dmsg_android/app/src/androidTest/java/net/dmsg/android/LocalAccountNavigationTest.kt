@@ -56,7 +56,7 @@ class LocalAccountNavigationTest {
             compose.runOnIdle { client.showError("UNAVAILABLE") }
             val unavailable = app.getString(R.string.text_the_service_is_unavailable_local_content_is_still_kept_551ab6a)
             compose.onNodeWithText(unavailable).assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close").performClick()
             compose.waitUntil(5_000) { !client.joiningAccount.value }
             compose.onNodeWithTag("access.local").performClick()
             compose.waitUntil(15_000) { client.state.value.unlocked }

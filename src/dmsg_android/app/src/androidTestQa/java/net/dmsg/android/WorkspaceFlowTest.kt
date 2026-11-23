@@ -2267,4 +2267,112 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { !staged.exists() }
         source.delete()
     }
+
+    @Test fun menusAndRedesignedDetailsRenderInLightAndDark() {
+        val args = InstrumentationRegistry.getArguments()
+        val prefix = args.getString("wave1Prefix") ?: "wave1"
+        val lightOnly = args.getString("wave1LightOnly") == "true"
+        fun captureLook(name: String) {
+            compose.runOnIdle { client.dark(false) }
+            capture("$prefix-$name-light")
+            if (!lightOnly) {
+                compose.runOnIdle { client.dark(true) }
+                capture("$prefix-$name-dark")
+                compose.runOnIdle { client.dark(false) }
+            }
+        }
+        try {
+            // 1. Activity bell menu
+            compose.runOnIdle { client.navigation.open("vault") }
+            compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_activity_1d8edfa)).performClick()
+            captureLook("activity-menu")
+            InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
+            compose.waitForIdle()
+
+            // 2. Vault overflow menu
+            compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_vault_tools_14fe2cc)).performClick()
+            captureLook("vault-menu")
+            InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
+            compose.waitForIdle()
+
+            // 3. Files overflow menu
+            compose.runOnIdle { client.navigation.open("files") }
+            compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_more_file_actions_65e84ee)).performClick()
+            captureLook("files-menu")
+            InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
+            compose.waitForIdle()
+
+            // 4. Channel settings
+            val channel = "ab".repeat(32)
+            runBlocking { native.seedUiChannelMembers("owner") }
+            compose.runOnIdle { client.navigation.open("messages"); client.navigation.push(net.dmsg.android.core.Route("channel-settings", channel = channel)) }
+            compose.waitUntil(10_000) { client.channels.review.value()?.details?.members?.size == 3 }
+            captureLook("channel-settings")
+
+            // 5. Cloud backup detail
+            compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("cloud-files")) }
+            compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("cloud:list:") } }
+            compose.runOnIdle {
+                client.cloudFiles.inventory.accept(client.cloudFiles.inventory.begin(), net.dmsg.android.core.CloudInventory(listOf(
+                    net.dmsg.android.core.CloudBackup("qa-cloud", "file-one", "version-one", "Contacts.vcf", listOf("my"), 1_150_000uL,
+                        "text/vcard", "0eda56e5f9c49699ae9a9dfd69c9dc2a2377c4fec3921bc078d9328b64c69cad",
+                        "42b1cd0238b01ee3b6e354a9e476a08bbd6af695d99a7c6c0dfecc4af77c018c", 4u, null, 1_800_000_000_000u, 1_150_000uL, false, true)
+                ), true, 1_800_000_000_000u))
+                client.navigation.select("qa-cloud")
+            }
+            compose.onNodeWithText("Contacts.vcf").assertExists()
+            captureLook("cloud-detail")
+
+            // 6. File detail
+            val detail = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json)) }
+            compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("files", id = detail.file.id)) }
+            compose.waitUntil(10_000) { client.library.detail.value()?.file?.id == detail.file.id }
+            captureLook("file-detail")
+
+            // 7. Letter detail
+            val letter = net.dmsg.android.core.Letter("ac".repeat(32), "040g2081040g2081040g",
+                "Thank you for your feedback on the new Android interface.", true, false, "delivered", 1_795_000_000_000u)
+            compose.runOnIdle { client.navigation.open("inbox") }
+            compose.waitUntil(10_000) { client.letters.incoming.value() != null && client.safety.blocked.value() != null }
+            compose.runOnIdle {
+                client.letters.incoming.accept(client.letters.incoming.begin(), listOf(letter))
+                client.navigation.push(net.dmsg.android.core.Route("inbox", id = letter.id))
+            }
+            compose.onNodeWithText(letter.text).assertExists()
+            captureLook("letter-detail")
+        } finally {
+            compose.runOnIdle { client.systemAppearance() }
+        }
+    }
+
+    @Test fun subpagesAcrossWavesRenderInLightAndDark() {
+        val args = InstrumentationRegistry.getArguments()
+        val prefix = args.getString("subpagePrefix") ?: "subpages"
+        val lightOnly = args.getString("subpageLightOnly") == "true"
+        fun captureRoute(route: String, name: String = route) {
+            compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route(route)) }
+            compose.waitForIdle()
+            compose.runOnIdle { client.dark(false) }
+            capture("$prefix-$name-light")
+            if (!lightOnly) {
+                compose.runOnIdle { client.dark(true) }
+                capture("$prefix-$name-dark")
+                compose.runOnIdle { client.dark(false) }
+            }
+        }
+        try {
+            captureRoute("vault-backup")
+            captureRoute("inbox-settings")
+            captureRoute("file-transfers")
+            captureRoute("security")
+            captureRoute("notifications")
+            captureRoute("sync")
+            captureRoute("accounts")
+            captureRoute("agents")
+            captureRoute("wallets")
+            captureRoute("workspace-entries")
+        } finally {
+            compose.runOnIdle { client.systemAppearance() }
+        }
+    }
 }

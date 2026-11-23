@@ -4,11 +4,14 @@ import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -39,37 +42,66 @@ import net.dmsg.android.core.*
             client.browserConnections.invitations.value().orEmpty().forEach(client.browserConnections::candidates)
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Notice(str(R.string.text_connect_only_a_browser_you_control_a_connection_can_submit_reques_4b16bf2))
-            Button(onClick = { client.browserConnections.create(::open) }, enabled = !state.working("browser:create")) { Text(str(R.string.text_connect_a_browser_772f8bd)) }
-            ReadFeedback(invitations, client.browserConnections::load)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DetailCard {
+                    Text(str(R.string.text_connect_only_a_browser_you_control_a_connection_can_submit_reques_4b16bf2), style = MaterialTheme.typography.bodyMedium)
+                    Button(onClick = { client.browserConnections.create(::open) }, enabled = !state.working("browser:create"), modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Outlined.AddLink, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_connect_a_browser_772f8bd))
+                    }
+                }
+                ReadFeedback(invitations, client.browserConnections::load)
+            }
         }
         items(invitations.valueOrNull().orEmpty(), key = { it.id }) { invite ->
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(str(R.string.text_waiting_for_browser_confirmation_a77bc19), style = MaterialTheme.typography.titleMedium)
-                    LabelValue(str(R.string.text_expires_12414d7), displayTime(invite.expiresAt))
-                    OutlinedButton(onClick = { open(invite) }, enabled = now < invite.expiresAt) { Text(str(R.string.text_open_invitation_in_browser_ca2e70a)) }
-                    TextButton(onClick = { client.browserConnections.close(invite) }, enabled = !state.working("browser:close:" + invite.id)) { Text(str(R.string.text_close_invitation_0a1976d)) }
-                    errors[invite.id]?.let { Notice(errorText(it)); TextButton(onClick = { client.browserConnections.candidates(invite) }) { Text(str(R.string.text_check_candidates_again_b760fe5)) } }
-                    candidates[invite.id].orEmpty().forEach { candidate ->
-                        val connected = pairings.valueOrNull()?.any { it.id == candidate.id && it.state == "active" } == true
-                        SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(candidate.label); Text(candidate.id, style = MaterialTheme.typography.bodySmall)  } }
-                        if (connected) Text(str(R.string.text_connected_77956f6)) else OutlinedButton(onClick = { grant = invite to candidate }, enabled = now < invite.expiresAt && !state.working("browser:grant:" + candidate.id)) { Text(str(R.string.text_review_this_browser_8d99357)) }
+            DetailCard {
+                Text(str(R.string.text_waiting_for_browser_confirmation_a77bc19), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                LabelValue(str(R.string.text_expires_12414d7), displayTime(invite.expiresAt))
+                OutlinedButton(onClick = { open(invite) }, enabled = now < invite.expiresAt, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_open_invitation_in_browser_ca2e70a))
+                }
+                TextButton(onClick = { client.browserConnections.close(invite) }, enabled = !state.working("browser:close:" + invite.id)) {
+                    Text(str(R.string.text_close_invitation_0a1976d), color = MaterialTheme.colorScheme.error)
+                }
+                errors[invite.id]?.let {
+                    Notice(errorText(it), true)
+                    TextButton(onClick = { client.browserConnections.candidates(invite) }) { Text(str(R.string.text_check_candidates_again_b760fe5)) }
+                }
+                candidates[invite.id].orEmpty().forEach { candidate ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    val connected = pairings.valueOrNull()?.any { it.id == candidate.id && it.state == "active" } == true
+                    SelectionContainer {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(candidate.label, style = MaterialTheme.typography.titleSmall)
+                            Text(candidate.id, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    if (connected) Text(str(R.string.text_connected_77956f6), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    else OutlinedButton(onClick = { grant = invite to candidate }, enabled = now < invite.expiresAt && !state.working("browser:grant:" + candidate.id), modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.text_review_this_browser_8d99357))
                     }
                 }
             }
         }
         item { SectionTitle(str(R.string.text_connected_browsers_e404840)); ReadFeedback(pairings, client.browserConnections::load) }
         items(pairings.valueOrNull().orEmpty(), key = { it.id }) { pairing ->
-            Card {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(pairing.label ?: str(R.string.text_browser_0d2c6bc), style = MaterialTheme.typography.titleMedium)
-                    SelectionContainer { Text(pairing.id, style = MaterialTheme.typography.bodySmall) }
-                    Text(when (pairing.state) { "active" -> str(R.string.text_active_45e5d33); "revoked" -> str(R.string.text_revoked_c4fbad3); "expired" -> str(R.string.text_expired_70446d7); else -> str(R.string.text_status_needs_checking_23c90f0) })
-                    pairing.expiresAt?.let { LabelValue(str(R.string.text_expires_12414d7), displayTime(it)) }
-                    if (pairing.state == "active") TextButton(onClick = { revoke = pairing }, enabled = !state.working("browser:revoke:" + pairing.id)) { Text(str(R.string.text_revoke_browser_1c594a3), color = MaterialTheme.colorScheme.error) }
+            DetailCard {
+                Text(pairing.label ?: str(R.string.text_browser_0d2c6bc), style = MaterialTheme.typography.titleMedium)
+                SelectionContainer { Text(pairing.id, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Text(
+                    when (pairing.state) {
+                        "active" -> str(R.string.text_active_45e5d33)
+                        "revoked" -> str(R.string.text_revoked_c4fbad3)
+                        "expired" -> str(R.string.text_expired_70446d7)
+                        else -> str(R.string.text_status_needs_checking_23c90f0)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (pairing.state == "active") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                pairing.expiresAt?.let { LabelValue(str(R.string.text_expires_12414d7), displayTime(it)) }
+                if (pairing.state == "active") TextButton(onClick = { revoke = pairing }, enabled = !state.working("browser:revoke:" + pairing.id)) {
+                    Text(str(R.string.text_revoke_browser_1c594a3), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -77,34 +109,53 @@ import net.dmsg.android.core.*
     }
     grant?.let { choice ->
         AlertDialog(onDismissRequest = { grant = null }, title = { Text(str(R.string.text_connect_this_browser_8b0cd9a)) }, text = {
-            Column { Text(choice.second.label); SelectionContainer { Text(choice.second.id) }; Text(str(R.string.text_confirm_this_candidate_in_the_browser_you_opened_its_label_is_not_26fee81)) }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(choice.second.label, style = MaterialTheme.typography.titleSmall)
+                SelectionContainer { Text(choice.second.id, style = MaterialTheme.typography.bodySmall.code()) }
+                Text(str(R.string.text_confirm_this_candidate_in_the_browser_you_opened_its_label_is_not_26fee81))
+            }
         }, confirmButton = { TextButton(onClick = { grant = null; client.browserConnections.grant(choice.first, choice.second) }) { Text(str(R.string.text_connect_b3b35de)) } }, dismissButton = { TextButton(onClick = { grant = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
     }
     revoke?.let { pairing ->
-        AlertDialog(onDismissRequest = { revoke = null }, title = { Text(str(R.string.text_revoke_this_browser_04ff224)) }, text = { SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(pairing.label.orEmpty()); Text(pairing.id)  } } }, confirmButton = { TextButton(onClick = { revoke = null; client.browserConnections.revoke(pairing) }) { Text(str(R.string.text_revoke_411a6c9)) } }, dismissButton = { TextButton(onClick = { revoke = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+        AlertDialog(onDismissRequest = { revoke = null }, title = { Text(str(R.string.text_revoke_this_browser_04ff224)) }, text = {
+            SelectionContainer {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(pairing.label.orEmpty(), style = MaterialTheme.typography.titleSmall)
+                    Text(pairing.id, style = MaterialTheme.typography.bodySmall.code())
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { revoke = null; client.browserConnections.revoke(pairing) }) { Text(str(R.string.text_revoke_411a6c9), color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { revoke = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
     }
 }
+
 @Composable fun BrowserRequestScreen(client: ClientController, link: ConnectLink, browser: (String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
     val request by client.browserConnections.request.state.collectAsStateWithLifecycle()
     if (link.account != null && link.account != state.session?.account) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(str(R.string.text_this_request_belongs_to_another_account_choose_its_account_before_0b05dcb))
-            SelectionContainer { Text(link.account) }
-            Button(onClick = { client.navigation.open("accounts") }) { Text(str(R.string.text_choose_account_58cfffa)) }
+            Section { CodeRow(str(R.string.text_account_id_43f0a66), link.account) }
+            Button(onClick = { client.navigation.open("accounts") }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_choose_account_58cfffa)) }
             TextButton(onClick = { client.dismissConnectLink(); client.navigation.back() }) { Text(str(R.string.text_dismiss_request_87156ba)) }
         }
     } else if (link.destination == "pair") BrowserConnectionsScreen(client, browser)
     else {
         LaunchedEffect(link, state.epoch) { client.browserConnections.locate(link) }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Notice(str(R.string.text_the_app_retrieves_and_verifies_the_original_browser_request_openi_aea3c2b))
-            ReadFeedback(request, { client.browserConnections.locate(link) })
-            if (request is ReadState.Empty) Text(str(R.string.text_the_request_is_unavailable_to_this_device_it_may_have_expired_or_763c484))
-            request.valueOrNull()?.let { id ->
-                Button(onClick = { client.dismissConnectLink(); client.approvals.open(id) }) { Text(str(R.string.text_review_verified_request_ecf7242)) }
+            DetailCard {
+                Text(str(R.string.text_the_app_retrieves_and_verifies_the_original_browser_request_openi_aea3c2b), style = MaterialTheme.typography.bodyMedium)
+                if (request is ReadState.Empty) Text(str(R.string.text_the_request_is_unavailable_to_this_device_it_may_have_expired_or_763c484),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                request.valueOrNull()?.let { id ->
+                    Button(onClick = { client.dismissConnectLink(); client.approvals.open(id) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.text_review_verified_request_ecf7242))
+                    }
+                }
             }
-            TextButton(onClick = { client.navigation.open("approvals") }) { Text(str(R.string.text_open_approvals_639b4b5)) }
+            ReadFeedback(request, { client.browserConnections.locate(link) })
+            Section {
+                ListRow(str(R.string.text_open_approvals_639b4b5), glyph = R.drawable.glyph_approvals) { client.navigation.open("approvals") }
+            }
             TextButton(onClick = { client.dismissConnectLink(); client.navigation.back() }) { Text(str(R.string.text_dismiss_request_87156ba)) }
         }
     }

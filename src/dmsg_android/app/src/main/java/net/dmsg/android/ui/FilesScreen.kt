@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,60 +44,116 @@ import java.io.File
     if (selected.isEmpty()) FileBrowserScreen(client, state, folder, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(details, { client.library.select(selected) })
         if (current != null && selectedVersion != null && historical == null) {
-            Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481), true)
-            TextButton(onClick = { selectedVersion = null }) { Text(str(R.string.text_view_the_current_version_86f22e5)) }
+            Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481), true) {
+                TextButton(onClick = { selectedVersion = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) {
+                    Text(str(R.string.text_view_the_current_version_86f22e5))
+                }
+            }
         }
         if (file != null) {
             DetailCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     RowIcon(painterResource(R.drawable.glyph_file), MaterialTheme.colorScheme.secondaryContainer)
-                    Column { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size) + " · " + fileState(file), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(file.name, style = MaterialTheme.typography.titleLarge)
+                        Text(fileSize(file.size) + " · " + fileState(file),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (file.starred) Icon(Icons.Outlined.Star, str(R.string.text_favorite_1fd85c7), tint = MaterialTheme.colorScheme.primary)
                 }
             }
             if (file.trashedAt != null) {
                 Notice(str(R.string.text_restore_this_file_before_opening_it_5bf614e))
-                Button(onClick = { client.library.restore(file.id) { select("") } }, enabled = !state.working("files:restore:" + file.id)) { Text(str(R.string.text_restore_b04c493)) }
+                Button(onClick = { client.library.restore(file.id) { select("") } },
+                    enabled = !state.working("files:restore:" + file.id), modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.RestoreFromTrash, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(str(R.string.text_restore_b04c493))
+                }
             } else {
-                if (file.local) Button(onClick = { client.navigation.push(Route("file-preview", id = file.id, revision = file.version)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Visibility, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_verified_contents_49f2c13)) }
-                if (file.local) OutlinedButton(onClick = { confirmation = "share" }, enabled = !state.working("file:open:" + file.id), modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_a_verified_copy_fc77423)) }
-                else Notice(str(R.string.text_this_version_has_no_local_copy_restore_its_verified_cloud_backup_4068c35))
-                if (state.session?.accountKind != "local" && file.local && file.backup == null && file.version == current.file.version) OutlinedButton(onClick = { client.navigation.push(Route("file-backup", id = file.id, revision = file.version)) }, enabled = !state.working("file:backup:" + file.id), modifier = Modifier.fillMaxWidth()) { Icon(painterResource(R.drawable.glyph_cloud_up), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_back_up_this_version_f74abb5)) }
-                if (state.session?.accountKind != "local" && !file.local && file.backup != null) OutlinedButton(onClick = {
-                    client.fileWork.restore(file.backup!!.upload, file.folder)
-                }, enabled = !state.working("file:restore:" + file.id)) { Icon(painterResource(R.drawable.glyph_cloud_down), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_restore_to_this_device_802102f)) }
-                if (state.session?.accountKind != "local" && file.local && file.backup != null) TextButton(onClick = { confirmation = "evict" }) { Text(str(R.string.text_free_local_space_89b2267)) }
-                if (state.session?.accountKind != "local" && (file.local || file.backup != null)) OutlinedButton(onClick = { client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version)) }, enabled = file.size <= 100uL * 1024u * 1024u, modifier = Modifier.fillMaxWidth()) { Icon(painterResource(R.drawable.glyph_link), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextButton(onClick = { rename = true }) { Text(str(R.string.text_rename_dd3a2f7)) }
-                    TextButton(onClick = { moveError = null; move = true }) { Text(str(R.string.text_move_207d5fe)) }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (file.local) {
+                        Button(onClick = { client.navigation.push(Route("file-preview", id = file.id, revision = file.version)) }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Outlined.Visibility, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_verified_contents_49f2c13))
+                        }
+                        OutlinedButton(onClick = { confirmation = "share" }, enabled = !state.working("file:open:" + file.id), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_a_verified_copy_fc77423))
+                        }
+                    } else {
+                        Notice(str(R.string.text_this_version_has_no_local_copy_restore_its_verified_cloud_backup_4068c35))
+                        file.backup?.takeIf { state.session?.accountKind != "local" }?.let { backup ->
+                            Button(onClick = { client.fileWork.restore(backup.upload, file.folder) },
+                                enabled = !state.working("file:restore:" + file.id), modifier = Modifier.fillMaxWidth()) {
+                                Icon(painterResource(R.drawable.glyph_cloud_down), null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_restore_to_this_device_802102f))
+                            }
+                        }
+                    }
+                }
+                val isCloud = state.session?.accountKind != "local"
+                Section {
+                    if (isCloud && (file.local || file.backup != null)) {
+                        ListRow(str(R.string.text_share_by_link_05aafef), glyph = R.drawable.glyph_link,
+                            enabled = file.size <= 100uL * 1024u * 1024u) {
+                            client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version))
+                        }
+                    }
+                    if (isCloud && file.local && file.backup == null && file.version == current.file.version) {
+                        ListRow(str(R.string.text_back_up_this_version_f74abb5), glyph = R.drawable.glyph_cloud_up,
+                            enabled = !state.working("file:backup:" + file.id)) {
+                            client.navigation.push(Route("file-backup", id = file.id, revision = file.version))
+                        }
+                    }
+                    if (isCloud && file.local && file.backup != null) {
+                        ListRow(str(R.string.text_free_local_space_89b2267), glyph = R.drawable.glyph_cloud_off) { confirmation = "evict" }
+                    }
+                    ListRow(str(R.string.text_edit_notes_tags_and_favorite_25ab2c0), icon = Icons.Outlined.EditNote) {
+                        client.library.beginMetadata(current.file); metadata = true
+                    }
+                    ListRow(str(R.string.text_rename_dd3a2f7), icon = Icons.Outlined.Edit) { rename = true }
+                    ListRow(str(R.string.text_move_207d5fe), icon = Icons.AutoMirrored.Outlined.DriveFileMove) { moveError = null; move = true }
                 }
             }
-            if (file.trashedAt == null) TextButton(onClick = { client.library.beginMetadata(current!!.file); metadata = true }) { Text(str(R.string.text_edit_notes_tags_and_favorite_25ab2c0)) }
-            SectionTitle(str(R.string.text_file_details_27e9099))
-            Text(file.mime, style = MaterialTheme.typography.bodySmall)
-            if (file.path.isNotEmpty()) Text(file.path.joinToString(" / "))
-            if (file.tags.isNotEmpty()) Text(file.tags.joinToString(" · "))
-            if (file.note.isNotEmpty()) SelectionContainer { Text(file.note) }
-            SectionTitle("SHA-256"); SelectionContainer { Text(file.sha256, style = MaterialTheme.typography.bodySmall) }
-            file.backup?.let { backup ->
-                Text(str(R.string.text_backup_saved_0769b59) + messageTime(backup.backedUpAt), style = MaterialTheme.typography.bodySmall)
-                Text(if (backup.verified) str(R.string.text_all_chunks_read_back_and_verified_153e284) else str(R.string.text_backup_has_not_been_fully_read_back_30e3810), style = MaterialTheme.typography.bodySmall)
+            Section(title = str(R.string.text_file_details_27e9099)) {
+                InfoRow(str(R.string.text_type_6172196), file.mime, code = true)
+                if (file.path.isNotEmpty()) InfoRow(str(R.string.text_folder_b0d1441), file.path.joinToString(" / "))
+                if (file.tags.isNotEmpty()) InfoRow(str(R.string.text_tags_33e9c4d), file.tags.joinToString(" · "))
+                if (file.note.isNotEmpty()) InfoRow(str(R.string.text_note_a907cbf), file.note, selectable = true)
+                file.backup?.let { backup ->
+                    ListRow(str(R.string.text_cloud_backups_ab4daf1),
+                        supporting = str(R.string.text_backup_saved_0769b59) + messageTime(backup.backedUpAt) + "\n" +
+                            if (backup.verified) str(R.string.text_all_chunks_read_back_and_verified_153e284)
+                            else str(R.string.text_backup_has_not_been_fully_read_back_30e3810))
+                }
+                CodeRow("SHA-256", file.sha256) { client.clipboard.copy(file.sha256) }
             }
-            SectionTitle(str(R.string.text_versions_0ff2bdb))
-            Section {
+            Section(title = str(R.string.text_versions_0ff2bdb)) {
                 current.versions.reversed().forEach { version ->
                     RadioChoiceRow(messageTime(version.createdAt) + if (version.current) str(R.string.text_current_de083b6) else "", file.version == version.id,
                         subtitle = fileSize(version.size) + " · " + version.device) { selectedVersion = version.id }
                 }
             }
             if (file.version != current.file.version && file.trashedAt == null) {
-                OutlinedButton(onClick = { versionAction = "use" }, enabled = !state.working("files:version:${file.id}")) { Text(str(R.string.text_make_this_the_current_version_ddcd50e)) }
-                TextButton(onClick = { versionAction = "delete" }, enabled = !state.working("files:version:${file.id}")) { Text(str(R.string.text_delete_this_local_historical_version_f626908), color = MaterialTheme.colorScheme.error) }
-                Text(str(R.string.text_selected_sha_256_c773aab) + file.sha256, style = MaterialTheme.typography.labelSmall)
-                Text(str(R.string.text_current_sha_256_2b15436) + current.file.sha256, style = MaterialTheme.typography.labelSmall)
-                Text(if (file.sha256 == current.file.sha256 && file.size == current.file.size) str(R.string.text_both_recorded_content_digests_match_32aeeb6) else str(R.string.text_the_recorded_content_differs_between_these_versions_b1657eb), style = MaterialTheme.typography.bodySmall)
+                DetailCard {
+                    Text(if (file.sha256 == current.file.sha256 && file.size == current.file.size) str(R.string.text_both_recorded_content_digests_match_32aeeb6)
+                        else str(R.string.text_the_recorded_content_differs_between_these_versions_b1657eb),
+                        style = MaterialTheme.typography.bodyMedium)
+                    CodeRow(str(R.string.text_selected_sha_256_c773aab).trimEnd(' ', '·', ':', '：'), file.sha256)
+                    CodeRow(str(R.string.text_current_sha_256_2b15436).trimEnd(' ', '·', ':', '：'), current.file.sha256)
+                    OutlinedButton(onClick = { versionAction = "use" }, enabled = !state.working("files:version:${file.id}"),
+                        modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_make_this_the_current_version_ddcd50e)) }
+                    TextButton(onClick = { versionAction = "delete" }, enabled = !state.working("files:version:${file.id}"),
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.text_delete_this_local_historical_version_f626908), color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
-            if (file.trashedAt == null) TextButton(onClick = { confirmation = "trash" }) { Text(str(R.string.text_move_local_file_to_trash_9600310), color = MaterialTheme.colorScheme.error) }
+            if (file.trashedAt == null) {
+                Section(iconColor = MaterialTheme.colorScheme.errorContainer) {
+                    ListRow(str(R.string.text_move_local_file_to_trash_9600310), icon = Icons.Outlined.DeleteOutline,
+                        destructive = true) { confirmation = "trash" }
+                }
+            }
         }
     }
     if (metadata && current != null) FileMetadataEditor(client, current.file) { metadata = false }

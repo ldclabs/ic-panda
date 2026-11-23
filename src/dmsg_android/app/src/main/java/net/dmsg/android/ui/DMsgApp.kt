@@ -98,9 +98,15 @@ import kotlinx.coroutines.launch
                     else Column(Modifier.fillMaxSize().systemBarsPadding()) {
                         // Keep the invitation mounted while Android shows the system credential prompt.
                         BackHandler { client.navigation.open("devices") }
-                        if (!state.concealed) TextButton(onClick = { client.navigation.open("devices") }) {
-                            Text(str(R.string.text_back_5db5cac))
-                        }
+                        if (!state.concealed) TopAppBar(
+                            title = { Text(title("account-invite"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            navigationIcon = {
+                                IconButton(onClick = { client.navigation.open("devices") }) {
+                                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac))
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
+                        )
                         Box(Modifier.weight(1f)) { AccountInviteHostScreen(client) }
                     }
                     if (!state.concealed) {
@@ -131,19 +137,46 @@ import kotlinx.coroutines.launch
                     val activityButton: @Composable () -> Unit = {
                         if (!local) Box {
                             var open by remember { mutableStateOf(false) }
-                            IconButton(onClick = { open = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
-                            DropdownMenu(open, { open = false }) {
-                                val reminders = noticeStatus.valueOrNull()?.counts?.total
-                                val approvals = state.session?.approvalsWaiting
-                                val actions = listOf(
-                                    Triple("approvals", str(R.string.text_approvals_1b5e94c) + " · " + (approvals?.let { localizedNumber(it) } ?: "—"), (approvals ?: 0u) > 0u),
-                                    Triple("reminders", str(R.string.text_reminders_e43c7b0) + " · " + (reminders?.let { localizedNumber(it) } ?: "—"), (reminders ?: 0uL) > 0uL),
-                                    Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncStatus?.error != null),
-                                )
-                                actions.sortedByDescending { it.third }.forEach { (page, label, _) ->
-                                    DropdownMenuItem(text = { Text(label) }, onClick = { open = false; go(page) })
+                            val reminders = noticeStatus.valueOrNull()?.counts?.total
+                            val approvals = state.session?.approvalsWaiting
+                            val syncError = syncStatus?.error != null
+                            IconButton(onClick = { open = true }) {
+                                BadgedBox(badge = { if ((reminders ?: 0uL) > 0uL || (approvals ?: 0u) > 0u || syncError) Badge() }) {
+                                    Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa))
                                 }
-                                DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { open = false; go("secret-activity") })
+                            }
+                            DropdownMenu(open, { open = false }) {
+                                val actions = listOf(
+                                    Triple("approvals", str(R.string.text_approvals_1b5e94c), (approvals ?: 0u) > 0u),
+                                    Triple("reminders", str(R.string.text_reminders_e43c7b0), (reminders ?: 0uL) > 0uL),
+                                    Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncError),
+                                )
+                                actions.sortedByDescending { it.third }.forEach { (page, label, urgent) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        leadingIcon = {
+                                            when (page) {
+                                                "approvals" -> Icon(painterResource(R.drawable.glyph_approvals), null)
+                                                "reminders" -> Icon(if (urgent) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone, null)
+                                                else -> Icon(painterResource(R.drawable.glyph_sync), null,
+                                                    tint = if (syncError) MaterialTheme.colorScheme.error else LocalContentColor.current)
+                                            }
+                                        },
+                                        trailingIcon = when (page) {
+                                            "approvals" -> approvals?.takeIf { it > 0u }?.let { count -> { Badge { Text(if (count > 99u) "99+" else localizedNumber(count)) } } }
+                                            "reminders" -> reminders?.takeIf { it > 0uL }?.let { count -> { Badge { Text(if (count > 99uL) "99+" else localizedNumber(count)) } } }
+                                            "sync" -> if (syncError) ({ Icon(Icons.Outlined.ErrorOutline, null, tint = MaterialTheme.colorScheme.error) }) else null
+                                            else -> null
+                                        },
+                                        onClick = { open = false; go(page) },
+                                    )
+                                }
+                                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                                DropdownMenuItem(
+                                    text = { Text(str(R.string.text_activity_on_this_device_288740a)) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.glyph_audit), null) },
+                                    onClick = { open = false; go("secret-activity") },
+                                )
                             }
                         }
                     }

@@ -39,11 +39,17 @@ class UiConventionsTest {
     @Test fun segmentedChoicesUseTheKit() = assertNone("segmented button outside the kit; use SegmentedChoice",
         Regex("""\b(SingleChoiceSegmentedButtonRow|MultiChoiceSegmentedButtonRow)\("""), "Filters.kt")
 
+    @Test fun cardsUseTheKit() = assertNone("raw Card; use DetailCard, Section or OutlinedCard",
+        Regex("""(^|[^a-zA-Z0-9_])Card\s*[({]"""))
+
+    @Test fun buttonIconsKeepSpacing() = assertNone("Icon immediately followed by Text without a Spacer",
+        Regex("""Icon\([^)]*\)\s*;\s*Text\("""))
+
     @Test fun sharedComponentsLiveInTheKit() {
         val kit = File(root, "ui/kit")
-        assertTrue(listOf("Section.kt", "Rows.kt", "Notice.kt", "EmptyState.kt", "Skeleton.kt", "Filters.kt").all { File(kit, it).isFile })
+        assertTrue(listOf("Card.kt", "Controls.kt", "Section.kt", "Rows.kt", "Notice.kt", "EmptyState.kt", "Skeleton.kt", "Filters.kt").all { File(kit, it).isFile })
         assertNone("shared component defined outside ui/kit", Regex(
-            """fun (Section|ListRow|RowIcon|LabelValue|SettingToggle|SelectionRow|RadioChoiceRow|BrowseRow|BrowseIcon|BrowseChoice|SortMenu|MenuChoice|SegmentedChoice|Avatar|Notice|EmptyState|DetailCard)\("""),
+            """fun (Section|ListRow|InfoRow|CodeRow|SheetAction|RowIcon|LabelValue|SettingToggle|SelectionRow|RadioChoiceRow|BrowseRow|BrowseIcon|BrowseChoice|SortMenu|MenuChoice|SegmentedChoice|BottomActionBar|SecretTextField|Avatar|Notice|EmptyState|DetailCard)\("""),
             *kit.list().orEmpty())
     }
 

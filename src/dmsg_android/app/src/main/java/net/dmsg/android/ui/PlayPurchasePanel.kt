@@ -67,13 +67,12 @@ private val purchaseWorking = setOf(PurchasePhase.LOADING, PurchasePhase.PREPARI
             Text(str(R.string.text_change_renewal_payment_method_or_cancellation_in_the_google_accou_6ab74d5), style = MaterialTheme.typography.bodySmall)
         }
         history.take(historyLimit).forEach { receipt ->
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                HorizontalDivider()
+            DetailCard {
                 Text(view.offers.find { it.selection.product == receipt.product }?.title ?: str(R.string.text_previous_purchase_14e279e), style = MaterialTheme.typography.titleSmall)
                 Text(receiptState(receipt), style = MaterialTheme.typography.bodyMedium)
-                if (receipt.environment == "Test") Text(str(R.string.text_test_purchase_fa667fa), style = MaterialTheme.typography.labelMedium)
-                receipt.expires?.let { Text(str(R.string.text_current_term_802ec1b) + displayTime(it), style = MaterialTheme.typography.bodySmall) }
-                if (receipt.nextProduct != null) Text(str(R.string.text_a_change_is_scheduled_for_the_next_term_current_benefits_remain_u_3f898e4), style = MaterialTheme.typography.bodySmall)
+                if (receipt.environment == "Test") Text(str(R.string.text_test_purchase_fa667fa), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                receipt.expires?.let { Text(str(R.string.text_current_term_802ec1b) + displayTime(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (receipt.nextProduct != null) Text(str(R.string.text_a_change_is_scheduled_for_the_next_term_current_benefits_remain_u_3f898e4), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (historyLimit < history.size) TextButton(onClick = { historyLimit += 20 }) { Text(str(R.string.text_show_more_purchases_650e0c2)) }
@@ -82,7 +81,7 @@ private val purchaseWorking = setOf(PurchasePhase.LOADING, PurchasePhase.PREPARI
         ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()).padding(bottom = pageMargin()).testTag("play-review"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(offerTitle(offer), style = MaterialTheme.typography.headlineSmall)
-                LabelValue(str(R.string.text_account_4ab56e9), view.beneficiary ?: str(R.string.text_not_verified_e9586ea))
+                LabelValue(str(R.string.text_account_4ab56e9), view.beneficiary ?: str(R.string.text_not_verified_e9586ea), code = view.beneficiary != null)
                 if (offer.description.isNotBlank()) Text(offer.description, style = MaterialTheme.typography.bodyMedium)
                 offer.phases.forEachIndexed { index, phase ->
                     LabelValue(if (offer.selection.kind == PlayKind.STORAGE) str(R.string.text_pay_once_84cad17) else if (phase.recurring) str(R.string.text_each_year_a4c5bef) else str(R.string.text_introductory_phase_f6477c6) + if (offer.phases.size > 1) " ${index + 1}" else "", phase.price)

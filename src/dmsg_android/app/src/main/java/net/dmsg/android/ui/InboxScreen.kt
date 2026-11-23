@@ -12,19 +12,32 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ForwardToInbox
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
-private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460020), SENT(R.string.text_sent_a16d792), PENDING(R.string.text_pending_3f118eb), DRAFTS(R.string.text_drafts_14a9642), ARCHIVED(R.string.text_archived_fafdfe8) }
+private enum class LetterFolder(val label: Int, val icon: ImageVector) {
+    INBOX(R.string.text_inbox_8460020, Icons.Outlined.Inbox),
+    SENT(R.string.text_sent_a16d792, Icons.AutoMirrored.Outlined.Send),
+    PENDING(R.string.text_pending_3f118eb, Icons.Outlined.Schedule),
+    DRAFTS(R.string.text_drafts_14a9642, Icons.Outlined.Drafts),
+    ARCHIVED(R.string.text_archived_fafdfe8, Icons.Outlined.Archive),
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun InboxScreen(client: ClientController, state: UiState, route: Route, showScopes: Boolean) {
@@ -57,29 +70,33 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
             WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),
                 actions = {
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
-                    IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
+                    MessageMoreMenu(client)
                 }) { searching ->
                 if (!searching) ScreenFab {
                     val atTop by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
                     ExtendedFloatingActionButton(onClick = { editing = client.letters.create() }, expanded = atTop,
                         icon = { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }, text = { Text(str(R.string.text_write_a_letter_1a8f9c9)) })
                 }
-                Row(Modifier.padding(horizontal = pageMargin())) {
-                    BrowseScopes(trailing = {
-                        MenuChoice(str(folder.label), folder != LetterFolder.INBOX, Modifier.testTag("letter-folders")) { close ->
-                            LetterFolder.entries.forEach { entry ->
-                                DropdownMenuItem(text = { Text(str(entry.label)) }, onClick = { close(); folder = entry },
-                                    trailingIcon = if (entry == folder) ({ Icon(Icons.Outlined.Check, null) }) else null)
-                            }
-                        }
-                    }) {
-                        if (showScopes) {
-                            BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
-                            BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
-                        } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
-                    }
-                }
                 LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
+                    browseScopesItem(searching) {
+                        BrowseScopes(trailing = {
+                            MenuChoice(str(folder.label), folder != LetterFolder.INBOX, Modifier.testTag("letter-folders")) { close ->
+                                LetterFolder.entries.forEach { entry ->
+                                    DropdownMenuItem(
+                                        text = { Text(str(entry.label)) },
+                                        leadingIcon = { Icon(entry.icon, null) },
+                                        trailingIcon = if (entry == folder) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                        onClick = { close(); folder = entry },
+                                    )
+                                }
+                            }
+                        }) {
+                            if (showScopes) {
+                                BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
+                                BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
+                            } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                     when (folder) {
                         LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
                             item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
@@ -114,29 +131,99 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
             }
         } else if (letter != null || outgoing != null) Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val account = letter?.sender ?: outgoing!!.recipient
-            Text(if (letter != null) str(R.string.text_from_c08793d) else str(R.string.text_to_50fd5b7), style = MaterialTheme.typography.labelLarge)
-            ParticipantIdentity(client, account, showId = true)
-            TextButton(onClick = { client.clipboard.copy(account) }) { Text(str(R.string.text_copy_account_id_faa481e)) }
-            Text(messageTime(letter?.createdAt ?: outgoing?.createdAt), style = MaterialTheme.typography.labelMedium)
-            SelectionContainer { Text(letter?.text ?: outgoing?.text ?: str(R.string.text_message_body_unavailable_6b03555), if (letter != null) Modifier.reminderVisible(client, NoticeTarget("inbox", letter.id), revision = letter) else Modifier) }
+            val haptics = LocalHapticFeedback.current
+            DetailCard {
+                Text(if (letter != null) str(R.string.text_from_c08793d) else str(R.string.text_to_50fd5b7),
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) { ParticipantIdentity(client, account, showId = true) }
+                    IconButton(onClick = {
+                        client.clipboard.copy(account)
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    }) { Icon(Icons.Outlined.ContentCopy, str(R.string.text_copy_account_id_faa481e)) }
+                }
+                Text(messageTime(letter?.createdAt ?: outgoing?.createdAt),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            DetailCard {
+                outgoing?.let { sentLetter ->
+                    Text(letterState(sentLetter.state), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                }
+                SelectionContainer {
+                    Text(
+                        letter?.text ?: outgoing?.text ?: str(R.string.text_message_body_unavailable_6b03555),
+                        modifier = if (letter != null) Modifier.reminderVisible(client, NoticeTarget("inbox", letter.id), revision = letter) else Modifier,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
             if (letter != null) {
-                Button(onClick = { val id = client.letters.create(); client.letters.update(LetterDraft(id = id, recipient = letter.sender)); editing = id }) { Text(str(R.string.text_reply_b4c9334)) }
-                OutlinedButton(onClick = { client.letters.mark(letter, archived = !letter.archived) }) { Text(if (letter.archived) str(R.string.text_move_to_inbox_3b770ba) else str(R.string.text_archive_0f0188e)) }
-                TextButton(onClick = { client.letters.mark(letter, read = !letter.read) }) { Text(if (letter.read) str(R.string.text_mark_unread_b10bd76) else str(R.string.text_mark_read_20bb0ec)) }
-                TextButton(onClick = { reopen = true }) { Text(str(R.string.text_allow_another_letter_fee59fb)) }
-                TextButton(onClick = { client.navigation.push(Route("invite-letter-sender", id = letter.sender)) }) { Text(str(R.string.text_invite_to_a_conversation_e66d6f9)) }
-                TextButton(onClick = { client.safety.openReport(ReportTarget("inbox", letter.sender, letter.id)) }) { Text(str(R.string.text_report_letter_0730024)) }
-                TextButton(onClick = { client.safety.openBlock(letter.sender) }) { Text(str(R.string.text_block_sender_021b756)) }
-                Notice(str(R.string.text_archiving_does_not_allow_another_letter_receiving_a_letter_grants_245790e))
+                val stackPrimary = LocalDensity.current.fontScale >= 1.4f || letter.archived
+                val replyAction: @Composable (Modifier) -> Unit = { buttonModifier ->
+                    Button(onClick = { val id = client.letters.create(); client.letters.update(LetterDraft(id = id, recipient = letter.sender)); editing = id },
+                        modifier = buttonModifier) {
+                        Icon(Icons.AutoMirrored.Outlined.Reply, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_reply_b4c9334))
+                    }
+                }
+                val archiveAction: @Composable (Modifier) -> Unit = { buttonModifier ->
+                    OutlinedButton(onClick = { client.letters.mark(letter, archived = !letter.archived) }, modifier = buttonModifier) {
+                        Icon(if (letter.archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (letter.archived) str(R.string.text_move_to_inbox_3b770ba) else str(R.string.text_archive_0f0188e))
+                    }
+                }
+                if (stackPrimary) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        replyAction(Modifier.fillMaxWidth())
+                        archiveAction(Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        replyAction(Modifier.weight(1f).fillMaxHeight())
+                        archiveAction(Modifier.weight(1f).fillMaxHeight())
+                    }
+                }
+                Section(footer = str(R.string.text_archiving_does_not_allow_another_letter_receiving_a_letter_grants_245790e)) {
+                    ListRow(
+                        headline = if (letter.read) str(R.string.text_mark_unread_b10bd76) else str(R.string.text_mark_read_20bb0ec),
+                        icon = if (letter.read) Icons.Outlined.MarkEmailUnread else Icons.Outlined.MarkEmailRead,
+                    ) { client.letters.mark(letter, read = !letter.read) }
+                    ListRow(str(R.string.text_allow_another_letter_fee59fb), icon = Icons.AutoMirrored.Outlined.ForwardToInbox) { reopen = true }
+                    ListRow(str(R.string.text_invite_to_a_conversation_e66d6f9), icon = Icons.Outlined.PersonAdd) {
+                        client.navigation.push(Route("invite-letter-sender", id = letter.sender))
+                    }
+                }
+                Section(iconColor = MaterialTheme.colorScheme.errorContainer) {
+                    ListRow(str(R.string.text_report_letter_0730024), icon = Icons.Outlined.Flag, destructive = true) {
+                        client.safety.openReport(ReportTarget("inbox", letter.sender, letter.id))
+                    }
+                    ListRow(str(R.string.text_block_sender_021b756), icon = Icons.Outlined.Block, destructive = true) {
+                        client.safety.openBlock(letter.sender)
+                    }
+                }
             } else if (outgoing != null) {
-                Text(letterState(outgoing.state), style = MaterialTheme.typography.titleMedium)
-                outgoing.error?.let { Notice(errorText(it), true) }
-                if (outgoing.state == "quoted") Notice(str(R.string.text_payment_is_required_this_client_has_not_paid_or_delivered_the_let_ed11bd6))
-                if (outgoing.pending) Button(onClick = { client.letters.retry(outgoing.id) }, enabled = !state.working("letter:send:" + outgoing.id)) { Text(str(R.string.text_retry_original_letter_5a838c3)) }
-                OutlinedButton(onClick = { client.letters.check(outgoing.id) }, enabled = !state.working("letter:check:" + outgoing.id)) { Text(str(R.string.text_check_delivery_status_4b7ae8e)) }
-                if (outgoing.editable) TextButton(onClick = { client.letters.edit(outgoing.id) {
-                    if (client.navigation.state.value.current == route) { editing = outgoing.id; client.navigation.back() }
-                } }) { Text(str(R.string.text_return_to_editing_190592d)) }
+                when {
+                    outgoing.error != null -> Notice(errorText(outgoing.error), true)
+                    outgoing.state == "quoted" -> Notice(str(R.string.text_payment_is_required_this_client_has_not_paid_or_delivered_the_let_ed11bd6))
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (outgoing.pending) Button(onClick = { client.letters.retry(outgoing.id) },
+                        enabled = !state.working("letter:send:" + outgoing.id), modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.text_retry_original_letter_5a838c3))
+                    }
+                    OutlinedButton(onClick = { client.letters.check(outgoing.id) },
+                        enabled = !state.working("letter:check:" + outgoing.id), modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.text_check_delivery_status_4b7ae8e))
+                    }
+                }
+                if (outgoing.editable) Section {
+                    ListRow(str(R.string.text_return_to_editing_190592d), icon = Icons.Outlined.Edit) {
+                        client.letters.edit(outgoing.id) {
+                            if (client.navigation.state.value.current == route) { editing = outgoing.id; client.navigation.back() }
+                        }
+                    }
+                }
             }
         } else {
             if (sent == null) ReadFeedback(blocked, client.safety::loadBlocks)
@@ -162,8 +249,10 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                         client.navigation.push(Route("inbox", id = id, field = "sent"))
                     }
                 } }, enabled = form.valid && !state.working("letter:queue:" + id), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_send_06acd73)) }
-                TextButton(onClick = { editing = null }) { Text(str(R.string.text_keep_draft_89639c8)) }
-                TextButton(onClick = { discard = true }) { Text(str(R.string.text_discard_draft_6008f2b), color = MaterialTheme.colorScheme.error) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    TextButton(onClick = { discard = true }) { Text(str(R.string.text_discard_draft_6008f2b), color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = { editing = null }) { Text(str(R.string.text_keep_draft_89639c8)) }
+                }
             }
         }
     }

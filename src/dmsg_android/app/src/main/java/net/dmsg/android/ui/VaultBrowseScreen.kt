@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,17 +64,55 @@ fun vaultKindName(kind: String): String = when (kind) {
                     Box {
                         IconButton(onClick = { tools = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_vault_tools_14fe2cc)) }
                         DropdownMenu(tools, { tools = false }) {
-                            DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { tools = false; client.vault.toggleTrash() })
-                            DropdownMenuItem(text = { Text(str(R.string.vault_backup_title)) }, onClick = { tools = false; client.navigation.open("vault-backup") })
-                            DropdownMenuItem(text = { Text(str(R.string.text_local_security_review_b7f4013)) }, onClick = { tools = false; client.navigation.open("secret-health") })
-                            if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_version_conflicts_0df1b3c)) }, onClick = { tools = false; client.navigation.open("conflicts") })
-                            if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { tools = false; client.navigation.open("secret-activity") })
-                            if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_shared_snapshots_08679a9)) }, onClick = { tools = false; client.navigation.open("secret-shares") })
-                            if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_import_secret_package_51433fa)) }, onClick = { tools = false; client.navigation.open("secret-import") })
-                            DropdownMenuItem(text = { Text(str(R.string.text_import_passwords_16088a6)) }, onClick = { tools = false; client.navigation.open("vault-import") })
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.text_local_security_review_b7f4013)) },
+                                leadingIcon = { Icon(painterResource(R.drawable.glyph_security), null) },
+                                onClick = { tools = false; client.navigation.open("secret-health") },
+                            )
+                            if (!localMode) DropdownMenuItem(
+                                text = { Text(str(R.string.text_version_conflicts_0df1b3c)) },
+                                leadingIcon = { Icon(Icons.Outlined.WarningAmber, null) },
+                                onClick = { tools = false; client.navigation.open("conflicts") },
+                            )
+                            if (!localMode) DropdownMenuItem(
+                                text = { Text(str(R.string.text_activity_on_this_device_288740a)) },
+                                leadingIcon = { Icon(painterResource(R.drawable.glyph_audit), null) },
+                                onClick = { tools = false; client.navigation.open("secret-activity") },
+                            )
+                            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.vault_backup_title)) },
+                                leadingIcon = { Icon(Icons.Outlined.Backup, null) },
+                                onClick = { tools = false; client.navigation.open("vault-backup") },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.text_import_passwords_16088a6)) },
+                                leadingIcon = { Icon(Icons.Outlined.FileDownload, null) },
+                                onClick = { tools = false; client.navigation.open("vault-import") },
+                            )
                             if (!localMode && savedAccounts.valueOrNull()?.any { it.id == LOCAL_ACCOUNT } == true) {
-                                DropdownMenuItem(text = { Text(str(R.string.import_local_account)) }, onClick = { tools = false; client.navigation.open("local-import") })
+                                DropdownMenuItem(
+                                    text = { Text(str(R.string.import_local_account)) },
+                                    leadingIcon = { Icon(Icons.Outlined.MoveToInbox, null) },
+                                    onClick = { tools = false; client.navigation.open("local-import") },
+                                )
                             }
+                            if (!localMode) DropdownMenuItem(
+                                text = { Text(str(R.string.text_import_secret_package_51433fa)) },
+                                leadingIcon = { Icon(Icons.Outlined.Shield, null) },
+                                onClick = { tools = false; client.navigation.open("secret-import") },
+                            )
+                            if (!localMode) DropdownMenuItem(
+                                text = { Text(str(R.string.text_shared_snapshots_08679a9)) },
+                                leadingIcon = { Icon(painterResource(R.drawable.glyph_link), null) },
+                                onClick = { tools = false; client.navigation.open("secret-shares") },
+                            )
+                            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.text_trash_8af1079)) },
+                                leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                onClick = { tools = false; client.vault.toggleTrash() },
+                            )
                         }
                     }
                 }
@@ -101,11 +140,26 @@ fun vaultKindName(kind: String): String = when (kind) {
                         BrowseChoice(vaultKindName("note"), query.kind == "note") { changeQuery(query.copy(kind = "note")) }
                         val other = query.kind?.takeUnless { it == "login" || it == "note" }
                         MenuChoice(other?.let(::vaultKindName) ?: str(R.string.text_type_6172196), other != null) { close ->
-                            DropdownMenuItem(text = { Text(str(R.string.text_all_types_338629e)) }, onClick = { close(); changeQuery(query.copy(kind = null)) })
+                            DropdownMenuItem(
+                                text = { Text(str(R.string.text_all_types_338629e)) },
+                                leadingIcon = { Icon(painterResource(R.drawable.glyph_vault), null) },
+                                trailingIcon = if (query.kind == null) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                onClick = { close(); changeQuery(query.copy(kind = null)) },
+                            )
+                            HorizontalDivider(Modifier.padding(vertical = 4.dp))
                             vaultKinds().forEach { kind ->
-                                DropdownMenuItem(text = { Text(vaultKindName(kind) + (page?.kinds?.get(kind)?.let { " · " + localizedNumber(it) } ?: "")) },
-                                    trailingIcon = if (query.kind == kind) ({ Icon(Icons.Outlined.Check, null) }) else null,
-                                    onClick = { close(); changeQuery(query.copy(kind = kind)) })
+                                val count = page?.kinds?.get(kind)
+                                DropdownMenuItem(
+                                    text = { Text(vaultKindName(kind)) },
+                                    leadingIcon = { Icon(painterResource(vaultGlyph(kind)), null) },
+                                    trailingIcon = if (query.kind == kind || count != null) { {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            count?.let { Text(localizedNumber(it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                            if (query.kind == kind) Icon(Icons.Outlined.Check, null)
+                                        }
+                                    } } else null,
+                                    onClick = { close(); changeQuery(query.copy(kind = kind)) },
+                                )
                             }
                         }
                     }

@@ -1,5 +1,6 @@
 package net.dmsg.android.ui.kit
 
+import android.os.SystemClock
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,11 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
@@ -24,9 +29,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import net.dmsg.android.R
+import net.dmsg.android.platform.str
+import net.dmsg.android.ui.code
 
 /** A row's leading icon: a tonal circle, coloured per section like Android settings. */
 @Composable internal fun RowIcon(painter: Painter, color: Color = LocalSectionIconColor.current) {
@@ -51,11 +61,18 @@ import androidx.compose.ui.unit.dp
     @DrawableRes glyph: Int? = null,
     trailing: (@Composable () -> Unit)? = null,
     destructive: Boolean = false,
+    enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
+    val sectionIconColor = LocalSectionIconColor.current
+    val iconColor = when {
+        sectionIconColor != Color.Unspecified -> sectionIconColor
+        destructive -> MaterialTheme.colorScheme.errorContainer
+        else -> Color.Unspecified
+    }
     val leading: (@Composable () -> Unit)? = when {
-        glyph != null -> { { RowIcon(painterResource(glyph)) } }
-        icon != null -> { { RowIcon(icon) } }
+        glyph != null -> { { RowIcon(painterResource(glyph), iconColor) } }
+        icon != null -> { { RowIcon(icon, iconColor) } }
         else -> null
     }
     val end: (@Composable () -> Unit)? = if (value == null && trailing == null) null else { {
@@ -69,20 +86,95 @@ import androidx.compose.ui.unit.dp
         supportingContent = supporting?.let { { Text(it) } },
         leadingContent = leading, trailingContent = end,
         modifier = modifier.clipTo(rowShape())
-            .then(if (onClick == null) Modifier else Modifier.clickable(role = Role.Button, onClick = onClick))
+            .then(if (onClick == null) Modifier else Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick))
+            .then(if (enabled) Modifier else Modifier.alpha(0.45f))
             .heightIn(min = 56.dp),
     )
 }
 
-/** A label and its value; a long value wraps under the label. */
-@Composable internal fun LabelValue(label: String, value: String) {
+/** A label and its value; a long value wraps under the label. Set [code] for technical identifiers. */
+@Composable internal fun LabelValue(label: String, value: String, code: Boolean = false) {
     FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp),
         itemVerticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.padding(end = 12.dp), style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleSmall)
+        Text(value, style = if (code) MaterialTheme.typography.bodyMedium.code() else MaterialTheme.typography.titleSmall)
     }
+}
+
+/** A labelled value inside a [Section] or [DetailCard], with optional monospace formatting and one-tap copy. */
+@Composable internal fun InfoRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    code: Boolean = false,
+    selectable: Boolean = code,
+    onCopy: (() -> Unit)? = null,
+) {
+    val haptics = LocalHapticFeedback.current
+    var copiedAt by remember(value) { mutableLongStateOf(0L) }
+    LaunchedEffect(copiedAt) { if (copiedAt != 0L) { delay(2000); copiedAt = 0L } }
+    ListItem(
+        headlineContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val style = if (code) MaterialTheme.typography.bodyMedium.code() else MaterialTheme.typography.bodyLarge
+                if (selectable) SelectionContainer { Text(value, style = style) }
+                else Text(value, style = style)
+            }
+        },
+        trailingContent = onCopy?.let { copy -> {
+            IconButton(onClick = {
+                copy()
+                copiedAt = SystemClock.elapsedRealtime()
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            }) {
+                Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
+                    str(R.string.text_copy_d6e9651) + " · " + label,
+                    tint = if (copiedAt != 0L) MaterialTheme.colorScheme.primary else LocalContentColor.current)
+            }
+        } },
+        modifier = modifier.clipTo(rowShape())
+            .semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
+            .heightIn(min = 56.dp),
+    )
+}
+
+/** A technical identifier, digest or fingerprint inside a [Section] or [DetailCard], always LTR monospace. */
+@Composable internal fun CodeRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onCopy: (() -> Unit)? = null,
+) = InfoRow(label = label, value = value, modifier = modifier, code = true, selectable = true, onCopy = onCopy)
+
+/** A transparent action row inside a [ModalBottomSheet]. */
+@Composable internal fun SheetAction(
+    label: String,
+    icon: ImageVector? = null,
+    modifier: Modifier = Modifier,
+    @DrawableRes glyph: Int? = null,
+    supporting: String? = null,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val leading: (@Composable () -> Unit)? = when {
+        glyph != null -> { { Icon(painterResource(glyph), null, tint = color) } }
+        icon != null -> { { Icon(icon, null, tint = color) } }
+        else -> null
+    }
+    ListItem(
+        headlineContent = { Text(label, color = color) },
+        supportingContent = supporting?.let { { Text(it) } },
+        leadingContent = leading,
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(if (enabled) Modifier else Modifier.alpha(0.45f))
+            .heightIn(min = 56.dp),
+    )
 }
 
 /** One labelled, keyboard-operable accessibility target for the whole setting. */

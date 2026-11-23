@@ -328,10 +328,18 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                 .heightIn(min = 72.dp),
         )
         DropdownMenu(menu, { menu = false }) {
-            DropdownMenuItem(text = { Text(str(R.string.text_large_type_35f1ac3)) }, onClick = { menu = false; readValue { large = it.value } })
-            if (!historical) DropdownMenuItem(text = { Text(str(R.string.text_field_reference_and_rotation_449f016)) }, onClick = {
-                menu = false; client.navigation.push(Route("secret-reference", item.id, field = field.id))
-            })
+            DropdownMenuItem(
+                text = { Text(str(R.string.text_large_type_35f1ac3)) },
+                leadingIcon = { Icon(Icons.Outlined.FormatSize, null) },
+                onClick = { menu = false; readValue { large = it.value } },
+            )
+            if (!historical) DropdownMenuItem(
+                text = { Text(str(R.string.text_field_reference_and_rotation_449f016)) },
+                leadingIcon = { Icon(Icons.Outlined.Loop, null) },
+                onClick = {
+                    menu = false; client.navigation.push(Route("secret-reference", item.id, field = field.id))
+                },
+            )
         }
     }
     if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.headlineLarge.let { if (isOtp) it.tabular() else it }.copy(textDirection = direction)) } },

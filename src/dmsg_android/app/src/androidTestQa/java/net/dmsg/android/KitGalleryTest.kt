@@ -92,6 +92,7 @@ class KitGalleryTest {
             ListRow(if (rtl) "الاسترداد" else "Recovery", glyph = R.drawable.glyph_recovery,
                 supporting = if (rtl) "مفتاحا استرداد" else "Two recovery keys") {}
             ListRow(if (rtl) "كلمات المرور" else "Passwords", icon = Icons.Outlined.Key) {}
+            CodeRow("SHA-256", "7ff80e0924f1a71ca4c98d7deb0ee606") {}
             SettingToggle(if (rtl) "المزامنة في الخلفية" else "Background sync", toggled, { toggled = it })
             SelectionRow(if (rtl) "نسخة مستقلة" else "Independent copy", checked) { checked = it }
             RadioChoiceRow(if (rtl) "الأحدث" else "Newest", radio == 0) { radio = 0 }

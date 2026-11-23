@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,8 +89,25 @@ internal fun PasswordPicker(modifier: Modifier, entries: List<ExportCredential>,
                 HorizontalDivider(Modifier.padding(start = if (largeText) 4.dp else 52.dp))
             }
             if (sorted.isEmpty()) item {
-                Text(str(if (entries.isEmpty()) R.string.autofill_no_items else R.string.no_matches), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                if (query.isNotEmpty()) TextButton(onClick = { query = "" }) { Text(str(R.string.text_clear_search_3f4dec6)) }
+                Column(
+                    Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(
+                        if (entries.isEmpty()) Icons.Outlined.Key else Icons.Outlined.Search,
+                        null,
+                        Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        str(if (entries.isEmpty()) R.string.autofill_no_items else R.string.no_matches),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                    if (query.isNotEmpty()) TextButton(onClick = { query = "" }) { Text(str(R.string.text_clear_search_3f4dec6)) }
+                }
             }
         }
     }

@@ -67,6 +67,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun LanguagePicker(onSelected: (String) -> Unit = {}, close: () -> Unit) {
     val context = LocalContext.current
     val selected = remember(LocalConfiguration.current) { AppLanguage.selected(context) }
@@ -76,28 +77,31 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
     }
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         SyncSystemBars()
-        Surface(Modifier.fillMaxSize().testTag("language-picker")) {
-            Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-                Row(Modifier.fillMaxWidth()) {
-                    IconButton(onClick = close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
-                    Text(str(R.string.app_language), Modifier.padding(12.dp), style = MaterialTheme.typography.titleLarge)
-                }
-                WorkspaceSearchField(query, { query = it }, str(R.string.language_search), Modifier.padding(horizontal = 16.dp).testTag("language-search"))
-                LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
+        Surface(Modifier.fillMaxSize().testTag("language-picker"), color = MaterialTheme.colorScheme.page) {
+            Column(Modifier.fillMaxSize().imePadding()) {
+                TopAppBar(
+                    title = { Text(str(R.string.app_language)) },
+                    navigationIcon = { IconButton(onClick = close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
+                )
+                WorkspaceSearchField(query, { query = it }, str(R.string.language_search), Modifier.padding(horizontal = pageMargin()).testTag("language-search"))
+                LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = pageMargin(), vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val visible = choices.filter { query.isBlank() || it.tag.contains(query, true) || it.name.contains(query, true) || it.localizedName?.contains(query, true) == true }
                     if (visible.isEmpty()) item { EmptyState(str(R.string.no_matches), icon = Icons.Outlined.Search) }
                     items(visible, key = { it.tag }) { (tag, name, localizedName) ->
-                        ListItem(
-                            headlineContent = { Text(name) },
-                            supportingContent = if (localizedName == null) null else ({ Text(localizedName) }),
-                            leadingContent = { RadioButton(selected == tag, onClick = null) },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("language-" + tag.ifEmpty { "system" })
-                                .selectable(selected == tag, role = Role.RadioButton) {
-                                    var owner = context
-                                    while (owner is ContextWrapper && owner !is Activity) owner = owner.baseContext
-                                    (owner as? Activity)?.let { activity -> onSelected(tag); close(); AppLanguage.choose(activity, tag) }
-                                },
-                        )
+                        Section {
+                            ListItem(
+                                headlineContent = { Text(name) },
+                                supportingContent = if (localizedName == null) null else ({ Text(localizedName) }),
+                                leadingContent = { RadioButton(selected == tag, onClick = null) },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("language-" + tag.ifEmpty { "system" })
+                                    .selectable(selected == tag, role = Role.RadioButton) {
+                                        var owner = context
+                                        while (owner is ContextWrapper && owner !is Activity) owner = owner.baseContext
+                                        (owner as? Activity)?.let { activity -> onSelected(tag); close(); AppLanguage.choose(activity, tag) }
+                                    },
+                            )
+                        }
                     }
                 }
             }

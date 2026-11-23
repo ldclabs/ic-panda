@@ -31,16 +31,18 @@ import net.dmsg.android.core.*
         val image = remember(bitmap) { bitmap?.asImageBitmap() }
         Avatar(person?.name ?: account, account, if (image != null) Modifier.testTag("participant-avatar") else Modifier, size = 32.dp, image = image)
         Column {
-            Text(person?.name ?: account, style = MaterialTheme.typography.labelLarge, maxLines = if (showId) 2 else 1, overflow = TextOverflow.Ellipsis)
-            if (showId && person?.name != null) Text(account, style = MaterialTheme.typography.bodySmall)
-            if (person?.stale == true) Text(str(R.string.text_last_verified_name_921b2a4), style = MaterialTheme.typography.labelSmall)
+            val hasName = person?.name != null
+            Text(person?.name ?: account, style = if (hasName) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium.code(),
+                maxLines = if (showId) 2 else 1, overflow = TextOverflow.Ellipsis)
+            if (showId && hasName) Text(account, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (person?.stale == true) Text(str(R.string.text_last_verified_name_921b2a4), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     if (inspecting) AlertDialog(onDismissRequest = { inspecting = false }, title = { Text(person?.name ?: str(R.string.text_account_identity_0d43c22)) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SelectionContainer { Text(account) }
-            Text(str(R.string.text_a_name_or_avatar_is_not_a_unique_identity_compare_the_complete_ac_9255f9b))
-            person?.takeIf { it.observedAt > 0u }?.let { Text(str(R.string.text_last_verified_92b1841) + displayTime(it.observedAt), style = MaterialTheme.typography.bodySmall) }
+            SelectionContainer { Text(account, style = MaterialTheme.typography.bodyMedium.code()) }
+            Text(str(R.string.text_a_name_or_avatar_is_not_a_unique_identity_compare_the_complete_ac_9255f9b), style = MaterialTheme.typography.bodyMedium)
+            person?.takeIf { it.observedAt > 0u }?.let { Text(str(R.string.text_last_verified_92b1841) + displayTime(it.observedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }, confirmButton = { TextButton(onClick = { client.clipboard.copy(account) }) { Text(str(R.string.text_copy_account_id_7bcff24)) } }, dismissButton = { TextButton(onClick = { inspecting = false }) { Text(str(R.string.text_close_6cf4a77)) } })
 }

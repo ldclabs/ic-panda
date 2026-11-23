@@ -23,10 +23,10 @@ class VaultBackupCoordinator(
     private var serial = 0
     private var picker: SessionStamp? = null
     private val key = "vault:backup"
-    private fun <T> run(work: suspend (MobileEngine) -> T, failed: (String) -> Unit = {}, done: (T) -> Unit) {
+    private fun <T> run(work: suspend (MobileEngine) -> T, quiet: Boolean = false, failed: (String) -> Unit = {}, done: (T) -> Unit) {
         val turn = serial
         mutable.value = mutable.value.copy(failure=null)
-        client.perform(work, key = key, userInitiated = true, onError = { if (serial == turn) failed(it) }) { if (serial == turn) done(it) }
+        client.perform(work, key = key, quiet = quiet, userInitiated = true, onError = { if (serial == turn) failed(it) }) { if (serial == turn) done(it) }
     }
 
     fun begin(importing: Boolean) {
@@ -110,7 +110,7 @@ class VaultBackupCoordinator(
             val view = core.vaultBackupInspect(current.id,handle,password).decode().objectValue()
             val folders = core.fileFolders().decode().jsonArray.map { it.jsonObject.required("id") to it.jsonObject.required("name") }
             view to folders
-        }, failed = { if (it=="INTEGRITY_FAILED") mutable.value=current.copy(failure="INTEGRITY_FAILED") }) { (view,folders) ->
+        }, quiet = true, failed = { if (it=="INTEGRITY_FAILED") mutable.value=current.copy(failure="INTEGRITY_FAILED") else client.showError(it) }) { (view,folders) ->
             paths()?.finishImport(handle)
             mutable.value = mutable.value.copy(step = "preview", input = null, view = view, folders = folders)
         }

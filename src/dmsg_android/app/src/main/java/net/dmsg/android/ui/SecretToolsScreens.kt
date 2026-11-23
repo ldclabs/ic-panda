@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
@@ -24,23 +25,38 @@ import net.dmsg.android.core.*
     val read by client.secretTools.attachments.state.collectAsStateWithLifecycle()
     val listing = read.valueOrNull()?.takeIf { it.item == id }
     LaunchedEffect(id) { client.secretTools.attachments(id) }
-    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Notice(str(R.string.text_item_references_may_sync_before_their_files_files_and_backups_are_decc308)); ReadFeedback(read) { client.secretTools.attachments(id) } }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Text(str(R.string.text_item_references_may_sync_before_their_files_files_and_backups_are_decc308),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ReadFeedback(read) { client.secretTools.attachments(id) }
+        }
         items(listing?.files.orEmpty(), key = { it.id }) { entry ->
             val file = entry.details?.file
-            Card {
-                ListItem(modifier = if (file != null) Modifier.clickable { client.navigation.push(Route("files", file.id)) } else Modifier,
+            Section {
+                ListItem(
+                    modifier = if (file != null) Modifier.clickable { client.navigation.push(Route("files", file.id)) } else Modifier,
                     headlineContent = { Text(file?.name ?: str(R.string.text_attachment_unavailable_on_this_device_10beb51)) },
-                    supportingContent = { Column {
-                        Text(if (file == null) entry.id else fileSize(file.size), style = MaterialTheme.typography.bodySmall)
-                        Text(when { file == null -> str(R.string.text_its_reference_is_retained_7a8942b)
-                            file.trashedAt != null -> str(R.string.text_in_the_file_trash_21810a4)
-                            !entry.selectable -> str(R.string.text_download_and_verify_a_version_before_adding_it_to_a_snapshot_9f4d1d7)
-                            else -> str(R.string.text_current_version_available_locally_7f71da2) })
-                    } }, leadingContent = { Icon(Icons.Outlined.AttachFile, null) })
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (file == null) entry.id else fileSize(file.size),
+                                style = if (file == null) MaterialTheme.typography.bodySmall.code() else MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(when {
+                                file == null -> str(R.string.text_its_reference_is_retained_7a8942b)
+                                file.trashedAt != null -> str(R.string.text_in_the_file_trash_21810a4)
+                                !entry.selectable -> str(R.string.text_download_and_verify_a_version_before_adding_it_to_a_snapshot_9f4d1d7)
+                                else -> str(R.string.text_current_version_available_locally_7f71da2)
+                            }, style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                    leadingContent = { RowIcon(Icons.Outlined.AttachFile) },
+                )
             }
         }
-        if (listing != null && listing.files.isEmpty()) item { EmptyState(str(R.string.text_no_item_attachments_343bf1e)) }
+        if (listing != null && listing.files.isEmpty()) item { EmptyState(str(R.string.text_no_item_attachments_343bf1e), icon = Icons.Outlined.AttachFile) }
     }
 }
 
@@ -50,18 +66,32 @@ import net.dmsg.android.core.*
     val reference = read.valueOrNull()?.takeIf { it.item == item && it.field == field }
     var confirming by remember(item, field) { mutableStateOf(false) }
     LaunchedEffect(item, field) { client.secretTools.reference(item, field) }
+    ScreenBar(null) {
+        IconButton(onClick = { client.secretTools.reference(item, field) }) {
+            Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_dependencies_298a32c))
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Notice(str(R.string.text_a_reference_identifies_a_field_it_contains_no_secret_value_and_gr_b9acac1))
         ReadFeedback(read) { client.secretTools.reference(item, field) }
         reference?.let { value ->
-            SectionTitle(str(R.string.text_field_reference_f38f4f4))
-            SelectionContainer { Text(value.uri, style = MaterialTheme.typography.bodySmall) }
-            OutlinedButton(onClick = { client.clipboard.copy(value.uri) }) { Icon(Icons.Outlined.ContentCopy, null); Text(str(R.string.text_copy_reference_8191597)) }
-            Button(onClick = { confirming = true }, enabled = !state.working("secret:rotation:create:" + item + ":" + field)) { Text(str(R.string.text_start_a_rotation_checklist_db2bb4b)) }
+            Section(
+                title = str(R.string.text_field_reference_f38f4f4),
+                footer = str(R.string.text_a_reference_identifies_a_field_it_contains_no_secret_value_and_gr_b9acac1),
+            ) {
+                CodeRow(str(R.string.text_field_reference_f38f4f4), value.uri) { client.clipboard.copy(value.uri) }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { confirming = true }, enabled = !state.working("secret:rotation:create:" + item + ":" + field), modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Loop, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_start_a_rotation_checklist_db2bb4b))
+                }
+                OutlinedButton(onClick = { client.clipboard.copy(value.uri) }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_reference_8191597))
+                }
+            }
             SectionTitle(str(R.string.text_dependencies_on_this_device_2c15aef))
-            Notice(str(R.string.text_this_inventory_covers_this_device_s_records_other_devices_and_arb_af07c5c))
+            Text(str(R.string.text_this_inventory_covers_this_device_s_records_other_devices_and_arb_af07c5c),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             SecretDependencyRows(value.index)
-            TextButton(onClick = { client.secretTools.reference(item, field) }) { Text(str(R.string.text_refresh_dependencies_298a32c)) }
         }
     }
     if (confirming && reference != null) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_start_a_rotation_checklist_1941735)) },
@@ -71,17 +101,18 @@ import net.dmsg.android.core.*
 }
 
 @Composable private fun SecretDependencyRows(index: SecretDependencyIndex) {
-    index.dependencies.forEach { dependency -> key(dependency.key) {
-        Card {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    index.dependencies.forEach { dependency ->
+        key(dependency.key) {
+            DetailCard {
                 Text(dependency.label.ifBlank { dependencyKind(dependency.kind) }, style = MaterialTheme.typography.titleMedium)
-                Text(secretStateName(dependency.state), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(secretStateName(dependency.state), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(secretNextAction(dependency.action), style = MaterialTheme.typography.bodyMedium)
-                SelectionContainer { Text(dependency.id, style = MaterialTheme.typography.bodySmall) }
+                SelectionContainer { Text(dependency.id, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
-    } }
-    if (index.dependencies.isEmpty()) Text(str(R.string.text_no_dependencies_recorded_on_this_device_614b62c), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (index.dependencies.isEmpty()) Text(str(R.string.text_no_dependencies_recorded_on_this_device_614b62c),
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable fun SecretHealthScreen(client: ClientController) {
@@ -91,43 +122,74 @@ import net.dmsg.android.core.*
     var includeDismissed by remember { mutableStateOf(false) }
     var dismiss by remember { mutableStateOf<SecretFinding?>(null) }
     LaunchedEffect(Unit) { client.secretTools.health() }
-    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Notice(str(R.string.text_local_observations_only_this_is_not_a_breach_scan_or_proof_of_a_p_2bcdde7)); ReadFeedback(read, client.secretTools::health) }
+    ScreenBar(null) {
+        IconButton(onClick = client.secretTools::health) {
+            Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_local_review_861ff88))
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item {
+            ReadFeedback(read, client.secretTools::health)
+        }
         if (report != null) {
             item {
-                Text(str(R.string.text_checked_a562832) + displayTime(report.observedAt), style = MaterialTheme.typography.bodySmall)
-                SettingToggle(str(R.string.text_show_dismissed_findings_3b8c890), includeDismissed, { includeDismissed = it })
+                Section(footer = str(R.string.text_checked_a562832) + displayTime(report.observedAt) + " · " + str(R.string.text_local_observations_only_this_is_not_a_breach_scan_or_proof_of_a_p_2bcdde7)) {
+                    SettingToggle(str(R.string.text_show_dismissed_findings_3b8c890), includeDismissed, { includeDismissed = it }, icon = Icons.Outlined.VisibilityOff)
+                }
             }
             val findings = report.findings.filter { includeDismissed || !it.dismissed }
             items(findings, key = { it.id }) { finding ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(findingTitle(finding.rule), style = MaterialTheme.typography.titleMedium,
-                            color = if (finding.severity == "high") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                        val item = report.subjects[finding.subject]
-                        Text(item?.title ?: finding.subject)
-                        finding.field?.let { field -> Text(item?.fields?.find { it.id == field }?.label?.ifBlank { field } ?: field, style = MaterialTheme.typography.bodySmall) }
-                        Text(if (finding.evidence == "last_known_cloud_state") str(R.string.text_last_known_cloud_state_9f3cb26) else str(R.string.text_observed_on_this_device_6821107), style = MaterialTheme.typography.labelSmall)
-                        Text(displayTime(finding.observedAt), style = MaterialTheme.typography.bodySmall)
-                        Text(secretNextAction(finding.action))
+                DetailCard {
+                    Text(findingTitle(finding.rule), style = MaterialTheme.typography.titleMedium,
+                        color = if (finding.severity == "high") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                    val item = report.subjects[finding.subject]
+                    Text(item?.title ?: finding.subject, style = MaterialTheme.typography.bodyMedium)
+                    finding.field?.let { field ->
+                        Text(item?.fields?.find { it.id == field }?.label?.ifBlank { field } ?: field,
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(
+                        (if (finding.evidence == "last_known_cloud_state") str(R.string.text_last_known_cloud_state_9f3cb26) else str(R.string.text_observed_on_this_device_6821107)) +
+                            " · " + displayTime(finding.observedAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(secretNextAction(finding.action), style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (finding.field != null) {
                             TextButton(onClick = { client.navigation.push(Route("vault", finding.subject)) }) { Text(str(R.string.text_open_secret_6ca0516)) }
                             TextButton(onClick = { client.navigation.push(Route("secret-reference", finding.subject, field = finding.field)) }) { Text(str(R.string.text_review_field_and_dependencies_e933729)) }
                         }
-                        if (!finding.dismissed) TextButton(onClick = { dismiss = finding }, enabled = !state.working("secret:dismiss:" + finding.id)) { Text(str(R.string.text_dismiss_this_observation_719f68b)) }
-                        else Text(str(R.string.text_dismissed_on_this_device_5babd55), style = MaterialTheme.typography.labelSmall)
+                        if (!finding.dismissed) TextButton(onClick = { dismiss = finding }, enabled = !state.working("secret:dismiss:" + finding.id)) {
+                            Text(str(R.string.text_dismiss_this_observation_719f68b))
+                        } else {
+                            Text(str(R.string.text_dismissed_on_this_device_5babd55), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
-            if (findings.isEmpty()) item { Text(str(R.string.text_no_findings_from_this_device_s_checks_c1564e4)) }
-            item { SectionTitle(str(R.string.text_rotation_checklists_6fca54f)) }
-            items(report.rotations.sortedByDescending { it.updatedAt }, key = { it.id }) { rotation ->
-                ListItem(modifier = Modifier.clickable { client.navigation.push(Route("secret-rotation", rotation.id)) },
-                    headlineContent = { Text(report.subjects[rotation.item]?.title ?: rotation.field) },
-                    supportingContent = { Text(if (rotation.completedAt == null) str(R.string.text_in_progress_6906b67) else str(R.string.text_checklist_completed_38e6d28)) }, leadingContent = { Icon(Icons.Outlined.Loop, null) })
+            if (findings.isEmpty()) item { EmptyState(str(R.string.text_no_findings_from_this_device_s_checks_c1564e4), glyph = R.drawable.glyph_security) }
+            if (report.rotations.isNotEmpty()) {
+                item {
+                    Section(title = str(R.string.text_rotation_checklists_6fca54f)) {
+                        report.rotations.sortedByDescending { it.updatedAt }.forEach { rotation ->
+                            ListRow(
+                                headline = report.subjects[rotation.item]?.title ?: rotation.field,
+                                supporting = if (rotation.completedAt == null) str(R.string.text_in_progress_6906b67) else str(R.string.text_checklist_completed_38e6d28),
+                                icon = Icons.Outlined.Loop,
+                            ) { client.navigation.push(Route("secret-rotation", rotation.id)) }
+                        }
+                    }
+                }
+            } else {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SectionTitle(str(R.string.text_rotation_checklists_6fca54f))
+                        Text(str(R.string.text_start_a_checklist_from_a_field_s_reference_page_88740fc),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
-            if (report.rotations.isEmpty()) item { Text(str(R.string.text_start_a_checklist_from_a_field_s_reference_page_88740fc), style = MaterialTheme.typography.bodySmall) }
-            item { TextButton(onClick = client.secretTools::health) { Text(str(R.string.text_refresh_local_review_861ff88)) } }
         }
     }
     dismiss?.let { finding -> AlertDialog(onDismissRequest = { dismiss = null }, title = { Text(str(R.string.text_dismiss_this_observation_7571b06)) },
@@ -142,34 +204,51 @@ import net.dmsg.android.core.*
     val detail = read.valueOrNull()?.takeIf { it.rotation.id == id }
     var confirming by remember(id) { mutableStateOf<String?>(null) }
     LaunchedEffect(id) { client.secretTools.rotation(id) }
+    ScreenBar(null) {
+        IconButton(onClick = { client.secretTools.rotation(id) }) {
+            Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_dependencies_298a32c))
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Notice(str(R.string.text_you_perform_provider_changes_yourself_dmsg_records_your_statement_4b02727))
         ReadFeedback(read) { client.secretTools.rotation(id) }
         detail?.let { value ->
             val rotation = value.rotation
-            SectionTitle(rotation.field)
-            TextButton(onClick = { client.navigation.push(Route("vault", rotation.item)) }) { Text(str(R.string.text_open_secret_6ca0516)) }
-            Text(str(R.string.text_original_revision_7cd153b), style = MaterialTheme.typography.labelMedium)
-            SelectionContainer { Text(rotation.previous, style = MaterialTheme.typography.bodySmall) }
-            rotation.next?.let { Text(str(R.string.text_new_revision_538256b), style = MaterialTheme.typography.labelMedium); SelectionContainer { Text(it, style = MaterialTheme.typography.bodySmall) } }
-            SectionTitle(str(R.string.text_confirm_your_completed_steps_d3b6119))
+            Notice(
+                if (rotation.completedAt != null) str(R.string.text_checklist_completed_from_your_statements_upstream_status_must_be_8c2081d)
+                else str(R.string.text_you_perform_provider_changes_yourself_dmsg_records_your_statement_4b02727),
+            )
+            Section(title = rotation.field) {
+                ListRow(str(R.string.text_open_secret_6ca0516), icon = Icons.Outlined.Key) { client.navigation.push(Route("vault", rotation.item)) }
+                CodeRow(str(R.string.text_original_revision_7cd153b), rotation.previous) { client.clipboard.copy(rotation.previous) }
+                rotation.next?.let { CodeRow(str(R.string.text_new_revision_538256b), it) { client.clipboard.copy(it) } }
+            }
             val steps = listOf(
                 Triple("created", rotation.created, true), Triple("tested", rotation.tested, rotation.created),
                 Triple("references_checked", rotation.referencesChecked, rotation.tested), Triple("upstream_revoked", rotation.upstreamRevoked, rotation.referencesChecked))
-            steps.forEach { (step, completed, enabled) ->
-                Card {
-                    ListItem(leadingContent = { Icon(if (completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked, if (completed) str(R.string.text_completed_6ff49bc) else str(R.string.text_incomplete_022e64c)) },
-                        headlineContent = { Text(rotationStepTitle(step)) }, supportingContent = {
-                            if (!completed && rotation.completedAt == null) TextButton(onClick = { confirming = step }, enabled = enabled && !state.working("secret:rotation:record:" + id) && read is ReadState.Ready) { Text(str(R.string.text_confirm_completed_step_761f2f1)) }
-                        })
+            Section(title = str(R.string.text_confirm_your_completed_steps_d3b6119)) {
+                steps.forEach { (step, completed, enabled) ->
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                if (completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                                if (completed) str(R.string.text_completed_6ff49bc) else str(R.string.text_incomplete_022e64c),
+                                tint = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        headlineContent = { Text(rotationStepTitle(step)) },
+                        supportingContent = if (!completed && rotation.completedAt == null) ({
+                            TextButton(onClick = { confirming = step }, enabled = enabled && !state.working("secret:rotation:record:" + id) && read is ReadState.Ready) {
+                                Text(str(R.string.text_confirm_completed_step_761f2f1))
+                            }
+                        }) else null,
+                    )
                 }
             }
             SectionTitle(str(R.string.text_current_local_dependencies_aeffc64))
             SecretDependencyRows(value.index)
-            Text(str(R.string.text_inventory_fingerprint_5976df4), style = MaterialTheme.typography.labelMedium)
-            SelectionContainer { Text(value.index.digest, style = MaterialTheme.typography.bodySmall.code()) }
-            TextButton(onClick = { client.secretTools.rotation(id) }) { Text(str(R.string.text_refresh_dependencies_298a32c)) }
-            if (rotation.completedAt != null) Notice(str(R.string.text_checklist_completed_from_your_statements_upstream_status_must_be_8c2081d))
+            Section {
+                CodeRow(str(R.string.text_inventory_fingerprint_5976df4), value.index.digest) { client.clipboard.copy(value.index.digest) }
+            }
         }
     }
     confirming?.let { step -> if (detail != null) AlertDialog(onDismissRequest = { confirming = null }, title = { Text(str(R.string.text_record_this_step_as_completed_414dc52)) },
@@ -184,22 +263,45 @@ import net.dmsg.android.core.*
     val page = read.valueOrNull()
     var action by remember { mutableStateOf<SecretActivityEntry?>(null) }
     LaunchedEffect(Unit) { client.secretTools.activity() }
-    LazyColumn(contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Notice(str(R.string.text_activity_belongs_to_this_device_desktop_cli_ssh_and_file_mount_re_d1b3407)); ReadFeedback(read) { client.secretTools.activity() } }
+    ScreenBar(null) {
+        IconButton(onClick = { client.secretTools.activity() }) {
+            Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_activity_10e1e16))
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Text(str(R.string.text_activity_belongs_to_this_device_desktop_cli_ssh_and_file_mount_re_d1b3407),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ReadFeedback(read) { client.secretTools.activity() }
+        }
         items(page?.items.orEmpty(), key = { it.id }) { entry ->
-            Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = { client.approvals.open(entry.id) }) { Text(approvalTitle(entry.kind)) }
-                Text(secretStateName(entry.state))
-                Text(entry.source, style = MaterialTheme.typography.bodySmall)
-                entry.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error) }
-                if (entry.state in listOf("awaiting_user", "lost")) TextButton(onClick = { action = entry }, enabled = !state.working("secret:activity:" + entry.id)) {
-                    Text(if (entry.state == "lost") str(R.string.text_record_manual_review_7612f77) else str(R.string.text_cancel_pending_request_4097f9e))
+            DetailCard {
+                ListItem(
+                    headlineContent = { Text(approvalTitle(entry.kind)) },
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(secretStateName(entry.state), color = MaterialTheme.colorScheme.primary)
+                            Text(entry.source, style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            entry.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                        }
+                    },
+                    leadingContent = { RowIcon(painterResource(R.drawable.glyph_audit)) },
+                    modifier = Modifier.clickable { client.approvals.open(entry.id) },
+                )
+                if (entry.state in listOf("awaiting_user", "lost")) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    TextButton(onClick = { action = entry }, enabled = !state.working("secret:activity:" + entry.id)) {
+                        Text(if (entry.state == "lost") str(R.string.text_record_manual_review_7612f77) else str(R.string.text_cancel_pending_request_4097f9e))
+                    }
                 }
-            } }
+            }
         }
         if (read is ReadState.Empty) item { EmptyState(str(R.string.text_no_activity_on_this_device_b992006), glyph = R.drawable.glyph_audit) }
-        if (page?.next != null) item { TextButton(onClick = { client.secretTools.activity(more = true) }, enabled = !state.working("secret:activity")) { Text(str(R.string.text_load_earlier_activity_ef7d280)) } }
-        item { TextButton(onClick = { client.secretTools.activity() }) { Text(str(R.string.text_refresh_activity_10e1e16)) } }
+        if (page?.next != null) item {
+            OutlinedButton(onClick = { client.secretTools.activity(more = true) }, enabled = !state.working("secret:activity"), modifier = Modifier.fillMaxWidth()) {
+                Text(str(R.string.text_load_earlier_activity_ef7d280))
+            }
+        }
     }
     action?.let { entry ->
         val reviewed = entry.state == "lost"

@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import net.dmsg.android.platform.localizedNumber
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,9 +44,13 @@ import net.dmsg.android.core.*
             Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_backup_list_3104cef))
         }
     }
+    if (selected.isNotEmpty()) {
+        ScreenBar(current?.name ?: str(R.string.text_encrypted_backup_2ad5848)) { refresh() }
+    }
     val content: @Composable (Boolean) -> Unit = { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = if (selected.isEmpty()) workspaceListState(client.navigation, "cloud-files:list") else rememberLazyListState(),
-            contentPadding = pagePadding(top = 0.dp)) {
+            contentPadding = pagePadding(top = if (selected.isEmpty()) 0.dp else pageMargin()),
+            verticalArrangement = Arrangement.spacedBy(if (selected.isEmpty()) 0.dp else 16.dp)) {
             if (selected.isEmpty()) browseScopesItem(searching) {
                 BrowseScopes(trailing = {
                     SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
@@ -55,13 +60,15 @@ import net.dmsg.android.core.*
                 }
             }
             item {
-                if (selected.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(str(R.string.text_encrypted_cloud_copies_9caa6c8), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                    refresh()
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (selected.isEmpty()) saved?.observedAt?.let {
+                        Text(str(R.string.text_last_refreshed_fb86c19) + messageTime(it),
+                            Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    ReadFeedback(inventory, { client.cloudFiles.browse() })
+                    if (saved?.complete != true) Notice(str(R.string.text_the_cloud_inventory_has_not_been_fully_read_yet_an_empty_list_doe_b6ae09e))
                 }
-                saved?.observedAt?.let { Text(str(R.string.text_last_refreshed_fb86c19) + messageTime(it), style = MaterialTheme.typography.labelSmall) }
-                ReadFeedback(inventory, { client.cloudFiles.browse() })
-                if (saved?.complete != true) Notice(str(R.string.text_the_cloud_inventory_has_not_been_fully_read_yet_an_empty_list_doe_b6ae09e))
             }
             if (selected.isEmpty()) {
                 items(entries, key = { it.id }) { item ->
@@ -72,36 +79,103 @@ import net.dmsg.android.core.*
                     }
                 }
                 if (entries.isEmpty() && saved?.complete == true && inventory !is ReadState.Failed) item {
-                    EmptyState(if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5), glyph = if (query.isBlank()) R.drawable.glyph_sync else null)
+                    EmptyState(
+                        if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5),
+                        glyph = if (query.isBlank()) R.drawable.glyph_sync else null,
+                        icon = if (query.isNotBlank()) Icons.Outlined.Search else null,
+                        detail = if (query.isBlank()) str(R.string.text_back_up_selected_files_explicitly_your_local_library_is_not_uploa_0e590c9) else null,
+                    )
                 }
-                item { Notice(str(R.string.text_back_up_selected_files_explicitly_your_local_library_is_not_uploa_0e590c9)) }
             } else if (current != null) {
                 item {
-                    Text(current.name ?: str(R.string.text_encrypted_backup_2ad5848), style = MaterialTheme.typography.headlineSmall)
-                    current.size?.let { Text(fileSize(it)) }
-                    Text(current.path.joinToString(" / "), style = MaterialTheme.typography.bodySmall)
-                    Text(str(R.string.text_source_device_abc1e1a) + current.device, style = MaterialTheme.typography.bodySmall)
-                    Text(str(R.string.text_created_ae8a09c) + messageTime(current.createdAt), style = MaterialTheme.typography.bodySmall)
-                    current.sha256?.let { SelectionContainer { Text("SHA-256\n$it", style = MaterialTheme.typography.bodySmall) } }
-                }
-                item {
-                    when {
-                        current.needsRoot -> {
-                            Notice(str(R.string.text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e))
-                            TextButton(onClick = { client.navigation.push(Route("sync")) }) { Text(str(R.string.text_account_synchronization_77ccb72)) }
-                        }
-                        current.local && current.file != null -> Button(onClick = { client.navigation.push(Route("files", id = current.file, revision = current.version)) }) { Text(str(R.string.text_open_local_details_ccd7b04)) }
-                        else -> {
-                            TextButton(onClick = { choosing = true }) { Text(str(R.string.text_restore_into_9068fec) + destination.folderLabel) }
-                            OutlinedButton(onClick = { client.backgroundFiles.download(current.id, folder) }, enabled = !state.working("cipher:prepare")) { Text(str(R.string.text_download_ciphertext_in_background_bd6e2c4)) }
-                            Button(onClick = { client.fileWork.restore(current.id, folder) }, enabled = !state.working("file:restore:${current.id}")) { Text(str(R.string.text_restore_this_copy_5a61a44)) }
+                    val statusText = str(when {
+                        current.needsRoot -> R.string.text_waiting_for_the_required_content_key_1d9169d
+                        current.local -> R.string.text_also_on_this_device_7d07aa6
+                        else -> R.string.text_only_in_cloud_6a03abd
+                    })
+                    DetailCard {
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RowIcon(painterResource(if (current.needsRoot) R.drawable.glyph_key else R.drawable.glyph_sync),
+                                MaterialTheme.colorScheme.secondaryContainer)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(statusText, style = MaterialTheme.typography.titleMedium)
+                                current.size?.let { size ->
+                                    Text(fileSize(size), style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }
                 item {
-                    if (!current.needsRoot && current.size != null && current.size <= 100uL * 1024u * 1024u) OutlinedButton(onClick = { client.navigation.push(Route("backup-link-compose", id = current.id)) }) { Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
-                    TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) }
-                    TextButton(onClick = { deleting = true }, enabled = !state.working("cloud:delete:${current.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18), color = MaterialTheme.colorScheme.error) }
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        when {
+                            current.needsRoot -> {
+                                Notice(str(R.string.text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e))
+                                Button(onClick = { client.navigation.push(Route("sync")) }, modifier = Modifier.fillMaxWidth()) {
+                                    Icon(painterResource(R.drawable.glyph_sync), null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(str(R.string.text_account_synchronization_77ccb72))
+                                }
+                            }
+                            current.local && current.file != null -> {
+                                Button(onClick = { client.navigation.push(Route("files", id = current.file, revision = current.version)) },
+                                    modifier = Modifier.fillMaxWidth()) {
+                                    Icon(painterResource(R.drawable.glyph_file), null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(str(R.string.text_open_local_details_ccd7b04))
+                                }
+                            }
+                            else -> {
+                                Section {
+                                    ListRow(str(R.string.text_restore_destination_431edf6), icon = Icons.Outlined.Folder,
+                                        value = destination.folderLabel) { choosing = true }
+                                }
+                                Button(onClick = { client.fileWork.restore(current.id, folder) },
+                                    enabled = !state.working("file:restore:${current.id}"), modifier = Modifier.fillMaxWidth()) {
+                                    Icon(painterResource(R.drawable.glyph_cloud_down), null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(str(R.string.text_restore_this_copy_5a61a44))
+                                }
+                                OutlinedButton(onClick = { client.backgroundFiles.download(current.id, folder) },
+                                    enabled = !state.working("cipher:prepare"), modifier = Modifier.fillMaxWidth()) {
+                                    Icon(Icons.Outlined.Download, null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(str(R.string.text_download_ciphertext_in_background_bd6e2c4))
+                                }
+                            }
+                        }
+                        if (!current.needsRoot && current.size != null && current.size <= 100uL * 1024u * 1024u) {
+                            OutlinedButton(onClick = { client.navigation.push(Route("backup-link-compose", id = current.id)) },
+                                modifier = Modifier.fillMaxWidth()) {
+                                Icon(painterResource(R.drawable.glyph_link), null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(str(R.string.text_share_by_link_05aafef))
+                            }
+                        }
+                    }
+                }
+                item {
+                    Section(title = str(R.string.text_file_details_27e9099)) {
+                        if (current.path.isNotEmpty()) InfoRow(str(R.string.text_folder_b0d1441), current.path.joinToString(" / "))
+                        ListRow(str(R.string.text_created_36ba304), value = messageTime(current.createdAt))
+                        saved.observedAt.let { ListRow(str(R.string.text_last_checked_368f738).trimEnd(' ', '·', ':', '：'), value = messageTime(it)) }
+                        CodeRow(str(R.string.text_device_id_b31993b), current.device) { client.clipboard.copy(current.device) }
+                        current.sha256?.let { digest -> CodeRow("SHA-256", digest) { client.clipboard.copy(digest) } }
+                    }
+                }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Section {
+                            ListRow(str(R.string.text_file_transfers_2b83297), icon = Icons.Outlined.SwapVert) {
+                                client.navigation.push(Route("file-transfers"))
+                            }
+                        }
+                        Section(iconColor = MaterialTheme.colorScheme.errorContainer) {
+                            ListRow(str(R.string.text_delete_cloud_copy_2cefb18), icon = Icons.Outlined.DeleteOutline,
+                                destructive = true, enabled = !state.working("cloud:delete:${current.id}")) { deleting = true }
+                        }
+                    }
                 }
             } else if (inventory !is ReadState.Loading) item { Notice(str(R.string.text_this_backup_is_no_longer_in_the_current_inventory_090f582)) }
         }
@@ -126,24 +200,33 @@ import net.dmsg.android.core.*
     val selected = groups.flatMap { group -> group.versions.filter { BackupVersionKey(group.file.id, it.id) in batch.selected } }
     LaunchedEffect(Unit) { client.cloudFiles.listUnbacked() }
     Column(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { ReadFeedback(state, client.cloudFiles::listUnbacked) }
-            if (state is ReadState.Empty) item { EmptyState(str(R.string.backup_all_caught_up)) }
-            groups.forEach { group ->
-                item { SectionTitle((group.file.path + group.file.name).joinToString(" / ")) }
-                items(group.versions.asReversed(), key = { group.file.id + ":" + it.id }) { v ->
-                    val key = BackupVersionKey(group.file.id, v.id)
-                    val version = versionLabel(v.current, v.createdAt)
-                    val details = listOfNotNull(fileSize(v.size), str(R.string.text_in_progress_6906b67).takeIf { v.status == "backing_up" }).joinToString(" · ")
-                    SelectionRow(title = version, checked = key in batch.selected, subtitle = details,
-                        enabled = choosing, modifier = Modifier.testTag("unbacked-version:" + group.file.id + ":" + v.id),
-                        accessibilityLabel = listOf((group.file.path + group.file.name).joinToString(" / "), version, details).joinToString(" · ")) { client.cloudFiles.choose(key, it) }
+            if (state is ReadState.Empty) item { EmptyState(str(R.string.backup_all_caught_up), glyph = R.drawable.glyph_sync) }
+            items(groups, key = { it.file.id }) { group ->
+                val path = (group.file.path + group.file.name).joinToString(" / ")
+                Section(title = path) {
+                    group.versions.asReversed().forEach { v ->
+                        val key = BackupVersionKey(group.file.id, v.id)
+                        val version = versionLabel(v.current, v.createdAt)
+                        val details = listOfNotNull(fileSize(v.size), str(R.string.text_in_progress_6906b67).takeIf { v.status == "backing_up" }).joinToString(" · ")
+                        SelectionRow(
+                            title = version,
+                            checked = key in batch.selected,
+                            subtitle = details,
+                            enabled = choosing,
+                            modifier = Modifier.testTag("unbacked-version:" + group.file.id + ":" + v.id),
+                            accessibilityLabel = listOf(path, version, details).joinToString(" · "),
+                        ) { client.cloudFiles.choose(key, it) }
+                    }
                 }
             }
         }
-        if (groups.isNotEmpty()) Button(onClick = client.cloudFiles::reviewSelection, enabled = selected.isNotEmpty() && choosing,
-            modifier = Modifier.fillMaxWidth().padding(pagePadding()).testTag("backup-review-selection")) {
-            Text(str(R.string.text_back_up_to_cloud_ee48ac0) + if (selected.isEmpty()) "" else " · " + localizedNumber(selected.size) + " · " + fileSize(selected.sumOf { it.size }))
+        if (groups.isNotEmpty()) BottomActionBar {
+            Button(onClick = client.cloudFiles::reviewSelection, enabled = selected.isNotEmpty() && choosing,
+                modifier = Modifier.fillMaxWidth().testTag("backup-review-selection")) {
+                Text(str(R.string.text_back_up_to_cloud_ee48ac0) + if (selected.isEmpty()) "" else " · " + localizedNumber(selected.size) + " · " + fileSize(selected.sumOf { it.size }))
+            }
         }
     }
 }
@@ -161,38 +244,58 @@ private fun versionLabel(current: Boolean, at: ULong) =
     Column(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f), contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                Notice(str(R.string.backup_selected_help))
-                LabelValue(str(R.string.text_versions_0ff2bdb), localizedNumber(batch.review.size))
-                LabelValue(str(R.string.backup_total_size), fileSize(batch.review.sumOf { it.file.size }))
-                ReadFeedback(capacity, client.cloudFiles::capacity)
-                limits?.let { value ->
-                    Text(str(R.string.text_maximum_per_file_5718825) + (value.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea)))
-                    Text(str(R.string.text_cloud_space_remaining_c2a586d) + (value.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba)))
-                    value.remaining?.takeIf { batch.bytesToReserve > it }?.let { remaining ->
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    limits?.remaining?.takeIf { batch.bytesToReserve > it }?.let { remaining ->
                         Notice(str(R.string.backup_total_size) + " · " + fileSize(batch.bytesToReserve) + "\n" +
                             str(R.string.text_cloud_space_remaining_c2a586d) + fileSize(remaining), true)
                     }
+                    Section(footer = str(R.string.backup_selected_help)) {
+                        ListRow(str(R.string.text_versions_0ff2bdb), value = localizedNumber(batch.review.size))
+                        ListRow(str(R.string.backup_total_size), value = fileSize(batch.review.sumOf { it.file.size }))
+                        limits?.let { value ->
+                            ListRow(str(R.string.text_maximum_per_file_5718825).trimEnd(' ', '·', ':'),
+                                value = value.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea))
+                            ListRow(str(R.string.text_cloud_space_remaining_c2a586d).trimEnd(' ', '·', ':'),
+                                value = value.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba))
+                        }
+                    }
+                    ReadFeedback(capacity, client.cloudFiles::capacity)
                 }
             }
             items(batch.review, key = { it.file.id + ":" + it.file.version }) { row ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                DetailCard {
                     Text(row.path, style = MaterialTheme.typography.titleSmall)
-                    Text(versionLabel(row.current, row.at) + " · " + fileSize(row.file.size))
-                    if (row.file.status != "backing_up" && limits?.fileLimit?.let { row.file.size > it } == true) Notice(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414), true)
-                    batch.outcomes[row.key]?.let { outcome -> Text(when (outcome.code) {
-                        "queued" -> str(R.string.text_queued_2afa45a)
-                        "backed_up" -> str(R.string.backup_already_saved)
-                        "in_progress" -> str(R.string.text_in_progress_6906b67)
-                        else -> errorText(outcome.code)
-                    }, color = if (outcome.accepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
+                    Text(versionLabel(row.current, row.at) + " · " + fileSize(row.file.size),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (row.file.status != "backing_up" && limits?.fileLimit?.let { row.file.size > it } == true) {
+                        Text(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    batch.outcomes[row.key]?.let { outcome ->
+                        Text(when (outcome.code) {
+                            "queued" -> str(R.string.text_queued_2afa45a)
+                            "backed_up" -> str(R.string.backup_already_saved)
+                            "in_progress" -> str(R.string.text_in_progress_6906b67)
+                            else -> errorText(outcome.code)
+                        }, style = MaterialTheme.typography.labelMedium,
+                            color = if (outcome.accepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                    }
                 }
             }
-            item { TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) } }
+            item {
+                Section {
+                    ListRow(str(R.string.text_file_transfers_2b83297), icon = Icons.Outlined.SwapVert) {
+                        client.navigation.push(Route("file-transfers"))
+                    }
+                }
+            }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        if (batch.pending.isNotEmpty()) Button(onClick = client.cloudFiles::queueReviewed, enabled = !busy && limits?.let(batch::fits) == true,
-            modifier = Modifier.fillMaxWidth().padding(pagePadding()).testTag("backup-queue-selection")) {
-            Text(str(if (batch.outcomes.isEmpty()) R.string.text_queue_encrypted_backup_bd8aaaf else R.string.text_retry_563171c))
+        if (batch.pending.isNotEmpty()) BottomActionBar {
+            Button(onClick = client.cloudFiles::queueReviewed, enabled = !busy && limits?.let(batch::fits) == true,
+                modifier = Modifier.fillMaxWidth().testTag("backup-queue-selection")) {
+                Text(str(if (batch.outcomes.isEmpty()) R.string.text_queue_encrypted_backup_bd8aaaf else R.string.text_retry_563171c))
+            }
         }
     }
 }
@@ -208,17 +311,52 @@ private fun versionLabel(current: Boolean, at: ULong) =
     val limits = capacity.valueOrNull()
     LaunchedEffect(id, state.epoch) { client.library.select(id); client.cloudFiles.capacity() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Notice(str(R.string.text_save_an_encrypted_cloud_copy_of_this_version_your_local_copy_stay_b3a0064))
+        when {
+            file != null && limits?.fileLimit != null && file.size > limits.fileLimit -> Notice(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414), true)
+            file == null && details is ReadState.Ready -> Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481))
+        }
         ReadFeedback(details, { client.library.select(id) }); ReadFeedback(capacity, client.cloudFiles::capacity)
-        if (file != null) { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size))
-            revision?.let { Text(str(if (it.current) R.string.text_current_version_b3f03bb else R.string.text_historical_version_119b50c) + " · " + messageTime(it.createdAt)) }
-        } else if (details is ReadState.Ready) Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481))
-        Text(str(R.string.text_maximum_per_file_5718825) + (limits?.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea)))
-        Text(str(R.string.text_cloud_space_remaining_c2a586d) + (limits?.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba)))
-        if (file != null && limits?.fileLimit != null && file.size > limits.fileLimit) Notice(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414), true)
-        Button(onClick = { file?.let { client.fileWork.backup(it, immutableRevision) } }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity !is ReadState.Loading && capacity !is ReadState.Stale && capacity !is ReadState.Failed && !state.working("file:backup:$id"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_queue_encrypted_backup_bd8aaaf)) }
-        if (!immutableRevision || revision?.current == true) OutlinedButton(onClick = { file?.let(client.backgroundFiles::upload) }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity is ReadState.Ready && !state.working("cipher:prepare"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_upload_ciphertext_in_background_7f3ae2e)) }
-        Text(str(R.string.text_background_tasks_can_continue_after_locking_the_system_receives_o_80cbbad), style = MaterialTheme.typography.bodySmall)
-        TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) }
+        if (file != null) {
+            DetailCard {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    RowIcon(Icons.Outlined.CloudUpload)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(file.name, style = MaterialTheme.typography.titleMedium)
+                        val sub = buildList {
+                            add(fileSize(file.size))
+                            revision?.let { add(str(if (it.current) R.string.text_current_version_b3f03bb else R.string.text_historical_version_119b50c) + " · " + messageTime(it.createdAt)) }
+                        }.joinToString(" · ")
+                        Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(str(R.string.text_save_an_encrypted_cloud_copy_of_this_version_your_local_copy_stay_b3a0064),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Section {
+            ListRow(str(R.string.text_maximum_per_file_5718825).trimEnd(' ', '·', ':'),
+                value = limits?.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea))
+            ListRow(str(R.string.text_cloud_space_remaining_c2a586d).trimEnd(' ', '·', ':'),
+                value = limits?.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = { file?.let { client.fileWork.backup(it, immutableRevision) } },
+                enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity !is ReadState.Loading && capacity !is ReadState.Stale && capacity !is ReadState.Failed && !state.working("file:backup:$id"),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(str(R.string.text_queue_encrypted_backup_bd8aaaf)) }
+            if (!immutableRevision || revision?.current == true) OutlinedButton(
+                onClick = { file?.let(client.backgroundFiles::upload) },
+                enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity is ReadState.Ready && !state.working("cipher:prepare"),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(str(R.string.text_upload_ciphertext_in_background_7f3ae2e)) }
+        }
+        Text(str(R.string.text_background_tasks_can_continue_after_locking_the_system_receives_o_80cbbad),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Section {
+            ListRow(str(R.string.text_file_transfers_2b83297), icon = Icons.Outlined.SwapVert) {
+                client.navigation.push(Route("file-transfers"))
+            }
+        }
     }
 }

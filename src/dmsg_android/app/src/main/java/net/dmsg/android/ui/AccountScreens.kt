@@ -111,20 +111,18 @@ import net.dmsg.core.*
 }
 
 @Composable fun SecurityScreen(client: ClientController, state: UiState) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding())) {
-        SectionTitle(str(R.string.text_security_and_unlock_7ba00a7))
-        Section {
-            SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d))
-            SettingToggle(str(R.string.text_lock_immediately_in_background_67ea031), state.immediateLock, client::immediateLock)
-            ListRow(str(R.string.text_hardware_security_04e42f4)) { client.navigation.open("hardware") }
-            ListRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
-            ListRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
-            ListRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Section(title = str(R.string.text_security_and_unlock_7ba00a7)) {
+            SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d), icon = Icons.Outlined.Fingerprint)
+            SettingToggle(str(R.string.text_lock_immediately_in_background_67ea031), state.immediateLock, client::immediateLock, icon = Icons.Outlined.Lock)
+            ListRow(str(R.string.text_hardware_security_04e42f4), icon = Icons.Outlined.Memory) { client.navigation.open("hardware") }
+            ListRow(str(R.string.text_login_identities_09c2f23), icon = Icons.Outlined.Key) { client.navigation.open("bindings") }
+            ListRow(str(R.string.text_account_recovery_a3a426c), glyph = R.drawable.glyph_recovery) { client.navigation.open("recovery") }
+            ListRow(str(R.string.text_message_settings_1a28455), icon = Icons.Outlined.MarkEmailRead) { client.navigation.push(Route("message-settings")) }
         }
-        SectionTitle(str(R.string.text_account_4ab56e9))
-        Section {
-            ListRow(str(R.string.text_remove_local_data_c45125e)) { client.navigation.push(Route("account-remove")) }
-            ListRow(str(R.string.text_delete_service_account_1475636)) { client.navigation.push(Route("account-delete")) }
+        Section(title = str(R.string.text_account_4ab56e9), iconColor = MaterialTheme.colorScheme.errorContainer) {
+            ListRow(str(R.string.text_remove_local_data_c45125e), icon = Icons.Outlined.DeleteOutline, destructive = true) { client.navigation.push(Route("account-remove")) }
+            ListRow(str(R.string.text_delete_service_account_1475636), icon = Icons.Outlined.DeleteForever, destructive = true) { client.navigation.push(Route("account-delete")) }
         }
     }
 }
@@ -152,39 +150,45 @@ private fun approvalSource(source: String): String = when {
     val statement = value.statement() ?: return
     val content = statement["content"] as? JsonObject ?: return
     val body = value.detail as JsonObject
-    SelectionContainer {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            statement.text("subject")?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
-            content.text("text")?.let { Text(it) }
-            (body["file"] as? JsonObject)?.text("name")?.let { Text(it) }
-            content.text("sha256")?.let { hash ->
-                LabelValue("SHA-256", hash)
-                value.fileCheck()?.let { check ->
-                    Notice(str(when (check) {
-                        ApprovalFileCheck.Checked -> R.string.text_the_original_file_was_checked_against_this_digest_c5ffd5d
-                        ApprovalFileCheck.ChangedOrUnreadable -> R.string.approval_file_changed
-                        ApprovalFileCheck.DigestOnly -> R.string.text_only_the_digest_is_being_reviewed_the_original_file_has_not_been_241cfe0
-                    }))
+    DetailCard {
+        SelectionContainer {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                statement.text("subject")?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                content.text("text")?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                (body["file"] as? JsonObject)?.text("name")?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                content.text("sha256")?.let { hash ->
+                    LabelValue("SHA-256", hash, code = true)
+                    value.fileCheck()?.let { check ->
+                        Text(
+                            str(when (check) {
+                                ApprovalFileCheck.Checked -> R.string.text_the_original_file_was_checked_against_this_digest_c5ffd5d
+                                ApprovalFileCheck.ChangedOrUnreadable -> R.string.approval_file_changed
+                                ApprovalFileCheck.DigestOnly -> R.string.text_only_the_digest_is_being_reviewed_the_original_file_has_not_been_241cfe0
+                            }),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (check == ApprovalFileCheck.ChangedOrUnreadable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
+                content.text("app_id")?.let { app -> content.text("command")?.let { Text(app + " · " + it, style = MaterialTheme.typography.bodySmall.code()) } }
             }
-            content.text("app_id")?.let { app -> content.text("command")?.let { Text(app + " · " + it) } }
         }
     }
 }
 
 @Composable private fun BrowserLoginReview(body: JsonObject) {
     val content = body["content"] as? JsonObject ?: return
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    DetailCard {
         content.text("purpose")?.let { purpose ->
             Text(when (purpose) {
                 "Login" -> str(R.string.approval_login)
                 "Link" -> str(R.string.approval_link)
                 "Reauthenticate" -> str(R.string.approval_reauthenticate)
                 else -> purpose
-            }, style = MaterialTheme.typography.titleMedium)
+            }, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
         body.text("origin")?.let { LabelValue(str(R.string.text_website_ad80f52), it) }
-        content.text("receiver")?.let { LabelValue(str(R.string.approval_receiver), it) }
+        content.text("receiver")?.let { LabelValue(str(R.string.approval_receiver), it, code = true) }
         content.unsigned("expires_at")?.let { LabelValue(str(R.string.approval_valid_until), displayTime(it)) }
     }
 }
@@ -213,7 +217,7 @@ private fun approvalSource(source: String): String = when {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             if (selected.isEmpty()) {
                 ReadFeedback(listing, client.approvals::refreshRemote)
                 val entries = listing.valueOrNull().orEmpty()
@@ -226,58 +230,73 @@ private fun approvalSource(source: String): String = when {
             } else {
                 ReadFeedback(detail, { client.approvals.select(selected) })
                 current?.let { value ->
-                    Text(approvalTitle(value.kind), modifier = if (detail is ReadState.Ready) Modifier.reminderVisible(client, NoticeTarget("approval", value.id), revision = value) else Modifier, style = MaterialTheme.typography.headlineSmall)
-                    if (value.state != "awaiting_user") Text(secretStateName(value.state), style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                    SelectionContainer { LabelValue(str(R.string.text_source_fcdba0f), approvalSource(value.source)) }
-                    if (value.kind == "attest" || value.kind == "connect") StatementReview(value)
-                    if (value.state == "awaiting_user" && value.risk == "high") {
-                        Text(str(R.string.text_review_this_sensitive_action_carefully_9a6034a), style = MaterialTheme.typography.titleSmall)
-                    }
-                    if (value.state == "awaiting_user") LabelValue(str(R.string.approval_request_expires), messageTime(value.expiresAt))
-                    SelectionContainer { LabelValue(str(R.string.text_account_id_43f0a66), state.session?.account.orEmpty()) }
-                    if (value.state == "awaiting_user" && value.kind == "device_pair") Notice(str(R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488))
-                    if (value.kind == "connect") Notice(str(R.string.text_the_source_is_relayed_by_the_browser_through_connect_dmsg_net_a_b_8ce6a30))
                     val body = value.detail as? JsonObject
+                    val banner = when {
+                        value.error != null -> errorText(value.error) to true
+                        value.state == "awaiting_user" && !value.supported -> str(R.string.text_this_action_requires_a_supported_desktop_client_85a09eb) to false
+                        value.state in setOf("executing", "unknown") -> str(R.string.text_the_result_is_not_confirmed_check_the_original_operation_before_r_57342fb) to false
+                        value.state == "awaiting_user" && value.kind == "device_pair" -> str(R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488) to false
+                        value.kind == "connect" -> str(R.string.text_the_source_is_relayed_by_the_browser_through_connect_dmsg_net_a_b_8ce6a30) to false
+                        value.kind == "account" && body?.text("change") == "recovery_policy" -> (if (body.flag("enabled")) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9) else str(R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07)) to false
+                        else -> null
+                    }
+                    banner?.let { (message, warning) -> Notice(message, warning) }
+                    DetailCard {
+                        Text(approvalTitle(value.kind),
+                            modifier = if (detail is ReadState.Ready) Modifier.reminderVisible(client, NoticeTarget("approval", value.id), revision = value) else Modifier,
+                            style = MaterialTheme.typography.titleLarge)
+                        if (value.state != "awaiting_user") Text(secretStateName(value.state), style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                        if (value.state == "awaiting_user" && value.risk == "high") {
+                            Text(str(R.string.text_review_this_sensitive_action_carefully_9a6034a), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SelectionContainer { LabelValue(str(R.string.text_source_fcdba0f), approvalSource(value.source)) }
+                        if (value.state == "awaiting_user") LabelValue(str(R.string.approval_request_expires), messageTime(value.expiresAt))
+                        SelectionContainer { LabelValue(str(R.string.text_account_id_43f0a66), state.session?.account.orEmpty(), code = true) }
+                    }
+                    if (value.kind == "attest" || value.kind == "connect") StatementReview(value)
                     val webLogin = value.browserLogin()
                     val statement = value.statement()
                     val plainText = statement?.text("profile") == "text" && !(statement["content"] as? JsonObject)?.text("text").isNullOrEmpty()
                     if (webLogin != null) BrowserLoginReview(webLogin)
-                    if (value.kind == "account" && body?.text("change") == "recovery_policy") Notice(if (body.flag("enabled")) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9) else str(R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07))
                     if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
                     else if (value.secret != null) SecretApprovalContent(value.secret)
                     else if (webLogin == null && !plainText) HumanRecord(value.detail)
-                    value.error?.let { Notice(errorText(it), true) }
                     value.record["result"]?.takeIf { it != JsonNull }?.let { SectionTitle(str(R.string.text_result_d6b21bc)); HumanRecord(it) }
                     value.record["delivery_report"]?.takeIf { it != JsonNull }?.let { SectionTitle(str(R.string.text_delivery_report_29f483d)); HumanRecord(it) }
-                    TextButton(onClick = { technical = !technical }) { Text(str(R.string.text_technical_details_5ec1b41)) }
+                    Section {
+                        ListRow(
+                            headline = str(R.string.text_technical_details_5ec1b41),
+                            icon = Icons.Outlined.DataObject,
+                            trailing = { Icon(if (technical) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) },
+                        ) { technical = !technical }
+                    }
                     if (technical) {
                         if (webLogin != null || plainText) HumanRecord(value.detail)
                         HumanRecord(JsonObject(value.record.filterKeys { it !in setOf("detail", "result", "delivery_report") }))
                     }
-                    if (value.state == "awaiting_user" && !value.supported) Notice(str(R.string.text_this_action_requires_a_supported_desktop_client_85a09eb))
                     if (value.state in setOf("executing", "unknown")) {
-                        Notice(str(R.string.text_the_result_is_not_confirmed_check_the_original_operation_before_r_57342fb))
-                        OutlinedButton(onClick = { client.approvals.reconcile(value) }, enabled = !state.working("approval:reconcile:" + value.id)) { Text(str(R.string.text_reconcile_original_operation_065467d)) }
+                        OutlinedButton(onClick = { client.approvals.reconcile(value) }, enabled = !state.working("approval:reconcile:" + value.id), modifier = Modifier.fillMaxWidth()) {
+                            Text(str(R.string.text_reconcile_original_operation_065467d))
+                        }
                     }
                 }
             }
         }
         current?.takeIf { it.state == "awaiting_user" }?.let { value ->
-            Surface {
-                Column(Modifier.fillMaxWidth().padding(pagePadding())) {
-                    val submitting = state.working("approval:decide:" + selected)
-                    if (now >= value.expiresAt) {
-                        Text(str(R.string.text_this_request_expired_refresh_before_continuing_04ccc12))
-                        TextButton(onClick = { client.approvals.select(selected) }) { Text(str(R.string.text_refresh_cba212b)) }
-                    } else {
-                        Text(str(if (submitting) R.string.text_waiting_for_confirmation_9c87aad else R.string.text_your_decision_applies_only_to_this_request_a7693fb),
-                            style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                        val actionable = !submitting && detail is ReadState.Ready && uptime >= readyAt
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(enabled = actionable, onClick = { decision = value to false }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_reject_52e8be4)) }
-                            Button(enabled = actionable && value.supported, onClick = { decision = value to true }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_approve_8d032fb)) }
-                        }
+            BottomActionBar {
+                val submitting = state.working("approval:decide:" + selected)
+                if (now >= value.expiresAt) {
+                    Text(str(R.string.text_this_request_expired_refresh_before_continuing_04ccc12), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = { client.approvals.select(selected) }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_refresh_cba212b)) }
+                } else {
+                    Text(str(if (submitting) R.string.text_waiting_for_confirmation_9c87aad else R.string.text_your_decision_applies_only_to_this_request_a7693fb),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    val actionable = !submitting && detail is ReadState.Ready && uptime >= readyAt
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(enabled = actionable, onClick = { decision = value to false }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_reject_52e8be4)) }
+                        Button(enabled = actionable && value.supported, onClick = { decision = value to true }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_approve_8d032fb)) }
                     }
                 }
             }
@@ -322,8 +341,8 @@ private fun approvalSource(source: String): String = when {
                 }
                 HorizontalDivider()
                 SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    LabelValue(str(R.string.text_request_id_3182520), value.id)
-                    LabelValue(str(R.string.text_reviewed_digest_ea1e6f9), value.digest)
+                    LabelValue(str(R.string.text_request_id_3182520), value.id, code = true)
+                    LabelValue(str(R.string.text_reviewed_digest_ea1e6f9), value.digest, code = true)
                 } }
                 Text(str(R.string.text_this_decision_is_bound_to_the_exact_request_and_digest_shown_0594140), style = MaterialTheme.typography.bodySmall)
             }
@@ -344,10 +363,19 @@ private fun approvalSource(source: String): String = when {
         }
         visit(value, ""); output
     }
-    rows.forEach { (path, child) ->
-        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            if (path.isNotBlank()) Text(path, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            SelectionContainer { Text(if (child == null || child == JsonNull) str(R.string.text_none_2d00776) else if (child.isString && child.content.isEmpty()) str(R.string.text_empty_text_8d2743c) else child.content, style = MaterialTheme.typography.bodyMedium) }
+    if (rows.isEmpty()) return
+    DetailCard {
+        rows.forEachIndexed { index, (path, child) ->
+            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (path.isNotBlank()) Text(path, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                SelectionContainer {
+                    Text(
+                        if (child == null || child == JsonNull) str(R.string.text_none_2d00776) else if (child.isString && child.content.isEmpty()) str(R.string.text_empty_text_8d2743c) else child.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
     }
 }

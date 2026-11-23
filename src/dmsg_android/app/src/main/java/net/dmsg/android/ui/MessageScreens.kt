@@ -81,7 +81,7 @@ import net.dmsg.core.MessageItem
         client.messages.editDirectoryQuery(it)
     },
         str(R.string.text_search_messages_ee3eb59), actions = {
-            IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
+            MessageMoreMenu(client)
         }) { searching ->
         if (!searching) ScreenFab {
             val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
@@ -381,11 +381,11 @@ import net.dmsg.core.MessageItem
     }
     if (attachment) AlertDialog(onDismissRequest = { attachment = false }, title = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, text = {
         Column(Modifier.heightIn(max = 350.dp).verticalScroll(rememberScrollState())) {
-            TextButton(onClick = { attachment = false; client.secretSharing.picker.reset(); client.navigation.push(Route("secret-picker", channel = channel)) }) { Icon(Icons.Outlined.Shield, null); Text(str(R.string.text_share_a_secret_snapshot_7502b61)) }
+            TextButton(onClick = { attachment = false; client.secretSharing.picker.reset(); client.navigation.push(Route("secret-picker", channel = channel)) }) { Icon(Icons.Outlined.Shield, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_a_secret_snapshot_7502b61)) }
             ReadFeedback(files, { client.messages.chooseFolder(attachmentFolder) })
             if (attachmentParents.size > 1) TextButton(onClick = { attachmentParents = attachmentParents.dropLast(1); attachmentFolder = attachmentParents.last(); client.messages.chooseFolder(attachmentFolder) }) { Text(str(R.string.text_parent_folder_3af9479)) }
             val choices = files.valueOrNull()?.takeIf { it.folder == attachmentFolder }
-            choices?.folders.orEmpty().forEach { folder -> TextButton(onClick = { attachmentFolder = folder.id; attachmentParents += folder.id; client.messages.chooseFolder(folder.id) }) { Icon(Icons.Outlined.Folder, null); Text(folder.name) } }
+            choices?.folders.orEmpty().forEach { folder -> TextButton(onClick = { attachmentFolder = folder.id; attachmentParents += folder.id; client.messages.chooseFolder(folder.id) }) { Icon(Icons.Outlined.Folder, null); Spacer(Modifier.width(8.dp)); Text(folder.name) } }
             choices?.files.orEmpty().filter { it.local && it.size <= 100uL * 1024u * 1024u }.forEach { file ->
                 val chosen = composer.attachments.any { it.file == file.id && it.version == file.version }
                 SelectionRow(file.name, chosen, enabled = chosen || composer.attachments.size < 10) { checked -> if (checked) client.messages.attach(channel, file) else update(composer.copy(attachments = composer.attachments.filterNot { it.file == file.id && it.version == file.version })) }
@@ -441,8 +441,8 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
     val shown = reference.valueOrNull()?.takeIf { it.channel == channel && it.sequence == sequence }?.message
     LaunchedEffect(channel, sequence, state.epoch) { client.safety.loadBlocks(); client.messages.locate(channel, sequence) }
     DisposableEffect(channel, sequence) { onDispose { client.messages.leaveReference() } }
+    ScreenBar(str(R.string.text_original_message_f73147f) + sequence)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(str(R.string.text_original_message_f73147f) + sequence, style = MaterialTheme.typography.headlineSmall)
         ReadFeedback(reference, { client.messages.locate(channel, sequence) })
         when {
             blocked.valueOrNull() == null -> ReadFeedback(blocked, { client.safety.loadBlocks() })
@@ -452,12 +452,28 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
             shown?.unreadable == true -> Notice(str(R.string.text_this_message_cannot_be_verified_or_opened_0021683), true)
             shown?.retracted == true -> Notice(str(R.string.text_message_withdrawn_c19a5e2))
             shown != null -> {
-                ParticipantIdentity(client, shown.account, showId = true)
-                Text(messageTime(shown.createdAtMs), style = MaterialTheme.typography.labelSmall)
-                SelectionContainer { Text(shown.text) }
-                if (!shown.attachmentDeleted) shown.attachmentName?.let { Text(it) }
-                if (shown.edited) Text(str(R.string.text_edited_91efa39))
-                TextButton(onClick = { client.clipboard.copy(shown.text) }, enabled = shown.text.isNotEmpty()) { Text(str(R.string.text_copy_d6e9651)) }
+                DetailCard {
+                    ParticipantIdentity(client, shown.account, showId = true)
+                    val meta = buildList {
+                        add(messageTime(shown.createdAtMs))
+                        if (shown.edited) add(str(R.string.text_edited_91efa39))
+                    }.joinToString(" · ")
+                    Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (shown.text.isNotEmpty() || (!shown.attachmentDeleted && shown.attachmentName != null)) {
+                    DetailCard {
+                        if (shown.text.isNotEmpty()) SelectionContainer { Text(shown.text, style = MaterialTheme.typography.bodyLarge) }
+                        if (!shown.attachmentDeleted) shown.attachmentName?.let {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.AttachFile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(it, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+                OutlinedButton(onClick = { client.clipboard.copy(shown.text) }, enabled = shown.text.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_d6e9651))
+                }
             }
         }
     }
@@ -505,10 +521,4 @@ internal fun listTime(ms: ULong?, now: Long = System.currentTimeMillis()): Strin
         }
         .indication(interaction, LocalIndication.current)
         .focusable(interactionSource = interaction)
-}
-
-@Composable private fun SheetAction(label: String, icon: ImageVector, destructive: Boolean = false, onClick: () -> Unit) {
-    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-    ListItem(headlineContent = { Text(label, color = color) }, leadingContent = { Icon(icon, null, tint = color) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent), modifier = Modifier.clickable(role = Role.Button, onClick = onClick))
 }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import net.dmsg.android.ui.OnCard
 import net.dmsg.android.ui.card
 
 /** A block of related content on the card colour with the large corners. */
@@ -16,6 +17,12 @@ import net.dmsg.android.ui.card
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = color) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+        if (color == MaterialTheme.colorScheme.card) {
+            OnCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+            }
+        } else {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+        }
     }
 }

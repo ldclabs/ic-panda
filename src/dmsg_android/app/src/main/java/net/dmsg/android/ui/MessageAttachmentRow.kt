@@ -26,7 +26,7 @@ import net.dmsg.core.MessageItem
     DisposableEffect(channel, message.sequence) { onDispose { client.messageAttachments.release(channel, message.sequence) } }
     Column(Modifier.widthIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (message.attachmentMime == "application/vnd.dmsg.secret-package") {
-            TextButton(onClick = { client.navigation.push(Route("secret-import", channel = channel, sequence = message.sequence)) }, enabled = !message.attachmentDeleted) { Icon(Icons.Outlined.Shield, null); Text(str(R.string.text_preview_secret_package_8cea531)) }
+            TextButton(onClick = { client.navigation.push(Route("secret-import", channel = channel, sequence = message.sequence)) }, enabled = !message.attachmentDeleted) { Icon(Icons.Outlined.Shield, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_secret_package_8cea531)) }
         } else {
             Text(message.attachmentName.orEmpty(), style = MaterialTheme.typography.titleSmall)
             message.attachmentSize?.let { Text(fileSize(it), style = MaterialTheme.typography.labelSmall) }
