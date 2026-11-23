@@ -10,33 +10,32 @@ struct VaultView: View {
     var body: some View {
         @Bindable var model = model
         WorkspaceNavigation(selection: $model.route.vaultItem, sidebarInitiallyVisible: true) { selection in
-            VStack(spacing: 0) {
-                VaultBrowseBar(filtering: $filtering)
-                List(selection: selection) {
-                    Group {
-                    if model.vaultQueryIsCurrent {
-                        ForEach(model.vault, id: \.id) { item in
-                            NavigationLink(value: item.id) { VaultRow(item: item) }
-                                .compactObjectRow().accessibilityIdentifier("vault.item.\(item.id)")
-                                .swipeActions { if item.kind == "login" { copyActions(item) } }
-                                .contextMenu { if item.kind == "login" { copyActions(item) } }
-                        }
+            List(selection: selection) {
+                Group {
+                if model.vaultQueryIsCurrent {
+                    ForEach(model.vault, id: \.id) { item in
+                        NavigationLink(value: item.id) { VaultRow(item: item) }
+                            .compactObjectRow().accessibilityIdentifier("vault.item.\(item.id)")
+                            .swipeActions { if item.kind == "login" { copyActions(item) } }
+                            .contextMenu { if item.kind == "login" { copyActions(item) } }
                     }
-                    if model.loadingVault || !model.vaultQueryIsCurrent && !model.vaultFailed {
-                        ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
-                            .accessibilityIdentifier("vault.loading")
-                    }
-                    if model.vaultFailed {
-                        NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
-                        Button("Retry") { Task { await model.loadVault() } }.accessibilityIdentifier("vault.retry")
-                    } else if model.vaultLoaded && model.vaultQueryIsCurrent && model.vault.isEmpty && !model.loadingVault { empty }
-                    if model.vaultQueryIsCurrent && model.vaultHasMore {
-                        LoadMoreRow(working: model.loadingVault, trigger: model.vault.count) { await model.loadVault(more: true) }
-                            .accessibilityIdentifier("vault.more")
-                    }
-                    }.plainListRows(selectable: selection != nil)
-                }.listStyle(.plain).refreshable { await model.synchronize() }
-            }.privateScreen(.plain).navigationTitle("Vault")
+                }
+                if model.loadingVault || !model.vaultQueryIsCurrent && !model.vaultFailed {
+                    ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
+                        .accessibilityIdentifier("vault.loading")
+                }
+                if model.vaultFailed {
+                    NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
+                    Button("Retry") { Task { await model.loadVault() } }.accessibilityIdentifier("vault.retry")
+                } else if model.vaultLoaded && model.vaultQueryIsCurrent && model.vault.isEmpty && !model.loadingVault { empty }
+                if model.vaultQueryIsCurrent && model.vaultHasMore {
+                    LoadMoreRow(working: model.loadingVault, trigger: model.vault.count) { await model.loadVault(more: true) }
+                        .accessibilityIdentifier("vault.more")
+                }
+                }.plainListRows(selectable: selection != nil)
+            }.listStyle(.plain).refreshable { await model.synchronize() }
+                .scopeBar { VaultBrowseBar(filtering: $filtering) }
+                .privateScreen(.plain).navigationTitle("Vault")
                 .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search your vault")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
@@ -80,7 +79,7 @@ struct VaultView: View {
         }
         .onChange(of: model.route.vaultItem) { _, value in if value != nil { model.activity() } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
-        .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() } }
+        .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() }.presentationDetents([.medium, .large]) }
     }
 
     @ViewBuilder private func copyActions(_ item: VaultItem) -> some View {
@@ -148,7 +147,7 @@ private struct VaultBrowseBar: View {
                         }.id("types").accessibilityAddTraits(moreSelected ? .isSelected : []).accessibilityIdentifier("vault.types")
                     }.padding(.horizontal, 16)
                 }
-                .accessibilityIdentifier("vault.scopes")
+                .accessibilityIdentifier("vault.scopes").edgeFade()
                 .onChange(of: model.vaultFilter) { _, filter in
                     // Reveal an offscreen selection without recentering visible tabs.
                     proxy.scrollTo(["all", "favorites", "login", "note"].contains(filter) ? filter : "types")
@@ -158,7 +157,7 @@ private struct VaultBrowseBar: View {
                 Image(systemName: model.vaultTag.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill").frame(width: 44, height: 44)
                 if !model.vaultTag.isEmpty { Text(model.vaultTag).lineLimit(1).frame(maxWidth: 92) }
             }.accessibilityLabel("Filters").accessibilityValue(model.vaultTag).accessibilityIdentifier("vault.filters")
-        }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
+        }.font(.subheadline).padding(.bottom, 8)
     }
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {

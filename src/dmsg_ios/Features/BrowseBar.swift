@@ -1,6 +1,16 @@
 import SwiftUI
 
 extension View {
+    /// Puts a workspace's scope bar under the search field, with the list scrolling beneath it.
+    func scopeBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View { edgeBar(.top, fallback: Theme.paper, bar) }
+
+    /// Fades a horizontally scrolling row at both ends, so a clipped tab reads as more to scroll.
+    func edgeFade() -> some View {
+        mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.04),
+                                    .init(color: .black, location: 0.96), .init(color: .clear, location: 1)],
+                            startPoint: .leading, endPoint: .trailing))
+    }
+
     /// The capsule of a browse bar tab, also for a tab that opens a menu.
     func browseTabShape(selected: Bool) -> some View {
         padding(.horizontal, 12).frame(minHeight: 44)

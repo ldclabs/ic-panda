@@ -160,7 +160,7 @@ struct ConversationView: View {
         }.privateScreen(.plain).navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
             .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
             .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .edgeBar(.bottom, fallback: .bar) {
                 ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil,
                                      willQueue: { query = ""; searching = false; followLatest(); queuedAt = .now }, failed: { await load() })
             }

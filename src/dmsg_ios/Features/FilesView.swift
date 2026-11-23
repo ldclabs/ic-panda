@@ -75,8 +75,8 @@ struct FilesView: View {
                 switch value {
                 case .trash: FileTrashView()
                 case .help: FileLibraryHelpView()
-                case .rename(let target): FileNameEditor(target: target, parent: model.filesFolder)
-                case .create: FileNameEditor(target: nil, parent: model.filesFolder)
+                case .rename(let target): FileNameEditor(target: target, parent: model.filesFolder).presentationDetents([.medium, .large])
+                case .create: FileNameEditor(target: nil, parent: model.filesFolder).presentationDetents([.medium, .large])
                 case .backup(let files): FileBackupView(files: files)
                 case .link(let target): FileLinkComposer(target: target)
                 case .move(let targets): FileMoveView(items: targets)
@@ -124,32 +124,31 @@ struct FilesView: View {
         let root = id == "root", shown = listing(id)
         // Large text scrolls the bar away on phones.
         let barInList = textSize.isAccessibilitySize && compact
-        return VStack(spacing: 0) {
-            if !barInList { browseBar(root: root) }
-            List {
-                if barInList {
-                    browseBar(root: root).buttonStyle(.borderless)
-                        .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-                Group {
-                    transferEntry
-                    if !root || model.filesScope == .local { localContent(id, listing: shown) }
-                    else { CloudBackupSection(query: model.filesSearch, sort: model.filesSort) }
-                }.plainListRows(selectable: !compact)
-            }.listStyle(.plain)
-                .refreshable {
-                    if root && model.filesScope == .cloud { await model.loadCloudBackups(refresh: true) }
-                    else { await model.loadFiles(quiet: true) }
-                    await model.fileTransfers.load(model)
-                }
-                .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
-                .dropDestination(for: URL.self) { urls, _ in
-                    let files = urls.filter(\.isFileURL)
-                    guard !files.isEmpty else { return false }
-                    sheet = .imports(files, id)
-                    return true
-                }
-        }.privateScreen(.plain).navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
+        return List {
+            if barInList {
+                browseBar(root: root).buttonStyle(.borderless)
+                    .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
+            Group {
+                transferEntry
+                if !root || model.filesScope == .local { localContent(id, listing: shown) }
+                else { CloudBackupSection(query: model.filesSearch, sort: model.filesSort) }
+            }.plainListRows(selectable: !compact)
+        }.listStyle(.plain)
+            .refreshable {
+                if root && model.filesScope == .cloud { await model.loadCloudBackups(refresh: true) }
+                else { await model.loadFiles(quiet: true) }
+                await model.fileTransfers.load(model)
+            }
+            .scopeBar { if !barInList { browseBar(root: root) } }
+            .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
+            .dropDestination(for: URL.self) { urls, _ in
+                let files = urls.filter(\.isFileURL)
+                guard !files.isEmpty else { return false }
+                sheet = .imports(files, id)
+                return true
+            }
+            .privateScreen(.plain).navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
             .searchable(text: Binding(get: { model.filesSearches[id] ?? "" }, set: { model.setFileSearch($0, in: id) }),
                         placement: .navigationBarDrawer(displayMode: .always), prompt: root && model.filesScope == .cloud ? "Search cloud backups" : "Search files")
             .toolbar { toolbar(root: root) }

@@ -69,7 +69,7 @@ struct FileBrowseBar: View {
                 Image(systemName: "arrow.up.arrow.down").font(.body).frame(width: 44, height: 44)
             }.accessibilityLabel("Sort by").accessibilityValue(Text(sort.title))
                 .accessibilityIdentifier("files.options")
-        }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
+        }.font(.subheadline).padding(.bottom, 8)
     }
 }
 

@@ -113,7 +113,8 @@ final class MessagingUITests: XCTestCase {
         let app = start(["--ui-channel", "--ui-channel-readonly"])
         let channel = app.buttons["channel.row.fixture-channel"]; XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()
         XCTAssertTrue(app.staticTexts["You have read-only access to this conversation."].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["message.send"].isEnabled)
+        // The send button appears only once there is something to send.
+        XCTAssertFalse(app.buttons["message.send"].exists)
         app.buttons["conversation.more"].tap()
         XCTAssertTrue(app.buttons["Conversation settings"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Invite member"].exists)

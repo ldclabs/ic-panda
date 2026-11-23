@@ -12,4 +12,6 @@ enum NativeTheme {
     static let radius: CGFloat = 12
     /// Message bubbles and feature cards.
     static let radiusLarge: CGFloat = 18
+    /// 44 pt fields: round on one line, a rounded box when they grow.
+    static let radiusField: CGFloat = 22
 }

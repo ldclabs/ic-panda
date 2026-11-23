@@ -45,6 +45,13 @@ The diagnosis behind it is the 2026-11-23 UI quality review.
   `#EEF2EB` against white (1.13:1), dark black against `#1C1C1E` (1.23:1).
 - `Card` is for what the app draws: other people's bubbles, the composer field,
   floating notices, plan cards. On dark `Paper` it is `#1A2621` (1.18:1), as on desktop.
+- Bars over scrolling content use `edgeBar` (`scopeBar` for the workspace tabs): iOS 26
+  gets `safeAreaBar` and its scroll edge effect, earlier systems a page-coloured or `.bar`
+  inset. The minimum stays iOS 18, so iOS 26 API goes through such helpers only.
+- Floating controls use `glassSurface`: the composer field, its attach button and the
+  card above it for the reply, attachments and warnings. The send button appears once
+  there is something to send.
+- Short sheets (filters, naming a file) open at `.medium`.
 
 ## Words on screen
 

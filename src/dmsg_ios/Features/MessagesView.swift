@@ -50,20 +50,19 @@ struct MessagesView: View {
         WorkspaceNavigation(selection: $model.route.message, sidebarInitiallyVisible: true) { listSelection in
             // Large text scrolls the bar away on phones. A selectable list would swallow taps on its menu.
             let barInList = dynamicTypeSize.isAccessibilitySize && listSelection == nil
-            VStack(spacing: 0) {
-                if !barInList { bars }
-                List(selection: listSelection) {
-                    if barInList {
-                        bars.buttonStyle(.borderless)
-                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
-                    }
-                    Group {
-                        if mode == 0 { channelRows }
-                        else { letterRows }
-                    }.plainListRows(selectable: listSelection != nil)
-                }.listStyle(.plain)
-                    .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
-            }.privateScreen(.plain).navigationTitle("Messages")
+            List(selection: listSelection) {
+                if barInList {
+                    bars.buttonStyle(.borderless)
+                        .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
+                }
+                Group {
+                    if mode == 0 { channelRows }
+                    else { letterRows }
+                }.plainListRows(selectable: listSelection != nil)
+            }.listStyle(.plain)
+                .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
+                .scopeBar { if !barInList { bars } }
+                .privateScreen(.plain).navigationTitle("Messages")
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: mode == 0 ? "Search messages" : "Search letters")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
@@ -116,7 +115,7 @@ struct MessagesView: View {
         BrowseScopes(title: "Messages", selection: $model.route.messagesMode, options: [
             .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations"),
             .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters"),
-        ]).font(.subheadline).padding(.bottom, 8).background(Theme.paper)
+        ]).font(.subheadline).padding(.bottom, 8)
         if mode == 1 { letterFilters }
     }
 
@@ -132,7 +131,7 @@ struct MessagesView: View {
                     .accessibilityIdentifier("letters.unread")
             }
             Spacer(minLength: 0)
-        }.font(.subheadline).padding(.horizontal, 16).padding(.bottom, 8).background(Theme.paper)
+        }.font(.subheadline).padding(.horizontal, 16).padding(.bottom, 8)
     }
 
     @ViewBuilder private var channelRows: some View {

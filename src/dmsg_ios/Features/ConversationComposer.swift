@@ -39,37 +39,28 @@ struct ConversationComposer: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            if !channel.canPublish { NoticeBar(text: restriction).padding(.horizontal) }
-            if let replying {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading) {
-                        Text(model.personName(replying.account)).font(.footnote.bold())
-                            .loadMessagePerson(replying.account, model: model)
-                        Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.footnote).lineLimit(2)
-                    }
-                    Spacer()
-                    Button("Cancel reply", systemImage: "xmark.circle") { self.replying = nil }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                }.padding(.horizontal)
-            }
-            if !attachments.isEmpty { attachmentStrip }
-            if receiving || working { TransferStatusView().padding(.horizontal) }
-            HStack(alignment: .bottom, spacing: 10) {
+            if !channel.canPublish || replying != nil || !attachments.isEmpty || receiving || working || tooLong { extras }
+            HStack(alignment: .bottom, spacing: 8) {
                 attachMenu
-                TextField("Write a message", text: Binding(get: { draft }, set: { model.activity(); model.setDraft(channel: channel.id, text: $0) }), axis: .vertical)
-                    .lineLimit(1...5).focused($focused)
-                    .padding(12).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radiusLarge))
-                    .accessibilityIdentifier("message.draft").disabled(!channel.canPublish)
-                Button { actionTask = Task { await send() } } label: { Image(systemName: "arrow.up").font(.headline).frame(width: 44, height: 44) }
-                    .buttonStyle(.borderedProminent).buttonBorderShape(.circle).accessibilityLabel("Send message")
-                    .accessibilityIdentifier("message.send").keyboardShortcut(.return, modifiers: .command)
-                    .disabled(!channel.canPublish || empty || tooLong || queuing)
-            }.padding(12).background(.bar)
-            if tooLong {
-                VStack {
-                    Text("This message is too long.")
-                    Text(utf8ByteCounter(draft, limit: Int64(ComposerQueue.maxTextBytes)))
-                }.font(.footnote).foregroundStyle(.red).accessibilityElement(children: .combine)
-            }
+                HStack(alignment: .bottom, spacing: 0) {
+                    TextField("Write a message", text: Binding(get: { draft }, set: { model.activity(); model.setDraft(channel: channel.id, text: $0) }), axis: .vertical)
+                        .lineLimit(1...5).focused($focused)
+                        .padding(.vertical, 11).padding(.leading, 16).padding(.trailing, empty ? 16 : 0)
+                        .accessibilityIdentifier("message.draft").disabled(!channel.canPublish)
+                    // Like Messages, the send button appears once there is something to send.
+                    if !empty {
+                        Button { actionTask = Task { await send() } } label: {
+                            Image(systemName: "arrow.up.circle.fill").font(.title).symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, Theme.forestFill).frame(width: 44, height: 44).contentShape(Rectangle())
+                        }.buttonStyle(.plain).accessibilityLabel("Send message")
+                            .accessibilityIdentifier("message.send").keyboardShortcut(.return, modifiers: .command)
+                            .disabled(!channel.canPublish || tooLong || queuing)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }.frame(minHeight: 44)
+                    .glassSurface(in: RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous), fallback: Theme.card)
+                    .animation(.snappy(duration: 0.2), value: empty)
+            }.padding(.horizontal, 12).padding(.vertical, 8)
         }
         .sheet(isPresented: $choosingFile) {
             NavigationStack { AttachmentPicker(folder: "root") { file in
@@ -112,6 +103,35 @@ struct ConversationComposer: View {
         }
     }
 
+    /// What goes with the next message, on a card above the field: restrictions, the
+    /// reply, attachments, transfers and the length warning.
+    private var extras: some View {
+        VStack(spacing: 6) {
+            if !channel.canPublish { NoticeBar(text: restriction).padding(.horizontal, 8) }
+            if let replying {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading) {
+                        Text(model.personName(replying.account)).font(.footnote.bold())
+                            .loadMessagePerson(replying.account, model: model)
+                        Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.footnote).lineLimit(2)
+                    }
+                    Spacer()
+                    Button("Cancel reply", systemImage: "xmark.circle") { self.replying = nil }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                }.padding(.leading, 16).padding(.trailing, 4)
+            }
+            if !attachments.isEmpty { attachmentStrip }
+            if receiving || working { TransferStatusView().padding(.horizontal) }
+            if tooLong {
+                VStack {
+                    Text("This message is too long.")
+                    Text(utf8ByteCounter(draft, limit: Int64(ComposerQueue.maxTextBytes)))
+                }.font(.footnote).foregroundStyle(.red).accessibilityElement(children: .combine)
+            }
+        }.padding(.vertical, 6).frame(maxWidth: .infinity)
+            .glassSurface(in: RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous), fallback: Color.clear)
+            .padding(.horizontal, 12).padding(.top, 6)
+    }
+
     @discardableResult
     private func persistDraft(epoch: UInt64, after delay: Duration) -> Task<Void, Never> {
         let previous = persistTask; previous?.cancel()
@@ -134,7 +154,9 @@ struct ConversationComposer: View {
             Button("Attach file", systemImage: "doc") { choosingFile = true }
             if canPasteImage { Button("Paste image", systemImage: "doc.on.clipboard") { actionTask = Task { await pasteImage() } } }
             Button("Share secret snapshot", systemImage: "lock.doc") { sharingSecret = true }
-        }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(!channel.canPublish || queuing || working)
+        }.labelStyle(.iconOnly).frame(width: 44, height: 44)
+            .glassSurface(in: Circle(), interactive: true, fallback: Color.clear)
+            .disabled(!channel.canPublish || queuing || working)
     }
 
     private var attachmentStrip: some View {

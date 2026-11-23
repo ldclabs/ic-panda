@@ -21,6 +21,22 @@ enum Theme {
     static let radiusSmall = NativeTheme.radiusSmall
     static let radius = NativeTheme.radius
     static let radiusLarge = NativeTheme.radiusLarge
+    static let radiusField = NativeTheme.radiusField
+}
+
+extension View {
+    /// A bar the content scrolls beneath. iOS 26 fades the content under it as it does
+    /// under the toolbars; earlier systems put the bar on `fallback`.
+    @ViewBuilder func edgeBar<Bar: View, Fill: ShapeStyle>(_ edge: VerticalEdge, fallback: Fill, @ViewBuilder _ bar: () -> Bar) -> some View {
+        if #available(iOS 26, *) { safeAreaBar(edge: edge, spacing: 0) { bar() } }
+        else { safeAreaInset(edge: edge, spacing: 0) { bar().background(fallback) } }
+    }
+
+    /// Liquid Glass on iOS 26 and later; earlier systems fill the shape with `fallback`.
+    @ViewBuilder func glassSurface<S: Shape, Fill: ShapeStyle>(in shape: S, interactive: Bool = false, fallback: Fill) -> some View {
+        if #available(iOS 26, *) { glassEffect(interactive ? .regular.interactive() : .regular, in: shape) }
+        else { background(fallback, in: shape) }
+    }
 }
 
 /// The tinted square behind an object's icon. It scales with the text size.
