@@ -29,14 +29,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
-@Composable fun FileBrowserScreen(client: ClientController, state: UiState, trash: Boolean, select: (String) -> Unit) {
-    val navigation by client.navigation.state.collectAsStateWithLifecycle()
+@Composable fun FileBrowserScreen(client: ClientController, state: UiState, folder: String, trash: Boolean, select: (String) -> Unit) {
     val listing by client.library.listing.state.collectAsStateWithLifecycle()
     val tree by client.library.tree.state.collectAsStateWithLifecycle()
     val selection by client.library.selection.collectAsStateWithLifecycle()
     val results by client.library.results.collectAsStateWithLifecycle()
     val usage by client.library.usage.state.collectAsStateWithLifecycle()
-    val folder = navigation.current.folder
     val local by client.accountWorkspace.local.state.collectAsStateWithLifecycle()
     val root = folder == "root" && !trash
     val listingReady = listing is ReadState.Ready || listing is ReadState.Empty
@@ -101,7 +99,6 @@ import net.dmsg.android.core.*
         WorkspaceBrowser(str(if (trash) R.string.text_trash_8af1079 else R.string.text_files_c79ddc2), preferences.query,
             { client.library.clearSelection(); update(preferences.copy(query = it, limit = 100, first = 0, offset = 0)) },
             str(R.string.text_search_files_notes_and_tags_9013c74), actions = {
-                if (!trash) FileIntakeButton(client, folder = folder)
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
@@ -119,7 +116,11 @@ import net.dmsg.android.core.*
                     }
                 }
             }) { searching ->
-            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
+            if (!trash && !searching) ScreenFab {
+                val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
+                FileIntakeButton(client, folder = folder, fab = true, expanded = atTop)
+            }
+            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
                 if (trash || folder != "root") item {
                     if (trash) Text(str(R.string.text_deleted_on_this_device_c40f3ba), style = MaterialTheme.typography.titleMedium)
                     if (!trash && folder != "root") Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
@@ -166,7 +167,7 @@ import net.dmsg.android.core.*
                 }
                 items(visible, key = { it.id }) { entry ->
                     val file = filesById[entry.id]
-                    BrowseRow(entry.name, Modifier.semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
+                    BrowseRow(entry.name, Modifier.animateItem().semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
                         .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
                             onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }), supporting = {
                             if (preferences.query.isNotBlank() || file != null) Column {

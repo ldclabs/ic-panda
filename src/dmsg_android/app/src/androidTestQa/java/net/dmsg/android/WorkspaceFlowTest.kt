@@ -115,7 +115,7 @@ class WorkspaceFlowTest {
             val initialTop = entry.getUnclippedBoundsInRoot().top
             entry.performClick()
             cancel.assertIsDisplayed()
-            assertTrue(route, editor.getUnclippedBoundsInRoot().top < initialTop)
+            assertTrue(route, editor.getUnclippedBoundsInRoot().top <= initialTop)
             editor.performTextInput("Studio")
             compose.onNodeWithContentDescription("Clear search").performClick()
             editor.assertIsFocused()
@@ -1022,7 +1022,7 @@ class WorkspaceFlowTest {
         capture("qa-messages-empty")
         compose.runOnIdle { client.showError("INVALID_INPUT") }
         compose.onNodeWithText(net.dmsg.android.ui.errorText("INVALID_INPUT")).assertExists()
-        compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_new_channel_6ea7fcc)).performClick()
+        compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_new_conversation_8687862)).performClick()
         compose.waitUntil(1_500) { compose.onAllNodesWithText(net.dmsg.android.ui.errorText("INVALID_INPUT")).fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithText(net.dmsg.android.platform.str(R.string.text_conversation_name_428c56e)).assertIsDisplayed()
         compose.runOnIdle { client.navigation.open("files") }

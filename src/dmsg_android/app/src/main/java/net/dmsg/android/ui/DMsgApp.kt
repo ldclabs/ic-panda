@@ -7,6 +7,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.SeekableTransitionState
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -16,13 +19,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -32,6 +38,7 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, openLogin: (String) -> Unit, share: (File, String) -> Unit) {
@@ -77,16 +84,14 @@ import kotlinx.coroutines.CancellationException
     }
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = showEditor) { closeEditor() }
-    PredictiveBackHandler(enabled = state.unlocked && !state.concealed && !showEditor && !imeVisible && navigation.canGoBack) { progress ->
-        try { progress.collect { }; client.navigation.back() } catch (_: CancellationException) { }
-    }
+    val screenChrome = remember { ScreenChrome() }
     val filePickers = rememberFilePickers(client)
     val noticePermission = rememberNoticePermission(client)
     CompositionLocalProvider(LocalFilePickers provides filePickers, LocalNoticePermission provides noticePermission) {
     DMsgTheme(state.dark) {
         Surface(Modifier.fillMaxSize().fileDropTarget(client, !state.concealed && (!state.unlocked || navigation.workspace == Workspace.FILES))) {
             when {
-                state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }
                 joiningAccount || (state.unlocked && route == "account-invite") -> Box(Modifier.fillMaxSize()) {
                     if (joiningAccount) AccountJoinScreen(client, openLogin)
                     else Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -117,12 +122,10 @@ import kotlinx.coroutines.CancellationException
                         "cloud-files" -> navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.page == "files"
                         else -> false
                     }
-                    val floatingBar = !wide && (root || scopeList) && selected.isEmpty() && !imeVisible
-                    val browseHeader = !wide && selected.isEmpty() && route in setOf("vault", "messages", "inbox", "files", "file-trash", "cloud-files")
+                    val navigationBar = !wide && (root || scopeList) && selected.isEmpty() && !imeVisible
+                    val browseRoutes = setOf("vault", "messages", "inbox", "files", "file-trash", "cloud-files")
                     val backButton: @Composable () -> Unit = {
-                        if (navigation.canGoBack) IconButton(onClick = client.navigation::back) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac))
-                        }
+                        IconButton(onClick = client.navigation::back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                     }
                     val activityButton: @Composable () -> Unit = {
                         if (!local) Box {
@@ -142,44 +145,68 @@ import kotlinx.coroutines.CancellationException
                             }
                         }
                     }
+                    // Every page brings its own bar, so a transition or a back gesture moves the title with the page.
+                    val pageFrame: @Composable (PageKey, @Composable () -> Unit) -> Unit = { key, content ->
+                        val page = key.route
+                        val id = page.id.orEmpty()
+                        val current = page == navigation.current
+                        val conversation = page.page == "messages" && id.isNotEmpty()
+                        val browsing = !wide && id.isEmpty() && page.page in browseRoutes
+                        val bar = !browsing && (wide || !conversation || !current || threadSearch == BrowseSearchMode.Browse)
+                        val back = if (key.depth > 1) backButton else null
+                        val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+                        Column(Modifier.fillMaxSize().then(if (bar) Modifier.nestedScroll(collapse.nestedScrollConnection) else Modifier.statusBarsPadding())) {
+                            if (bar) {
+                                val pageRoot = page.page in destinations.map { it.id }
+                                val label = when {
+                                    local && page.page == "account" -> str(R.string.offline_account)
+                                    conversation -> channelListing.valueOrNull()?.find { it.id == id }?.name ?: str(R.string.text_conversation_654b88b)
+                                    current && scopeList -> str(destinations.first { it.id == key.workspace.route }.label)
+                                    pageRoot -> str(destinations.first { it.id == page.page }.label)
+                                    else -> title(page.page)
+                                }
+                                val title: @Composable () -> Unit = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                val navigationIcon: @Composable () -> Unit = { back?.invoke() }
+                                val actions: @Composable RowScope.() -> Unit = {
+                                    if (!local && page.page == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
+                                    activityButton()
+                                }
+                                val colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page,
+                                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
+                                // An open item (vault item, file or conversation) shows its own title, and wide roots keep one
+                                // bar over both panes, so those bars stay compact; other pages show a large title that collapses.
+                                if (pageRoot && (wide || id.isNotEmpty())) TopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors)
+                                else LargeTopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors, scrollBehavior = collapse)
+                            }
+                            if (conversation && current) {
+                                val syncError by client.messages.channelSyncError.collectAsStateWithLifecycle()
+                                val headerNotice = syncError?.takeIf { it.first == id }?.let { errorText(it.second) }
+                                SnackbarHost(snackbar) { notice ->
+                                    if (notice.visuals.message != headerNotice) Snackbar(notice)
+                                }
+                            }
+                            CompositionLocalProvider(LocalBrowseChrome provides BrowseChrome(back, activityButton)) {
+                                Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+                            }
+                        }
+                    }
                     FoldSafeWorkspace(fold, wide && (route in setOf("vault", "messages", "files") || navigation.workspace == Workspace.ACCOUNT)) {
                     Row(Modifier.fillMaxSize().testTag("workspace-content")) {
-                        if (wide) NavigationRail(Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                            Spacer(Modifier.height(24.dp))
-                            destinations.forEach { destination -> NavigationRailItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(painterResource(destination.icon), null) }, label = { Text(str(destination.label)) }) }
-                        }
+                        if (wide) WorkspaceNavigationRail(destinations, navigation.workspace.route, ::go)
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
                             containerColor = MaterialTheme.colorScheme.page,
-                            topBar = { if (!browseHeader && (wide || threadSearch == BrowseSearchMode.Browse)) TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page), title = {
-                                val label = when {
-                                    local && route == "account" -> str(R.string.offline_account)
-                                    inConversation -> channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b)
-                                    scopeList -> str(destinations.first { it.id == navigation.workspace.route }.label)
-                                    root -> str(destinations.first { it.id == route }.label)
-                                    else -> title(route)
-                                }
-                                Text(label, style = if ((root || scopeList) && selected.isEmpty()) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                            }, navigationIcon = {
-                                backButton()
-                            }, actions = {
-                                if (!local && route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
-                                activityButton()
-                            }) },
-                            bottomBar = { if (floatingBar) FloatingWorkspaceBar(destinations, navigation.workspace.route, ::go) },
+                            contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                            bottomBar = { if (navigationBar) WorkspaceNavigationBar(destinations, navigation.workspace.route, ::go) },
+                            floatingActionButton = { screenChrome.fab?.invoke() },
                             snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->
-                            WorkspaceBody(padding, floatingBar) {
-                                Box(Modifier.fillMaxWidth().height(4.dp)) { if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth()) }
-                                if (inConversation) {
-                                    val syncError by client.messages.channelSyncError.collectAsStateWithLifecycle()
-                                    val headerNotice = syncError?.takeIf { it.first == selected }?.let { errorText(it.second) }
-                                    SnackbarHost(snackbar) { notice ->
-                                        if (notice.visuals.message != headerNotice) Snackbar(notice)
-                                    }
-                                }
-                                val pageContent: @Composable () -> Unit = { when (route) {
+                            WorkspaceBody(padding) {
+                                val pageContent: @Composable (Route) -> Unit = { page ->
+                                    val route = page.page
+                                    val selected = page.id.orEmpty()
+                                    val inConversation = route == "messages" && selected.isNotEmpty()
+                                    when (route) {
                                     "vault" -> {
                                         if (wide) WorkspacePanes(fold, list = { VaultScreen(client, ::select) }, detail = {
                                             if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) } else EmptyState(str(R.string.text_choose_an_item_3782357), glyph = R.drawable.glyph_vault)
@@ -195,26 +222,26 @@ import kotlinx.coroutines.CancellationException
                                         if (wide) WorkspacePanes(fold, list = list, detail = detail)
                                         else if (inConversation) detail() else list()
                                     }
-                                    "inbox" -> InboxScreen(client, state, navigation.current, showScopes = scopeList)
+                                    "inbox" -> InboxScreen(client, state, page, showScopes = scopeList)
                                     "invite-letter-sender" -> InviteLetterSenderScreen(client, selected)
                                     "message-settings" -> MessageSettingsScreen(client)
                                     "inbox-settings" -> InboxSettingsScreen(client)
-                                    "blocked-accounts" -> BlockedAccountsScreen(client, navigation.current.id)
-                                    "reports" -> ReportsScreen(client, navigation.current.id)
-                                    "report-compose" -> ReportComposeScreen(client, ReportTarget(navigation.current.field.orEmpty(), selected, navigation.current.channel.orEmpty(), navigation.current.sequence))
-                                    "channel-settings" -> ChannelSettingsScreen(client, navigation.current.channel.orEmpty())
+                                    "blocked-accounts" -> BlockedAccountsScreen(client, page.id)
+                                    "reports" -> ReportsScreen(client, page.id)
+                                    "report-compose" -> ReportComposeScreen(client, ReportTarget(page.field.orEmpty(), selected, page.channel.orEmpty(), page.sequence))
+                                    "channel-settings" -> ChannelSettingsScreen(client, page.channel.orEmpty())
                                     "channel-setup" -> ChannelSetupScreen(client)
-                                    "channel-invite" -> ChannelInviteScreen(client, navigation.current.channel.orEmpty())
+                                    "channel-invite" -> ChannelInviteScreen(client, page.channel.orEmpty())
                                     "channel-hidden" -> HiddenChannelsScreen(client)
-                                    "message-reference" -> ReferencedMessageScreen(client, navigation.current.channel.orEmpty(), navigation.current.sequence ?: 0u)
-                                    "files" -> if (wide) WorkspacePanes(fold, list = { FilesScreen(client, state, "", ::select, share) }, detail = {
-                                        if (selected.isNotEmpty()) FilesScreen(client, state, selected, ::select, share) else EmptyState(str(R.string.text_choose_a_file_2916860), glyph = R.drawable.glyph_file)
-                                    }) else FilesScreen(client, state, selected, ::select, share)
+                                    "message-reference" -> ReferencedMessageScreen(client, page.channel.orEmpty(), page.sequence ?: 0u)
+                                    "files" -> if (wide) WorkspacePanes(fold, list = { FilesScreen(client, state, page.copy(id = null, revision = null), ::select, share) }, detail = {
+                                        if (selected.isNotEmpty()) FilesScreen(client, state, page, ::select, share) else EmptyState(str(R.string.text_choose_a_file_2916860), glyph = R.drawable.glyph_file)
+                                    }) else FilesScreen(client, state, page, ::select, share)
                                     "incoming-shares" -> IncomingSharesScreen(client)
                                     "workspace-entries" -> WorkspaceEntriesScreen()
                                     "system-autofill" -> SystemExportsScreen(client, net.dmsg.android.platform.ExportPurpose.credentials)
                                     "system-files" -> SystemExportsScreen(client, net.dmsg.android.platform.ExportPurpose.files)
-                                    "file-trash" -> FilesScreen(client, state, selected, ::select, share, trash = true)
+                                    "file-trash" -> FilesScreen(client, state, page, ::select, share, trash = true)
                                     "approvals" -> ApprovalsScreen(client, state, selected, ::select)
                                     "account" -> if (local) LocalSettings(client, ::go) else AccountScreen(client, state, ::go, openLogin)
                                     "system-integrations" -> SystemIntegrationsScreen(client)
@@ -224,11 +251,11 @@ import kotlinx.coroutines.CancellationException
                                     "profile" -> PublicProfileScreen(client)
                                     "browser-connections" -> BrowserConnectionsScreen(client, browser)
                                     "browser-request" -> {
-                                        val link = ConnectLink(navigation.current.field.orEmpty(), navigation.current.channel, navigation.current.id)
+                                        val link = ConnectLink(page.field.orEmpty(), page.channel, page.id)
                                         if (ConnectLink.parse(link.url()) == link) BrowserRequestScreen(client, link, browser) else EmptyState(str(R.string.text_invalid_request_link_0f99d32))
                                     }
-                                    "device-transfer" -> DeviceTransferScreen(client, navigation.current.id, navigation.current.field?.let { it == "predecessor" })
-                                    "handovers" -> HandoversScreen(client, navigation.current.id)
+                                    "device-transfer" -> DeviceTransferScreen(client, page.id, page.field?.let { it == "predecessor" })
+                                    "handovers" -> HandoversScreen(client, page.id)
                                     "handover-review" -> HandoverReviewScreen(client)
                                     "agents" -> AgentsScreen(client)
                                     "agent" -> AgentDetailScreen(client, selected)
@@ -238,11 +265,11 @@ import kotlinx.coroutines.CancellationException
                                     "wallets" -> WalletsScreen(client)
                                     "wallet" -> WalletScreen(client, selected)
                                     "wallet-transfer" -> WalletTransferScreen(client, selected)
-                                    "wallet-proposal" -> WalletProposalScreen(client, selected, navigation.current.sequence ?: 0u)
+                                    "wallet-proposal" -> WalletProposalScreen(client, selected, page.sequence ?: 0u)
                                     "wallet-controls" -> WalletControlsScreen(client, selected)
                                     "wallet-cosigners" -> WalletCosignersScreen(client)
                                     "wallet-keys" -> WalletDeviceKeysScreen(client, selected)
-                                    "wallet-native-move" -> WalletNativeMoveScreen(client, selected, (navigation.current.sequence ?: 0u).toUInt())
+                                    "wallet-native-move" -> WalletNativeMoveScreen(client, selected, (page.sequence ?: 0u).toUInt())
                                     "membership" -> MembershipScreen(client)
                                     "membership-compare" -> MembershipScreen(client, comparison = true)
                                     "accounts" -> AccountsScreen(client)
@@ -251,7 +278,7 @@ import kotlinx.coroutines.CancellationException
                                     "account-delete" -> AccountDeletionScreen(client)
                                     "security" -> SecurityScreen(client, state)
                                     "devices" -> DevicesScreen(client)
-                                    "recovery" -> RecoveryScreen(client, navigation.current.id)
+                                    "recovery" -> RecoveryScreen(client, page.id)
                                     "recovery-policy" -> RecoveryPolicyScreen(client)
                                     "bindings" -> LoginIdentitiesScreen(client, openLogin)
                                     "hardware" -> HardwareScreen(client)
@@ -263,44 +290,52 @@ import kotlinx.coroutines.CancellationException
                                     "sync" -> SyncScreen(client)
                                     "feedback" -> FeedbackScreen(client)
                                     "file-transfers" -> TransferScreen(client)
-                                    "file-preview" -> FilePreviewScreen(client, selected, navigation.current.revision.orEmpty())
+                                    "file-preview" -> FilePreviewScreen(client, selected, page.revision.orEmpty())
                                     "cloud-files" -> CloudFilesScreen(client, selected, showScopes = scopeList)
                                     "file-unbacked" -> UnbackedFilesScreen(client)
-                                    "file-backup" -> if (navigation.current.field == "batch") BatchBackupScreen(client)
-                                        else FileBackupScreen(client, selected, navigation.current.revision, navigation.current.field == "revision")
+                                    "file-backup" -> if (page.field == "batch") BatchBackupScreen(client)
+                                        else FileBackupScreen(client, selected, page.revision, page.field == "revision")
                                     "file-requests" -> FileRequestsScreen(client, selected)
                                     "file-request-compose" -> FileRequestComposerScreen(client)
                                     "file-request-batch" -> FileRequestBatchScreen(client, selected)
                                     "file-links" -> FileLinksScreen(client, selected)
-                                    "vault-links" -> FileLinksScreen(client, "", snapshots = true, vaultItem = navigation.current.id)
+                                    "vault-links" -> FileLinksScreen(client, "", snapshots = true, vaultItem = page.id)
                                     "file-link-job" -> FileLinkJobScreen(client, selected)
-                                    "file-link-compose" -> FileLinkComposerScreen(client, selected, navigation.current.revision, false)
+                                    "file-link-compose" -> FileLinkComposerScreen(client, selected, page.revision, false)
                                     "backup-link-compose" -> FileLinkComposerScreen(client, selected, null, true)
                                     "vault-history" -> VaultHistoryScreen(client, selected)
-                                    "vault-version" -> HistoricalSecretScreen(client, selected, navigation.current.revision.orEmpty())
-                                    "vault-compare" -> VaultComparisonScreen(client, selected, navigation.current.revision.orEmpty())
+                                    "vault-version" -> HistoricalSecretScreen(client, selected, page.revision.orEmpty())
+                                    "vault-compare" -> VaultComparisonScreen(client, selected, page.revision.orEmpty())
                                     "conflicts" -> VaultConflictsScreen(client, selected, ::select)
                                     "secret-attachments" -> SecretAttachmentsScreen(client, selected)
-                                    "secret-reference" -> SecretReferenceScreen(client, selected, navigation.current.field.orEmpty())
+                                    "secret-reference" -> SecretReferenceScreen(client, selected, page.field.orEmpty())
                                     "secret-health" -> SecretHealthScreen(client)
                                     "secret-rotation" -> SecretRotationScreen(client, selected)
                                     "secret-activity" -> SecretActivityScreen(client)
-                                    "secret-compose" -> SecretSnapshotComposer(client, selected, navigation.current.channel)
+                                    "secret-compose" -> SecretSnapshotComposer(client, selected, page.channel)
                                     "secret-shares" -> SecretSharesScreen(client)
                                     "secret-share" -> SecretShareScreen(client, selected)
-                                    "secret-import" -> SecretPackageScreen(client, navigation.current.channel, navigation.current.sequence)
-                                    "secret-picker" -> SecretSnapshotPicker(client, navigation.current.channel.orEmpty())
+                                    "secret-import" -> SecretPackageScreen(client, page.channel, page.sequence)
+                                    "secret-picker" -> SecretSnapshotPicker(client, page.channel.orEmpty())
                                     "vault-import" -> VaultImportScreen(client) { passwordImport.launch(arrayOf("*/*")) }
                                     "local-import" -> LocalImportScreen(client)
                                     "vault-backup" -> VaultBackupScreen(client)
                                     else -> EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account)
                                 } }
-                                if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
-                                    list = { AccountScreen(client, state, ::go, openLogin) },
-                                    detail = { if (route == "account") EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) else pageContent() })
-                                else CompositionLocalProvider(LocalBrowseNavigation provides {
-                                    if (browseHeader) Row(verticalAlignment = Alignment.CenterVertically) { backButton(); activityButton() }
-                                }) { pageContent() }
+                                val framedPage: @Composable (PageKey) -> Unit = { key -> pageFrame(key) { pageContent(key.route) } }
+                                Box(Modifier.weight(1f).fillMaxWidth()) {
+                                    CompositionLocalProvider(LocalScreenChrome provides screenChrome) {
+                                        if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
+                                            list = { pageFrame(PageKey(Workspace.ACCOUNT, 1, Route("account"))) { AccountScreen(client, state, ::go, openLogin) } },
+                                            detail = {
+                                                if (route == "account") Box(Modifier.statusBarsPadding()) { EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) }
+                                                else AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = false, content = framedPage)
+                                            })
+                                        else AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = !wide, content = framedPage)
+                                    }
+                                    // Work in progress shows over the page instead of reserving a strip on every page.
+                                    if (state.busy) LinearProgressIndicator(Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth())
+                                }
                             }
                         }
                     }
@@ -321,6 +356,50 @@ import kotlinx.coroutines.CancellationException
         }
     }
     }
+}
+
+private data class PageKey(val workspace: Workspace, val depth: Int, val route: Route)
+
+/**
+ * Pages move along a shared horizontal axis: forward enters from the end, back from the start;
+ * switching workspaces fades through. A page keeps its composition, state and loads while only its
+ * selection or folder changes; with [itemPages], a vault item or a conversation, which have screens
+ * of their own, opens as a separate page. The back gesture scrubs the back transition, so the
+ * previous page shows as the finger moves.
+ */
+@Composable private fun AnimatedPage(navigation: NavigationState, backEnabled: Boolean, back: () -> Unit,
+    itemPages: Boolean, content: @Composable (PageKey) -> Unit) {
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val distance = with(LocalDensity.current) { 30.dp.roundToPx() }
+    val target = PageKey(navigation.workspace, navigation.stack.size, navigation.current)
+    val previous = navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.let { PageKey(navigation.workspace, navigation.stack.lastIndex, it) }
+    val pages = remember { SeekableTransitionState(target) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(target) { pages.animateTo(target) }
+    PredictiveBackHandler(enabled = backEnabled && previous != null) { progress ->
+        val to = checkNotNull(previous)
+        try {
+            progress.collect { event -> pages.seekTo(event.progress, to) }
+            back()
+        } catch (cancelled: CancellationException) {
+            scope.launch { pages.animateTo(pages.currentState) }
+            throw cancelled
+        }
+    }
+    rememberTransition(pages, label = "page").AnimatedContent(
+        modifier = Modifier.fillMaxSize(),
+        contentKey = { if (itemPages && it.route.page in setOf("vault", "messages")) it else it.workspace to it.route.page },
+        transitionSpec = {
+            val from = initialState
+            val to = targetState
+            if (from.workspace != to.workspace || from.depth == to.depth) fadeIn(Motion.effects()) togetherWith fadeOut(Motion.effectsFast())
+            else {
+                val sign = if ((to.depth > from.depth) != rtl) 1 else -1
+                (slideInHorizontally(Motion.spatial()) { sign * distance } + fadeIn(Motion.effects())) togetherWith
+                    (slideOutHorizontally(Motion.spatial()) { -sign * distance } + fadeOut(Motion.effectsFast()))
+            }
+        },
+    ) { key -> content(key) }
 }
 
 private fun title(route: String) = when (route) {

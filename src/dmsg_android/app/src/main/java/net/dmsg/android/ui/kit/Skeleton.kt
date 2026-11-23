@@ -1,10 +1,7 @@
 package net.dmsg.android.ui.kit
 
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.progressSemantics
@@ -16,11 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import net.dmsg.android.ui.Motion
 
 /** First-load placeholder: list-shaped rows that pulse gently until the content arrives. */
 @Composable internal fun SkeletonRows(modifier: Modifier = Modifier, count: Int = 3) {
     val pulse by rememberInfiniteTransition(label = "skeleton")
-        .animateFloat(0.45f, 0.9f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "pulse")
+        .animateFloat(0.45f, 0.9f, Motion.pulse(), label = "pulse")
     val fill = MaterialTheme.colorScheme.surfaceContainerHighest
     Column(modifier.fillMaxWidth().progressSemantics().graphicsLayer { alpha = pulse },
         verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -4,10 +4,10 @@ colors:
   light:
     page: '#EFF1ED'          # background = surface, T95
     card: '#FBFDF8'          # surfaceContainerLow, T99
-    container: '#EAECE7'     # surfaceContainer, T93 (menus, rail)
+    container: '#EAECE7'     # surfaceContainer, T93 (menus, navigation bar and rail)
     container-high: '#E4E6E1'    # dialogs, T91
     container-highest: '#DEE0DC' # other people's message bubbles, T89
-    bright: '#F8FAF5'        # floating workspace bar, T98
+    bright: '#F8FAF5'        # T98, unused
     ink: '#191C1A'
     ink-variant: '#404943'
     outline: '#707972'
@@ -52,8 +52,9 @@ spacing:
   page-margin: 16dp below 600dp window width, 24dp from 600dp
 motion:
   components: material3 1.4.0 standard motion scheme (its MotionScheme API is internal)
-  spatial: 'springs, damping 0.8 / stiffness 380 (default), 0.6 / 800 (fast), 0.8 / 200 (slow)'
-  effects: 'critically damped springs, stiffness 1600 (default), 3800 (fast), 800 (slow)'
+  spatial: 'spring, damping 0.8 / stiffness 380 (page slides)'
+  effects: 'critically damped springs, stiffness 1600 (fades in), 3800 (fades out)'
+  pulse: '900 ms, reversing (skeleton rows)'
 ---
 
 ## Brand & Style
@@ -93,17 +94,18 @@ corrected. The desktop keeps its own design file
   corners from `MaterialTheme.shapes`, type from `MaterialTheme.typography` and
   margins from `pagePadding()` / `pageMargin()`. Literal colours, corners, sp sizes,
   monospace and whole-page padding live only in the theme files.
-- **A2 Page and card.** The scaffold, top bar and sticky headers use
-  `colorScheme.page`; grouped rows, detail cards, empty panels and search fields
-  use `colorScheme.card`. Material components that default to `surface`
-  (`ListItem`, `OutlinedCard`) blend into the page; inside a card or a sheet,
-  wrap them in `OnCard` so they take the card colour. `SettingsGroup` already does.
+- **A2 Page and card.** The scaffold, top bars and sticky headers use
+  `colorScheme.page`; a top bar turns `surfaceContainer` once the page scrolls
+  under it. Grouped rows, detail cards and empty panels use `colorScheme.card`.
+  Material components that default to `surface` (`ListItem`, `OutlinedCard`)
+  blend into the page; inside a card or a sheet, wrap them in `OnCard` so they
+  take the card colour. `Section` already does.
 - **A3 One page margin.** 16 dp on phones, 24 dp once the window is 600 dp wide,
   on every side of a page and around its bottom actions.
 - **A4 Identifiers look technical.** Account IDs, principals, fingerprints and
   digests use `code()`; one-time codes and countdowns use `tabular()`.
 - **A5 Motion shows cause and effect.** Screen transitions, list placement and
-  predictive back use the springs under Motion, defined once in `ThemeTokens.kt`;
+  predictive back use the specs in `Motion`, defined once in `ThemeTokens.kt`;
   the system "remove animations" setting ends them immediately.
 - **A6 The theme is provided once.** `DMsgTheme` wraps each activity; the only
   nested theme is `OnCard`.
@@ -135,9 +137,9 @@ Surface tones keep the card one step above the page in both modes:
 | --- | --- | --- | --- |
 | `surfaceContainerLowest` | 100 | 4 | — |
 | `surfaceContainerLow` (`card`) | 99 | 10 | cards, sheets |
-| `surfaceBright` | 98 | 24 | the floating workspace bar |
+| `surfaceBright` | 98 | 24 | — |
 | `surface`, `background` (`page`) | 95 | 6 | pages, top bars |
-| `surfaceContainer` | 93 | 12 | menus, navigation rail |
+| `surfaceContainer` | 93 | 12 | menus, the navigation bar and rail, scrolled top bars |
 | `surfaceContainerHigh` | 91 | 17 | dialogs |
 | `surfaceContainerHighest` | 89 | 22 | other people's message bubbles |
 | `surfaceDim` | 86 | 6 | — |
@@ -150,17 +152,18 @@ page and the card.
 
 The Material 3 baseline scale on the system sans. Chinese, Japanese and
 Korean drop the Latin tracking (letter spacing 0), which otherwise only
-pushes ideographs apart. Page titles use `titleLarge`, workspace roots
-`headlineSmall`, list rows `bodyLarge` with `bodyMedium` supporting text;
-`bodySmall` is for metadata, not for explanations. Aim for at most four
-sizes on one screen.
+pushes ideographs apart. Large top bars show the title in `headlineMedium` and
+collapse to `titleLarge`, the size of compact bars; list rows use `bodyLarge`
+with `bodyMedium` supporting text; `bodySmall` is for metadata, not for
+explanations. Aim for at most four sizes on one screen.
 
 ## Layout & Spacing
 
 A 4 dp grid. `pagePadding()` gives the page margin on every side;
-`pagePadding(top = 0.dp)` sits under a browse header and
-`bottomInset = LocalWorkspaceBarInset.current` keeps the last row clear of
-the floating bar. Bottom actions and sheet content use the same margin.
+`pagePadding(top = 0.dp)` sits under a browse header, and a list under a
+floating action button ends with `bottom = FabClearance` so its last row can
+scroll clear of the button. The navigation bar takes its own space; nothing
+scrolls beneath it. Bottom actions and sheet content use the page margin.
 Cards pad their content by 16 dp; rows inside a section bring their own padding.
 
 ## Shapes
@@ -172,7 +175,7 @@ Cards pad their content by 16 dp; rows inside a section bring their own padding.
 | `medium` | 16 dp | cards, notices, message bubbles |
 | `large` | 24 dp | grouped panels, detail cards, the composer |
 | `extraLarge` | 28 dp | sheets, dialogs |
-| `CircleShape` | full | buttons, avatars, search fields, the workspace bar |
+| `CircleShape` | full | buttons, avatars, search fields |
 | `segmentShape` | 4 dp | inner corners of rows inside a section |
 
 ## Components
@@ -200,15 +203,44 @@ language from the running application. `KitGalleryTest` renders the kit on a
 device in light, dark and right-to-left at 200% text, checks 48 dp touch
 targets and saves screenshots under the app's external files (`kit-gallery/`).
 
+## Navigation and Page Chrome
+
+- **Navigation bar.** Phones show the Material 3 `ShortNavigationBar`, flat and
+  full width on `surfaceContainer`, on workspace roots only; windows from
+  840 dp show the collapsed `WideNavigationRail` instead.
+- **Bars belong to pages.** `DMsgApp` frames every page with its own bar inside
+  the page transition, so a title moves with its page. On phones a workspace
+  root shows its search field as the top bar, with the activity bell and ⋮
+  inside it. An open item (vault item, file, conversation) and wide roots keep
+  a compact `TopAppBar`; every other page has a `LargeTopAppBar` that collapses
+  as the page scrolls. Titles come from the route table in `DMsgApp.kt`.
+- **One floating action.** A page declares its primary action with `ScreenFab`:
+  New item in the vault, New conversation in messages, Write a letter in
+  letters, Import files in files.
+  The extended FAB collapses to its icon once the list scrolls. It hides its
+  text from accessibility, so the icon carries the same label.
+- **Work in progress** shows as a thin bar across the top of the page instead
+  of a reserved strip.
+
 ## Motion
 
 material3 1.4.0 keeps `MotionScheme`, `MaterialTheme.motionScheme` and
 `MaterialExpressiveTheme` internal, so its components animate with the
-standard scheme and the theme cannot replace it. The app's own animations use
-the Material 3 expressive spring values from the front matter: movement may
-overshoot slightly, fades and colour changes never do. Define them once in
-`ThemeTokens.kt` together with the first transition that uses them, and take
-specs from there rather than fixed durations.
+standard scheme and the theme cannot replace it. The app's own animations take
+their specs from `Motion` in `ThemeTokens.kt`, the Material 3 expressive spring
+values in the front matter: movement may overshoot slightly, fades and colour
+changes never do. `UiConventionsTest` rejects literal specs elsewhere.
+
+- **Pages** move along a shared horizontal axis: forward slides 30 dp in from
+  the end while fading in, back from the start; switching workspaces fades
+  through. A page keeps its composition while only its selection or folder
+  changes, so split panes update in place; on phones a vault item or a
+  conversation opens as a page of its own. Pages read their own route, never
+  the navigation's current one, so a page that is leaving keeps its content.
+- **Predictive back** scrubs the back transition with the gesture
+  (`SeekableTransitionState`), so the parent page and its bar show as the
+  finger moves; cancelling returns and releasing completes the transition.
+- **Lists** move inserted, removed and reordered rows with `animateItem()`.
 
 ## Platform
 
@@ -229,6 +261,9 @@ specs from there rather than fixed durations.
 2. Compare screenshots before and after in light and dark on the emulator:
    a root workspace, a detail page, a settings group, a sheet and a dialog;
    add Chinese, Arabic (RTL) and 200% font size for layout changes.
+   `AccountNavigationFlowTest` steps the page transition and the back gesture
+   with the test clock; a screen recording of a loaded emulator drops frames
+   and cannot show them.
 3. Report what was run and what was not.
 
 ## Known Gaps

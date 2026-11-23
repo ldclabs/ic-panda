@@ -52,10 +52,14 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
         if (route.id == null) {
             WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),
                 actions = {
-                    IconButton(onClick = { editing = client.letters.create() }) { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
                     IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
-                }) {
+                }) { searching ->
+                if (!searching) ScreenFab {
+                    val atTop by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+                    ExtendedFloatingActionButton(onClick = { editing = client.letters.create() }, expanded = atTop,
+                        icon = { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }, text = { Text(str(R.string.text_write_a_letter_1a8f9c9)) })
+                }
                 Row(Modifier.padding(horizontal = pageMargin())) {
                     BrowseScopes(trailing = {
                         var choosing by remember { mutableStateOf(false) }
@@ -77,7 +81,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                         } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
                     }
                 }
-                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
+                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
                     when (folder) {
                         LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
                             item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }

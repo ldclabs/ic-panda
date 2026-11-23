@@ -14,17 +14,20 @@ import net.dmsg.android.core.ClientController
 
 /** All sources enter the same bounded, session-owned staging and encryption path. */
 @Composable fun FileIntakeButton(client: ClientController, folder: String = "root", channel: String? = null,
-    enabled: Boolean = true, chooseExisting: (() -> Unit)? = null) {
+    enabled: Boolean = true, chooseExisting: (() -> Unit)? = null, fab: Boolean = false, expanded: Boolean = true) {
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
     val pickers = LocalFilePickers.current
-    fun prepare(): Boolean { expanded = false; return client.transfers.beginImport(folder, channel) }
+    fun prepare(): Boolean { menu = false; return client.transfers.beginImport(folder, channel) }
     Box {
-        IconButton(onClick = { expanded = true }, enabled = enabled) {
+        if (fab) ExtendedFloatingActionButton(onClick = { menu = true }, expanded = expanded,
+            icon = { Icon(Icons.Outlined.Add, str(R.string.text_import_files_2fd22c6)) },
+            text = { Text(str(R.string.text_import_files_2fd22c6)) })
+        else IconButton(onClick = { menu = true }, enabled = enabled) {
             Icon(Icons.Outlined.Add, str(if (channel == null) R.string.text_import_files_2fd22c6 else R.string.text_add_attachment_d348d7f))
         }
-        DropdownMenu(expanded, { expanded = false }) {
-            chooseExisting?.let { choose -> DropdownMenuItem(text = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, leadingIcon = { Icon(Icons.Outlined.Folder, null) }, onClick = { expanded = false; choose() }) }
+        DropdownMenu(menu, { menu = false }) {
+            chooseExisting?.let { choose -> DropdownMenuItem(text = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, leadingIcon = { Icon(Icons.Outlined.Folder, null) }, onClick = { menu = false; choose() }) }
             DropdownMenuItem(text = { Text(str(R.string.text_photos_and_videos_d968b5a)) }, leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, null) }, onClick = {
                 if (prepare()) pickers.photos(channel?.let { 10 - client.messages.composer(it).attachments.size })
             })
@@ -35,7 +38,7 @@ import net.dmsg.android.core.ClientController
                 if (prepare()) pickers.camera()
             })
             DropdownMenuItem(text = { Text(str(R.string.text_paste_an_image_ee42335)) }, leadingIcon = { Icon(Icons.Outlined.ContentPaste, null) }, onClick = {
-                expanded = false
+                menu = false
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = clipboard.primaryClip
                 val uri = clip?.takeIf { it.description.hasMimeType("image/*") && it.itemCount > 0 }?.getItemAt(0)?.uri

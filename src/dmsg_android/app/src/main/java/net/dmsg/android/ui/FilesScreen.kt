@@ -24,11 +24,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 import java.io.File
 
-@Composable fun FilesScreen(client: ClientController, state: UiState, selected: String, select: (String) -> Unit, share: (File, String) -> Unit, trash: Boolean = false) {
-    val navigation by client.navigation.state.collectAsStateWithLifecycle()
+/** Each page reads its own [page] route, so a page leaving the screen keeps browsing its folder until it is gone. */
+@Composable fun FilesScreen(client: ClientController, state: UiState, page: Route, select: (String) -> Unit, share: (File, String) -> Unit, trash: Boolean = false) {
     val details by client.library.detail.state.collectAsStateWithLifecycle()
-    val folder = navigation.current.folder
-    var selectedVersion by remember(selected, navigation.current.revision) { mutableStateOf(navigation.current.revision) }
+    val selected = page.id.orEmpty()
+    val folder = page.folder
+    var selectedVersion by remember(selected, page.revision) { mutableStateOf(page.revision) }
     var rename by remember { mutableStateOf(false) }
     var metadata by remember(selected) { mutableStateOf(false) }
     var versionAction by remember(selected) { mutableStateOf<String?>(null) }
@@ -39,7 +40,7 @@ import java.io.File
     val current = details.valueOrNull()?.takeIf { it.file.id == selected }
     val historical = current?.versions?.find { it.id == selectedVersion }
     val file = current?.file?.let { if (selectedVersion != null && historical == null) null else if (historical == null) it else it.atVersion(historical) }
-    if (selected.isEmpty()) FileBrowserScreen(client, state, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    if (selected.isEmpty()) FileBrowserScreen(client, state, folder, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(details, { client.library.select(selected) })
         if (current != null && selectedVersion != null && historical == null) {
             Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481), true)

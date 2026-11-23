@@ -60,12 +60,15 @@ import net.dmsg.core.MessageItem
         client.messages.editDirectoryQuery(it)
     },
         str(R.string.text_search_messages_ee3eb59), actions = {
-            TextButton(onClick = { client.channels.openSetup(true) }) { Text(str(R.string.text_join_5f4ca2d)) }
-            IconButton(onClick = { client.channels.openSetup(false) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_channel_6ea7fcc)) }
             IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_message_settings_1a28455)) }
         }) { searching ->
+        if (!searching) ScreenFab {
+            val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
+            ExtendedFloatingActionButton(onClick = { client.channels.openSetup(false) }, expanded = atTop,
+                icon = { Icon(Icons.Outlined.Add, str(R.string.text_new_conversation_8687862)) }, text = { Text(str(R.string.text_new_conversation_8687862)) })
+        }
         LazyColumn(Modifier.fillMaxSize(), state = scroll,
-            contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
+            contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
             browseScopesItem(searching) {
                 BrowseScopes {
                     BrowseChoice(str(R.string.text_conversations_23a085e), true) {}
@@ -76,7 +79,7 @@ import net.dmsg.core.MessageItem
             items(matchingChannels, key = { it.id }) { channel ->
                 val draft = drafts[channel.id]?.text ?: channel.draft
                 val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
-                BrowseRow(channel.name, Modifier.clickable { select(channel.id) },
+                BrowseRow(channel.name, Modifier.animateItem().clickable { select(channel.id) },
                     leading = { BrowseIcon(if (channel.news) Icons.Outlined.Campaign else Icons.Outlined.Forum) },
                     supporting = {
                         Column {
@@ -222,7 +225,7 @@ import net.dmsg.core.MessageItem
     Column(Modifier.fillMaxSize().imePadding()) {
         if (searchMode != BrowseSearchMode.Browse) {
             BrowseSearchRow(search, { search = it; client.messages.search(it) }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
-                searchMode, setSearchMode)
+                searchMode, setMode = setSearchMode)
         } else Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically) {
             val syncError = syncFailure?.takeIf { it.first == channel }?.second
             Text(syncError?.let { errorText(it) } ?: str(R.string.text_encrypted_conversation_9f9e912),

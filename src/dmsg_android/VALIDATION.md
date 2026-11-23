@@ -1,5 +1,40 @@
 # Android implementation validation
 
+## Navigation, page bars and motion — 2026-11-23
+
+Phones show the Material 3 short navigation bar, flat and full width, on
+workspace roots; wide windows show the collapsed wide navigation rail. Every
+page now brings its own bar inside the page transition: a workspace root shows
+its search field as the top bar with the activity bell and ⋮ inside it, an open
+item and wide roots keep a compact bar, and every other page has a large title
+that collapses as it scrolls. The vault, messages, letters and files declare an
+extended FAB (New item, New conversation, Write a letter, Import files) that
+collapses after scrolling;
+its icon carries the label because the extended FAB hides its text from
+accessibility. Pages slide 30 dp along a shared axis and fade through between
+workspaces, and the back gesture scrubs the back transition. The busy bar no
+longer reserves a strip on every page. The unused "New channel" string was
+removed from all catalogs.
+
+On the API 36 emulator, light and dark screenshots of the vault, an item,
+Account, Security, a conversation, Files, the filter sheet, a dialog and the
+locked page were compared with the previous build. Injected edge swipes showed
+the parent page and its bar mid-gesture; cancelling returned to Security and
+releasing opened Account. With the animator duration scale at 0, forward, back
+and workspace switches completed at once. A screen recording on the swapping
+host held about 8 frames per second and could not show the transitions, so
+`AccountNavigationFlowTest` now steps them with the test clock: forward enters
+from the end, the gesture reveals the parent, cancelling restores the child and
+releasing completes. TalkBack order, Chinese, Arabic and 200% text were not
+rechecked for this change.
+
+Pages now read their own route: during a transition the leaving Files page
+browsed the new route's root folder and reset the library, which the device
+suite caught. Letters had four actions inside its search field, so a tap on the
+field's centre opened the activity menu; Write a letter moved to the FAB. Debug:
+138 JVM tests pass; lint reports no errors and 87 warnings. QA: JVM tests pass
+and the device suite ran 140 tests, 133 passed and 7 skipped.
+
 ## Component kit and shared icons — 2026-11-23
 
 Shared components moved to `ui/kit/` and pages now compose them: sections with

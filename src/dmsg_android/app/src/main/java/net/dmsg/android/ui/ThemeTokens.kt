@@ -1,5 +1,11 @@
 package net.dmsg.android.ui
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
@@ -49,8 +55,21 @@ internal fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 /** The only page margin: 16 dp on phones, 24 dp once the window is 600 dp wide. */
 @Composable internal fun pageMargin(): Dp = if (LocalWindowInfo.current.containerDpSize.width >= 600.dp) 24.dp else 16.dp
 
-/** Padding around a whole page; [top] is 0 under a browse header and [bottomInset] keeps the last row clear of the floating bar. */
-@Composable internal fun pagePadding(top: Dp = pageMargin(), bottomInset: Dp = 0.dp): PaddingValues {
+/** Padding around a whole page; [top] is 0 under a browse header and [bottom] grows to [FabClearance] under a FAB. */
+@Composable internal fun pagePadding(top: Dp = pageMargin(), bottom: Dp = pageMargin()): PaddingValues {
     val margin = pageMargin()
-    return PaddingValues(start = margin, top = top, end = margin, bottom = margin + bottomInset)
+    return PaddingValues(start = margin, top = top, end = margin, bottom = bottom)
+}
+
+/**
+ * Material 3 expressive springs and the skeleton pulse. Movement may overshoot a little; fades
+ * never do. With Android's "remove animations" setting on, Compose finishes the springs at once.
+ */
+internal object Motion {
+    fun <T> spatial(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 380f)
+    fun <T> effects(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
+    fun <T> effectsFast(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
+
+    /** The skeleton's breathing; a loop needs a fixed duration rather than a spring. */
+    fun <T> pulse(): InfiniteRepeatableSpec<T> = infiniteRepeatable(tween(900), RepeatMode.Reverse)
 }

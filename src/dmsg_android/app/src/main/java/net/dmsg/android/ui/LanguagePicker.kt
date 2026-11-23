@@ -50,7 +50,6 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
     val focus = remember { FocusRequester() }
     val scroll = remember { BringIntoViewRequester() }
     var height by remember { mutableIntStateOf(0) }
-    val clearance = with(LocalDensity.current) { LocalWorkspaceBarInset.current.toPx() }
 
     Box(Modifier.fillMaxWidth().focusRequester(focus).bringIntoViewRequester(scroll).onSizeChanged { height = it.height }) {
         ListRow(str(R.string.app_language), glyph = R.drawable.glyph_language) { open = true }
@@ -62,7 +61,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
         if (returnLocale == locale && !open && windowFocused && height > 0) {
             withFrameNanos { }
             if (input.inputMode == InputMode.Keyboard) focus.requestFocus()
-            scroll.bringIntoView(Rect(0f, 0f, 1f, height + clearance))
+            scroll.bringIntoView(Rect(0f, 0f, 1f, height.toFloat()))
             returnLocale = null
         }
     }

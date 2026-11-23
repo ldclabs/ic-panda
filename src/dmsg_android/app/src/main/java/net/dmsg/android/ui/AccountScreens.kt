@@ -29,7 +29,7 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 
 @Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, openLogin: (String) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(pagePadding(bottomInset = LocalWorkspaceBarInset.current))) {
+    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(pagePadding())) {
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
         Section {

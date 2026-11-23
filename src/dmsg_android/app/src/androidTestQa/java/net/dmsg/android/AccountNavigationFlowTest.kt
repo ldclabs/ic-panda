@@ -2,13 +2,13 @@ package net.dmsg.android
 
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
+import androidx.activity.BackEventCompat
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import net.dmsg.android.core.Route
@@ -22,27 +22,65 @@ import java.io.File
 class AccountNavigationFlowTest {
     @get:Rule val compose = createAndroidComposeRule<QaWorkspaceActivity>()
 
-    @Test fun compactNavigationFloatsAboveSystemGesturesAndLeavesTheLastActionReachable() {
+    @Test fun compactNavigationBarSpansTheWindowAndLeavesTheLastActionReachable() {
         compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
         val client = compose.activity.qaClient
         compose.runOnIdle { client.navigation.open("account") }
         val bar = compose.onNodeWithTag("workspace-navigation").assertIsDisplayed().getUnclippedBoundsInRoot()
         val window = compose.onNodeWithTag("workspace-content").getUnclippedBoundsInRoot()
-        assertTrue(bar.left > window.left && bar.right < window.right && bar.bottom < window.bottom)
+        assertTrue(bar.left <= window.left && bar.right >= window.right && bar.bottom >= window.bottom)
         val tab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         compose.onAllNodes(tab).assertCountEquals(4)
         compose.onNode(tab and hasText(str(R.string.text_account_4ab56e9))).assertIsSelected()
         compose.onNode(hasScrollAction()).performSemanticsAction(SemanticsActions.ScrollBy) { scroll -> scroll(0f, 10_000f) }
         val signOut = compose.onNodeWithText(str(R.string.text_sign_out_7bfa045)).getUnclippedBoundsInRoot()
         assertTrue(signOut.bottom <= bar.top)
-        capture("floating-account")
+        capture("navigation-account")
         compose.onNode(tab and hasText(str(R.string.text_files_c79ddc2))).performClick()
         val files = compose.onNode(tab and hasText(str(R.string.text_files_c79ddc2))).assertIsSelected()
         val target = files.getUnclippedBoundsInRoot()
         assertTrue(target.bottom - target.top >= 48.dp)
-        val importAction = compose.onNodeWithContentDescription(str(R.string.text_import_files_2fd22c6)).getUnclippedBoundsInRoot()
+        val importAction = compose.onNodeWithContentDescription(str(R.string.text_import_files_2fd22c6)).assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue(importAction.bottom <= bar.top)
-        capture("floating-files")
+        capture("navigation-files")
+    }
+
+    @Test fun pagesMoveAlongTheSharedAxisAndTheBackGestureRevealsTheParent() {
+        compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
+        val client = compose.activity.qaClient
+        val parent = hasTestTag("membership-badge")
+        val child = hasText(str(R.string.text_security_c4c7059))
+        compose.runOnIdle { client.navigation.open("account") }
+        compose.waitForIdle()
+
+        compose.mainClock.autoAdvance = false
+        compose.runOnIdle { client.navigation.push(Route("security")) }
+        compose.mainClock.advanceTimeBy(64)
+        val entering = compose.onNode(child).getUnclippedBoundsInRoot().left
+        compose.mainClock.advanceTimeBy(1_000)
+        val settled = compose.onNode(child).getUnclippedBoundsInRoot().left
+        assertTrue("forward enters from the end: $entering > $settled", entering > settled)
+        compose.onNode(parent).assertDoesNotExist()
+
+        val dispatcher = compose.activity.onBackPressedDispatcher
+        fun gesture(progress: Float) = BackEventCompat(progress * 600f, 1_300f, progress, BackEventCompat.EDGE_LEFT)
+        compose.runOnUiThread { dispatcher.dispatchOnBackStarted(gesture(0f)); dispatcher.dispatchOnBackProgressed(gesture(0.4f)) }
+        compose.mainClock.advanceTimeBy(64)
+        compose.onNode(parent).assertExists()
+        compose.onNode(child).assertExists()
+        compose.runOnUiThread { dispatcher.dispatchOnBackCancelled() }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNode(parent).assertDoesNotExist()
+        assertEquals("security", client.navigation.state.value.current.page)
+
+        compose.runOnUiThread { dispatcher.dispatchOnBackStarted(gesture(0f)); dispatcher.dispatchOnBackProgressed(gesture(0.6f)) }
+        compose.mainClock.advanceTimeBy(64)
+        compose.runOnUiThread { dispatcher.onBackPressed() }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNode(child).assertDoesNotExist()
+        compose.onNode(parent).assertExists()
+        assertEquals("account", client.navigation.state.value.current.page)
+        compose.mainClock.autoAdvance = true
     }
 
     @Test fun groupedAccountActionsKeepTheirParentAndWorkspaceRootsStayUsable() {
@@ -107,7 +145,7 @@ class AccountNavigationFlowTest {
     }
 
     private fun row(resource: Int): SemanticsNodeInteraction =
-        compose.revealListRow(compose.onNode(hasText(str(resource)) and hasClickAction())).assertIsDisplayed()
+        compose.onNode(hasText(str(resource)) and hasClickAction()).performScrollTo().assertIsDisplayed()
 
     private fun back() = compose.onNodeWithContentDescription(str(R.string.text_back_5db5cac)).performClick()
 
@@ -125,15 +163,3 @@ class AccountNavigationFlowTest {
     }
 }
 
-
-/** performScrollTo uses the list bounds. A sighted user scrolls past the floating tab hit targets before tapping a row. */
-internal fun ComposeContentTestRule.revealListRow(row: SemanticsNodeInteraction): SemanticsNodeInteraction {
-    row.performScrollTo()
-    val bar = onAllNodesWithTag("workspace-navigation").fetchSemanticsNodes().singleOrNull() ?: return row
-    val overlap = row.fetchSemanticsNode().boundsInRoot.bottom - bar.boundsInRoot.top
-    if (overlap > 0f) {
-        onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
-            .performSemanticsAction(SemanticsActions.ScrollBy) { scroll -> scroll(0f, overlap + 1f) }
-    }
-    return row
-}

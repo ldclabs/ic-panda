@@ -7,8 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect as ComposeRect
-import androidx.compose.ui.input.InputMode
-import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -47,19 +45,6 @@ class AdaptiveLayoutTest {
         val mirrored = compose.onNodeWithTag("workspace-list").getUnclippedBoundsInRoot().left
         assertTrue(mirrored > first)
         compose.onNodeWithTag("workspace-list").assertWidthIsEqualTo(480.dp)
-    }
-
-    @Test fun keyboardFocusUsesTheViewportAboveTheFloatingBar() {
-        compose.setContent {
-            val manager = LocalInputModeManager.current
-            SideEffect { manager.requestInputMode(InputMode.Keyboard) }
-            Box(Modifier.requiredSize(320.dp, 600.dp)) {
-                WorkspaceBody(PaddingValues(bottom = 84.dp), floatingBar = true) {
-                    Box(Modifier.fillMaxSize().testTag("focus-viewport"))
-                }
-            }
-        }
-        compose.onNodeWithTag("focus-viewport").assertHeightIsEqualTo(516.dp)
     }
 
     @Test fun segmentedScopesStayEqualInHeightWhenOnlyOneLabelWraps() {

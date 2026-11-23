@@ -60,7 +60,6 @@ fun vaultKindName(kind: String): String = when (kind) {
             actions = {
                 if (query.trash) TextButton(onClick = client.vault::toggleTrash) { Text(str(R.string.text_vault_ede2a06)) }
                 else {
-                    IconButton(onClick = { client.vaultDrafts.open(null) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_item_9916f9f)) }
                     Box {
                         IconButton(onClick = { tools = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_vault_tools_14fe2cc)) }
                         DropdownMenu(tools, { tools = false }) {
@@ -79,7 +78,12 @@ fun vaultKindName(kind: String): String = when (kind) {
                     }
                 }
             }) { searching ->
-            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
+            if (!searching && !query.trash) ScreenFab {
+                val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
+                ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, expanded = atTop,
+                    icon = { Icon(Icons.Outlined.Add, str(R.string.text_new_item_9916f9f)) }, text = { Text(str(R.string.text_new_item_9916f9f)) })
+            }
+            LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
                 if (query.trash) item { Text(str(R.string.text_trash_8af1079), style = MaterialTheme.typography.titleMedium) }
                 browseScopesItem(searching) {
                     BrowseScopes(trailing = {
@@ -114,7 +118,7 @@ fun vaultKindName(kind: String): String = when (kind) {
                 item { ReadFeedback(read) { client.vault.browse(query) } }
                 val rows = page?.items.orEmpty()
                 items(rows, key = { it.id }) { item ->
-                    BrowseRow(item.title, Modifier.clickable { select(item.id) }, leading = { SecretIcon(item.kind) },
+                    BrowseRow(item.title, Modifier.animateItem().clickable { select(item.id) }, leading = { SecretIcon(item.kind) },
                         supporting = { Text(item.subtitle.ifEmpty { vaultKindName(item.kind) }, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                         trailing = {
                             if (item.reserved) Icon(Icons.Outlined.VerifiedUser, str(R.string.text_managed_by_dmsg_35b3681), Modifier.size(18.dp))

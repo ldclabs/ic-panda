@@ -20,7 +20,7 @@ import net.dmsg.android.platform.str
 
 @Composable
 fun LocalSettings(client: ClientController, go: (String) -> Unit) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding(bottomInset = LocalWorkspaceBarInset.current)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = pagePadding()) {
         item { SectionTitle(str(R.string.saved_on_device)) }
         item {
             Section {

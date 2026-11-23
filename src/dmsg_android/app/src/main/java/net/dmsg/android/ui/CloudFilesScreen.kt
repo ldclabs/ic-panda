@@ -45,7 +45,7 @@ import net.dmsg.android.core.*
     }
     val content: @Composable (Boolean) -> Unit = { searching ->
         LazyColumn(Modifier.fillMaxSize(), state = if (selected.isEmpty()) workspaceListState(client.navigation, "cloud-files:list") else rememberLazyListState(),
-            contentPadding = pagePadding(top = 0.dp, bottomInset = LocalWorkspaceBarInset.current)) {
+            contentPadding = pagePadding(top = 0.dp)) {
             if (selected.isEmpty()) browseScopesItem(searching) {
                 BrowseScopes(trailing = {
                     SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
@@ -65,7 +65,7 @@ import net.dmsg.android.core.*
             }
             if (selected.isEmpty()) {
                 items(entries, key = { it.id }) { item ->
-                    BrowseRow(item.name ?: str(R.string.text_encrypted_backup_2ad5848), Modifier.clickable { client.navigation.select(item.id) },
+                    BrowseRow(item.name ?: str(R.string.text_encrypted_backup_2ad5848), Modifier.animateItem().clickable { client.navigation.select(item.id) },
                         leading = { BrowseIcon(if (item.needsRoot) R.drawable.glyph_key else R.drawable.glyph_sync) }) {
                         Text(listOfNotNull(item.size?.let(::fileSize), str(if (item.needsRoot) R.string.text_waiting_for_the_required_content_key_1d9169d
                             else if (item.local) R.string.text_also_on_this_device_7d07aa6 else R.string.text_only_in_cloud_6a03abd)).joinToString(" · "))

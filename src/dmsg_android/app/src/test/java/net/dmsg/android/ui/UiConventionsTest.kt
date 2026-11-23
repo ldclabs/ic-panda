@@ -27,6 +27,9 @@ class UiConventionsTest {
             """|verticalScroll\((?:[^()]|\([^()]*\))*\)(?:\.(?:imePadding|systemBarsPadding)\(\))*\.padding\(\d+\.dp\)""" +
             """|fillMaxSize\(\)(?:\.(?:imePadding|systemBarsPadding)\(\))*\.padding\(\d+\.dp\)"""))
 
+    @Test fun motionComesFromTheTokens() = assertNone("literal animation spec; use Motion in ThemeTokens.kt",
+        Regex("""\b(tween|spring|keyframes|infiniteRepeatable)\("""), "ThemeTokens.kt")
+
     @Test fun rowsHaveNoChevrons() = assertNone("row chevron; a row's trailing side shows its value or badge",
         Regex("""\b(KeyboardArrowRight|ChevronRight|NavigateNext)\b"""))
 
