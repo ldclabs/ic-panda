@@ -181,3 +181,13 @@ struct TouchActivityProbe: UIViewRepresentable {
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
     }
 }
+
+/// A count that waits on the person, in the system's red badge.
+struct CountBadge: View {
+    let count: UInt64
+
+    var body: some View {
+        Text(count.formatted()).font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(.white)
+            .padding(.horizontal, 7).frame(minWidth: 22, minHeight: 22).background(.red, in: Capsule())
+    }
+}

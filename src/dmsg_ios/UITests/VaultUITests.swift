@@ -137,9 +137,16 @@ final class VaultUITests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, _ name: String) {
-        let loading = app.activityIndicators["vault.loading"]
+        let loading = app.descendants(matching: .any)["vault.loading"]
         if loading.exists { XCTAssertTrue(loading.waitForNonExistence(timeout: 8)) }
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    private func tapReveal(_ app: XCUIApplication, _ field: String) {
+        let reveal = app.buttons["vault.reveal.\(field)"]
+        XCTAssertTrue(reveal.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !reveal.isHittable { app.swipeUp() }
+        reveal.tap()
     }
 
     private func openFieldMenu(_ app: XCUIApplication, _ field: String) {
@@ -183,7 +190,7 @@ final class VaultUITests: XCTestCase {
         let all = app.buttons["vault.scope.all"], favorites = app.buttons["vault.scope.favorites"]
         let originalAll = all.frame, originalFavorites = favorites.frame, originalLabel = favorites.label
         favorites.tap()
-        XCTAssertTrue(app.activityIndicators["vault.loading"].waitForExistence(timeout: 1))
+        XCTAssertTrue(app.descendants(matching: .any)["vault.loading"].waitForExistence(timeout: 1))
         XCTAssertEqual(favorites.label, originalLabel)
         XCTAssertEqual(all.frame.minX, originalAll.minX, accuracy: 0.5)
         XCTAssertEqual(favorites.frame.width, originalFavorites.width, accuracy: 0.5)
@@ -286,17 +293,15 @@ final class VaultUITests: XCTestCase {
     func testFieldMenuRevealsAndHidesWithoutAnotherConfirmation() {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
-        openFieldMenu(app, "password")
         XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.5)
-        capture(app, "Password actions belong to the field menu")
+        capture(app, "A hidden password has its own reveal button")
         app.buttons["vault.reveal.password"].tap()
         let value = app.buttons["vault.copy.password"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
         XCTAssertFalse(app.sheets.firstMatch.exists)
-        openFieldMenu(app, "password"); app.buttons["vault.reveal.password"].tap()
+        app.buttons["vault.reveal.password"].tap()
         XCTAssertEqual(value.value as? String, "Hidden value")
     }
 
@@ -350,12 +355,14 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.detail.more"].tap()
         XCTAssertEqual(favorite.label, "Remove favorite")
         favorite.tap()
+        let url = app.buttons["vault.copy.url"]
+        for _ in 0..<6 where !url.isHittable { app.swipeUp() }
+        url.tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(url.value as? String, "https://api.example.org/developer/integrations/production?region=ap-southeast-1")
         openFieldMenu(app, "url")
         XCTAssertTrue(app.buttons["vault.open.url"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["vault.reference.url"].exists)
-        app.buttons["vault.field.copy.url"].tap()
-        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["vault.copy.url"].value as? String, "https://api.example.org/developer/integrations/production?region=ap-southeast-1")
     }
 
     func testDetailAndLargeTypeAcrossLanguagesAndTextSizes() {
@@ -406,7 +413,7 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.detail.more"].tap(); app.buttons["Version history"].tap()
         let version = app.buttons["vault.version.1"]
         XCTAssertTrue(version.waitForExistence(timeout: 5)); version.tap()
-        openFieldMenu(app, "otp"); app.buttons["vault.reveal.otp"].tap()
+        tapReveal(app, "otp")
         let code = app.buttons["vault.copy.otp"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1 2 3 4 5 6"), object: code)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 3), .completed)
@@ -628,8 +635,9 @@ final class VaultUITests: XCTestCase {
         for id in ["vault.edit.open", "vault.copy.password", "vault.field.more.password"] {
             let element = app.descendants(matching: .any).matching(identifier: id).firstMatch
             wait(for: [expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: element)], timeout: 5)
-            XCTAssertGreaterThanOrEqual(element.frame.width, 44, id)
-            if id != "vault.edit.open" { XCTAssertGreaterThanOrEqual(element.frame.height, 44, id) }
+            // Frames come back with floating-point noise such as 43.99999999999994.
+            XCTAssertGreaterThanOrEqual(element.frame.width, 44 - 0.001, id)
+            if id != "vault.edit.open" { XCTAssertGreaterThanOrEqual(element.frame.height, 44 - 0.001, id) }
         }
         try app.performAccessibilityAudit(for: [.hitRegion, .trait, .sufficientElementDescription])
 
@@ -659,7 +667,7 @@ final class VaultUITests: XCTestCase {
     /// Reveals the password, then opens it in large type over the revealed row.
     private func revealAndEnlargePassword(_ app: XCUIApplication) -> (row: XCUIElement, large: XCUIElement) {
         app.buttons["vault.item.fixture-github"].tap()
-        openFieldMenu(app, "password"); app.buttons["vault.reveal.password"].tap()
+        tapReveal(app, "password")
         let row = app.buttons["vault.copy.password"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: row)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
@@ -678,7 +686,9 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.large.done"].tap()
         XCTAssertTrue(large.waitForNonExistence(timeout: 5))
         // The detail did reload, and the value it had revealed stayed.
-        XCTAssertTrue(app.staticTexts["Waiting to sync"].waitForExistence(timeout: 5))
+        let state = app.staticTexts["vault.detail.state"]
+        let waiting = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label ENDSWITH %@", "Waiting to sync"), object: state)
+        XCTAssertEqual(XCTWaiter.wait(for: [waiting], timeout: 5), .completed)
         XCTAssertEqual(row.value as? String, "fixture-secret")
     }
 

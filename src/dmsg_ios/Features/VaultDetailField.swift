@@ -1,7 +1,8 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
-/// The value is the primary copy target; secondary actions belong to its menu.
+/// Tapping the value copies it and a hidden value has its own reveal button, as in
+/// Passwords. The menu keeps the rarer actions.
 struct VaultDetailField: View {
     let field: VaultField
     let value: String?
@@ -35,11 +36,19 @@ struct VaultDetailField: View {
                     .contextMenu { actions }
             }
             if !readOnly {
-                HStack(spacing: 4) {
+                HStack(spacing: 0) {
                     if let remaining, value != nil { VaultCodeCountdown(remaining: remaining) }
-                    Menu("Actions", systemImage: copied ? "checkmark.circle.fill" : "ellipsis.circle.fill") { actions }
-                        .labelStyle(.iconOnly).font(.title2).symbolRenderingMode(.palette)
-                        .foregroundStyle(copied ? Theme.forest : Color.secondary, Color.secondary.opacity(0.12))
+                    // Showing a hidden value is the common action after copying, so it sits on the row.
+                    if field.concealed && !live {
+                        Button(action: reveal) {
+                            Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44).contentShape(Rectangle())
+                        }.buttonStyle(.borderless).foregroundStyle(.secondary).disabled(busy)
+                            .accessibilityLabel(Text(LocalizedStringKey(value == nil ? "Reveal" : "Hide")) + Text(verbatim: " · " + vaultFieldTitle(field)))
+                            .accessibilityIdentifier("vault.reveal.\(field.id)")
+                    }
+                    Menu("Actions", systemImage: copied ? "checkmark.circle.fill" : "ellipsis") { actions }
+                        .labelStyle(.iconOnly).font(.body)
+                        .foregroundStyle(copied ? Theme.forest : Color.secondary)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                         .buttonStyle(.borderless).menuOrder(.fixed).disabled(busy)
                         .opacity(busy ? 0 : 1)
@@ -65,11 +74,6 @@ struct VaultDetailField: View {
     }
 
     @ViewBuilder private var actions: some View {
-        Button("Copy", systemImage: "doc.on.doc", action: copy).accessibilityIdentifier("vault.field.copy.\(field.id)")
-        if field.concealed && !live {
-            Button(value == nil ? "Reveal" : "Hide", systemImage: value == nil ? "eye" : "eye.slash", action: reveal)
-                .accessibilityIdentifier("vault.reveal.\(field.id)")
-        }
         if let url = vaultWebsiteURL(field) {
             Button("Open website", systemImage: "arrow.up.right.square") { openURL(url) }
                 .accessibilityIdentifier("vault.open.\(field.id)")

@@ -38,7 +38,13 @@ struct AccountView: View {
                     if inSplitView { NavigationStack { ApprovalsView() } }
                     else { ApprovalsView() }
                 } label: {
-                    Label { LabeledContent("Approvals", value: (model.session?.approvalsWaiting ?? 0).formatted()) } icon: { AppGlyph.approvals.image }
+                    Label {
+                        HStack {
+                            Text("Approvals")
+                            Spacer()
+                            if let waiting = model.session?.approvalsWaiting, waiting > 0 { CountBadge(count: waiting) }
+                        }
+                    } icon: { AppGlyph.approvals.image }
                 }.accessibilityIdentifier("account.approvals")
                 NavigationLink { AccountSecurityView() } label: {
                     VStack(alignment: .leading, spacing: 4) {
@@ -142,17 +148,13 @@ struct AccountView: View {
     }
 
     private var identityImage: some View {
-        Group {
-            if let avatar { Image(uiImage: avatar).resizable().scaledToFill() }
-            else { AppGlyph.profile.image.resizable().scaledToFit().padding(8).foregroundStyle(Theme.forest) }
-        }.frame(width: 52, height: 52).background(Theme.fill)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radius)).accessibilityIdentifier("account.avatar")
+        Avatar(profile?.displayName ?? String(localized: "My account"), seed: model.session?.account ?? "", image: avatar, size: 60)
     }
 
     private var identityText: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(profile?.displayName ?? String(localized: "My account"))
-                .font(.headline).lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
+                .font(.title3.weight(.semibold)).lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
                 .accessibilityIdentifier("account.name")
             HStack(spacing: 4) {
                 Text("Public profile")

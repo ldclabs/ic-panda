@@ -117,6 +117,9 @@ struct UnbackedVersionsView: View {
             if loading { ProgressView("Loading…") }
             if let failure { FileInlineFailure(message: failure, working: loading) { Task { await load() } } }
             if !loading && failure == nil && groups.isEmpty { ContentUnavailableView("All caught up", systemImage: "checkmark.icloud") }
+            Section {} footer: {
+                Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
+            }
             ForEach(groups, id: \.file.id) { group in
                 Section {
                     ForEach(group.versions.reversed()) { version in

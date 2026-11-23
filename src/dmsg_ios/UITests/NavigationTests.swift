@@ -803,7 +803,8 @@ final class AccountNavigationTests: NavigationTestCase {
         tab(app, symbol: "Glyph-account", title: "Account").tap()
         XCTAssertTrue(app.staticTexts["account.name"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["account.name"].label, "Studio")
-        XCTAssertTrue(app.images["account.avatar"].exists)
+        // The portrait is decorative next to the name; the screenshot shows it.
+        XCTAssertTrue(app.buttons["account.profile"].exists)
         let header = XCTAttachment(screenshot: app.screenshot())
         header.name = "Account public profile"; header.lifetime = .keepAlways; add(header)
         let syncSettings = app.buttons["account.sync-settings"]

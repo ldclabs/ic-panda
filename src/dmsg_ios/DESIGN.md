@@ -65,6 +65,25 @@ The diagnosis behind it is the 2026-11-23 UI quality review.
   sender's side tighten, the portrait and name show once, the time at the end.
 - A queued message slides in from the bottom; with Reduce Motion it only fades.
 
+## Screens
+
+- Vault fields work as in Passwords: tapping the value copies it, a hidden value has its
+  own eye button, and the `⋯` menu keeps the rarer actions (website, large type, field
+  reference). The header reads as one line, "Password · Synced".
+- Inputs carry their label above them; the placeholder appears only when it adds
+  something ("Leave empty to keep existing value"). Generating a password is the wand
+  button at the end of its field.
+- A count that waits on the person (approvals) is a red `CountBadge`; zero shows nothing.
+- The account header is a 60 pt round `Avatar` with the name in `title3` semibold.
+- Plan and usage start with `UsageSummary`: one storage bar (used, reserved for uploads,
+  free) and two gauges; the exact figures follow as rows.
+- The access screen centres the mark, the greeting and, for a returning account, its
+  avatar and name. It has one filled action: unlock for a returning account, otherwise
+  opening an existing account. Explanations there are plain footnotes; a pending
+  authorization keeps its `NoticeBar`.
+- Files that exist only on this device are one row at the top of Files; the backup page
+  explains why in its footer.
+
 ## Words on screen
 
 - An explanation goes in its section's footer, one paragraph per section. A toggle with

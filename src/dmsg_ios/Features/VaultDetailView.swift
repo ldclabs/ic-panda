@@ -53,12 +53,13 @@ struct VaultDetailView: View {
                             } else { fieldRow(field, item: item, at: .now) }
                         }
                     } header: {
-                        if !group.isEmpty { Text(group).font(.footnote).textCase(nil).fixedSize(horizontal: false, vertical: true) }
+                        // Group names are the person's words, so every header here keeps its case.
+                        if !group.isEmpty { Text(group).textCase(nil).fixedSize(horizontal: false, vertical: true) }
                     }
                 }
-                if !item.notes.isEmpty { Section("Notes") { Text(item.notes).textSelection(.enabled) } }
+                if !item.notes.isEmpty { Section { Text(item.notes).textSelection(.enabled) } header: { Text("Notes").textCase(nil) } }
                 if groups(item).isEmpty && item.notes.isEmpty { Text("No fields or notes").foregroundStyle(.secondary) }
-                Section("Item information") {
+                Section {
                     if item.createdAt > 0 {
                         LabeledContent("Created") { Text(Date(timeIntervalSince1970: Double(item.createdAt) / 1000), format: .dateTime) }
                     }
@@ -67,7 +68,7 @@ struct VaultDetailView: View {
                             Text(Date(timeIntervalSince1970: Double(versionDate ?? item.updatedAt) / 1000), format: .dateTime)
                         }
                     }
-                }.font(.footnote).foregroundStyle(.secondary)
+                } header: { Text("Item information").textCase(nil) }.font(.footnote).foregroundStyle(.secondary)
             } else if let failure {
                 NoticeBar(text: failure)
                 Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
@@ -178,11 +179,10 @@ struct VaultDetailView: View {
                             Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
                         }
                     }
-                    HStack(spacing: 8) {
-                        Text(vaultKindName(item.kind))
-                        Label(item.deleted ? "In Trash" : item.conflict ? "Sync conflicts" : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync",
-                            systemImage: item.deleted ? "trash" : item.conflict ? "arrow.triangle.branch" : item.synced ? "checkmark.circle" : "arrow.triangle.2.circlepath")
-                    }.font(.footnote).foregroundStyle(.secondary)
+                    let state: LocalizedStringKey = item.deleted ? "In Trash" : item.conflict ? "Sync conflicts"
+                        : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync"
+                    (Text(vaultKindName(item.kind)) + Text(verbatim: " · ") + Text(state)).font(.subheadline).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("vault.detail.state")
                 }
             }
             if !item.tags.isEmpty { Text(item.tags.joined(separator: " · ")).font(.footnote).foregroundStyle(Theme.forest) }

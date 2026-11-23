@@ -21,11 +21,38 @@ struct VaultEditorField: View {
     @State private var nameVisited = false
     @State private var valueVisited = false
     private var label: String { field.title }
-    private var namePrompt: String { field.id.hasPrefix("field_") ? String(localized: "Field name") : (field.kind == "otp" ? vaultFieldKindTitle(field.kind) : vaultFieldName(field.id)) }
+    /// A built-in field shows the name it falls back to; a custom one has only its label.
+    private var namePrompt: Text? {
+        field.id.hasPrefix("field_") ? nil : Text(verbatim: field.kind == "otp" ? vaultFieldKindTitle(field.kind) : vaultFieldName(field.id))
+    }
     private var keeping: Bool { existing && field.concealed && !field.changed }
-    private var placeholder: LocalizedStringKey { keeping ? "Leave empty to keep existing value" : "Value" }
+    /// The label above the input names it; the placeholder only speaks when it adds something.
+    private var prompt: Text? { keeping ? Text("Leave empty to keep existing value") : nil }
     /// Values the person chooses freely; a card's numbers and key material come from elsewhere.
     private var generates: Bool { field.kind != "otp" && !["number", "cvv", "pin", "private_key", "public_key", "phrase"].contains(field.id) }
+
+    @ViewBuilder private var valueInput: some View {
+        if field.concealed && !showingDraft {
+            SecureField(text: valueBinding, prompt: prompt) { Text(verbatim: label) }.focused(focus, equals: .value(field.id))
+                .submitLabel(.done).onSubmit { if let submitLogin { submitLogin() } else { focus.wrappedValue = nil } }
+                .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
+        } else if compactLogin {
+            TextField(text: valueBinding) { Text(verbatim: label) }.focused(focus, equals: .value(field.id))
+                .submitLabel(field.id == "username" ? .next : .done)
+                .onSubmit {
+                    if field.id == "username" { focus.wrappedValue = .value("password") }
+                    else { submitLogin?() }
+                }
+                .accessibilityIdentifier("vault.edit.field.\(field.id)")
+        } else if ["private_key", "public_key", "phrase"].contains(field.id) || field.value.contains("\n") {
+            TextEditor(text: valueBinding).font(.body.monospaced()).frame(minHeight: 110)
+                .focused(focus, equals: .value(field.id)).accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
+        } else {
+            TextField(text: valueBinding, prompt: prompt, axis: .vertical) { Text(verbatim: label) }.keyboardType(keyboard)
+                .focused(focus, equals: .value(field.id))
+                .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -37,7 +64,7 @@ struct VaultEditorField: View {
                         if !textSize.isAccessibilitySize { Spacer() }
                         Text(vaultFieldKindTitle(field.kind))
                     }.font(.footnote).foregroundStyle(.secondary)
-                    TextField("Field name", text: $field.label, prompt: Text(namePrompt))
+                    TextField("Field name", text: $field.label, prompt: namePrompt)
                         .font(.body.weight(.medium)).focused(focus, equals: .name(field.id))
                         .submitLabel(.next).onSubmit { focus.wrappedValue = .value(field.id) }
                         .accessibilityIdentifier("vault.edit.name.\(field.id)")
@@ -49,25 +76,12 @@ struct VaultEditorField: View {
             VStack(alignment: .leading, spacing: 6) {
                 if compactLogin { Text(label).font(.footnote).foregroundStyle(.secondary) }
                 else { Text("Value").font(.footnote).foregroundStyle(.secondary) }
-                if field.concealed && !showingDraft {
-                    SecureField(compactLogin ? "Password" : placeholder, text: valueBinding).focused(focus, equals: .value(field.id))
-                        .submitLabel(.done).onSubmit { if let submitLogin { submitLogin() } else { focus.wrappedValue = nil } }
-                        .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
-                } else if compactLogin {
-                    TextField(label, text: valueBinding).focused(focus, equals: .value(field.id))
-                        .submitLabel(field.id == "username" ? .next : .done)
-                        .onSubmit {
-                            if field.id == "username" { focus.wrappedValue = .value("password") }
-                            else { submitLogin?() }
-                        }
-                        .accessibilityIdentifier("vault.edit.field.\(field.id)")
-                } else if ["private_key", "public_key", "phrase"].contains(field.id) || field.value.contains("\n") {
-                    TextEditor(text: valueBinding).font(.body.monospaced()).frame(minHeight: 110)
-                        .focused(focus, equals: .value(field.id)).accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
-                } else {
-                    TextField(placeholder, text: valueBinding, axis: .vertical).keyboardType(keyboard)
-                        .focused(focus, equals: .value(field.id))
-                        .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
+                HStack(spacing: 4) {
+                    valueInput
+                    if field.concealed && generates {
+                        Button("Generate password", systemImage: "wand.and.stars") { tool = .generator }
+                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).buttonStyle(.borderless)
+                    }
                 }
                 if (valueVisited || validationRequested), let error = vaultFieldValueError(field, existing: existing) {
                     Text(error).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("vault.edit.field-error.\(field.id)")
@@ -77,7 +91,6 @@ struct VaultEditorField: View {
                 let layout = textSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
                 layout {
                     if !field.value.isEmpty { Button(showingDraft ? "Hide" : "Show draft") { showingDraft.toggle() }.frame(minHeight: 44) }
-                    if generates { Button("Generate password") { tool = .generator }.frame(minHeight: 44) }
                     if field.kind == "otp" {
                         Button("Scan QR code", systemImage: "qrcode.viewfinder") { requestingCamera = true }
                             .frame(minHeight: 44)

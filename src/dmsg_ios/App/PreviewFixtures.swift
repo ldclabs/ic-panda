@@ -66,9 +66,11 @@ extension SessionModel {
         }
         if storeScreens { loadStorePresentation() }
         if storePreview { loadStorePreview() }
-        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked"), let account = session?.account {
+        // A returning account: locked with quick unlock, optionally opened from a reminder.
+        let reminderLocked = ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked")
+        if reminderLocked || ProcessInfo.processInfo.arguments.contains("--ui-locked"), let account = session?.account {
             installFixtures(reminderFixtureState(account: account, state: "locked"), items: [])
-            reminderEntry = ReminderEntry(account: account, target: .service("registration:1"))
+            if reminderLocked { reminderEntry = ReminderEntry(account: account, target: .service("registration:1")) }
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-reminder-failed") || ProcessInfo.processInfo.arguments.contains("--ui-reminder-expired") {
             reminderEntry = ReminderEntry(account: session?.account, target: .service("registration:1"))

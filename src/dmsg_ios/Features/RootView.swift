@@ -272,30 +272,35 @@ struct AccessView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 16) {
+                // The mark, greeting and whose workspace this is sit centred, as on Android.
+                VStack(spacing: 16) {
                     Image("BrandMark").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
                     Text(LocalizedStringKey(model.signingIntoAnotherAccount ? "Sign in to another account" : needsSetup || model.session?.account == nil ? "Keep what matters private." : "Welcome back."))
                         .font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
                     if needsSetup {
                         Text(guidance).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("login.setup-guidance")
+                    } else if returning, let account = model.session?.account {
+                        returningAccount(account)
                     } else {
                         Text("Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.")
                             .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
-                }
+                }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 VStack(spacing: 12) {
-                    if !needsAuthorization && model.session?.setupPending != true {
-                        Button { model.showingJoinAccount = true } label: {
-                            AccessActionLabel("Open an existing account", symbol: "qrcode.viewfinder")
-                        }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.join")
-                    }
+                    // One filled action: unlocking for a returning account, otherwise opening an existing one.
                     if fastUnlock {
                         Button { Task {
                             await model.fastUnlock()
                         } } label: {
                             AccessActionLabel(Biometry.unlockTitle, symbol: "lock.open", working: model.unlocking)
                         }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.unlock")
+                    }
+                    if !needsAuthorization && model.session?.setupPending != true {
+                        Button { model.showingJoinAccount = true } label: {
+                            AccessActionLabel("Open an existing account", symbol: "qrcode.viewfinder")
+                        }.modifier(AccessActionStyle(prominent: !fastUnlock && (needsSetup || model.session?.account == nil)))
+                            .accessibilityIdentifier("login.join")
                     }
                     if needsSetup {
                         Button { Task { await model.initializeAccount() } } label: {
@@ -320,7 +325,13 @@ struct AccessView: View {
                         NavigationLink("Accounts") { AccountsView() }
                     } else if !needsSetup { signInActions }
                 }.disabled(model.busy)
-                if !needsSetup { NoticeBar(text: guidance) }
+                // A pending authorization is a step to wait for; elsewhere the guidance is a plain note,
+                // and the unlock button already says what a returning account does.
+                if needsAuthorization { NoticeBar(text: guidance) }
+                else if !needsSetup && !(returning && fastUnlock) {
+                    Text(guidance).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity)
+                }
                 MovedCopiesSection(copies: copies) { await loadCopies() }
                 AccessFooter()
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
@@ -350,6 +361,17 @@ struct AccessView: View {
                 guard model.initializingAccount, !Task.isCancelled else { return }
                 initializationIsSlow = true
             }
+    }
+
+    private var returning: Bool { model.session?.account != nil && !needsSetup && !model.signingIntoAnotherAccount }
+
+    private func returningAccount(_ account: String) -> some View {
+        let identity = model.accountIdentities[account]
+        return HStack(spacing: 12) {
+            Avatar(identity?.name ?? account, seed: account, image: identity?.avatar.flatMap(UIImage.init(data:)))
+            if let name = identity?.name { Text(name).font(.title3.weight(.semibold)).lineLimit(1) }
+            else { Text(account).font(.body.monospaced()).lineLimit(1).truncationMode(.middle).frame(maxWidth: 240) }
+        }.accessibilityElement(children: .combine).accessibilityIdentifier("login.account")
     }
 
     @ViewBuilder private var signInActions: some View {

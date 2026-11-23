@@ -13,6 +13,8 @@ struct FilesView: View {
     @State private var photos: [PhotosPickerItem] = []
     @State private var openingCamera = false
     @State private var sheet: FileLibrarySheet?
+    /// A file opens out of its row's thumbnail on phones.
+    @Namespace private var zoom
     @State private var selecting = false
     @State private var selection: Set<String> = []
     @State private var removing: [LibraryItemTarget] = []
@@ -108,7 +110,7 @@ struct FilesView: View {
             .navigationDestination(for: FilesRoute.self) { route in
                 switch route {
                 case .folder(let id): folderScreen(id).navigationBarTitleDisplayMode(.inline)
-                case .file(let id): FileDetailDestination(id: id).id(id)
+                case .file(let id): FileDetailDestination(id: id).id(id).navigationTransition(.zoom(sourceID: id, in: zoom))
                 case .transfers: TransfersView()
                 case .unbacked: UnbackedVersionsView()
                 }
@@ -212,34 +214,26 @@ struct FilesView: View {
         }
     }
 
-    /// Files stay on this device unless backed up, which is worth saying once, at the top.
+    /// Files stay on this device unless backed up: one row at the top leads to the
+    /// backup page, which explains it in its footer.
     @ViewBuilder private var backupHint: some View {
         if let local = model.filesLocalOnly, local.unbackedVersions > 0, let account = model.session?.account, !model.backupHintDismissed.contains(account) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top) {
-                    Button { model.route.filesPath.append(.unbacked) } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Without a cloud backup", glyph: .cloudOff)
-                            Text(verbatim: String(localized: "Versions") + " · " + local.unbackedVersions.formatted() + " · " + fileSize(UInt64(max(0, local.unbackedBytes))))
-                                .foregroundStyle(.secondary)
-                        }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
-                    }.buttonStyle(.borderless).accessibilityIdentifier("files.unbacked.review")
-                    Button { sheet = .help } label: {
-                        Label("About files and backups", systemImage: "info.circle")
-                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                    }.buttonStyle(.borderless).accessibilityIdentifier("files.unbacked.help")
-                    Button { model.dismissBackupHint() } label: {
-                        Label("Dismiss", systemImage: "xmark")
-                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                    }.buttonStyle(.borderless)
-                        .accessibilityIdentifier("files.unbacked.dismiss")
-                }
-                if !textSize.isAccessibilitySize {
-                    Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }.font(.footnote).accessibilityElement(children: .contain).accessibilityIdentifier("files.unbacked")
-                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            HStack(spacing: 0) {
+                Button { model.route.filesPath.append(.unbacked) } label: {
+                    HStack(spacing: 8) {
+                        Label("Without a cloud backup", glyph: .cloudOff)
+                        Spacer(minLength: 8)
+                        Text(verbatim: local.unbackedVersions.formatted() + " · " + fileSize(UInt64(max(0, local.unbackedBytes))))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                    }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("files.unbacked.review")
+                Button { model.dismissBackupHint() } label: {
+                    Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly).font(.footnote)
+                        .foregroundStyle(.secondary).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.buttonStyle(.borderless).accessibilityIdentifier("files.unbacked.dismiss")
+            }.font(.subheadline).accessibilityElement(children: .contain).accessibilityIdentifier("files.unbacked")
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 4))
         }
     }
 
@@ -249,7 +243,7 @@ struct FilesView: View {
             Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); row } }
                 .buttonStyle(.plain).accessibilityAddTraits(selection.contains(file.id) ? .isSelected : [])
         } else if compact {
-            NavigationLink(value: FilesRoute.file(file.id)) { row }
+            NavigationLink(value: FilesRoute.file(file.id)) { row }.matchedTransitionSource(id: file.id, in: zoom)
         } else {
             Button { model.route.file = file.id } label: { row.contentShape(Rectangle()) }
                 .buttonStyle(.plain)

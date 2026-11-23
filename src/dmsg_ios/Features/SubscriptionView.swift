@@ -128,11 +128,11 @@ struct SubscriptionView: View {
             }
             Section("Usage") {
                 if usageLoading { ProgressView() }
+                if let usage, usage.cloud?.storageLimit ?? 0 > 0 { UsageSummary(usage: usage) }
                 if let cloud = usage?.cloud {
                     LabeledContent("Used", value: fileLimit(cloud.committed))
                     LabeledContent("Reserved for uploads", value: fileLimit(cloud.reserved))
                     if let remaining = cloud.remaining { LabeledContent("Remaining", value: fileLimit(remaining)) }
-                    if let limit = cloud.storageLimit, limit > 0 { ProgressView(value: min(Double(cloud.committed) + Double(cloud.reserved), Double(limit)), total: Double(limit)).accessibilityLabel("Cloud storage") }
                     if let used = cloud.activeChannels, let limit = cloud.channelLimit {
                         LabeledContent("Active conversations", value: "\(used.formatted()) / \(limit.formatted())")
                     }
@@ -491,4 +491,61 @@ struct SubscriptionView: View {
         } catch { if usageRequest == request, epoch == model.epoch, !Task.isCancelled { usage = nil; usageFailed = true } }
     }
 
+}
+
+/// The usage at a glance: storage as one bar split into used, reserved and free,
+/// conversations and execution units as gauges. The exact figures follow as rows.
+private struct UsageSummary: View {
+    let usage: SubscriptionView.Usage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let cloud = usage.cloud, let limit = cloud.storageLimit {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Cloud storage").font(.headline)
+                    Spacer()
+                    Text(verbatim: "\(fileLimit(cloud.committed)) / \(fileLimit(limit))").font(.subheadline).foregroundStyle(.secondary)
+                }
+                StorageBar(used: cloud.committed, reserved: cloud.reserved, limit: limit)
+            }
+            HStack(alignment: .top, spacing: 16) {
+                if let used = usage.cloud?.activeChannels, let limit = usage.cloud?.channelLimit, limit > 0 {
+                    meter("Active conversations", used: used, limit: limit)
+                }
+                if let execution = usage.execution, execution.allowed > 0 {
+                    meter("Monthly execution units", used: execution.charged, limit: execution.allowed)
+                }
+            }
+        }.padding(.vertical, 6)
+    }
+
+    private func meter(_ title: LocalizedStringKey, used: UInt64, limit: UInt64) -> some View {
+        VStack(spacing: 6) {
+            Gauge(value: Double(min(used, limit)), in: 0...Double(limit)) { Text(title) } currentValueLabel: { Text(used.formatted()) }
+                .gaugeStyle(.accessoryCircularCapacity).tint(Theme.forest)
+            Text(title).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }.frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore).accessibilityLabel(title)
+            .accessibilityValue(Text(verbatim: "\(used.formatted()) / \(limit.formatted())"))
+    }
+}
+
+private struct StorageBar: View {
+    let used: UInt64
+    let reserved: UInt64
+    let limit: UInt64
+
+    var body: some View {
+        let total = Double(max(limit, 1)), usedShare = min(Double(used) / total, 1)
+        let reservedShare = min(Double(reserved) / total, 1 - usedShare)
+        GeometryReader { proxy in
+            HStack(spacing: 0) {
+                Rectangle().fill(Theme.forest).frame(width: proxy.size.width * usedShare)
+                Rectangle().fill(.orange).frame(width: proxy.size.width * reservedShare)
+                Rectangle().fill(Theme.fill)
+            }
+        }.frame(height: 10).clipShape(Capsule())
+            .accessibilityElement().accessibilityLabel("Cloud storage")
+            .accessibilityValue(Text((usedShare + reservedShare).formatted(.percent.precision(.fractionLength(0)))))
+    }
 }
