@@ -45,7 +45,6 @@
     <string name="history_fields" formatted="false">"Fields"</string>
     <string name="hosted_agent_ids" formatted="false">"Hosted Agent IDs"</string>
     <string name="import_local_account" formatted="false">"Import from local account"</string>
-    <string name="in_trash" formatted="false">"In Trash"</string>
     <string name="item_information" formatted="false">"Item information"</string>
     <string name="join_code" formatted="false">"Comparison code"</string>
     <string name="join_compare_hint" formatted="false">"Check that both devices show the same code before approving."</string>
@@ -1009,7 +1008,6 @@
     <string name="text_membership_status_is_unavailable_d38f278" formatted="false">"Membership status is unavailable"</string>
     <string name="text_merge_individual_fields_5404741" formatted="false">"Merge individual fields"</string>
     <string name="text_message_373be16" formatted="false">"Message"</string>
-    <string name="text_message_6302964" formatted="false">"Message"</string>
     <string name="text_message_attachment_5c83cad" formatted="false">"Message attachment"</string>
     <string name="text_message_body_unavailable_6b03555" formatted="false">"Message body unavailable"</string>
     <string name="text_message_settings_1a28455" formatted="false">"Message settings"</string>
@@ -1395,7 +1393,6 @@
     <string name="text_replace_with_273a6fd" formatted="false">"Replace with "</string>
     <string name="text_replacement_request_64790c0" formatted="false">"Replacement request"</string>
     <string name="text_replaces_71d4870" formatted="false">"Replaces · "</string>
-    <string name="text_reply_2f31ef1" formatted="false">"Reply: "</string>
     <string name="text_reply_b4c9334" formatted="false">"Reply"</string>
     <string name="text_reply_to_4ac60e6" formatted="false">"Reply to #"</string>
     <string name="text_report_account_e84056e" formatted="false">"Report account"</string>

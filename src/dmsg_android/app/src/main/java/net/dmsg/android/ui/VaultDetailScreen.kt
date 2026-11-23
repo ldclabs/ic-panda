@@ -125,7 +125,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                 Column(Modifier.weight(1f)) {
                     Text(vaultKindName(item.kind), style = MaterialTheme.typography.titleMedium)
                     Text(str(when {
-                        item.deleted -> R.string.in_trash
+                        item.deleted -> R.string.text_in_trash_3b5e1bf
                         item.conflict -> R.string.text_sync_conflicts_c35724e
                         item.saveState == "local_only" -> R.string.saved_on_device
                         item.synced -> R.string.synced

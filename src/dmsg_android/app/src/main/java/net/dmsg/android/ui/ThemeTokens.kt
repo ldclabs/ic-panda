@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -72,4 +73,14 @@ internal object Motion {
 
     /** The skeleton's breathing; a loop needs a fixed duration rather than a spring. */
     fun <T> pulse(): InfiniteRepeatableSpec<T> = infiniteRepeatable(tween(900), RepeatMode.Reverse)
+}
+
+/** A message bubble: large corners, tucked in on the sender's side next to the same sender's neighbouring messages. */
+internal fun bubbleShape(mine: Boolean, joinsPrevious: Boolean, joinsNext: Boolean): Shape {
+    val large = 20.dp
+    val small = 6.dp
+    return RoundedCornerShape(
+        topStart = if (!mine && joinsPrevious) small else large, topEnd = if (mine && joinsPrevious) small else large,
+        bottomEnd = if (mine && joinsNext) small else large, bottomStart = if (!mine && joinsNext) small else large,
+    )
 }

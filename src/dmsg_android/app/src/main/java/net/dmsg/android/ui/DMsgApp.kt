@@ -173,7 +173,7 @@ import kotlinx.coroutines.launch
                                     pageRoot -> str(destinations.first { it.id == page.page }.label)
                                     else -> title(page.page)
                                 }
-                                val title: @Composable () -> Unit = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                val title: @Composable () -> Unit = { PageBarTitle(label, pageBar.subtitle, pageBar.leading) }
                                 val navigationIcon: @Composable () -> Unit = { back?.invoke() }
                                 val actions: @Composable RowScope.() -> Unit = {
                                     if (!local && page.page == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
@@ -228,7 +228,7 @@ import kotlinx.coroutines.launch
                                             if (selected.isEmpty()) EmptyState(str(R.string.text_choose_a_conversation_f1e5111), glyph = R.drawable.glyph_channels)
                                             else ConversationScreen(client, state, selected, threadSearch) { threadSearch = it }
                                         }
-                                        if (wide) WorkspacePanes(fold, list = list, detail = detail)
+                                        if (wide) WorkspacePanes(fold, list = list, detail = { if (selected.isEmpty()) detail() else DetailPane(detail) })
                                         else if (inConversation) detail() else list()
                                     }
                                     "inbox" -> InboxScreen(client, state, page, showScopes = scopeList)

@@ -5,7 +5,6 @@ import android.content.ContextWrapper
 import android.graphics.Rect
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -89,7 +88,7 @@ internal data class WorkspaceFold(val bounds: Rect, val vertical: Boolean)
 @Composable internal fun DetailPane(content: @Composable () -> Unit) {
     val bar = remember { PageBar() }
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text(bar.title.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis) }, actions = { bar.actions?.invoke(this) },
+        TopAppBar(title = { PageBarTitle(bar.title.orEmpty(), bar.subtitle, bar.leading) }, actions = { bar.actions?.invoke(this) },
             windowInsets = WindowInsets(0), colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page))
         CompositionLocalProvider(LocalPageBar provides bar) { Box(Modifier.weight(1f).fillMaxWidth()) { content() } }
     }

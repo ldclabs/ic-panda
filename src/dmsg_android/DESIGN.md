@@ -187,6 +187,7 @@ Cards pad their content by 16 dp; rows inside a section bring their own padding.
 | `RowIcon` | A row's leading icon on a tonal circle; the section may colour it |
 | `LabelValue`, `DetailCard` | A label with its value inside a card |
 | `BrowseRow`, `BrowseIcon` | Compact rows of the vault, message and file lists, with a type glyph on a tonal square |
+| `Avatar` | A round avatar: the image, or the first letter on a container tone chosen by the account ID |
 | `BrowseScopes`, `BrowseChoice`, `MenuChoice`, `SortMenu` | Filter chips that scroll sideways with fading edges, a chip that opens a menu of choices, and the sort chip |
 | `Notice` | Inline banner, information or problem, actions at its end; at most one per screen |
 | `EmptyState` | A mark, one line, one line of detail and at most one action, centred |
@@ -265,6 +266,27 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
   (`SeekableTransitionState`), so the parent page and its bar show as the
   finger moves; cancelling returns and releasing completes the transition.
 - **Lists** move inserted, removed and reordered rows with `animateItem()`.
+
+## Messages
+
+- **Lists.** Conversations and letters lead with an `Avatar`. Unread rows set
+  the title in bold, the preview in the body colour, the time in primary and a
+  count badge. Times read as a clock today, a weekday this week and a short
+  date before; a missing time shows nothing. A draft reads quieter, in
+  italics after "Draft:".
+- **Conversation bar.** Avatar, name and "Encrypted conversation", with Search
+  and ⋮ (conversation settings). There is no manual refresh. A sync error shows
+  once, as a banner under the bar that can be closed.
+- **Bubbles.** Consecutive messages from one sender on one day form a group:
+  2 dp apart, the sender named once, and the corners next to the neighbours
+  tucked in (`bubbleShape`). Time and Edited sit at the bubble's tail. A
+  reply quote and the reply preview above the composer carry a primary accent
+  bar (`QuoteBar`).
+- **Actions.** A long press opens the actions sheet (reply, copy, edit,
+  withdraw, report, block); a tap does nothing. TalkBack offers the same
+  actions as a long-press action.
+- **Composer.** A filled capsule holds the attachment menu and the text; the
+  send button grows to full size once there is something to send.
 
 ## Platform
 

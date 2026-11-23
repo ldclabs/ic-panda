@@ -5,9 +5,22 @@ import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
 import net.dmsg.android.platform.str
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,8 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,17 +90,26 @@ import net.dmsg.core.MessageItem
             items(matchingChannels, key = { it.id }) { channel ->
                 val draft = drafts[channel.id]?.text ?: channel.draft
                 val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
+                val unread = channel.unread > 0u
                 BrowseRow(channel.name, Modifier.animateItem().clickable { select(channel.id) },
-                    leading = { BrowseIcon(if (channel.news) Icons.Outlined.Campaign else Icons.Outlined.Forum) },
+                    leading = { Avatar(channel.name, channel.id, icon = if (channel.news) Icons.Outlined.Campaign else null) },
+                    emphasized = unread,
                     supporting = {
                         Column {
-                            if (query.isEmpty()) Text(if (draft.isNotEmpty()) str(R.string.text_draft_4a4143d) + draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else channel.preview,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (query.isEmpty()) {
+                                val drafted = if (draft.isNotEmpty()) draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else null
+                                // A draft reads quieter than the last message; unread previews read louder.
+                                if (drafted != null) Text(str(R.string.text_draft_4a4143d) + drafted, maxLines = 1, overflow = TextOverflow.Ellipsis, fontStyle = FontStyle.Italic)
+                                else if (channel.preview.isNotEmpty()) Text(channel.preview, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    color = if (unread) MaterialTheme.colorScheme.onSurface else Color.Unspecified)
+                            }
                             if (channel.pendingSends > 0u) Text(str(R.string.text_waiting_to_send_93d9311) + channel.pendingSends)
                         }
                     }, trailing = {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(messageTime(channel.lastAt), style = MaterialTheme.typography.labelSmall)
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listTime(channel.lastAt).takeIf { it.isNotEmpty() }?.let { time ->
+                                Text(time, style = MaterialTheme.typography.labelSmall, color = if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (channel.muted) Icon(Icons.Outlined.NotificationsOff, str(R.string.text_muted_8d0508d), Modifier.size(16.dp))
                                 if (channel.unread > 0u) Badge { Text(localizedNumber(channel.unread)) }
@@ -132,6 +152,7 @@ import net.dmsg.core.MessageItem
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun ConversationScreen(client: ClientController, state: UiState, channel: String, searchMode: BrowseSearchMode, setSearchMode: (BrowseSearchMode) -> Unit) {
     val channels by client.messages.channels.state.collectAsStateWithLifecycle()
     val blocked by client.safety.blocked.state.collectAsStateWithLifecycle()
@@ -153,6 +174,7 @@ import net.dmsg.core.MessageItem
     var queuedId by remember(channel) { mutableStateOf<String?>(null) }
     val composerFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val haptics = LocalHapticFeedback.current
     var focusReply by remember(channel) { mutableStateOf(false) }
     val positionKey = "conversation:" + channel
     val savedPosition = remember(channel) { client.navigation.savedScrollPosition(positionKey) }
@@ -222,40 +244,48 @@ import net.dmsg.core.MessageItem
             }
     }
     fun update(value: MessageComposer) = client.messages.edit(channel, value)
+    val syncError = syncFailure?.takeIf { it.first == channel }?.second
+    var dismissedError by remember(channel) { mutableStateOf<String?>(null) }
+    ScreenBar(info?.name, subtitle = str(R.string.text_encrypted_conversation_9f9e912), leading = { Avatar(info?.name.orEmpty(), channel, size = 36.dp, icon = if (info?.news == true) Icons.Outlined.Campaign else null) }) {
+        IconButton(onClick = { setSearchMode(BrowseSearchMode.Editing) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
+        IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_conversation_settings_f07a685)) }
+    }
     Column(Modifier.fillMaxSize().imePadding()) {
         if (searchMode != BrowseSearchMode.Browse) {
             BrowseSearchRow(search, { search = it; client.messages.search(it) }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
                 searchMode, setMode = setSearchMode)
-        } else Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically) {
-            val syncError = syncFailure?.takeIf { it.first == channel }?.second
-            Text(syncError?.let { errorText(it) } ?: str(R.string.text_encrypted_conversation_9f9e912),
-                Modifier.weight(1f).semantics { if (syncError != null) liveRegion = LiveRegionMode.Polite },
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            IconButton(onClick = { setSearchMode(BrowseSearchMode.Editing) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
-            IconButton(onClick = { client.messages.refresh(channel) }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
-            IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.Settings, str(R.string.text_conversation_settings_f07a685)) }
+        } else syncError?.takeIf { it != dismissedError }?.let { error ->
+            Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) {
+                Notice(errorText(error), true) { TextButton(onClick = { dismissedError = error }) { Text(str(R.string.text_close_6cf4a77)) } }
+            }
         }
         ReadFeedback(blocked, { client.safety.loadBlocks() })
         ReadFeedback(timeline, { client.messages.load(channel) })
-        LazyColumn(Modifier.weight(1f), state = scroll, contentPadding = pagePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(Modifier.weight(1f), state = scroll, contentPadding = pagePadding()) {
             if (currentTimeline?.hasMore == true) item { TextButton(onClick = client.messages::older) { Text(str(R.string.text_load_earlier_messages_1e9b531)) } }
             itemsIndexed(rows, key = { _, message -> "message:" + message.id }) { index, message ->
                 val mine = message.account == state.session?.account
                 val previous = rows.getOrNull(index - 1)
+                val next = rows.getOrNull(index + 1)
                 val day = messageDay(message.createdAtMs)
-                if (previous == null || messageDay(previous.createdAtMs) != day) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+                val newDay = previous == null || messageDay(previous.createdAtMs) != day
+                // Consecutive messages from one sender on one day form a group: 2 dp apart, inner corners tucked in.
+                val joinsPrevious = !newDay && previous?.account == message.account && message.id != firstUnread
+                val joinsNext = next != null && next.account == message.account && messageDay(next.createdAtMs) == day && next.id != firstUnread
+                Column(Modifier.fillMaxWidth().padding(top = if (joinsPrevious) 2.dp else 12.dp), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+                    if (newDay) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     if (message.id == firstUnread) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    if (previous?.account != message.account || messageDay(previous.createdAtMs) != day) ParticipantIdentity(client, message.account)
-                    Surface(Modifier.padding(start = if (mine) 28.dp else 0.dp, end = if (mine) 0.dp else 28.dp).widthIn(max = 440.dp)
-                        .combinedClickable(onClickLabel = str(R.string.message_actions), onClick = { action = message }, onLongClick = { action = message }),
-                        shape = MaterialTheme.shapes.medium, color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest) {
-                        Column(Modifier.padding(14.dp)) {
+                    if (!joinsPrevious) ParticipantIdentity(client, message.account)
+                    Surface(Modifier.padding(start = if (mine) 48.dp else 0.dp, end = if (mine) 0.dp else 48.dp).widthIn(max = 440.dp)
+                        .longPressActions(message, str(R.string.message_actions), haptics) { action = message },
+                        shape = bubbleShape(mine, joinsPrevious, joinsNext), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                             message.replySequence?.let { sequence ->
-                                TextButton(onClick = { client.navigation.push(Route("message-reference", channel = channel, sequence = sequence)) }) {
-                                    Column { Text(str(R.string.text_reply_to_4ac60e6) + sequence, style = MaterialTheme.typography.labelSmall)
-                                        val original = rows.find { it.sequence == sequence }
-                                        Text(original?.takeIf { !it.hidden && !it.unreadable && !it.retracted }?.let { it.text.ifBlank { if (it.attachmentDeleted) "" else it.attachmentName.orEmpty() } }?.takeIf(String::isNotBlank) ?: str(R.string.text_view_original_message_a5b610b), maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                                val original = rows.find { it.sequence == sequence }
+                                QuoteBar(Modifier.padding(bottom = 6.dp).clickable { client.navigation.push(Route("message-reference", channel = channel, sequence = sequence)) }) {
+                                    Text(str(R.string.text_reply_to_4ac60e6) + sequence, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text(original?.takeIf { !it.hidden && !it.unreadable && !it.retracted }?.let { it.text.ifBlank { if (it.attachmentDeleted) "" else it.attachmentName.orEmpty() } }?.takeIf(String::isNotBlank) ?: str(R.string.text_view_original_message_a5b610b),
+                                        style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                             when {
@@ -269,26 +299,33 @@ import net.dmsg.core.MessageItem
                                     }
                                 }
                             }
-                            Text(messageClock(message.createdAtMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (message.edited && !message.retracted) Text(str(R.string.text_edited_91efa39), style = MaterialTheme.typography.labelSmall)
+                            // Time and state sit at the bubble's tail.
+                            Text(listOfNotNull(str(R.string.text_edited_91efa39).takeIf { message.edited && !message.retracted }, messageClock(message.createdAtMs)).joinToString(" · "),
+                                Modifier.align(Alignment.End), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
             item { ReadFeedback(outgoing, { client.messages.load(channel, false) }) }
             items(pending, key = { "outgoing:" + it.id }) { queued ->
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                    Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.shapes.medium).padding(14.dp))
+                Column(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalAlignment = Alignment.End) {
+                    Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.padding(start = 48.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest, bubbleShape(mine = true, joinsPrevious = false, joinsNext = false)).padding(horizontal = 14.dp, vertical = 10.dp))
                     if (queued.text.isNotBlank()) queued.attachmentName?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     val sending = state.working("message:send:" + queued.id)
-                    Text(str(when {
-                        sending -> R.string.message_sending
-                        queued.error == "EXECUTION_UNKNOWN" -> R.string.text_waiting_for_confirmation_9c87aad
-                        queued.error != null -> R.string.text_send_failed_8c3e812
-                        else -> R.string.text_saved_locally_waiting_to_send_7e2484e
-                    }), style = MaterialTheme.typography.labelSmall)
-                    if (!sending) queued.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                    if (!sending) TextButton(onClick = { client.messages.retry(channel, queued.id) }) { Text(str(R.string.text_retry_original_message_695da75)) }
+                    val failed = !sending && queued.error != null && queued.error != "EXECUTION_UNKNOWN"
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (failed) Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                        Text(str(when {
+                            sending -> R.string.message_sending
+                            queued.error == "EXECUTION_UNKNOWN" -> R.string.text_waiting_for_confirmation_9c87aad
+                            queued.error != null -> R.string.text_send_failed_8c3e812
+                            else -> R.string.text_saved_locally_waiting_to_send_7e2484e
+                        }), style = MaterialTheme.typography.labelSmall, color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (!sending) TextButton(onClick = { client.messages.retry(channel, queued.id) }) { Text(str(R.string.text_retry_original_message_695da75)) }
+                    }
+                    // The banner above already names the conversation's sync error; show only a different one here.
+                    if (!sending && queued.error != null && queued.error != syncError) Text(errorText(queued.error!!), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
             if (currentTimeline != null && (timeline is ReadState.Ready || timeline is ReadState.Empty) && !currentTimeline.hasMore &&
@@ -296,9 +333,11 @@ import net.dmsg.core.MessageItem
                 item { EmptyState(str(if (search.isBlank()) R.string.text_no_messages_yet_1d23127 else R.string.no_matches)) }
             }
         }
-        HorizontalDivider()
-        composer.reply?.let { reply -> Row(Modifier.padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically) {
-            Text(str(R.string.text_reply_2f31ef1) + (reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}"), Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        composer.reply?.let { reply -> Row(Modifier.padding(start = pageMargin(), top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            QuoteBar(Modifier.weight(1f)) {
+                Text(str(R.string.text_reply_b4c9334), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
             IconButton(onClick = { update(composer.copy(reply = null)) }) { Icon(Icons.Outlined.Close, str(R.string.text_cancel_reply_b66716c)) }
         } }
         if (composer.attachments.isNotEmpty()) LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -307,10 +346,25 @@ import net.dmsg.core.MessageItem
         }
         if (!draftsReady) ReadFeedback(channels, client.messages::browse)
         if (info?.canPublish == false) Notice(str(R.string.text_you_cannot_publish_in_the_current_channel_state_a56d35a))
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            FileIntakeButton(client, channel = channel, enabled = info?.canPublish == true && draftsReady, chooseExisting = { attachmentFolder = "root"; attachmentParents = listOf("root"); client.messages.chooseFolder("root"); attachment = true })
-            OutlinedTextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).focusRequester(composerFocus).revealFocusedInput(), enabled = draftsReady && info?.canPublish == true, placeholder = { Text(str(R.string.text_say_something_c413667)) }, shape = MaterialTheme.shapes.large, maxLines = 5)
-            FilledIconButton(onClick = { client.messages.send(channel) { id -> search = ""; setSearchMode(BrowseSearchMode.Browse); queuedId = id } }, enabled = composer.sendable && !state.working("message:queue:" + channel) && draftsReady && info?.canPublish == true) { Icon(Icons.AutoMirrored.Outlined.Send, str(R.string.text_send_06acd73)) }
+        // A filled capsule holds the attachment menu and the text; the send button grows in once there is something to send.
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val writable = draftsReady && info?.canPublish == true
+            Surface(Modifier.weight(1f), shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    // The 48dp button sits 4dp up so its centre meets the last text line, as the send button does.
+                    Box(Modifier.padding(start = 4.dp, bottom = 4.dp)) {
+                        FileIntakeButton(client, channel = channel, enabled = writable, chooseExisting = { attachmentFolder = "root"; attachmentParents = listOf("root"); client.messages.chooseFolder("root"); attachment = true })
+                    }
+                    TextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).focusRequester(composerFocus).revealFocusedInput(), enabled = writable,
+                        placeholder = { Text(str(R.string.text_say_something_c413667)) }, maxLines = 5,
+                        colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent))
+                }
+            }
+            val sendable = composer.sendable && !state.working("message:queue:" + channel) && writable
+            val scale by animateFloatAsState(if (sendable) 1f else 0.82f, Motion.spatial(), label = "send")
+            FilledIconButton(onClick = { client.messages.send(channel) { id -> search = ""; setSearchMode(BrowseSearchMode.Browse); queuedId = id } }, enabled = sendable,
+                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer { scaleX = scale; scaleY = scale }) { Icon(Icons.AutoMirrored.Outlined.Send, str(R.string.text_send_06acd73)) }
         }
     }
     if (attachment) AlertDialog(onDismissRequest = { attachment = false }, title = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, text = {
@@ -327,23 +381,28 @@ import net.dmsg.core.MessageItem
             if (files is ReadState.Empty) Text(str(R.string.text_import_a_file_in_files_first_d76a295))
         }
     }, confirmButton = { TextButton(onClick = { attachment = false }) { Text(str(R.string.text_close_6cf4a77)) } })
-    action?.takeIf { editText == null && !retract }?.let { message -> AlertDialog(onDismissRequest = { action = null }, title = { Text(str(R.string.text_message_6302964)) }, text = {
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            Text(message.text, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            if (!message.unreadable && !message.retracted && info?.canPublish == true) {
-                TextButton(onClick = { update(composer.copy(reply = ComposerReply(message.sequence, message.digest, message.text.ifBlank { message.attachmentName.orEmpty() }))); action = null; focusReply = true }) { Text(str(R.string.text_reply_b4c9334)) }
+    action?.takeIf { editText == null && !retract }?.let { message -> ModalBottomSheet(onDismissRequest = { action = null }) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+            if (message.text.isNotEmpty() && !message.unreadable && !message.retracted) Text(message.text, Modifier.padding(horizontal = pageMargin()).padding(bottom = 8.dp),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (!message.unreadable && !message.retracted && info?.canPublish == true) SheetAction(str(R.string.text_reply_b4c9334), Icons.AutoMirrored.Outlined.Reply) {
+                update(composer.copy(reply = ComposerReply(message.sequence, message.digest, message.text.ifBlank { message.attachmentName.orEmpty() }))); action = null; focusReply = true
             }
-            if (message.text.isNotEmpty() && !message.unreadable && !message.retracted) {
-                TextButton(onClick = { client.clipboard.copy(message.text); action = null }) { Text(str(R.string.text_copy_d6e9651)) }
+            if (message.text.isNotEmpty() && !message.unreadable && !message.retracted) SheetAction(str(R.string.text_copy_d6e9651), Icons.Outlined.ContentCopy) {
+                client.clipboard.copy(message.text); action = null
             }
             if (!message.unreadable && !message.retracted && info?.canPublish == true && message.account == state.session?.account) {
-                if (message.text.isNotEmpty()) TextButton(onClick = { editText = message.text }) { Text(str(R.string.text_edit_message_320c6f1)) }
-                TextButton(onClick = { retract = true }) { Text(str(R.string.text_withdraw_message_aad22ea)) }
+                if (message.text.isNotEmpty()) SheetAction(str(R.string.text_edit_message_320c6f1), Icons.Outlined.Edit) { editText = message.text }
+                SheetAction(str(R.string.text_withdraw_message_aad22ea), Icons.AutoMirrored.Outlined.Undo) { retract = true }
             }
-            TextButton(onClick = { action = null; client.safety.openReport(ReportTarget("channel", message.account, channel, message.sequence)) }, enabled = !message.unreadable) { Text(str(R.string.text_report_message_9354138)) }
-            if (message.account != state.session?.account) TextButton(onClick = { action = null; client.safety.openBlock(message.account) }) { Text(str(R.string.text_block_account_11bc76b)) }
+            if (!message.unreadable) SheetAction(str(R.string.text_report_message_9354138), Icons.Outlined.Flag) {
+                action = null; client.safety.openReport(ReportTarget("channel", message.account, channel, message.sequence))
+            }
+            if (message.account != state.session?.account) SheetAction(str(R.string.text_block_account_11bc76b), Icons.Outlined.Block, destructive = true) {
+                action = null; client.safety.openBlock(message.account)
+            }
         }
-    }, confirmButton = { TextButton(onClick = { action = null }) { Text(str(R.string.text_close_6cf4a77)) } }) }
+    } }
     if ((editText != null || retract) && action != null) AlertDialog(onDismissRequest = { editText = null; retract = false }, title = { Text(if (retract) str(R.string.text_withdraw_this_message_6ad534b) else str(R.string.text_edit_message_320c6f1)) }, text = {
         if (retract) Text(str(R.string.text_copies_already_read_or_saved_cannot_be_recalled_0717a55)) else {
             val edit = MessageComposer(editText.orEmpty())
@@ -389,4 +448,39 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
             }
         }
     }
+}
+
+/** Today's clock time, a weekday within the last week, or a short date; empty when there is no time. */
+internal fun listTime(ms: ULong?, now: Long = System.currentTimeMillis()): String {
+    if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) return ""
+    val zone = java.time.ZoneId.systemDefault()
+    val date = java.time.Instant.ofEpochMilli(ms.toLong()).atZone(zone).toLocalDate()
+    val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+    val days = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+    val skeleton = when {
+        days <= 0L -> "jm"
+        days < 7L -> "EEE"
+        date.year == today.year -> "MMMd"
+        else -> "yMMMd"
+    }
+    return android.icu.text.DateFormat.getInstanceForSkeleton(skeleton, net.dmsg.android.platform.AppLanguage.locale()).format(java.util.Date(ms.toLong()))
+}
+
+/** A quoted message: a short accent bar at the start, then the quote. */
+@Composable internal fun QuoteBar(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Row(modifier.height(IntrinsicSize.Min)) {
+        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall))
+        Column(Modifier.padding(start = 8.dp), content = content)
+    }
+}
+
+/** A message's actions open on a long press; a tap does nothing, so reading never opens a menu by accident. */
+private fun Modifier.longPressActions(key: Any, label: String, haptics: HapticFeedback, open: () -> Unit): Modifier =
+    pointerInput(key) { detectTapGestures(onLongPress = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); open() }) }
+        .semantics { onLongClick(label) { open(); true } }
+
+@Composable private fun SheetAction(label: String, icon: ImageVector, destructive: Boolean = false, onClick: () -> Unit) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    ListItem(headlineContent = { Text(label, color = color) }, leadingContent = { Icon(icon, null, tint = color) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent), modifier = Modifier.clickable(role = Role.Button, onClick = onClick))
 }

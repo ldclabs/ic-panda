@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,16 +63,10 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                 }
                 Row(Modifier.padding(horizontal = pageMargin())) {
                     BrowseScopes(trailing = {
-                        var choosing by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { choosing = true }, modifier = Modifier.testTag("letter-folders")) {
-                                Text(str(folder.label))
-                                Icon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(16.dp))
-                            }
-                            DropdownMenu(choosing, { choosing = false }) {
-                                LetterFolder.entries.forEach { entry ->
-                                    DropdownMenuItem(text = { Text(str(entry.label)) }, onClick = { choosing = false; folder = entry })
-                                }
+                        MenuChoice(str(folder.label), folder != LetterFolder.INBOX, Modifier.testTag("letter-folders")) { close ->
+                            LetterFolder.entries.forEach { entry ->
+                                DropdownMenuItem(text = { Text(str(entry.label)) }, onClick = { close(); folder = entry },
+                                    trailingIcon = if (entry == folder) ({ Icon(Icons.Outlined.Check, null) }) else null)
                             }
                         }
                     }) {
@@ -171,10 +166,9 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
 }
 
 @Composable private fun LetterRow(account: String, text: String, status: String, unread: Boolean, open: () -> Unit) {
-    BrowseRow(account, Modifier.clickable(onClick = open),
-        leading = { BrowseIcon(if (unread) Icons.Outlined.MarkEmailUnread else Icons.Outlined.MailOutline) }) {
+    BrowseRow(account, Modifier.clickable(onClick = open), leading = { Avatar(account, account) }, emphasized = unread) {
         Column {
-            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (unread) MaterialTheme.colorScheme.onSurface else Color.Unspecified)
             Text(status, style = MaterialTheme.typography.labelSmall)
         }
     }

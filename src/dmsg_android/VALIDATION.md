@@ -1,5 +1,35 @@
 # Android implementation validation
 
+## Conversations, bubbles and composer — 2026-11-23
+
+Conversation and letter rows lead with an initial avatar on a tone chosen by
+the account ID; participant names in a thread use the same avatar until a
+published image loads. Unread rows are bold with a primary time and a badge,
+list times are relative (clock, weekday, short date), drafts read in italics
+and a missing time no longer shows "—". The conversation bar shows the avatar,
+name and "Encrypted conversation" with Search and ⋮; the manual refresh is
+gone and a sync error shows once as a banner that can be closed, instead of
+repeating under every unsent message. Messages from one sender group with 2 dp
+gaps and tucked corners, the time sits at the bubble's tail, a long press opens
+an actions sheet, and quotes carry an accent bar. The composer is a filled
+capsule with the attachment menu inside, and the send button grows in when
+there is text. The letter folder menu is a menu chip; wide windows give the
+conversation its own bar. The duplicate "In Trash" string added with the vault
+batch now reuses the existing one, and two strings the old dialogs used were
+removed.
+
+On the API 36 emulator the conversation list, a thread with unsent messages,
+the composer with text, attachments, a published avatar and the letter drafts
+were checked in light, the list and a thread in dark, and a thread in Arabic
+(RTL, mirrored bubbles and send arrow). The fixture has no received messages
+from another sender, so multi-sender grouping and the long-press sheet were
+checked only through the code path, not on screen. TalkBack was not rerun.
+The attachment button sat 4dp below the text line; it now shares the centre
+line with the text and the send button, checked on screen after the suite.
+Debug: 138 JVM tests pass; lint reports 89 warnings, no errors and no newly
+unused resources. QA: JVM tests pass and the device suite ran 140 tests, 133
+passed and 7 skipped.
+
 ## Vault list, item, editor and filters — 2026-11-23
 
 Pages can now declare their bar title and actions with `ScreenBar`; on wide

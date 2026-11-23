@@ -1,23 +1,19 @@
 package net.dmsg.android.ui
 
+import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,11 +27,9 @@ import net.dmsg.android.core.*
     var inspecting by remember(account) { mutableStateOf(false) }
     DisposableEffect(client, account) { client.participants.observe(account); onDispose { client.participants.release(account) } }
     Row(Modifier.clickable { inspecting = true }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-            val image = person?.avatar
-            if (image != null) Image(image.asImageBitmap(), null, Modifier.fillMaxSize().clip(CircleShape).testTag("participant-avatar"), contentScale = ContentScale.Crop)
-            else Icon(Icons.Outlined.Person, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        val bitmap = person?.avatar
+        val image = remember(bitmap) { bitmap?.asImageBitmap() }
+        Avatar(person?.name ?: account, account, if (image != null) Modifier.testTag("participant-avatar") else Modifier, size = 32.dp, image = image)
         Column {
             Text(person?.name ?: account, style = MaterialTheme.typography.labelLarge, maxLines = if (showId) 2 else 1, overflow = TextOverflow.Ellipsis)
             if (showId && person?.name != null) Text(account, style = MaterialTheme.typography.bodySmall)

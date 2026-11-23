@@ -146,18 +146,18 @@ import androidx.compose.ui.unit.dp
 
 @Composable internal fun BrowseIcon(@DrawableRes glyph: Int) = BrowseIcon(painterResource(glyph))
 
-/** A compact row of a browse list: no chevron and no divider, as in Google's list apps. */
+/** A compact row of a browse list: no chevron and no divider, as in Google's list apps; [emphasized] marks unread rows. */
 @Composable internal fun BrowseRow(
     title: String, modifier: Modifier, leading: @Composable () -> Unit,
-    trailing: @Composable RowScope.() -> Unit = {}, supporting: @Composable () -> Unit = {},
+    trailing: @Composable RowScope.() -> Unit = {}, emphasized: Boolean = false, supporting: @Composable () -> Unit = {},
 ) {
     val largeText = LocalDensity.current.fontScale >= 1.5f
     // Clip before the caller's click handling so the pressed state keeps rounded corners.
     Row(Modifier.clip(MaterialTheme.shapes.small).then(modifier).fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { leading() }
+        Box(Modifier.sizeIn(minWidth = 36.dp, minHeight = 36.dp), contentAlignment = Alignment.Center) { leading() }
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
                 maxLines = if (largeText) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis)
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
                 ProvideTextStyle(MaterialTheme.typography.bodySmall, supporting)

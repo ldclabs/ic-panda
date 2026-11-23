@@ -4526,11 +4526,6 @@
     "zh-Hans": "内容",
     "ios": "Message"
   },
-  "text_message_6302964": {
-    "en": "Message",
-    "zh-Hans": "消息",
-    "ios": "Message"
-  },
   "text_message_attachment_5c83cad": {
     "en": "Message attachment",
     "zh-Hans": "消息附件"
@@ -6247,12 +6242,6 @@
   "text_replaces_71d4870": {
     "en": "Replaces · ",
     "zh-Hans": "替代文件 · "
-  },
-  "text_reply_2f31ef1": {
-    "en": "Reply: ",
-    "zh-Hans": "回复：",
-    "ios": "Reply",
-    "ios_suffix": ": "
   },
   "text_reply_b4c9334": {
     "en": "Reply",
@@ -9633,10 +9622,6 @@
   "synced": {
     "en": "Synced",
     "ios": "Synced"
-  },
-  "in_trash": {
-    "en": "In Trash",
-    "ios": "In Trash"
   },
   "item_information": {
     "en": "Item information",

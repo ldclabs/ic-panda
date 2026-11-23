@@ -45,7 +45,6 @@
     <string name="history_fields" formatted="false">"Pola"</string>
     <string name="hosted_agent_ids" formatted="false">"Identyfikatory hostowanych agentów"</string>
     <string name="import_local_account" formatted="false">"Importuj z konta lokalnego"</string>
-    <string name="in_trash" formatted="false">"W Koszu"</string>
     <string name="item_information" formatted="false">"Informacje o elemencie"</string>
     <string name="join_code" formatted="false">"Kod porównawczy"</string>
     <string name="join_compare_hint" formatted="false">"Przed zatwierdzeniem sprawdź, czy oba urządzenia wyświetlają ten sam kod."</string>
@@ -1009,7 +1008,6 @@
     <string name="text_membership_status_is_unavailable_d38f278" formatted="false">"Stan członkostwa jest niedostępny"</string>
     <string name="text_merge_individual_fields_5404741" formatted="false">"Scal poszczególne pola"</string>
     <string name="text_message_373be16" formatted="false">"Wiadomość"</string>
-    <string name="text_message_6302964" formatted="false">"Wiadomość"</string>
     <string name="text_message_attachment_5c83cad" formatted="false">"Załącznik wiadomości"</string>
     <string name="text_message_body_unavailable_6b03555" formatted="false">"Treść wiadomości niedostępna"</string>
     <string name="text_message_settings_1a28455" formatted="false">"Ustawienia wiadomości"</string>
@@ -1395,7 +1393,6 @@
     <string name="text_replace_with_273a6fd" formatted="false">"Zastąp przez "</string>
     <string name="text_replacement_request_64790c0" formatted="false">"Żądanie wymiany"</string>
     <string name="text_replaces_71d4870" formatted="false">"Zastępuje · "</string>
-    <string name="text_reply_2f31ef1" formatted="false">"Odpowiedz: "</string>
     <string name="text_reply_b4c9334" formatted="false">"Odpowiedz"</string>
     <string name="text_reply_to_4ac60e6" formatted="false">"Odpowiedz na nr"</string>
     <string name="text_report_account_e84056e" formatted="false">"Zgłoś konto"</string>

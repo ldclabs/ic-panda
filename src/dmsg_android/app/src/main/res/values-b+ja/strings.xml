@@ -45,7 +45,6 @@
     <string name="history_fields" formatted="false">"フィールド"</string>
     <string name="hosted_agent_ids" formatted="false">"ホストするエージェント ID"</string>
     <string name="import_local_account" formatted="false">"ローカルアカウントから読み込む"</string>
-    <string name="in_trash" formatted="false">"ゴミ箱の中"</string>
     <string name="item_information" formatted="false">"アイテム情報"</string>
     <string name="join_code" formatted="false">"照合コード"</string>
     <string name="join_compare_hint" formatted="false">"承認する前に、両方の端末に同じコードが表示されていることを確認してください。"</string>
@@ -1009,7 +1008,6 @@
     <string name="text_membership_status_is_unavailable_d38f278" formatted="false">"会員状態を取得できません"</string>
     <string name="text_merge_individual_fields_5404741" formatted="false">"フィールドごとに統合"</string>
     <string name="text_message_373be16" formatted="false">"メッセージ"</string>
-    <string name="text_message_6302964" formatted="false">"メッセージ"</string>
     <string name="text_message_attachment_5c83cad" formatted="false">"メッセージの添付ファイル"</string>
     <string name="text_message_body_unavailable_6b03555" formatted="false">"メッセージ本文を利用できません"</string>
     <string name="text_message_settings_1a28455" formatted="false">"メッセージ設定"</string>
@@ -1395,7 +1393,6 @@
     <string name="text_replace_with_273a6fd" formatted="false">"置き換え先："</string>
     <string name="text_replacement_request_64790c0" formatted="false">"置き換え申請"</string>
     <string name="text_replaces_71d4870" formatted="false">"置き換え対象 · "</string>
-    <string name="text_reply_2f31ef1" formatted="false">"返信: "</string>
     <string name="text_reply_b4c9334" formatted="false">"返信"</string>
     <string name="text_reply_to_4ac60e6" formatted="false">"返信先 #"</string>
     <string name="text_report_account_e84056e" formatted="false">"アカウントを報告"</string>

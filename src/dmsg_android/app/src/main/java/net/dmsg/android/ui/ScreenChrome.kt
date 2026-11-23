@@ -1,6 +1,13 @@
 package net.dmsg.android.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
 
@@ -34,6 +41,8 @@ internal val LocalScreenChrome = staticCompositionLocalOf { ScreenChrome() }
  */
 @Stable internal class PageBar {
     var title by mutableStateOf<String?>(null)
+    var subtitle by mutableStateOf<String?>(null)
+    var leading by mutableStateOf<(@Composable () -> Unit)?>(null)
     var actions by mutableStateOf<(@Composable RowScope.() -> Unit)?>(null)
     internal var owner: Any? = null
 }
@@ -44,15 +53,28 @@ internal val LocalPageBar = staticCompositionLocalOf<PageBar?> { null }
  * Declares the page's bar [title] and [actions] while the page is shown. Every recomposition hands
  * the bar a new wrapper, so the bar redraws the actions with the page's current state.
  */
-@Composable internal fun ScreenBar(title: String?, actions: @Composable RowScope.() -> Unit = {}) {
+@Composable internal fun ScreenBar(title: String?, subtitle: String? = null, leading: (@Composable () -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
     val bar = LocalPageBar.current ?: return
     val owner = remember { Any() }
     SideEffect {
         bar.owner = owner
         bar.title = title
+        bar.subtitle = subtitle
+        bar.leading = leading?.let { content -> { content() } }
         bar.actions = { actions() }
     }
     DisposableEffect(bar) {
-        onDispose { if (bar.owner === owner) { bar.owner = null; bar.title = null; bar.actions = null } }
+        onDispose { if (bar.owner === owner) { bar.owner = null; bar.title = null; bar.subtitle = null; bar.leading = null; bar.actions = null } }
+    }
+}
+
+/** A bar title with the page's optional [leading] avatar and [subtitle]. */
+@Composable internal fun PageBarTitle(title: String, subtitle: String?, leading: (@Composable () -> Unit)?) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        leading?.invoke()
+        Column {
+            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            subtitle?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
     }
 }
