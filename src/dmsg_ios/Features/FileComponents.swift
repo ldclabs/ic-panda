@@ -87,7 +87,8 @@ struct FileSummaryRow: View {
             else {
                 ObjectIcon(name: fileSymbol(mime)).overlay {
                     if let thumbnail, ThumbnailStore.supports(thumbnail) {
-                        LibraryThumbnail(file: thumbnail).frame(maxWidth: .infinity, maxHeight: .infinity)
+                        // The clear square keeps a filled image to the tile's scaled size.
+                        Color.clear.overlay { LibraryThumbnail(file: thumbnail) }
                             .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
                     }
                 }

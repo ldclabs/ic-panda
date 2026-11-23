@@ -494,15 +494,17 @@ separately. The default test-products directory under
 `~/Library/Developer/XcodeBuildMCP/workspaces/` can retain gigabyte-sized bundles.
 
 Business icons use the desktop's Remix Icon paths, including navigation,
-account destinations and all eleven vault item types. `Features/AppGlyph.swift`
-selects the shipped template assets; system actions keep SF Symbols.
-Run `python3 scripts/ios/sync-icons.py` after changing the shared desktop paths
-or the selected icons. `python3 scripts/ios/sync-icons.py --check` verifies the
-assets and bundled license against their source and is part of `verify.sh`.
+account destinations and all eleven vault item types. `scripts/ios/sync-icons.py`
+turns them into custom SF Symbols in `Shared/Glyphs.xcassets` (the app and the
+widget compile it), with filled versions for the four tabs; `Features/AppGlyph.swift`
+selects them, and system actions keep SF Symbols. Run the script after changing the
+shared desktop paths or the selected icons. `python3 scripts/ios/sync-icons.py --check`
+verifies the symbols and bundled license against their source and is part of `verify.sh`.
 
-Object lists use shared compact row insets and 36 pt icon tiles. Standard
-two-line vault, channel and file rows target 56 pt, with a 44 pt minimum content
-hit area; Dynamic Type can increase their height. Inbox dates share the sender
+Colours, radii, type and the visual checks are in [DESIGN.md](DESIGN.md).
+Object lists use shared compact row insets and 36 pt icon tiles that scale with
+Dynamic Type. Standard two-line vault, channel and file rows target 56 pt, with a
+44 pt minimum content hit area; Dynamic Type can increase their height. Inbox dates share the sender
 line at ordinary text sizes and move below it at accessibility sizes.
 
 From the repository root:

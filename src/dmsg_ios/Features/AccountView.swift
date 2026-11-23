@@ -52,7 +52,7 @@ struct AccountView: View {
             Section("Sync and storage") {
                 NavigationLink { SyncSettingsView() } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("Account synchronization", systemImage: "arrow.triangle.2.circlepath")
+                        Label("Account synchronization", glyph: .sync)
                         if let count = model.session?.pendingSync, count > 0 {
                             LabeledContent("Waiting to sync", value: count.formatted()).font(.footnote).foregroundStyle(.secondary)
                         }

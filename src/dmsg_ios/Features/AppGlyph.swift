@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Business icons share the desktop's Remix paths. Regenerate the template
-/// assets with `python3 scripts/ios/sync-icons.py` after changing this list.
+/// Business icons share the desktop's Remix paths as custom symbols in
+/// `Shared/Glyphs.xcassets`, so they scale with text like SF Symbols. Tab icons
+/// also have a `.fill` symbol. Regenerate them with `python3 scripts/ios/sync-icons.py`
+/// after changing this list.
 enum AppGlyph: String, CaseIterable {
     case vault
     case channels
@@ -41,7 +43,7 @@ enum AppGlyph: String, CaseIterable {
 
     var assetName: String { "Glyph-\(rawValue)" }
 
-    var image: Image { Image(decorative: assetName).renderingMode(.template) }
+    var image: Image { Image(decorative: assetName) }
 
     static func vaultItem(_ kind: String) -> AppGlyph {
         switch kind {

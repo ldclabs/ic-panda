@@ -168,7 +168,7 @@ private struct VaultBrowseBar: View {
         } label: {
             if sizeClass == .regular {
                 if ["login", "note"].contains(value) {
-                    AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
+                    AppGlyph.vaultItem(value).image.accessibilityHidden(true)
                 } else { Image(systemName: symbol).accessibilityHidden(true) }
             }
             Text(title)

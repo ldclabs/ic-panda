@@ -52,7 +52,7 @@ struct BrowseScopes<Value: Hashable>: View {
         HStack(spacing: 6) {
             ForEach(options, id: \.value) { option in
                 BrowseTab(selected: selection == option.value) { selection = option.value } label: {
-                    if icons { option.icon.resizable().scaledToFit().frame(width: 20, height: 17).accessibilityHidden(true) }
+                    if icons { option.icon.accessibilityHidden(true) }
                     Text(option.title)
                 }.accessibilityIdentifier(option.identifier)
             }

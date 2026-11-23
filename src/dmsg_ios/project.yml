@@ -86,6 +86,7 @@ targets:
       - Extensions/Widget
       - Shared/NativeTheme.swift
       - Shared/Palette.xcassets
+      - Shared/Glyphs.xcassets
       - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:

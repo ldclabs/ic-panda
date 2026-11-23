@@ -33,7 +33,7 @@ struct ObjectIcon: View {
     init(glyph: AppGlyph, size: CGFloat = 36) { image = glyph.image; _size = ScaledMetric(wrappedValue: size, relativeTo: .body) }
 
     var body: some View {
-        image.resizable().scaledToFit().frame(width: size / 2, height: size / 2).foregroundStyle(Theme.forest)
+        image.font(.system(size: size / 2)).foregroundStyle(Theme.forest)
             .frame(width: size, height: size).background(Theme.fill, in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
             .accessibilityHidden(true)
     }

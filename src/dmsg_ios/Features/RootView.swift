@@ -542,7 +542,7 @@ private struct AccessFooter: View {
     }
 
     @ViewBuilder private var links: some View {
-        LanguageSettingsLink(iconSize: 14).frame(minHeight: 44)
+        LanguageSettingsLink().frame(minHeight: 44)
         NavigationLink(NoticeCopy.text("noticeSettings")) { NotificationSettingsView() }
             .frame(minHeight: 44).accessibilityIdentifier("access.notifications")
         NavigationLink("Privacy policy") { PrivacyPolicyView() }
