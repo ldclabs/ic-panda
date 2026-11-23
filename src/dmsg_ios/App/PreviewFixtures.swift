@@ -257,6 +257,26 @@ extension SessionModel {
             }
             return
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-thread") {
+            // Two people and one's own messages in groups, with a reply and an attachment.
+            let own = session?.account ?? "fixture-self"
+            let lines: [(account: String, text: String, reply: UInt64?, file: String?)] = [
+                ("fixture-peer", "Morning! The design review moved to 3 pm.", nil, nil),
+                ("fixture-peer", "I'll share the slides before then.", nil, nil),
+                (own, "Thanks, that works for me.", nil, nil),
+                (own, "Can you add the storage numbers?", 2, nil),
+                ("fixture-second", "Here is the latest export.", nil, "storage-report.pdf"),
+                (own, "Perfect, thank you!", nil, nil),
+            ]
+            fixtureChannelMessages = lines.enumerated().map { index, line in
+                MessageItem(id: "fixture-thread-\(index)", sequence: UInt64(index + 1), account: line.account, text: line.text,
+                    createdAtMs: 1_793_513_600_000 + UInt64(index) * 60_000, attachmentName: line.file,
+                    attachmentMime: line.file == nil ? nil : "application/pdf", attachmentSize: line.file == nil ? nil : 182_000,
+                    unreadable: false, digest: "fixture-thread-\(index)", replySequence: line.reply, edited: false,
+                    retracted: false, attachmentDeleted: false, hidden: false)
+            }
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-hidden-reply") {
             fixtureChannelMessages = [
                 MessageItem(id: "fixture-hidden", sequence: 1, account: "fixture-peer", text: "Hidden original text",

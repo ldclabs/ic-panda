@@ -3,6 +3,45 @@ import SwiftUI
 
 struct MessagePerson: Decodable, Equatable { let name: String?; let avatarUrl: String? }
 
+/// A person is round and a conversation is a rounded square, so people never look like
+/// objects. Without a picture the first letter sits on one of three tones chosen from
+/// `seed`, by the same rule as Android's Avatar, so an account keeps its tone on both.
+struct Avatar: View {
+    enum Kind { case person, conversation }
+    private static let tones = [(Color("AvatarForest"), Color("AvatarForestInk")), (Color("AvatarSage"), Color("AvatarSageInk")),
+                                (Color("AvatarAmber"), Color("AvatarAmberInk"))]
+    let label: String
+    let seed: String
+    var image: UIImage?
+    var kind: Kind
+    @ScaledMetric private var size: CGFloat
+
+    init(_ label: String, seed: String, image: UIImage? = nil, kind: Kind = .person, size: CGFloat = 40) {
+        self.label = label; self.seed = seed; self.image = image; self.kind = kind
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
+
+    var body: some View {
+        let tone = Self.tone(seed)
+        Group {
+            if let image { Image(uiImage: image).resizable().scaledToFill() }
+            else {
+                Text(label.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? "?")
+                    .font(size >= 40 ? .headline : .footnote.weight(.semibold)).foregroundStyle(tone.1)
+            }
+        }.frame(width: size, height: size).background(tone.0)
+            .clipShape(kind == .person ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)))
+            .accessibilityHidden(true)
+    }
+
+    /// Java's String.hashCode over UTF-16, as `Math.floorMod(seed.hashCode(), 3)` on Android.
+    static func tone(_ seed: String) -> (Color, Color) {
+        var hash: Int32 = 0
+        for unit in seed.utf16 { hash = hash &* 31 &+ Int32(unit) }
+        return tones[Int((hash % 3 + 3) % 3)]
+    }
+}
+
 extension View {
     /// Lazy rows request their displayed identity when they appear or the workspace resumes.
     func loadMessagePerson(_ account: String?, model: SessionModel) -> some View {
@@ -23,11 +62,7 @@ struct MessageIdentity: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
             : AnyLayout(HStackLayout(spacing: 10))
         layout {
-            Group {
-                if let avatar = model.people.avatar(account) { Image(uiImage: avatar).resizable().scaledToFill() }
-                else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(7) }
-            }.frame(width: 36, height: 36).background(Theme.fill)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall)).foregroundStyle(Theme.forest).accessibilityHidden(true)
+            Avatar(name ?? account, seed: account, image: model.people.avatar(account), size: 36)
             VStack(alignment: .leading, spacing: 3) {
                 Text(name ?? account).font(.subheadline.weight(.medium))
                     .lineLimit(showID ? nil : 1)

@@ -102,10 +102,7 @@ private struct LocalAccountRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let bytes = identity?.avatar, let image = UIImage(data: bytes) {
-                Image(uiImage: image).resizable().scaledToFill().frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSmall))
-            } else { ObjectIcon(glyph: .account) }
+            Avatar(identity?.name ?? account.account, seed: account.account, image: identity?.avatar.flatMap(UIImage.init(data:)), size: 36)
             VStack(alignment: .leading, spacing: 4) {
                 if let name = identity?.name {
                     Text(name).font(.headline).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)

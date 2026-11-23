@@ -376,25 +376,24 @@ private struct ChannelRow: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private var weight: Font.Weight { channel.unread > 0 ? .semibold : .medium }
-    private var preview: String {
+    /// A draft leads with its label in the accent colour, as Messages marks drafts.
+    private var preview: Text {
         let text = model.drafts[channel.id] ?? channel.draft
-        if !text.isEmpty { return String(localized: "Draft: ") + text }
-        if let file = model.attachmentDrafts[channel.id]?.first { return String(localized: "Draft: ") + file.name }
-        return channel.preview
+        let draft = !text.isEmpty ? text : model.attachmentDrafts[channel.id]?.first?.name
+        guard let draft else { return Text(channel.preview) }
+        return Text("Draft: ").foregroundStyle(Theme.forest) + Text(draft)
     }
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(String(channel.name.prefix(1)).uppercased()).font(.body.weight(.semibold)).foregroundStyle(Theme.forest)
-                .frame(width: 36, height: 36).background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radius))
-                .accessibilityHidden(true)
+            Avatar(channel.name, seed: channel.id, kind: .conversation)
             VStack(alignment: .leading, spacing: 3) {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 6) { title; Spacer(minLength: 8); time }
                     VStack(alignment: .leading) { title; time }
                 }
                 HStack(alignment: .top, spacing: 6) {
-                    Text(preview)
+                    preview
                         .font(.subheadline).foregroundStyle(channel.unread > 0 ? .primary : .secondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -11,6 +11,7 @@ struct ConversationView: View {
     }
     @Environment(SessionModel.self) private var model
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var messages: [MessageItem] = []
     @State private var queuedAt: ContinuousClock.Instant?
     @State private var outbox: [OutgoingMessage] = []
@@ -64,7 +65,7 @@ struct ConversationView: View {
         let last = shown.last
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4) {
+                LazyVStack(alignment: .leading, spacing: 2) {
                     // Saved messages stay on screen without comment while newer ones arrive.
                     if shown.isEmpty && (refreshing || !messagesKnown && !loadFailed) {
                         ProgressView("Syncing…").frame(maxWidth: .infinity).accessibilityIdentifier("conversation.loading")
@@ -99,12 +100,13 @@ struct ConversationView: View {
                             bubble(row, own: row.message.account == own, references: references) { sequence in
                                 actionTask = Task { await reveal(sequence, proxy: proxy) }
                             }
-                        }.padding(.top, row.firstOfGroup ? 8 : 0).id(row.id)
+                        }.padding(.top, row.firstOfGroup ? 10 : 0).id(row.id)
                     }
                     // Pending and confirmed rows need distinct IDs so
                     // LazyVStack replaces the sending UI after an ACK.
                     ForEach(pending, id: \.id) { item in
                         pendingBubble(item).id("pending:\(item.id)").padding(.top, 8)
+                            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                     }
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
@@ -113,7 +115,7 @@ struct ConversationView: View {
                             if let last { await model.channelRead(channel.id, through: last.sequence) }
                         }
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
-                }.padding(16)
+                }.padding(16).animation(.easeOut(duration: 0.25), value: pending.map(\.id))
             }.defaultScrollAnchor(.bottom)
                 .defaultScrollAnchor(shown.isEmpty && pending.isEmpty ? .center : .bottom, for: .alignment)
                 .scrollDismissesKeyboard(.interactively)
@@ -166,7 +168,12 @@ struct ConversationView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Button { showingSettings = true } label: { Text(currentChannel.name).font(.headline).lineLimit(1) }
+                    Button { showingSettings = true } label: {
+                        HStack(spacing: 8) {
+                            Avatar(currentChannel.name, seed: currentChannel.id, kind: .conversation, size: 28)
+                            Text(currentChannel.name).font(.headline).lineLimit(1)
+                        }
+                    }
                         .buttonStyle(.plain).accessibilityHint("Conversation settings").accessibilityIdentifier("conversation.title")
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -263,18 +270,19 @@ struct ConversationView: View {
 
     private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
         let message = row.message
-        return ConversationMessageRow(own: own, name: model.personName(message.account), avatar: model.people.avatar(message.account), showsPortrait: row.firstOfGroup) {
+        return ConversationMessageRow(own: own, account: message.account, name: model.personName(message.account), avatar: model.people.avatar(message.account),
+                                      firstOfGroup: row.firstOfGroup, lastOfGroup: row.lastOfGroup) {
             VStack(alignment: .leading, spacing: 6) {
                 if !own && row.firstOfGroup { Text(model.personName(message.account)).font(.footnote.weight(.semibold)).foregroundStyle(Theme.forest).lineLimit(1) }
                 if message.hidden {
                     Text("Hidden message").foregroundStyle(.secondary)
                     Button("Show") { actionTask = Task { await hide(message, hidden: false) } }
                 } else {
-                    if let reference = message.replySequence { replyPreview(reference, original: references[reference], reveal: reveal) }
+                    if let reference = message.replySequence { replyPreview(reference, original: references[reference], own: own, reveal: reveal) }
                     if message.retracted { Text("Message withdrawn").italic().foregroundStyle(.secondary) }
                     else if message.unreadable { Text("This message could not be verified.").foregroundStyle(.secondary) }
                     else if !message.text.isEmpty { Text(message.text) }
-                    if let name = message.attachmentName { attachment(message, name: name) }
+                    if let name = message.attachmentName { attachment(message, name: name, own: own) }
                     if message.edited || row.lastOfGroup {
                         HStack(spacing: 4) {
                             if message.edited { Text("Edited") }
@@ -282,7 +290,7 @@ struct ConversationView: View {
                                 Text(ConversationTimeline.date(message.createdAtMs), style: .time)
                                 if own { Image(systemName: "checkmark").accessibilityLabel("Sent") }
                             }
-                        }.font(.caption2).foregroundStyle(.secondary)
+                        }.font(.footnote).foregroundStyle(.secondary)
                     }
                 }
             }.accessibilityIdentifier("message.content.\(message.sequence)")
@@ -292,7 +300,7 @@ struct ConversationView: View {
             .loadMessagePerson(row.firstOfGroup ? message.account : nil, model: model)
     }
 
-    private func replyPreview(_ reference: UInt64, original: MessageItem?, reveal: @escaping (UInt64) -> Void) -> some View {
+    private func replyPreview(_ reference: UInt64, original: MessageItem?, own: Bool, reveal: @escaping (UInt64) -> Void) -> some View {
         Button { reveal(reference) } label: {
             VStack(alignment: .leading, spacing: 3) {
                 if let original {
@@ -300,11 +308,11 @@ struct ConversationView: View {
                         .loadMessagePerson(original.account, model: model)
                     Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.footnote).lineLimit(2)
                 } else { Text("Reply to message \(reference)").font(.footnote) }
-            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radiusSmall))
+            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(.bubbleInset(own: own), in: RoundedRectangle(cornerRadius: Theme.radiusSmall))
         }.buttonStyle(.plain).accessibilityLabel("Open original message")
     }
 
-    @ViewBuilder private func attachment(_ message: MessageItem, name: String) -> some View {
+    @ViewBuilder private func attachment(_ message: MessageItem, name: String, own: Bool) -> some View {
         let secret = message.attachmentMime == "application/vnd.dmsg.secret-package"
         let saved = receivedFiles[message.sequence]
         Button {
@@ -323,7 +331,7 @@ struct ConversationView: View {
                 if secret { Text("Preview and choose what to import").font(.footnote) }
             }.font(.subheadline).padding(10)
         }.disabled(message.unreadable || message.attachmentDeleted || receiving != nil)
-            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.radius))
+            .background(.bubbleInset(own: own), in: RoundedRectangle(cornerRadius: Theme.radius))
     }
 
     @ViewBuilder private func messageActions(_ message: MessageItem, own: Bool) -> some View {
@@ -345,7 +353,7 @@ struct ConversationView: View {
     private func pendingBubble(_ item: OutgoingMessage) -> some View {
         let active = model.messageSending.active.contains(item.id), queued = model.messageSending.contains(item.id)
         let unconfirmed = item.error == "EXECUTION_UNKNOWN" || item.attempted && item.error == nil
-        return ConversationMessageRow(own: true, name: "", avatar: nil, showsPortrait: false) {
+        return ConversationMessageRow(own: true, account: "", name: "", avatar: nil) {
             VStack(alignment: .leading, spacing: 6) {
                 if !item.text.isEmpty { Text(item.text) }
                 if let name = item.attachmentName { Label(name, systemImage: "doc").font(.subheadline) }

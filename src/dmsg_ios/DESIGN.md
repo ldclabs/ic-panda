@@ -7,6 +7,7 @@ colors:                       # Shared/Palette.xcassets, light / dark
   PaperGrouped: ['#EEF2EB', '#000000']  # grouped pages: settings, details, forms
   Card: ['#FFFFFF', '#1A2621']          # cards the app draws itself
   Fill: ['#E8F0E9', '#233A30']          # icon tiles, quotes, selected capsules
+  AvatarForest/Sage/Amber: tones behind initials, each with an Ink pair (Android Avatar.kt)
 radii: { small: 8, regular: 12, large: 18 }   # NativeTheme.radius*
 type:
   row-title: body (unread or emphasis: semibold)
@@ -52,6 +53,17 @@ The diagnosis behind it is the 2026-11-23 UI quality review.
   card above it for the reply, attachments and warnings. The send button appears once
   there is something to send.
 - Short sheets (filters, naming a file) open at `.medium`.
+
+## People and conversations
+
+- `Avatar` draws people as circles and conversations as rounded squares. Without a
+  picture, the first letter sits on one of three tones picked from the account or
+  conversation ID with Java's `String.hashCode`, so a person looks the same on Android.
+- One's own bubbles are `ForestFill` with white text in both modes; everyone else's are
+  `Card`. Quotes and attachments inside a bubble use `bubbleInset(own:)`.
+- Consecutive messages from one sender form a group: 2 pt apart, the corners on the
+  sender's side tighten, the portrait and name show once, the time at the end.
+- A queued message slides in from the bottom; with Reduce Motion it only fades.
 
 ## Words on screen
 
