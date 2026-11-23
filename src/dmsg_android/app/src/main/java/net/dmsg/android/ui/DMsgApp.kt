@@ -19,6 +19,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
@@ -154,13 +156,19 @@ import kotlinx.coroutines.launch
                         val browsing = !wide && id.isEmpty() && page.page in browseRoutes
                         val bar = !browsing && (wide || !conversation || !current || threadSearch == BrowseSearchMode.Browse)
                         val back = if (key.depth > 1) backButton else null
+                        val parent = navigation.stacks.getValue(key.workspace).getOrNull(key.depth - 2)?.page
+                        // The activity bell belongs to workspace roots and the scopes beside them.
+                        val pageRoot = page.page in destinations.map { it.id }
+                        val rootLike = pageRoot && (wide || id.isEmpty()) || id.isEmpty() && (page.page == "inbox" && parent == "messages" || page.page == "cloud-files" && parent == "files")
+                        val pageBar = remember { PageBar() }
                         val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
                         Column(Modifier.fillMaxSize().then(if (bar) Modifier.nestedScroll(collapse.nestedScrollConnection) else Modifier.statusBarsPadding())) {
                             if (bar) {
-                                val pageRoot = page.page in destinations.map { it.id }
-                                val label = when {
+                                val label = pageBar.title ?: when {
                                     local && page.page == "account" -> str(R.string.offline_account)
                                     conversation -> channelListing.valueOrNull()?.find { it.id == id }?.name ?: str(R.string.text_conversation_654b88b)
+                                    // A vault item names itself through ScreenBar.
+                                    page.page == "vault" && id.isNotEmpty() && !wide -> ""
                                     current && scopeList -> str(destinations.first { it.id == key.workspace.route }.label)
                                     pageRoot -> str(destinations.first { it.id == page.page }.label)
                                     else -> title(page.page)
@@ -169,13 +177,14 @@ import kotlinx.coroutines.launch
                                 val navigationIcon: @Composable () -> Unit = { back?.invoke() }
                                 val actions: @Composable RowScope.() -> Unit = {
                                     if (!local && page.page == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
-                                    activityButton()
+                                    pageBar.actions?.invoke(this)
+                                    if (rootLike) activityButton()
                                 }
                                 val colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page,
                                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
-                                // An open item (vault item, file or conversation) shows its own title, and wide roots keep one
-                                // bar over both panes, so those bars stay compact; other pages show a large title that collapses.
-                                if (pageRoot && (wide || id.isNotEmpty())) TopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors)
+                                // Wide roots keep one bar over both panes and a conversation or an open file stays compact;
+                                // other pages, a vault item included, show a large title that collapses.
+                                if (pageRoot && (wide || conversation || page.page == "files" && id.isNotEmpty())) TopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors)
                                 else LargeTopAppBar(title, navigationIcon = navigationIcon, actions = actions, colors = colors, scrollBehavior = collapse)
                             }
                             if (conversation && current) {
@@ -185,7 +194,7 @@ import kotlinx.coroutines.launch
                                     if (notice.visuals.message != headerNotice) Snackbar(notice)
                                 }
                             }
-                            CompositionLocalProvider(LocalBrowseChrome provides BrowseChrome(back, activityButton)) {
+                            CompositionLocalProvider(LocalBrowseChrome provides BrowseChrome(if (bar) null else back, if (rootLike && !bar) activityButton else { {} }), LocalPageBar provides pageBar) {
                                 Box(Modifier.weight(1f).fillMaxWidth()) { content() }
                             }
                         }
@@ -209,7 +218,7 @@ import kotlinx.coroutines.launch
                                     when (route) {
                                     "vault" -> {
                                         if (wide) WorkspacePanes(fold, list = { VaultScreen(client, ::select) }, detail = {
-                                            if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) } else EmptyState(str(R.string.text_choose_an_item_3782357), glyph = R.drawable.glyph_vault)
+                                            if (selected.isNotEmpty()) DetailPane { SecretScreen(client, selected) { client.vaultDrafts.open(it) } } else EmptyState(str(R.string.text_choose_an_item_3782357), glyph = R.drawable.glyph_vault)
                                         }) else if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) }
                                         else VaultScreen(client, ::select)
                                     }
@@ -345,10 +354,9 @@ import kotlinx.coroutines.launch
             NoticeBanner(client)
             NoticeDestinationDialog(client)
             QrScannerHost(client, state.concealed)
-            if (showEditor && state.unlocked && !state.concealed) ModalBottomSheet(onDismissRequest = ::closeEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = {
-                if (it == SheetValue.Hidden && client.vaultDrafts.dirty) { discardEditor = true; false } else true
-            })) {
-                OnCard { VaultEditor(client, close = ::closeEditor) }
+            if (showEditor && state.unlocked && !state.concealed) Dialog(onDismissRequest = ::closeEditor,
+                properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnClickOutside = false)) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.page) { VaultEditor(client, close = ::closeEditor) }
             }
             if (discardEditor && state.unlocked && !state.concealed) AlertDialog(onDismissRequest = { discardEditor = false }, title = { Text(str(R.string.text_keep_your_changes_01fdac5)) },
                 confirmButton = { TextButton(onClick = { discardEditor = false; client.vaultDrafts.keep() }) { Text(str(R.string.text_keep_draft_89639c8)) } },

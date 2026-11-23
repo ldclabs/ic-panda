@@ -1161,8 +1161,7 @@ class WorkspaceFlowTest {
         capture("qa-vault-detail-light")
         compose.runOnIdle { client.dark(true) }
         capture("qa-vault-detail-dark")
-        compose.onNodeWithContentDescription("Field actions · Password").performClick()
-        compose.onNodeWithText("Reveal").performClick()
+        compose.onNodeWithContentDescription("Reveal · Password").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Sample-only password").fetchSemanticsNodes().isNotEmpty() }
         compose.runOnIdle { client.lock() }
         compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
@@ -1757,7 +1756,8 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.vault.browse() }
         compose.waitUntil(10_000) { client.vault.listing.value()?.items?.any { it.title == "Updated studio account" } == true }
         compose.onNodeWithText("Updated studio account").performClick()
-        compose.onNodeWithText("Version history").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.onNodeWithText("Version history").performClick()
         compose.waitUntil(10_000) { client.vaultHistory.history.value()?.versions?.size == 3 }
         compose.runOnIdle {
             val changes = client.vaultHistory.history.value()!!.versions.first().changes
@@ -2062,7 +2062,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Studio account").performClick()
         compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
         val item = client.vault.detail.value()!!
-        compose.onNodeWithContentDescription("Field actions · Password").performClick()
+        compose.onNodeWithTag("vault-field:password").performTouchInput { longClick() }
         compose.onNodeWithText("Field reference and rotation").performClick()
         compose.waitUntil(10_000) { client.secretTools.reference.state.value is ReadState.Ready }
         compose.onNodeWithText("Sample-only password").assertDoesNotExist()
@@ -2097,7 +2097,8 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Studio account").performClick()
         compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
         val item = client.vault.detail.value()!!
-        compose.onNodeWithText("Share secret snapshot").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.onNodeWithText("Share secret snapshot").performClick()
         compose.waitUntil(10_000) { client.secretSharing.draft.value != null }
         assertFalse(client.secretSharing.draft.value!!.selected)
         val label = item.fields.first { it.id == "password" }.label.ifBlank { net.dmsg.android.platform.str(R.string.text_password_347d7fc) }

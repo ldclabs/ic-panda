@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.semantics
@@ -47,7 +48,6 @@ fun vaultKindName(kind: String): String = when (kind) {
         if (next != query) scroll.requestScrollToItem(0)
         client.vault.browse(next)
     }
-    var types by remember { mutableStateOf(false) }
     var filters by remember { mutableStateOf(false) }
     var tools by remember { mutableStateOf(false) }
     val savedAccounts by client.accountWorkspace.accounts.state.collectAsStateWithLifecycle()
@@ -99,18 +99,13 @@ fun vaultKindName(kind: String): String = when (kind) {
                         BrowseChoice(str(R.string.text_favorites_960eb5d), query.favorites, toggle = true) { changeQuery(query.copy(favorites = !query.favorites)) }
                         BrowseChoice(str(R.string.browse_passwords), query.kind == "login") { changeQuery(query.copy(kind = "login")) }
                         BrowseChoice(vaultKindName("note"), query.kind == "note") { changeQuery(query.copy(kind = "note")) }
-                        Box {
-                            val other = query.kind?.takeUnless { it == "login" || it == "note" }
-                            TextButton(onClick = { types = true }) {
-                                Text(other?.let(::vaultKindName) ?: str(R.string.text_type_6172196))
-                                Icon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(16.dp))
-                            }
-                            DropdownMenu(types, { types = false }) {
-                                DropdownMenuItem(text = { Text(str(R.string.text_all_types_338629e)) }, onClick = { changeQuery(query.copy(kind = null)); types = false })
-                                vaultKinds().forEach { kind ->
-                                    DropdownMenuItem(text = { Text(vaultKindName(kind) + (page?.kinds?.get(kind)?.let { " · " + localizedNumber(it) } ?: "")) },
-                                        onClick = { changeQuery(query.copy(kind = kind)); types = false })
-                                }
+                        val other = query.kind?.takeUnless { it == "login" || it == "note" }
+                        MenuChoice(other?.let(::vaultKindName) ?: str(R.string.text_type_6172196), other != null) { close ->
+                            DropdownMenuItem(text = { Text(str(R.string.text_all_types_338629e)) }, onClick = { close(); changeQuery(query.copy(kind = null)) })
+                            vaultKinds().forEach { kind ->
+                                DropdownMenuItem(text = { Text(vaultKindName(kind) + (page?.kinds?.get(kind)?.let { " · " + localizedNumber(it) } ?: "")) },
+                                    trailingIcon = if (query.kind == kind) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                    onClick = { close(); changeQuery(query.copy(kind = kind)) })
                             }
                         }
                     }
@@ -123,7 +118,8 @@ fun vaultKindName(kind: String): String = when (kind) {
                         trailing = {
                             if (item.reserved) Icon(Icons.Outlined.VerifiedUser, str(R.string.text_managed_by_dmsg_35b3681), Modifier.size(18.dp))
                             if (item.conflict) Icon(Icons.Outlined.WarningAmber, str(R.string.text_version_conflict_f71b5e8), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
-                            if (!item.synced && item.saveState != "local_only") Icon(Icons.Outlined.CloudUpload, str(R.string.text_waiting_to_sync_865c0a0), Modifier.size(18.dp))
+                            if (!item.synced && item.saveState != "local_only") Icon(Icons.Outlined.Sync, str(R.string.text_waiting_to_sync_865c0a0), Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.favorite) Icon(Icons.Outlined.Star, str(R.string.text_favorite_1fd85c7), Modifier.size(18.dp))
                         })
                 }
@@ -145,32 +141,34 @@ fun vaultKindName(kind: String): String = when (kind) {
     if (filters) VaultFilterSheet(query, page, ::changeQuery, { filters = false })
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Sort as a radio list, tags as chips, and Clear and Done at the bottom. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable private fun VaultFilterSheet(query: VaultQuery, page: VaultListing?, update: (VaultQuery) -> Unit, close: () -> Unit) {
-    var tags by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = close) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageMargin(), vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()).padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(str(R.string.browse_filters), style = MaterialTheme.typography.titleLarge)
             page?.let {
-                Text(quantity(R.plurals.items, it.total), style = MaterialTheme.typography.bodyMedium)
-                Text(str(R.string.text_all_eae0ae1) + " · " + localizedNumber(it.all) + "    " +
-                    str(R.string.text_favorites_960eb5d) + " · " + localizedNumber(it.favorites), style = MaterialTheme.typography.bodySmall)
+                Text(quantity(R.plurals.items, it.total) + " · " + str(R.string.text_favorites_960eb5d) + " · " + localizedNumber(it.favorites),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            SortMenu(query.sort, listOf("title" to R.string.text_title_4c18fa6, "updated" to R.string.text_updated_9306ca8)) { update(query.copy(sort = it)) }
-            Box {
-                TextButton(onClick = { tags = true }) {
-                    Text(str(R.string.text_tags_33e9c4d) + " · " + (query.tag ?: str(R.string.text_all_eae0ae1)))
-                    Icon(Icons.Outlined.KeyboardArrowDown, null)
-                }
-                DropdownMenu(tags, { tags = false }) {
-                    DropdownMenuItem(text = { Text(str(R.string.text_all_tags_b8ceb46)) }, onClick = { tags = false; update(query.copy(tag = null)) })
-                    page?.tags.orEmpty().forEach { tag ->
-                        DropdownMenuItem(text = { Text(tag) }, onClick = { tags = false; update(query.copy(tag = tag)) })
-                    }
+            Section(title = str(R.string.sort_by)) {
+                listOf("title" to R.string.text_title_4c18fa6, "updated" to R.string.text_updated_9306ca8).forEach { (key, label) ->
+                    RadioChoiceRow(str(label), query.sort == key) { update(query.copy(sort = key)) }
                 }
             }
-            TextButton(onClick = { update(VaultQuery(text = query.text, sort = query.sort, trash = query.trash)) }) { Text(str(R.string.text_clear_filters_5ea61be)) }
-            TextButton(onClick = close) { Text(str(R.string.text_done_9ffd599)) }
+            val tags = page?.tags.orEmpty()
+            if (tags.isNotEmpty()) {
+                SectionTitle(str(R.string.text_tags_33e9c4d))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrowseChoice(str(R.string.text_all_tags_b8ceb46), query.tag == null) { update(query.copy(tag = null)) }
+                    tags.forEach { tag -> BrowseChoice(tag, query.tag == tag) { update(query.copy(tag = tag)) } }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                TextButton(onClick = { update(VaultQuery(text = query.text, sort = query.sort, trash = query.trash)) }) { Text(str(R.string.text_clear_filters_5ea61be)) }
+                Button(onClick = close) { Text(str(R.string.text_done_9ffd599)) }
+            }
         }
     }
 }

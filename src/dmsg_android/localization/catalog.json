@@ -2553,12 +2553,6 @@
     "ios": "Created",
     "ios_suffix": " · "
   },
-  "text_created_c1dc4dc": {
-    "en": "Created ",
-    "zh-Hans": "创建于 ",
-    "ios": "Created",
-    "ios_suffix": " "
-  },
   "text_created_on_new_device_a77d6d9": {
     "en": "Created on new device",
     "zh-Hans": "新设备已创建"
@@ -6979,10 +6973,6 @@
     "zh-Hans": "保存名称",
     "ios": "Save name"
   },
-  "text_save_on_this_device_dfe466d": {
-    "en": "Save on this device",
-    "zh-Hans": "保存到本机"
-  },
   "text_save_receiving_policy_8dcc597": {
     "en": "Save receiving policy",
     "zh-Hans": "保存接收规则",
@@ -8853,12 +8843,6 @@
     "en": "Update this device's wallet keys?",
     "zh-Hans": "更新本机钱包钥匙？"
   },
-  "text_updated_7676bd2": {
-    "en": "Updated ",
-    "zh-Hans": "更新于 ",
-    "ios": "Updated",
-    "ios_suffix": " "
-  },
   "text_updated_9306ca8": {
     "en": "Updated",
     "zh-Hans": "更新时间",
@@ -9641,5 +9625,21 @@
     "en": "Without a cloud backup",
     "zh-Hans": "没有云端备份",
     "ios": "Without a cloud backup"
+  },
+  "more": {
+    "en": "More",
+    "ios": "More"
+  },
+  "synced": {
+    "en": "Synced",
+    "ios": "Synced"
+  },
+  "in_trash": {
+    "en": "In Trash",
+    "ios": "In Trash"
+  },
+  "item_information": {
+    "en": "Item information",
+    "ios": "Item information"
   }
 }

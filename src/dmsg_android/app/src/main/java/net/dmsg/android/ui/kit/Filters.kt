@@ -2,6 +2,7 @@ package net.dmsg.android.ui.kit
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -54,19 +56,32 @@ import net.dmsg.android.ui.card
  * behave as tabs; independent filters such as Favorites are check boxes.
  */
 @Composable internal fun BrowseChoice(label: String, selected: Boolean, toggle: Boolean = false, onClick: () -> Unit) {
+    ChoiceChip(label, selected, if (toggle) Modifier.toggleable(selected, role = Role.Checkbox) { onClick() }
+        else Modifier.selectable(selected, role = Role.Tab, onClick = onClick))
+}
+
+/** A filter chip that opens a menu of exclusive choices; it is selected while one of them applies. */
+@Composable internal fun MenuChoice(label: String, selected: Boolean, modifier: Modifier = Modifier, content: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        ChoiceChip(label, selected, modifier.clickable(role = Role.DropdownList) { expanded = true }, trailing = Icons.Outlined.ArrowDropDown)
+        DropdownMenu(expanded, { expanded = false }) { content { expanded = false } }
+    }
+}
+
+@Composable private fun ChoiceChip(label: String, selected: Boolean, modifier: Modifier, trailing: ImageVector? = null) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
-    val select = if (toggle) Modifier.toggleable(selected, role = Role.Checkbox) { onClick() }
-        else Modifier.selectable(selected, role = Role.Tab, onClick = onClick)
     // The chip is 32 dp; the reserved 48 dp extends its touch target.
     Box(Modifier.minimumInteractiveComponentSize(), contentAlignment = Alignment.Center) {
-        Surface(Modifier.clip(shape).then(select), shape = shape, color = if (selected) colors.secondaryContainer else Color.Transparent,
+        Surface(Modifier.clip(shape).then(modifier), shape = shape, color = if (selected) colors.secondaryContainer else Color.Transparent,
             contentColor = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
             border = if (selected) null else BorderStroke(1.dp, colors.outlineVariant)) {
-            Row(Modifier.heightIn(min = 32.dp).padding(start = if (selected) 8.dp else 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
+            Row(Modifier.heightIn(min = 32.dp).padding(start = if (selected) 8.dp else 16.dp, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(18.dp))
                 Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                trailing?.let { Icon(it, null, Modifier.size(18.dp)) }
             }
         }
     }

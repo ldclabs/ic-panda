@@ -1,5 +1,37 @@
 # Android implementation validation
 
+## Vault list, item, editor and filters — 2026-11-23
+
+Pages can now declare their bar title and actions with `ScreenBar`; on wide
+windows the detail pane draws its own compact bar for them, and the activity
+bell stays on workspace roots and their scopes. A vault item shows its title as
+the large page title, favourite and edit in the bar, and version history,
+sharing and Move to trash under ⋮. Fields are grouped rows that copy on tap,
+with inline reveal, open and copy icons and a long-press menu for large type
+and the field reference; one-time codes show a countdown ring. Item
+information uses relative times and shows the full time on a tap. One banner
+at most replaces the stacked notices. The editor is a full-screen dialog with
+Close and Save in its bar and Show and Generate as trailing icons. The list
+gained a Type chip that opens the other types, a subdued sync icon instead of
+the black cloud, and a filter sheet with a sort radio list, tag chips, and
+Clear filters and Done. Four strings (More, Synced, In Trash, Item information)
+reuse the iOS translations; three strings the old layout used were removed.
+
+On the API 36 emulator the item page was checked in light and dark, Chinese,
+Arabic (RTL) and 200% text, together with the ⋮ menu, the field long-press menu,
+the Type menu, the filter sheet, the editor in light and dark, and a 2560×1600
+window. That window first showed two back arrows, no bell once an item was
+selected, and the list's FAB over the last detail rows; all three were fixed
+and rechecked. The first light capture of the item lacked its bar actions,
+because the bar did not follow the page's recomposition; `ScreenBar` now hands
+the bar a new wrapper on every recomposition. TalkBack was not rerun.
+
+Debug: 138 JVM tests pass; lint reports no errors and 87 warnings. QA: JVM
+tests pass; the device suite ran 140 tests with 7 skipped and 2 failures, both
+from the new layout: the Arabic check looked for the year, which Item
+information now shows after a tap, and the snapshot test looked for Share
+secret snapshot outside the ⋮ menu. Both tests were updated and pass.
+
 ## Navigation, page bars and motion — 2026-11-23
 
 Phones show the Material 3 short navigation bar, flat and full width, on

@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Alanlar"</string>
     <string name="hosted_agent_ids" formatted="false">"Barındırılan ajan kimlikleri"</string>
     <string name="import_local_account" formatted="false">"Yerel hesaptan içe aktar"</string>
+    <string name="in_trash" formatted="false">"Çöp Kutusunda"</string>
+    <string name="item_information" formatted="false">"Öğe bilgileri"</string>
     <string name="join_code" formatted="false">"Karşılaştırma kodu"</string>
     <string name="join_compare_hint" formatted="false">"Onaylamadan önce her iki cihazdaki kodun aynı olduğunu doğrulayın."</string>
     <string name="join_confirm" formatted="false">"Bu oturum açma yöntemini hesaba bağla ve bu cihazı ekle"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"En az 12 karakter kullanın."</string>
     <string name="message_actions" formatted="false">"İşlemler"</string>
     <string name="message_sending" formatted="false">"Gönderme"</string>
+    <string name="more" formatted="false">"Diğer"</string>
     <string name="no_conversations_yet" formatted="false">"Henüz görüşme yok"</string>
     <string name="no_matches" formatted="false">"Eşleşen sonuç yok"</string>
     <string name="offline_account" formatted="false">"Yerel hesap"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Kasa"</string>
     <string name="signin_saved_passkey" formatted="false">"Daha önce bir geçiş anahtarı oluşturduysanız kayıtlı olanı kullanın. Yalnızca başka bir giriş kimliği gerekiyorsa yeni anahtar oluşturun."</string>
     <string name="sort_by" formatted="false">"Sıralama ölçütü"</string>
+    <string name="synced" formatted="false">"Senkronize edildi"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 dakika"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 gün"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 küçük harf, rakam, _ veya -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Şifreleri, notları ve dosyaları kaydetmeye başlamak için şifrelenmiş çalışma alanınızı oluşturun."</string>
     <string name="text_created_36ba304" formatted="false">"Oluşturulma"</string>
     <string name="text_created_ae8a09c" formatted="false">"Oluşturulma · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Oluşturulma "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Yeni cihazda oluşturuldu"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Bağlantı oluşturmak Plus veya üzerini gerektirir. Önceden alınan dosyaları yine okuyabilir, kaydedebilir ve silebilirsiniz."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Kimlik bilgisinin süresi doldu"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Önce dMsg\'de oturum açma öğeleri kaydedin."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Birleştirmeyi kaydet"</string>
     <string name="text_save_name_93b4376" formatted="false">"Adı kaydet"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Bu cihaza kaydet"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Alma politikasını kaydet"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Ayarları kaydet"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"İncelenen sürüm kaydedilsin mi?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Kopyaları güncelle"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Üyeyi güncelle"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Bu cihazın cüzdan anahtarları güncellensin mi?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Güncellendi "</string>
     <string name="text_updated_9306ca8" formatted="false">"Güncellendi"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Güncellemeler doğrulanmalı"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Şifreli veriyi arka planda yükle"</string>

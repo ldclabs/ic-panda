@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Fields"</string>
     <string name="hosted_agent_ids" formatted="false">"Hosted Agent IDs"</string>
     <string name="import_local_account" formatted="false">"Import from local account"</string>
+    <string name="in_trash" formatted="false">"In Trash"</string>
+    <string name="item_information" formatted="false">"Item information"</string>
     <string name="join_code" formatted="false">"Comparison code"</string>
     <string name="join_compare_hint" formatted="false">"Check that both devices show the same code before approving."</string>
     <string name="join_confirm" formatted="false">"Use this login for this account and add this device"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Use at least 12 characters."</string>
     <string name="message_actions" formatted="false">"Actions"</string>
     <string name="message_sending" formatted="false">"Sending"</string>
+    <string name="more" formatted="false">"More"</string>
     <string name="no_conversations_yet" formatted="false">"No conversations yet"</string>
     <string name="no_matches" formatted="false">"No matching results"</string>
     <string name="offline_account" formatted="false">"Local account"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Vault"</string>
     <string name="signin_saved_passkey" formatted="false">"Use a saved passkey if you already created one. Create a new passkey only if you need another login identity."</string>
     <string name="sort_by" formatted="false">"Sort by"</string>
+    <string name="synced" formatted="false">"Synced"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minutes"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 days"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 lowercase letters, digits, _ or -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Create your encrypted workspace to start saving passwords, notes and files."</string>
     <string name="text_created_36ba304" formatted="false">"Created"</string>
     <string name="text_created_ae8a09c" formatted="false">"Created · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Created "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Created on new device"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Creating links requires Plus or above. You can still read, save and delete files already received."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Credential expired"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Save login items in dMsg first."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Save merged version"</string>
     <string name="text_save_name_93b4376" formatted="false">"Save name"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Save on this device"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Save receiving policy"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Save settings"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Save the reviewed version?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Update copies"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Update member"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Update this device\'s wallet keys?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Updated "</string>
     <string name="text_updated_9306ca8" formatted="false">"Updated"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Updates need verification"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Upload ciphertext in background"</string>

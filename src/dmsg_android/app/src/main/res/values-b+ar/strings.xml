@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"الحقول"</string>
     <string name="hosted_agent_ids" formatted="false">"معرّفات الوكلاء المستضافة"</string>
     <string name="import_local_account" formatted="false">"استيراد من الحساب المحلي"</string>
+    <string name="in_trash" formatted="false">"في سلة المهملات"</string>
+    <string name="item_information" formatted="false">"معلومات العنصر"</string>
     <string name="join_code" formatted="false">"رمز المطابقة"</string>
     <string name="join_compare_hint" formatted="false">"تأكد من تطابق الرمزين على الجهازين قبل الموافقة."</string>
     <string name="join_confirm" formatted="false">"استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"استخدم 12 حرفًا على الأقل."</string>
     <string name="message_actions" formatted="false">"الإجراءات"</string>
     <string name="message_sending" formatted="false">"إرسال"</string>
+    <string name="more" formatted="false">"المزيد"</string>
     <string name="no_conversations_yet" formatted="false">"لا توجد محادثات بعد"</string>
     <string name="no_matches" formatted="false">"لا توجد نتائج مطابقة"</string>
     <string name="offline_account" formatted="false">"حساب محلي"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"الخزنة"</string>
     <string name="signin_saved_passkey" formatted="false">"إذا سبق أن أنشأت مفتاح مرور، فاستخدم المفتاح المحفوظ. أنشئ مفتاحًا جديدًا فقط إذا احتجت إلى هوية دخول أخرى."</string>
     <string name="sort_by" formatted="false">"ترتيب حسب"</string>
+    <string name="synced" formatted="false">"تمت المزامنة"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 دقيقة"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 يومًا"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 حرفًا لاتينيًا صغيرًا أو رقمًا أو _ أو -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"أنشئ مساحة عملك المشفّرة لبدء حفظ كلمات المرور والملاحظات والملفات."</string>
     <string name="text_created_36ba304" formatted="false">"تاريخ الإنشاء"</string>
     <string name="text_created_ae8a09c" formatted="false">"تاريخ الإنشاء · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"تاريخ الإنشاء "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"أُنشئ على الجهاز الجديد"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"يتطلب إنشاء الروابط Plus أو أعلى. لا يزال بإمكانك قراءة الملفات المستلمة وحفظها وحذفها."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"انتهت صلاحية بيانات الاعتماد"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"احفظ عناصر تسجيل الدخول في dMsg أولًا."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"حفظ الدمج"</string>
     <string name="text_save_name_93b4376" formatted="false">"حفظ الاسم"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"الحفظ على هذا الجهاز"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"حفظ سياسة الاستلام"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"حفظ الإعدادات"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"حفظ الإصدار الذي راجعته؟"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"تحديث النسخ"</string>
     <string name="text_update_member_a6345ca" formatted="false">"تحديث العضو"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"تحديث مفاتيح محفظة هذا الجهاز؟"</string>
-    <string name="text_updated_7676bd2" formatted="false">"آخر تحديث "</string>
     <string name="text_updated_9306ca8" formatted="false">"آخر تحديث"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"التحديثات بحاجة إلى تحقق"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"رفع النص المشفّر في الخلفية"</string>

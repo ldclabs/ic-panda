@@ -93,6 +93,8 @@ class LanguageFlowTest {
             if (tag == "ar") {
                 val created = java.util.Calendar.getInstance().apply { timeInMillis = client.vault.detail.value()!!.createdAt.toLong() }
                 val year = java.text.NumberFormat.getIntegerInstance(java.util.Locale.forLanguageTag(tag)).apply { isGroupingUsed = false }.format(created.get(java.util.Calendar.YEAR))
+                // Item information shows a relative time; a tap reveals the full date.
+                compose.onNodeWithText(str(R.string.text_created_36ba304)).performScrollTo().performClick()
                 assertTrue("Date digits follow the selected Arabic locale", compose.onAllNodes(hasText(year, substring = true)).fetchSemanticsNodes().isNotEmpty())
             }
             capture("$tag-detail", "demo@example.test")

@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Pola"</string>
     <string name="hosted_agent_ids" formatted="false">"Identyfikatory hostowanych agentów"</string>
     <string name="import_local_account" formatted="false">"Importuj z konta lokalnego"</string>
+    <string name="in_trash" formatted="false">"W Koszu"</string>
+    <string name="item_information" formatted="false">"Informacje o elemencie"</string>
     <string name="join_code" formatted="false">"Kod porównawczy"</string>
     <string name="join_compare_hint" formatted="false">"Przed zatwierdzeniem sprawdź, czy oba urządzenia wyświetlają ten sam kod."</string>
     <string name="join_confirm" formatted="false">"Użyj tej metody logowania do tego konta i dodaj to urządzenie"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Użyj co najmniej 12 znaków."</string>
     <string name="message_actions" formatted="false">"Działania"</string>
     <string name="message_sending" formatted="false">"Wysyłanie"</string>
+    <string name="more" formatted="false">"Więcej"</string>
     <string name="no_conversations_yet" formatted="false">"Nie ma jeszcze żadnych rozmów"</string>
     <string name="no_matches" formatted="false">"Brak pasujących wyników"</string>
     <string name="offline_account" formatted="false">"Konto lokalne"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Sejf"</string>
     <string name="signin_saved_passkey" formatted="false">"Jeśli klucz dostępu został już utworzony, użyj zapisanego. Nowy utwórz tylko wtedy, gdy potrzebujesz innej tożsamości logowania."</string>
     <string name="sort_by" formatted="false">"Sortuj według"</string>
+    <string name="synced" formatted="false">"Zsynchronizowane"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minut"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 dni"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 małych liter, cyfr, _ lub -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Utwórz zaszyfrowany obszar roboczy, aby rozpocząć zapisywanie haseł, notatek i plików."</string>
     <string name="text_created_36ba304" formatted="false">"Utworzono"</string>
     <string name="text_created_ae8a09c" formatted="false">"Utworzono · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Utworzono "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Utworzono na nowym urządzeniu"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Tworzenie linków wymaga Plus lub wyższego planu. Nadal możesz czytać, zapisywać i usuwać już odebrane pliki."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Poświadczenie wygasło"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Najpierw zapisz dane logowania w dMsg."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Zapisz połączenie"</string>
     <string name="text_save_name_93b4376" formatted="false">"Zapisz nazwę"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Zapisz na tym urządzeniu"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Zapisz zasady otrzymywania"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Zapisz ustawienia"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Zapisać sprawdzoną wersję?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Zaktualizuj kopie"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Zaktualizuj członka"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Zaktualizować klucze portfela tego urządzenia?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Zaktualizowano "</string>
     <string name="text_updated_9306ca8" formatted="false">"Zaktualizowano"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Aktualizacje wymagają weryfikacji"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Prześlij zaszyfrowane dane w tle"</string>

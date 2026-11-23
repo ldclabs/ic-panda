@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
     <string name="hosted_agent_ids" formatted="false">"হোস্ট করা এজেন্ট আইডি"</string>
     <string name="import_local_account" formatted="false">"স্থানীয় অ্যাকাউন্ট থেকে আমদানি করুন"</string>
+    <string name="in_trash" formatted="false">"ট্র্যাশে"</string>
+    <string name="item_information" formatted="false">"আইটেমের তথ্য"</string>
     <string name="join_code" formatted="false">"মেলানোর কোড"</string>
     <string name="join_compare_hint" formatted="false">"অনুমোদনের আগে দুই ডিভাইসে দেখানো কোড মিলিয়ে নিন।"</string>
     <string name="join_confirm" formatted="false">"এই অ্যাকাউন্টে এই লগইন ব্যবহার করুন এবং ডিভাইসটি যোগ করুন"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"অন্তত ১২টি অক্ষর ব্যবহার করুন।"</string>
     <string name="message_actions" formatted="false">"কাজ"</string>
     <string name="message_sending" formatted="false">"প্রেরণ"</string>
+    <string name="more" formatted="false">"আরও"</string>
     <string name="no_conversations_yet" formatted="false">"এখনো কোনো কথোপকথন নেই"</string>
     <string name="no_matches" formatted="false">"মিলে যাওয়া ফলাফল নেই"</string>
     <string name="offline_account" formatted="false">"স্থানীয় অ্যাকাউন্ট"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"ভল্ট"</string>
     <string name="signin_saved_passkey" formatted="false">"আগে পাসকি তৈরি করে থাকলে সংরক্ষিত পাসকি ব্যবহার করুন। অন্য লগইন পরিচয় প্রয়োজন হলেই শুধু নতুন পাসকি তৈরি করুন।"</string>
     <string name="sort_by" formatted="false">"সাজানোর ক্রম"</string>
+    <string name="synced" formatted="false">"সিঙ্ক করা হয়েছে"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 মিনিট"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 দিন"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40টি ছোট হাতের অক্ষর, সংখ্যা, _ বা -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"পাসওয়ার্ড, নোট এবং ফাইল সংরক্ষণ শুরু করতে আপনার এনক্রিপ্ট করা ওয়ার্কস্পেস তৈরি করুন৷"</string>
     <string name="text_created_36ba304" formatted="false">"তৈরি হয়েছে"</string>
     <string name="text_created_ae8a09c" formatted="false">"তৈরি হয়েছে · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"তৈরি হয়েছে "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"নতুন ডিভাইসে তৈরি হয়েছে"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"লিংক তৈরির জন্য Plus বা তার বেশি দরকার। ইতিমধ্যে পাওয়া ফাইল পড়া, সংরক্ষণ ও মুছে ফেলা যায়।"</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"শংসাপত্রের মেয়াদ শেষ"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"আগে dMsg-এ লগইন আইটেম সংরক্ষণ করুন।"</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"একত্রীকরণ সংরক্ষণ করুন"</string>
     <string name="text_save_name_93b4376" formatted="false">"নাম সংরক্ষণ করুন"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"এই ডিভাইসে সংরক্ষণ করুন"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"প্রাপ্তি নীতি সংরক্ষণ করুন"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"সেটিংস সংরক্ষণ করুন"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"পর্যালোচিত সংস্করণ সংরক্ষণ করবেন?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"কপি আপডেট করুন"</string>
     <string name="text_update_member_a6345ca" formatted="false">"সদস্য আপডেট করুন"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"এই ডিভাইসের ওয়ালেট কী আপডেট করবেন?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"আপডেট করা হয়েছে "</string>
     <string name="text_updated_9306ca8" formatted="false">"আপডেট করা হয়েছে"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"আপডেট যাচাই দরকার"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"পটভূমিতে এনক্রিপ্ট করা তথ্য আপলোড করুন"</string>

@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Mga patlang"</string>
     <string name="hosted_agent_ids" formatted="false">"Mga naka-host na Agent ID"</string>
     <string name="import_local_account" formatted="false">"Mag-import mula sa lokal na account"</string>
+    <string name="in_trash" formatted="false">"Sa Basura"</string>
+    <string name="item_information" formatted="false">"Impormasyon ng item"</string>
     <string name="join_code" formatted="false">"Code na ihahambing"</string>
     <string name="join_compare_hint" formatted="false">"Bago aprubahan, tiyaking magkapareho ang code sa dalawang device."</string>
     <string name="join_confirm" formatted="false">"Gamitin ang login na ito sa account at idagdag ang device na ito"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Gumamit ng hindi bababa sa 12 character."</string>
     <string name="message_actions" formatted="false">"Mga aksyon"</string>
     <string name="message_sending" formatted="false">"Nagpapadala"</string>
+    <string name="more" formatted="false">"Higit pa"</string>
     <string name="no_conversations_yet" formatted="false">"Wala pang usapan"</string>
     <string name="no_matches" formatted="false">"Walang tugmang resulta"</string>
     <string name="offline_account" formatted="false">"Lokal na account"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Vault"</string>
     <string name="signin_saved_passkey" formatted="false">"Kung nakagawa ka na ng passkey, gamitin ang na-save. Gumawa lang ng bago kung kailangan mo ng isa pang pagkakakilanlan sa pag-login."</string>
     <string name="sort_by" formatted="false">"Ayusin ayon sa"</string>
+    <string name="synced" formatted="false">"Naka-sync"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minuto"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 araw"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 maliliit na titik, digit, _ o -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Gawin ang iyong naka-encrypt na workspace para simulan ang pag-save ng mga password, tala, at file."</string>
     <string name="text_created_36ba304" formatted="false">"Ginawa"</string>
     <string name="text_created_ae8a09c" formatted="false">"Ginawa · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Ginawa "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Nagawa sa bagong device"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Kailangan ng Plus o mas mataas para gumawa ng mga link. Maaari mo pa ring basahin, i-save, at tanggalin ang mga natanggap nang file."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Nag-expire ang kredensyal"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Mag-save muna ng mga login item sa dMsg."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"I-save ang pagsasama"</string>
     <string name="text_save_name_93b4376" formatted="false">"I-save ang pangalan"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"I-save sa device na ito"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"I-save ang patakaran sa pagtanggap"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"I-save ang mga setting"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"I-save ang nasuring bersyon?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"I-update ang mga kopya"</string>
     <string name="text_update_member_a6345ca" formatted="false">"I-update ang miyembro"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"I-update ang mga wallet key ng device na ito?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Na-update "</string>
     <string name="text_updated_9306ca8" formatted="false">"Na-update"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Kailangang i-verify ang mga update"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"I-upload ang ciphertext sa background"</string>

@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Bidang"</string>
     <string name="hosted_agent_ids" formatted="false">"ID agen yang dihosting"</string>
     <string name="import_local_account" formatted="false">"Impor dari akun lokal"</string>
+    <string name="in_trash" formatted="false">"Di Sampah"</string>
+    <string name="item_information" formatted="false">"Informasi item"</string>
     <string name="join_code" formatted="false">"Kode pembanding"</string>
     <string name="join_compare_hint" formatted="false">"Pastikan kedua perangkat menampilkan kode yang sama sebelum menyetujui."</string>
     <string name="join_confirm" formatted="false">"Gunakan login ini untuk akun ini dan tambahkan perangkat ini"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Gunakan setidaknya 12 karakter."</string>
     <string name="message_actions" formatted="false">"Tindakan"</string>
     <string name="message_sending" formatted="false">"Mengirim"</string>
+    <string name="more" formatted="false">"Lainnya"</string>
     <string name="no_conversations_yet" formatted="false">"Belum ada percakapan"</string>
     <string name="no_matches" formatted="false">"Tidak ada hasil yang cocok"</string>
     <string name="offline_account" formatted="false">"Akun lokal"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Brankas"</string>
     <string name="signin_saved_passkey" formatted="false">"Jika sudah membuat passkey, gunakan yang tersimpan. Buat passkey baru hanya jika memerlukan identitas login lain."</string>
     <string name="sort_by" formatted="false">"Urutkan berdasarkan"</string>
+    <string name="synced" formatted="false">"Disinkronkan"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 menit"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 hari"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 huruf kecil, angka, _ atau -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Buat ruang kerja terenkripsi Anda untuk mulai menyimpan kata sandi, catatan, dan file."</string>
     <string name="text_created_36ba304" formatted="false">"Dibuat"</string>
     <string name="text_created_ae8a09c" formatted="false">"Dibuat · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Dibuat "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Dibuat di perangkat baru"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Pembuatan tautan memerlukan Plus atau lebih tinggi. Anda tetap dapat membaca, menyimpan, dan menghapus file yang sudah diterima."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Kredensial sudah habis masa berlakunya"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Simpan item login di dMsg terlebih dahulu."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Simpan gabungan"</string>
     <string name="text_save_name_93b4376" formatted="false">"Simpan nama"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Simpan di perangkat ini"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Simpan kebijakan penerimaan"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Simpan pengaturan"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Simpan versi yang sudah ditinjau?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Perbarui salinan"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Perbarui anggota"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Perbarui kunci dompet perangkat ini?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Diperbarui "</string>
     <string name="text_updated_9306ca8" formatted="false">"Diperbarui"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Pembaruan perlu diverifikasi"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Unggah data terenkripsi di latar belakang"</string>

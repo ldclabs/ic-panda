@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Campos"</string>
     <string name="hosted_agent_ids" formatted="false">"IDs de agentes hospedados"</string>
     <string name="import_local_account" formatted="false">"Importar da conta local"</string>
+    <string name="in_trash" formatted="false">"Na lixeira"</string>
+    <string name="item_information" formatted="false">"Informações do item"</string>
     <string name="join_code" formatted="false">"Código de comparação"</string>
     <string name="join_compare_hint" formatted="false">"Antes de aprovar, confira se os dois dispositivos mostram o mesmo código."</string>
     <string name="join_confirm" formatted="false">"Usar este login para esta conta e adicionar este dispositivo"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Use pelo menos 12 caracteres."</string>
     <string name="message_actions" formatted="false">"Ações"</string>
     <string name="message_sending" formatted="false">"Enviando"</string>
+    <string name="more" formatted="false">"Mais"</string>
     <string name="no_conversations_yet" formatted="false">"Ainda não há conversas"</string>
     <string name="no_matches" formatted="false">"Nenhum resultado correspondente"</string>
     <string name="offline_account" formatted="false">"Conta local"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Cofre"</string>
     <string name="signin_saved_passkey" formatted="false">"Se já criou uma chave de acesso, use a chave salva. Crie uma nova apenas se precisar de outra identidade de login."</string>
     <string name="sort_by" formatted="false">"Ordenar por"</string>
+    <string name="synced" formatted="false">"Sincronizado"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minutos"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 dias"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 letras minúsculas, dígitos, _ ou -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Crie seu espaço de trabalho criptografado para começar a salvar senhas, notas e arquivos."</string>
     <string name="text_created_36ba304" formatted="false">"Criado"</string>
     <string name="text_created_ae8a09c" formatted="false">"Criado · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Criado "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Criado no novo dispositivo"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Criar links exige Plus ou superior. Você ainda pode ler, salvar e excluir arquivos já recebidos."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"A credencial expirou"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Primeiro salve itens de login no dMsg."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Salvar mesclagem"</string>
     <string name="text_save_name_93b4376" formatted="false">"Salvar nome"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Salvar neste dispositivo"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Salvar política de recebimento"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Salvar configurações"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Salvar a versão revisada?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Atualizar cópias"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Atualizar membro"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Atualizar as chaves da carteira deste dispositivo?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Atualizado "</string>
     <string name="text_updated_9306ca8" formatted="false">"Atualizado"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Atualizações precisam de verificação"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Enviar dados criptografados em segundo plano"</string>

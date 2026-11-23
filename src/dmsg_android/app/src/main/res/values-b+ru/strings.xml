@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Поля"</string>
     <string name="hosted_agent_ids" formatted="false">"ID размещённых агентов"</string>
     <string name="import_local_account" formatted="false">"Импортировать из локальной учётной записи"</string>
+    <string name="in_trash" formatted="false">"В корзине"</string>
+    <string name="item_information" formatted="false">"Информация об элементе"</string>
     <string name="join_code" formatted="false">"Код для сверки"</string>
     <string name="join_compare_hint" formatted="false">"Перед одобрением убедитесь, что коды на обоих устройствах совпадают."</string>
     <string name="join_confirm" formatted="false">"Использовать этот способ входа в аккаунт и добавить устройство"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Используйте не менее 12 символов."</string>
     <string name="message_actions" formatted="false">"Действия"</string>
     <string name="message_sending" formatted="false">"Отправка"</string>
+    <string name="more" formatted="false">"Ещё"</string>
     <string name="no_conversations_yet" formatted="false">"Разговоров пока нет"</string>
     <string name="no_matches" formatted="false">"Совпадений нет"</string>
     <string name="offline_account" formatted="false">"Локальная учётная запись"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Хранилище"</string>
     <string name="signin_saved_passkey" formatted="false">"Если ключ доступа уже создан, используйте сохранённый. Создавайте новый ключ только для другой учётной записи входа."</string>
     <string name="sort_by" formatted="false">"Сортировка"</string>
+    <string name="synced" formatted="false">"Синхронизировано"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 минут"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 дней"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 строчных букв, цифр, _ или -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Создайте зашифрованное рабочее пространство для хранения паролей, заметок и файлов."</string>
     <string name="text_created_36ba304" formatted="false">"Создано"</string>
     <string name="text_created_ae8a09c" formatted="false">"Создано · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Создано "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Создано на новом устройстве"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Создание ссылок требует Plus или выше. Читать, сохранять и удалять уже полученные файлы по-прежнему можно."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Срок учётных данных истёк"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Сначала сохраните записи входа в dMsg."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Сохранить объединение"</string>
     <string name="text_save_name_93b4376" formatted="false">"Сохранить имя"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Сохранить на этом устройстве"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Сохранить правила получения"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Сохранить настройки"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Сохранить проверенную версию?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Обновить копии"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Обновить участника"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Обновить ключи кошелька этого устройства?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Изменено "</string>
     <string name="text_updated_9306ca8" formatted="false">"Изменено"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Обновления требуют проверки"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Загрузить шифротекст в фоне"</string>

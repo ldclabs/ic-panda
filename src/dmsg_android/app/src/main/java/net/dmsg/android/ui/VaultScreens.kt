@@ -28,6 +28,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 import net.dmsg.core.*
 
+/** A full-screen dialog: close at the start of the bar, Save at its end, the form scrolls under it. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable fun VaultEditor(client: ClientController, close: () -> Unit) {
     val draft by client.vaultDrafts.current.collectAsStateWithLifecycle()
     val ready by client.vaultDrafts.ready.collectAsStateWithLifecycle()
@@ -62,12 +64,43 @@ import net.dmsg.core.*
     }
     val working = state.working("vault:save:" + current.key) || state.working("vault:discard") || !ready
     fun update(change: (VaultDraft) -> VaultDraft) { client.activity(); if (!working) { failure = null; client.vaultDrafts.update(change) } }
-    Column(Modifier.testTag("vault-editor").fillMaxWidth().imePadding()) {
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = close, enabled = !working) { Text(str(R.string.text_cancel_998b9c4)) }
-                Text(if (current.id == null) str(R.string.text_new_item_9916f9f) else str(R.string.text_edit_item_3638f4f), style = MaterialTheme.typography.titleLarge)
+    fun save() {
+        validation = true
+        val edit = current.edit()
+        failure = when {
+            edit.title.isBlank() || edit.title.codePointCount(0, edit.title.length) > 200 -> "INVALID_TITLE"
+            edit.tags.size > 20 || edit.tags.any { it.codePointCount(0, it.length) > 40 } -> "INVALID_TAGS"
+            current.fields.any { validateDraftField(it) != null } -> "INVALID_FIELDS"
+            else -> null
+        }
+        when (failure) {
+            "INVALID_TITLE" -> pendingFocus = "title"
+            "INVALID_TAGS" -> { customizing = true; pendingFocus = "tags" }
+            "INVALID_FIELDS" -> { customizing = true; pendingFocus = current.fields.first { validateDraftField(it) != null }.id }
+        }
+        if (failure == null) {
+            focus.clearFocus()
+            val input = client.vaultDrafts.input()
+            client.perform({ it.commitVaultDraft(input, edit) }, key = "vault:save:" + current.key, quiet = true, onError = { failure = it }) { saved ->
+                client.vaultDrafts.finished(input.id); client.vault.changed(); client.vault.select(saved.item.id)
+                if (client.navigation.state.value.current.page == "vault" && (current.id == null && client.vault.query.filtered || current.id != null && current.id != saved.item.id)) client.navigation.select(saved.item.id)
+                client.notice(if (saved.item.conflict) "VAULT_CONFLICT_SAVED" else "VAULT_SAVED")
             }
+        }
+    }
+    Column(Modifier.testTag("vault-editor").fillMaxSize()) {
+        TopAppBar(
+            title = { Text(if (current.id == null) str(R.string.text_new_item_9916f9f) else str(R.string.text_edit_item_3638f4f), maxLines = 1) },
+            navigationIcon = { IconButton(onClick = close, enabled = !working) { Icon(Icons.Outlined.Close, str(R.string.text_cancel_998b9c4)) } },
+            actions = {
+                TextButton(onClick = ::save, enabled = !working && (current.id == null || client.vaultDrafts.dirty), modifier = Modifier.testTag("vault-editor-save")) {
+                    if (working) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text(str(R.string.text_save_ec8e6d5))
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page),
+        )
+        Column(Modifier.weight(1f).imePadding().verticalScroll(rememberScrollState()).padding(horizontal = pageMargin()).navigationBarsPadding().padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(current.title, { value -> update { it.copy(title = value) } }, Modifier.testTag("vault-editor-title").focusRequester(titleFocus).revealFocusedInput().fillMaxWidth(), label = { Text(str(R.string.text_title_4c18fa6)) }, singleLine = true, enabled = !working,
                 isError = validation && (current.title.isBlank() || current.title.codePointCount(0, current.title.length) > 200),
                 supportingText = if (failure == "INVALID_TITLE") { { Text(errorText("INVALID_TITLE")) } } else null)
@@ -97,8 +130,8 @@ import net.dmsg.core.*
                         pendingFocus = null
                     }
                 }
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val fieldContent: @Composable () -> Unit = {
+                    Column(if (customizing) Modifier.padding(16.dp) else Modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (customizing) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Box {
                                 TextButton(onClick = { types = true }, enabled = !working && (current.id == null || !field.concealed || field.changed)) { Text(fieldKindName(field.kind)) }
@@ -126,13 +159,17 @@ import net.dmsg.core.*
                                 field.kind == "phone" -> KeyboardType.Phone
                                 else -> KeyboardType.Text
                             }), minLines = if (field.id in listOf("private_key", "public_key", "phrase")) 3 else 1, enabled = !working, isError = error != null && part == "value",
-                            supportingText = if (error != null && part == "value") { { Text(errorText(error)) } } else null)
+                            supportingText = if (error != null && part == "value") { { Text(errorText(error)) } } else null,
+                            trailingIcon = if (!field.concealed) null else { {
+                                Row {
+                                    if (field.kind != "otp" && field.id !in listOf("number", "cvv", "pin", "private_key", "public_key", "phrase"))
+                                        IconButton(onClick = { generator = field.id }, enabled = !working) { Icon(Icons.Outlined.Password, str(R.string.text_generate_password_4fe4cd0)) }
+                                    IconButton(onClick = { reveal = !reveal }) {
+                                        Icon(if (reveal) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, str(if (reveal) R.string.text_hide_draft_a649c8a else R.string.text_show_draft_5987b01))
+                                    }
+                                }
+                            } })
                         if (field.concealed) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { reveal = !reveal }) { Text(if (reveal) str(R.string.text_hide_draft_a649c8a) else str(R.string.text_show_draft_5987b01)) }
-                                if (field.kind != "otp" && field.id !in listOf("number", "cvv", "pin", "private_key", "public_key", "phrase"))
-                                    TextButton(onClick = { generator = field.id }, enabled = !working) { Text(str(R.string.text_generate_password_4fe4cd0)) }
-                            }
                             if (current.id != null) {
                                 Text(if (field.changed) str(R.string.text_an_empty_replacement_clears_the_saved_value_b460222) else str(R.string.text_the_saved_value_will_be_kept_11b9a97), style = MaterialTheme.typography.bodySmall)
                                 TextButton(onClick = { update { it.field(field.id) { f -> f.copy(value = "", changed = !field.changed) } } }, enabled = !working) { Text(if (field.changed) str(R.string.text_keep_existing_value_3bf91d5) else str(R.string.text_clear_saved_value_1df3dd1)) }
@@ -148,6 +185,7 @@ import net.dmsg.core.*
                             isError = part == "section", supportingText = if (part == "section" && error != null) { { Text(errorText(error)) } } else null)
                     }
                 }
+                if (customizing) DetailCard { fieldContent() } else fieldContent()
             } }
             if (current.kind == "login") SettingToggle(str(R.string.customize_fields), customizing, { customizing = it }, enabled = !working)
             if (customizing) {
@@ -169,35 +207,10 @@ import net.dmsg.core.*
                 }
                 TextButton(onClick = { client.vault.loadAttachmentFiles(); attachment = true }, enabled = !working && current.files.size < 20) { Text(str(R.string.text_choose_from_files_c1e8160)) }
             }
-        }
-        Column(Modifier.fillMaxWidth().padding(horizontal = pageMargin(), vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             failure?.takeUnless { it in setOf("INVALID_TITLE", "INVALID_TAGS", "INVALID_FIELDS") }?.let { Notice(errorText(it), true) }
             if (!ready) TextButton(onClick = { client.vaultDrafts.load() }) { Text(str(R.string.text_retry_563171c)) }
-            if (failure == null && state.session?.accountKind != "local") Text(str(R.string.text_saved_on_this_device_first_then_synchronized_unsynced_changes_can_0921bb4), style = MaterialTheme.typography.bodySmall)
-            Button(onClick = {
-                validation = true
-                val edit = current.edit()
-                failure = when {
-                    edit.title.isBlank() || edit.title.codePointCount(0, edit.title.length) > 200 -> "INVALID_TITLE"
-                    edit.tags.size > 20 || edit.tags.any { it.codePointCount(0, it.length) > 40 } -> "INVALID_TAGS"
-                    current.fields.any { validateDraftField(it) != null } -> "INVALID_FIELDS"
-                    else -> null
-                }
-                when (failure) {
-                    "INVALID_TITLE" -> pendingFocus = "title"
-                    "INVALID_TAGS" -> { customizing = true; pendingFocus = "tags" }
-                    "INVALID_FIELDS" -> { customizing = true; pendingFocus = current.fields.first { validateDraftField(it) != null }.id }
-                }
-                if (failure == null) {
-                    focus.clearFocus()
-                    val input = client.vaultDrafts.input()
-                    client.perform({ it.commitVaultDraft(input, edit) }, key = "vault:save:" + current.key, quiet = true, onError = { failure = it }) { saved ->
-                        client.vaultDrafts.finished(input.id); client.vault.changed(); client.vault.select(saved.item.id)
-                        if (client.navigation.state.value.current.page == "vault" && (current.id == null && client.vault.query.filtered || current.id != null && current.id != saved.item.id)) client.navigation.select(saved.item.id)
-                        client.notice(if (saved.item.conflict) "VAULT_CONFLICT_SAVED" else "VAULT_SAVED")
-                    }
-                }
-            }, enabled = !working && (current.id == null || client.vaultDrafts.dirty), modifier = Modifier.testTag("vault-editor-save").fillMaxWidth().heightIn(min = 52.dp)) { if (working) CircularProgressIndicator(Modifier.size(20.dp)) else Text(str(R.string.text_save_on_this_device_dfe466d)) }
+            if (failure == null && state.session?.accountKind != "local") Text(str(R.string.text_saved_on_this_device_first_then_synchronized_unsynced_changes_can_0921bb4),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     if (attachment) {

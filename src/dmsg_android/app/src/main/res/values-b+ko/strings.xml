@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"필드"</string>
     <string name="hosted_agent_ids" formatted="false">"호스팅된 에이전트 ID"</string>
     <string name="import_local_account" formatted="false">"로컬 계정에서 가져오기"</string>
+    <string name="in_trash" formatted="false">"휴지통에"</string>
+    <string name="item_information" formatted="false">"항목 정보"</string>
     <string name="join_code" formatted="false">"확인 코드"</string>
     <string name="join_compare_hint" formatted="false">"승인하기 전에 두 기기에 표시된 코드가 같은지 확인하세요."</string>
     <string name="join_confirm" formatted="false">"이 로그인 수단을 계정에 연결하고 이 기기 추가"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"12자 이상 입력하세요."</string>
     <string name="message_actions" formatted="false">"작업"</string>
     <string name="message_sending" formatted="false">"보내는 중"</string>
+    <string name="more" formatted="false">"더 보기"</string>
     <string name="no_conversations_yet" formatted="false">"아직 대화가 없습니다."</string>
     <string name="no_matches" formatted="false">"일치하는 결과 없음"</string>
     <string name="offline_account" formatted="false">"로컬 계정"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"금고"</string>
     <string name="signin_saved_passkey" formatted="false">"이미 패스키를 만들었다면 저장된 패스키를 사용하세요. 다른 로그인 ID가 필요한 경우에만 새로 만드세요."</string>
     <string name="sort_by" formatted="false">"정렬 기준"</string>
+    <string name="synced" formatted="false">"동기화됨"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15분"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366일"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"소문자, 숫자, _ 또는 - 1–40자"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"암호화된 작업 공간을 만들어 비밀번호, 메모, 파일을 저장해 보세요."</string>
     <string name="text_created_36ba304" formatted="false">"생성됨"</string>
     <string name="text_created_ae8a09c" formatted="false">"생성됨 · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"생성됨 "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"새 기기에서 생성됨"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"링크 생성에는 Plus 이상이 필요합니다. 이미 받은 파일은 계속 읽고 저장하고 삭제할 수 있습니다."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"자격 증명이 만료되었습니다."</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"먼저 dMsg에 로그인 항목을 저장하세요."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"병합 저장"</string>
     <string name="text_save_name_93b4376" formatted="false">"이름 저장"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"이 기기에 저장"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"수신정책 저장"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"설정 저장"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"검토한 버전을 저장할까요?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"사본 업데이트"</string>
     <string name="text_update_member_a6345ca" formatted="false">"멤버 업데이트"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"이 기기의 지갑 키를 업데이트할까요?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"업데이트됨 "</string>
     <string name="text_updated_9306ca8" formatted="false">"업데이트됨"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"업데이트 확인 필요"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"백그라운드에서 암호문 업로드"</string>

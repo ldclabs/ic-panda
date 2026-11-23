@@ -187,7 +187,7 @@ Cards pad their content by 16 dp; rows inside a section bring their own padding.
 | `RowIcon` | A row's leading icon on a tonal circle; the section may colour it |
 | `LabelValue`, `DetailCard` | A label with its value inside a card |
 | `BrowseRow`, `BrowseIcon` | Compact rows of the vault, message and file lists, with a type glyph on a tonal square |
-| `BrowseScopes`, `BrowseChoice`, `SortMenu` | Filter chips that scroll sideways with fading edges, and the sort chip |
+| `BrowseScopes`, `BrowseChoice`, `MenuChoice`, `SortMenu` | Filter chips that scroll sideways with fading edges, a chip that opens a menu of choices, and the sort chip |
 | `Notice` | Inline banner, information or problem, actions at its end; at most one per screen |
 | `EmptyState` | A mark, one line, one line of detail and at most one action, centred |
 | `SkeletonRows` | The first read of a list; refreshes keep the content and show a thin bar |
@@ -211,9 +211,14 @@ targets and saves screenshots under the app's external files (`kit-gallery/`).
 - **Bars belong to pages.** `DMsgApp` frames every page with its own bar inside
   the page transition, so a title moves with its page. On phones a workspace
   root shows its search field as the top bar, with the activity bell and ⋮
-  inside it. An open item (vault item, file, conversation) and wide roots keep
-  a compact `TopAppBar`; every other page has a `LargeTopAppBar` that collapses
-  as the page scrolls. Titles come from the route table in `DMsgApp.kt`.
+  inside it. Wide roots, conversations and open files keep a compact
+  `TopAppBar`; every other page, a vault item included, has a `LargeTopAppBar`
+  that collapses as the page scrolls. Titles come from the route table in
+  `DMsgApp.kt` unless the page declares its own with `ScreenBar`, which also
+  adds the page's actions. On wide windows the detail pane (`DetailPane`) has
+  its own compact bar for them.
+- **The activity bell** sits on workspace roots and the scopes beside them
+  (Letters, Cloud backups), never on sub-pages.
 - **One floating action.** A page declares its primary action with `ScreenFab`:
   New item in the vault, New conversation in messages, Write a letter in
   letters, Import files in files.
@@ -221,6 +226,25 @@ targets and saves screenshots under the app's external files (`kit-gallery/`).
   text from accessibility, so the icon carries the same label.
 - **Work in progress** shows as a thin bar across the top of the page instead
   of a reserved strip.
+- **Full-screen forms.** The vault editor is a full-screen dialog: Close at the
+  start of its bar, Save at the end. Secret inputs carry Show and Generate as
+  trailing icons.
+
+## Vault
+
+- **List.** Filter chips for All, Favorites, Passwords and Notes, a Type chip
+  that opens the remaining types, and the filter sheet: sort as a radio list,
+  tags as chips, Clear filters and Done at the bottom. Rows waiting to sync show
+  a small sync icon in the secondary text colour.
+- **Item.** The title is the large page title; favourite and edit sit in the
+  bar and ⋮ holds version history, sharing and Move to trash (in the error
+  colour, confirmed by a dialog). Below the type and sync state, at most one
+  banner (conflict, trash, historical version, managed key). Fields keep their
+  sections as grouped rows: a tap copies, trailing icons reveal, open the website
+  and copy (the copy icon turns into a tick), and a long press offers large type
+  and the field reference. One-time codes show a countdown ring. Item
+  information shows relative times ("3 minutes ago", "Today at 07:21"); a tap
+  shows the full date and time.
 
 ## Motion
 

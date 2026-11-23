@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -105,6 +106,7 @@ class KitGalleryTest {
             BrowseChoice(if (rtl) "المفضلة" else "Favorites", favorites, toggle = true) { favorites = !favorites }
             BrowseChoice(if (rtl) "كلمات المرور" else "Passwords", scope == 1) { scope = 1 }
             BrowseChoice(if (rtl) "الملاحظات" else "Notes", scope == 2) { scope = 2 }
+            MenuChoice(if (rtl) "النوع" else "Type", scope == 3) { close -> DropdownMenuItem(text = { Text("SSH") }, onClick = { close(); scope = 3 }) }
         }
         listOf("login" to "Studio account", "note" to "Project notebook", "ssh" to "Build server").forEach { (kind, title) ->
             BrowseRow(title, Modifier, leading = { BrowseIcon(vaultGlyph(kind)) }) { Text("demo@example.test") }

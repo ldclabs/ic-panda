@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"フィールド"</string>
     <string name="hosted_agent_ids" formatted="false">"ホストするエージェント ID"</string>
     <string name="import_local_account" formatted="false">"ローカルアカウントから読み込む"</string>
+    <string name="in_trash" formatted="false">"ゴミ箱の中"</string>
+    <string name="item_information" formatted="false">"アイテム情報"</string>
     <string name="join_code" formatted="false">"照合コード"</string>
     <string name="join_compare_hint" formatted="false">"承認する前に、両方の端末に同じコードが表示されていることを確認してください。"</string>
     <string name="join_confirm" formatted="false">"このログイン方法をアカウントに登録し、この端末を追加"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"12 文字以上入力してください。"</string>
     <string name="message_actions" formatted="false">"操作"</string>
     <string name="message_sending" formatted="false">"送信"</string>
+    <string name="more" formatted="false">"その他"</string>
     <string name="no_conversations_yet" formatted="false">"まだ会話はありません"</string>
     <string name="no_matches" formatted="false">"一致する結果がありません"</string>
     <string name="offline_account" formatted="false">"ローカルアカウント"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"保管庫"</string>
     <string name="signin_saved_passkey" formatted="false">"すでにパスキーを作成した場合は、保存済みのパスキーを使ってください。別のログインIDが必要な場合のみ、新しく作成してください。"</string>
     <string name="sort_by" formatted="false">"並べ替え"</string>
+    <string name="synced" formatted="false">"同期済み"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 分"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1～366 日"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"小文字の英字、数字、_、- を 1～40 文字"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"暗号化されたワークスペースを作成して、パスワード、メモ、ファイルの保存を開始します。"</string>
     <string name="text_created_36ba304" formatted="false">"作成日時"</string>
     <string name="text_created_ae8a09c" formatted="false">"作成日時 · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"作成日時 "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"新しいデバイスで作成"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"リンクの作成には Plus 以上が必要です。受信済みファイルの閲覧、保存、削除は引き続き利用できます。"</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"資格情報の有効期限が切れました"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"先に dMsg にログイン情報を保存してください。"</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"マージを保存"</string>
     <string name="text_save_name_93b4376" formatted="false">"名前を保存する"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"このデバイスに保存"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"受信ポリシーの保存"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"設定を保存する"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"確認したバージョンを保存しますか？"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"コピーを更新"</string>
     <string name="text_update_member_a6345ca" formatted="false">"メンバーを更新"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"このデバイスのウォレット鍵を更新しますか？"</string>
-    <string name="text_updated_7676bd2" formatted="false">"更新されました "</string>
     <string name="text_updated_9306ca8" formatted="false">"更新されました"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"更新の検証が必要"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"暗号化データをバックグラウンドでアップロード"</string>

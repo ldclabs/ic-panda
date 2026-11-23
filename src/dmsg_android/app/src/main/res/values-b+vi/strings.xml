@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"Trường"</string>
     <string name="hosted_agent_ids" formatted="false">"ID tác tử được lưu trữ"</string>
     <string name="import_local_account" formatted="false">"Nhập từ tài khoản cục bộ"</string>
+    <string name="in_trash" formatted="false">"Trong thùng rác"</string>
+    <string name="item_information" formatted="false">"Thông tin mục"</string>
     <string name="join_code" formatted="false">"Mã đối chiếu"</string>
     <string name="join_compare_hint" formatted="false">"Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không."</string>
     <string name="join_confirm" formatted="false">"Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"Dùng ít nhất 12 ký tự."</string>
     <string name="message_actions" formatted="false">"Thao tác"</string>
     <string name="message_sending" formatted="false">"Đang gửi"</string>
+    <string name="more" formatted="false">"Thêm"</string>
     <string name="no_conversations_yet" formatted="false">"Chưa có cuộc trò chuyện nào"</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
     <string name="offline_account" formatted="false">"Tài khoản cục bộ"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"Kho bảo mật"</string>
     <string name="signin_saved_passkey" formatted="false">"Nếu đã tạo khóa truy cập, hãy dùng khóa đã lưu. Chỉ tạo khóa mới khi cần danh tính đăng nhập khác."</string>
     <string name="sort_by" formatted="false">"Sắp xếp theo"</string>
+    <string name="synced" formatted="false">"Đã đồng bộ hóa"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 phút"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 ngày"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 chữ thường, chữ số, _ hoặc -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Tạo không gian làm việc được mã hóa của bạn để bắt đầu lưu mật khẩu, ghi chú và tệp."</string>
     <string name="text_created_36ba304" formatted="false">"Đã tạo"</string>
     <string name="text_created_ae8a09c" formatted="false">"Đã tạo · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"Đã tạo "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Đã tạo trên thiết bị mới"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Tạo liên kết cần Plus trở lên. Bạn vẫn có thể đọc, lưu và xóa tệp đã nhận."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Thông tin xác thực đã hết hạn"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"Trước tiên lưu thông tin đăng nhập trong dMsg."</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"Lưu hợp nhất"</string>
     <string name="text_save_name_93b4376" formatted="false">"Lưu tên"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"Lưu trên thiết bị này"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"Lưu chính sách nhận"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"Lưu cài đặt"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Lưu phiên bản đã kiểm tra?"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"Cập nhật bản sao"</string>
     <string name="text_update_member_a6345ca" formatted="false">"Cập nhật thành viên"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"Cập nhật khóa ví của thiết bị này?"</string>
-    <string name="text_updated_7676bd2" formatted="false">"Đã cập nhật "</string>
     <string name="text_updated_9306ca8" formatted="false">"Đã cập nhật"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"Cập nhật cần xác minh"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"Tải dữ liệu mã hóa lên trong nền"</string>

@@ -4,7 +4,8 @@ import android.app.Activity
 import android.content.ContextWrapper
 import android.graphics.Rect
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -80,5 +81,16 @@ internal data class WorkspaceFold(val bounds: Rect, val vertical: Boolean)
             if (split == null) VerticalDivider() else Spacer(Modifier.width(split.second).fillMaxHeight().testTag("workspace-hinge"))
             Box(Modifier.weight(1f).fillMaxHeight().testTag("workspace-detail")) { detail() }
         }
+    }
+}
+
+/** The detail pane of a wide window has its own compact bar; the page in it declares the title and actions with [ScreenBar]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable internal fun DetailPane(content: @Composable () -> Unit) {
+    val bar = remember { PageBar() }
+    Column(Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text(bar.title.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis) }, actions = { bar.actions?.invoke(this) },
+            windowInsets = WindowInsets(0), colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.page))
+        CompositionLocalProvider(LocalPageBar provides bar) { Box(Modifier.weight(1f).fillMaxWidth()) { content() } }
     }
 }

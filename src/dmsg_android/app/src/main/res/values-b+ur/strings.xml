@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"فیلڈز"</string>
     <string name="hosted_agent_ids" formatted="false">"میزبانی کردہ ایجنٹ آئی ڈیز"</string>
     <string name="import_local_account" formatted="false">"مقامی اکاؤنٹ سے درآمد کریں"</string>
+    <string name="in_trash" formatted="false">"ردی کی ٹوکری میں"</string>
+    <string name="item_information" formatted="false">"آئٹم کی معلومات"</string>
     <string name="join_code" formatted="false">"توثیقی کوڈ"</string>
     <string name="join_compare_hint" formatted="false">"منظوری سے پہلے دیکھیں کہ دونوں آلات پر ایک ہی کوڈ دکھائی دے رہا ہے۔"</string>
     <string name="join_confirm" formatted="false">"اس اکاؤنٹ کے لیے یہ لاگ ان استعمال کریں اور یہ آلہ شامل کریں"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"کم از کم 12 حروف استعمال کریں۔"</string>
     <string name="message_actions" formatted="false">"کارروائیاں"</string>
     <string name="message_sending" formatted="false">"ارسال"</string>
+    <string name="more" formatted="false">"مزید"</string>
     <string name="no_conversations_yet" formatted="false">"ابھی تک کوئی بات چیت نہیں ہے"</string>
     <string name="no_matches" formatted="false">"کوئی مماثل نتیجہ نہیں"</string>
     <string name="offline_account" formatted="false">"مقامی اکاؤنٹ"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"محفوظ ذخیرہ"</string>
     <string name="signin_saved_passkey" formatted="false">"اگر پہلے پاس کی بنا چکے ہیں تو محفوظ شدہ پاس کی استعمال کریں۔ نئی پاس کی صرف کسی دوسری لاگ ان شناخت کے لیے بنائیں۔"</string>
     <string name="sort_by" formatted="false">"ترتیب دیں"</string>
+    <string name="synced" formatted="false">"مطابقت پذیر"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 منٹ"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 دن"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 چھوٹے حروف، ہندسے، _ یا -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"پاس ورڈز، نوٹس اور فائلز کو محفوظ کرنا شروع کرنے کے لیے اپنی انکرپٹڈ ورک اسپیس بنائیں۔"</string>
     <string name="text_created_36ba304" formatted="false">"بنایا گیا"</string>
     <string name="text_created_ae8a09c" formatted="false">"بنایا گیا · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"بنایا گیا "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"نئے آلے پر بنا"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"روابط بنانے کے لیے Plus یا اس سے اوپر درکار ہے۔ پہلے موصولہ فائلیں اب بھی پڑھ، محفوظ اور حذف کر سکتے ہیں۔"</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"اسناد کی میعاد ختم ہوگئی"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"پہلے dMsg میں لاگ ان اشیا محفوظ کریں۔"</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"انضمام کو محفوظ کریں"</string>
     <string name="text_save_name_93b4376" formatted="false">"نام محفوظ کریں"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"اس آلے پر محفوظ کریں"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"وصول کرنے کی پالیسی کو محفوظ کریں"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"ترتیبات کو محفوظ کریں"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"جائزہ شدہ نسخہ محفوظ کریں؟"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"نقول تازہ کریں"</string>
     <string name="text_update_member_a6345ca" formatted="false">"رکن تازہ کریں"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"اس آلے کی بٹوے والی کلیدیں تازہ کریں؟"</string>
-    <string name="text_updated_7676bd2" formatted="false">"تازہ کاری "</string>
     <string name="text_updated_9306ca8" formatted="false">"تازہ کاری"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"تازہ کاریوں کی تصدیق درکار"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"رمز شدہ ڈیٹا پس منظر میں اپ لوڈ کریں"</string>

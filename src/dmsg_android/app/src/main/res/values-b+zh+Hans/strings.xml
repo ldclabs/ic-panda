@@ -45,6 +45,8 @@
     <string name="history_fields" formatted="false">"字段"</string>
     <string name="hosted_agent_ids" formatted="false">"托管的智能体 ID"</string>
     <string name="import_local_account" formatted="false">"从本地账户导入"</string>
+    <string name="in_trash" formatted="false">"已在回收站"</string>
+    <string name="item_information" formatted="false">"条目信息"</string>
     <string name="join_code" formatted="false">"核对码"</string>
     <string name="join_compare_hint" formatted="false">"批准前，请核对两台设备显示的核对码是否一致。"</string>
     <string name="join_confirm" formatted="false">"以后用此身份登录该账号，并加入这台设备"</string>
@@ -61,6 +63,7 @@
     <string name="local_password_length" formatted="false">"请至少输入 12 个字符。"</string>
     <string name="message_actions" formatted="false">"消息操作"</string>
     <string name="message_sending" formatted="false">"发送中"</string>
+    <string name="more" formatted="false">"更多"</string>
     <string name="no_conversations_yet" formatted="false">"暂无会话"</string>
     <string name="no_matches" formatted="false">"无匹配结果"</string>
     <string name="offline_account" formatted="false">"本地账户"</string>
@@ -109,6 +112,7 @@
     <string name="shortcut_vault" formatted="false">"保险库"</string>
     <string name="signin_saved_passkey" formatted="false">"如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。"</string>
     <string name="sort_by" formatted="false">"排序方式"</string>
+    <string name="synced" formatted="false">"已同步"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 分钟"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 天"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 个小写字母、数字、_ 或 -"</string>
@@ -563,7 +567,6 @@
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"创建加密工作区，开始保存密码、笔记和文件。"</string>
     <string name="text_created_36ba304" formatted="false">"已创建"</string>
     <string name="text_created_ae8a09c" formatted="false">"创建时间 · "</string>
-    <string name="text_created_c1dc4dc" formatted="false">"创建于 "</string>
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"新设备已创建"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"创建收取链接需要 Plus 或以上会员，已收文件仍可读取、保存和删除。"</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"凭据已过期"</string>
@@ -1554,7 +1557,6 @@
     <string name="text_save_login_items_in_dmsg_first_2639bb4" formatted="false">"请先在 dMsg 内保存登录条目。"</string>
     <string name="text_save_merged_version_b601e29" formatted="false">"保存合并版本"</string>
     <string name="text_save_name_93b4376" formatted="false">"保存名称"</string>
-    <string name="text_save_on_this_device_dfe466d" formatted="false">"保存到本机"</string>
     <string name="text_save_receiving_policy_8dcc597" formatted="false">"保存接收规则"</string>
     <string name="text_save_settings_a01ddf9" formatted="false">"保存设置"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"保存已核对的版本？"</string>
@@ -1989,7 +1991,6 @@
     <string name="text_update_copies_47cb43d" formatted="false">"更新副本"</string>
     <string name="text_update_member_a6345ca" formatted="false">"修改成员"</string>
     <string name="text_update_this_device_s_wallet_keys_c4057fe" formatted="false">"更新本机钱包钥匙？"</string>
-    <string name="text_updated_7676bd2" formatted="false">"更新于 "</string>
     <string name="text_updated_9306ca8" formatted="false">"更新时间"</string>
     <string name="text_updates_need_verification_4be083a" formatted="false">"更新待核验"</string>
     <string name="text_upload_ciphertext_in_background_7f3ae2e" formatted="false">"后台上传密文"</string>

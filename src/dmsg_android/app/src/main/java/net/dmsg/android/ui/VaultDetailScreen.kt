@@ -2,8 +2,12 @@ package net.dmsg.android.ui
 
 import net.dmsg.android.ui.kit.*
 import net.dmsg.android.R
+import net.dmsg.android.platform.AppLanguage
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
+import android.icu.text.DisplayContext
+import android.icu.text.RelativeDateTimeFormatter
+import android.icu.util.ULocale
 import android.os.SystemClock
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -12,12 +16,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,6 +33,10 @@ import kotlinx.coroutines.delay
 import net.dmsg.android.core.*
 import net.dmsg.core.*
 import java.net.URI
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
@@ -33,7 +45,27 @@ import androidx.compose.ui.semantics.stateDescription
 
 fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.string.text_unknown_d748bba) else
     runCatching { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.MEDIUM,
-        net.dmsg.android.platform.AppLanguage.locale()).format(java.util.Date(ms.toLong())) }.getOrDefault(str(R.string.text_unknown_d748bba))
+        AppLanguage.locale()).format(java.util.Date(ms.toLong())) }.getOrDefault(str(R.string.text_unknown_d748bba))
+
+/** "Now", "3 minutes ago", "Today at 07:21", "Yesterday at 07:21", or a date and time without seconds. */
+fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
+    if (ms == 0uL || ms > Long.MAX_VALUE.toULong()) return str(R.string.text_unknown_d748bba)
+    val locale = AppLanguage.locale()
+    val time = ms.toLong()
+    val elapsed = now - time
+    val relative = RelativeDateTimeFormatter.getInstance(ULocale.forLocale(locale), null, RelativeDateTimeFormatter.Style.LONG,
+        DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE)
+    if (elapsed in 0 until 60_000) return relative.format(RelativeDateTimeFormatter.Direction.PLAIN, RelativeDateTimeFormatter.AbsoluteUnit.NOW)
+    if (elapsed in 60_000 until 3_600_000) return relative.format((elapsed / 60_000).toDouble(), RelativeDateTimeFormatter.Direction.LAST, RelativeDateTimeFormatter.RelativeUnit.MINUTES)
+    val zone = ZoneId.systemDefault()
+    val days = ChronoUnit.DAYS.between(Instant.ofEpochMilli(time).atZone(zone).toLocalDate(), LocalDate.now(zone))
+    val clock = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT, locale).format(java.util.Date(time))
+    return when (days) {
+        0L -> relative.combineDateAndTime(relative.format(RelativeDateTimeFormatter.Direction.THIS, RelativeDateTimeFormatter.AbsoluteUnit.DAY), clock)
+        1L -> relative.combineDateAndTime(relative.format(RelativeDateTimeFormatter.Direction.LAST, RelativeDateTimeFormatter.AbsoluteUnit.DAY), clock)
+        else -> java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT, locale).format(java.util.Date(time))
+    }
+}
 
 @Composable fun SecretScreen(client: ClientController, id: String, edit: (VaultItem) -> Unit) {
     val read by client.vault.detail.state.collectAsStateWithLifecycle()
@@ -47,58 +79,95 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     SecretDetailBody(client, id, read, true, { client.vaultHistory.select(id, revision) }) { }
 }
 
+/**
+ * The item's title, favourite and edit sit in the page bar and the rarer actions in its ⋮ menu.
+ * Fields keep their sections; each row copies on tap and reveals inline.
+ */
 @Composable private fun SecretDetailBody(client: ClientController, id: String, read: ReadState<VaultItem>, historical: Boolean, reload: () -> Unit, edit: (VaultItem) -> Unit) {
     val item = read.valueOrNull()?.takeIf { it.id == id }
     val state by client.state.collectAsStateWithLifecycle()
     val changing = state.working("vault:edit:" + id)
     var deleting by remember(id) { mutableStateOf(false) }
+    var more by remember(id) { mutableStateOf(false) }
     val scroll = rememberScrollState()
     LaunchedEffect(item?.id, item?.deleted) { if (item != null) scroll.scrollTo(0) }
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    ScreenBar(if (historical) null else item?.title) {
+        if (item != null && !historical && !item.reserved && !item.deleted) {
+            IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
+                Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+            }
+            IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
+        }
+        if (item != null && !historical) Box {
+            IconButton(onClick = { more = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.more)) }
+            DropdownMenu(more, { more = false }) {
+                DropdownMenuItem(text = { Text(str(R.string.text_version_history_8a6bf11)) }, leadingIcon = { Icon(Icons.Outlined.History, null) },
+                    onClick = { more = false; client.navigation.push(Route("vault-history", id)) })
+                if (item.saveState != "local_only" && !item.reserved && !item.deleted) {
+                    DropdownMenuItem(text = { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) },
+                        enabled = !item.conflict, onClick = { more = false; client.navigation.push(Route("secret-compose", id)) })
+                    DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, leadingIcon = { Icon(Icons.Outlined.Link, null) },
+                        onClick = { more = false; client.navigation.push(Route("vault-links", id)) })
+                }
+                if (!item.reserved && !item.deleted) DropdownMenuItem(
+                    text = { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) },
+                    leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null, tint = MaterialTheme.colorScheme.error) },
+                    onClick = { more = false; deleting = true })
+            }
+        }
+    }
+    // The bottom clearance keeps the last rows above the list's FAB in a wide window.
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding(bottom = FabClearance)), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
-            DetailCard {
-                if (item.saveState == "local_only") Text(str(R.string.saved_on_device), style = MaterialTheme.typography.labelMedium)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SecretIcon(item.kind)
-                    Column(Modifier.weight(1f)) { Text(item.title, style = MaterialTheme.typography.headlineSmall); Text(vaultKindName(item.kind), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    if (!historical && !item.reserved && !item.deleted) {
-                        IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
-                            Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
-                        }
-                        IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SecretIcon(item.kind)
+                Column(Modifier.weight(1f)) {
+                    Text(vaultKindName(item.kind), style = MaterialTheme.typography.titleMedium)
+                    Text(str(when {
+                        item.deleted -> R.string.in_trash
+                        item.conflict -> R.string.text_sync_conflicts_c35724e
+                        item.saveState == "local_only" -> R.string.saved_on_device
+                        item.synced -> R.string.synced
+                        else -> R.string.text_waiting_to_sync_865c0a0
+                    }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (historical) { Notice(str(R.string.text_you_are_viewing_an_immutable_historical_version_0b9544a)); SelectionContainer { Text(item.revision, style = MaterialTheme.typography.bodySmall) } }
-            if (item.deleted) {
-                Notice(str(R.string.text_this_item_is_in_the_trash_restore_it_to_edit_history_is_retained_025a0c4))
-                if (!historical && !item.reserved) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) {
-                    client.vault.changed(); client.vault.select(id); client.notice("VAULT_RESTORED")
-                } }, enabled = !changing) { Text(str(R.string.text_restore_item_1f6ceaa)) }
-            }
-            if (item.conflict) { Notice(str(R.string.text_this_item_has_another_version_review_the_conflict_before_replacin_763272d), true); TextButton(onClick = { client.navigation.open("conflicts") }) { Text(str(R.string.text_review_sync_conflicts_7186d41)) } }
             if (item.tags.isNotEmpty()) Text(item.tags.joinToString(" · "), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            var section = ""
-            item.fields.filter { it.value.isNotEmpty() }.forEach { field ->
-                if (field.section != section) { section = field.section; if (section.isNotBlank()) SectionTitle(section) }
-                key(item.revision, field.id) { SecretField(client, item, field, historical) }
+            // One banner at most: the state that blocks the most comes first.
+            when {
+                item.conflict -> Notice(str(R.string.text_this_item_has_another_version_review_the_conflict_before_replacin_763272d), true) {
+                    TextButton(onClick = { client.navigation.open("conflicts") }) { Text(str(R.string.text_review_sync_conflicts_7186d41)) }
+                }
+                item.deleted -> Notice(str(R.string.text_this_item_is_in_the_trash_restore_it_to_edit_history_is_retained_025a0c4),
+                    action = if (historical || item.reserved) null else { {
+                        TextButton(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) {
+                            client.vault.changed(); client.vault.select(id); client.notice("VAULT_RESTORED")
+                        } }, enabled = !changing) { Text(str(R.string.text_restore_item_1f6ceaa)) }
+                    } })
+                historical -> Notice(str(R.string.text_you_are_viewing_an_immutable_historical_version_0b9544a))
+                item.reserved -> Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
             }
-            if (item.notes.isNotEmpty()) { SectionTitle(str(R.string.text_notes_f7df47b)); SelectionContainer { Text(item.notes) } }
-            if (item.files.isNotEmpty()) {
-                SectionTitle(str(R.string.text_attachments_be5733e))
-                if (historical) item.files.forEach { file -> SelectionContainer { Text(file, style = MaterialTheme.typography.bodySmall) } }
-                else OutlinedButton(onClick = { client.navigation.push(Route("secret-attachments", id)) }) { Text(str(R.string.text_view_attachments_50edfcd) + " · " + localizedNumber(item.files.size)) }
+            item.fields.filter { it.value.isNotEmpty() }.groupBy { it.section }.forEach { (section, fields) ->
+                Section(title = section.ifBlank { null }) {
+                    fields.forEach { field -> key(item.revision, field.id) { SecretValueRow(client, item, field, historical) } }
+                }
             }
-            Text(str(R.string.text_updated_7676bd2) + displayTime(item.updatedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(str(R.string.text_created_c1dc4dc) + displayTime(item.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (!historical) TextButton(onClick = { client.navigation.push(Route("vault-history", id)) }) { Text(str(R.string.text_version_history_8a6bf11)) }
-            if (item.saveState != "local_only" && !historical && !item.reserved && !item.deleted) {
-                OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }, enabled = !item.conflict) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
-                TextButton(onClick = { client.navigation.push(Route("vault-links", id)) }) { Text(str(R.string.text_share_links_fe69aa5)) }
+            if (item.notes.isNotEmpty()) Section(title = str(R.string.text_notes_f7df47b)) {
+                ListItem(headlineContent = { SelectionContainer { Text(item.notes) } }, modifier = Modifier.clipTo(rowShape()))
             }
-            if (item.reserved) Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
-            else if (!historical && !item.deleted) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }
+            if (item.files.isNotEmpty()) Section(title = str(R.string.text_attachments_be5733e)) {
+                if (historical) item.files.forEach { file -> ListRow(file) }
+                else ListRow(str(R.string.text_view_attachments_50edfcd), icon = Icons.Outlined.AttachFile, value = localizedNumber(item.files.size),
+                    onClick = { client.navigation.push(Route("secret-attachments", id)) })
+            }
+            Section(title = str(R.string.item_information)) {
+                TimeRow(str(R.string.text_updated_9306ca8), item.updatedAt)
+                TimeRow(str(R.string.text_created_36ba304), item.createdAt)
+                if (historical) ListItem(headlineContent = { Text(str(R.string.text_version_7e42933)) },
+                    supportingContent = { SelectionContainer { Text(item.revision, style = MaterialTheme.typography.bodySmall.code()) } },
+                    modifier = Modifier.clipTo(rowShape()))
+            }
         }
     }
     if (deleting && item != null) AlertDialog(onDismissRequest = { if (!changing) deleting = false }, title = { Text(str(R.string.text_move_this_item_to_trash_2a04c82)) },
@@ -110,16 +179,29 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
         dismissButton = { TextButton(onClick = { deleting = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
+/** A relative time; tapping shows the full date and time. */
+@Composable private fun TimeRow(label: String, ms: ULong) {
+    var full by remember(ms) { mutableStateOf(false) }
+    ListRow(label, value = if (full) displayTime(ms) else relativeTime(ms), onClick = { full = !full })
+}
+
+/**
+ * A field as a list row: tapping copies, the trailing icons reveal, open and copy, and a long press
+ * offers large type and the field reference. The copy icon turns into a tick for two seconds.
+ */
 @OptIn(ExperimentalFoundationApi::class)
-@Composable private fun SecretField(client: ClientController, item: VaultItem, field: VaultField, historical: Boolean) {
+@Composable private fun SecretValueRow(client: ClientController, item: VaultItem, field: VaultField, historical: Boolean) {
     var revealed by remember { mutableStateOf<String?>(null) }
     var otp by remember { mutableStateOf<String?>(null) }
     var deadline by remember { mutableLongStateOf(0) }
+    var period by remember { mutableLongStateOf(30_000) }
     var tick by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
     var menu by remember { mutableStateOf(false) }
     var large by remember { mutableStateOf<String?>(null) }
     val uri = LocalUriHandler.current
+    val haptics = LocalHapticFeedback.current
     val isOtp = field.kind == "otp"
+    val readOnly = item.reserved || item.deleted
     val resource = "vault:field:" + item.id + ":" + item.revision + ":" + field.id
     var otpFailed by remember { mutableStateOf(false) }
     var copiedAt by remember { mutableLongStateOf(0) }
@@ -138,17 +220,26 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             val left = received.remainingMs?.let { duration -> secretRemaining(duration, requested, SystemClock.elapsedRealtime()) }
             if (isOtp && (left == null || left == 0uL)) { otp = null; return@perform }
             val value = received.copy(remainingMs = left)
-            if (isOtp) { otp = value.value; tick = SystemClock.elapsedRealtime(); deadline = tick + (left ?: 0u).coerceAtMost(300_000u).toLong() }
+            if (isOtp) {
+                otp = value.value; tick = SystemClock.elapsedRealtime()
+                val remaining = (left ?: 0u).coerceAtMost(300_000u).toLong()
+                deadline = tick + remaining
+                period = ((remaining + 29_999) / 30_000).coerceAtLeast(1) * 30_000
+            }
             action(value)
         }
     }
     fun copyValue() = readValue {
         client.clipboard.copy(it.value, (it.remainingMs ?: 30_000u).coerceAtMost(30_000u).toLong())
         copiedAt = SystemClock.elapsedRealtime()
+        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+    }
+    fun toggleReveal() {
+        if (isOtp && otp != null) { otp = null; deadline = 0 } else if (revealed != null) revealed = null else readValue { if (!isOtp) revealed = it.value }
     }
     LaunchedEffect(item.revision, field.id, historical) {
         otp = null; revealed = null; deadline = 0; otpFailed = false
-        if (isOtp && !historical && !item.reserved && !item.deleted) while (!otpFailed) {
+        if (isOtp && !historical && !readOnly) while (!otpFailed) {
             tick = SystemClock.elapsedRealtime()
             if (tick >= deadline) { otp = null; readValue { } }
             delay(1000)
@@ -163,29 +254,56 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             otp = null; tick = SystemClock.elapsedRealtime()
         }
     }
-    val value = if (isOtp) otp?.takeIf { tick < deadline } ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.card)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
-            .combinedClickable(enabled = !item.reserved && !item.deleted, role = Role.Button, onClickLabel = str(R.string.text_copy_d6e9651) + " · " + label, onClick = ::copyValue,
-                onLongClickLabel = str(R.string.text_field_actions_a2183fb), onLongClick = { menu = true }).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(6.dp)); Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier, style = (if (isOtp) MaterialTheme.typography.headlineSmall.tabular() else MaterialTheme.typography.bodyLarge).copy(textDirection = direction))
-                if (isOtp && deadline > tick) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0), style = MaterialTheme.typography.labelSmall.tabular())
-            }
-            if (!item.reserved && !item.deleted) Box {
-                IconButton(onClick = { menu = true }) { Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.MoreVert, str(R.string.text_field_actions_a2183fb) + " · " + label) }
-                DropdownMenu(menu, { menu = false }) {
-                    DropdownMenuItem(text = { Text(str(R.string.text_copy_d6e9651)) }, onClick = { menu = false; copyValue() })
-                    if (field.concealed && (!isOtp || historical)) DropdownMenuItem(text = { Text(if ((if (isOtp) otp else revealed) == null) str(R.string.text_reveal_5917b8a) else str(R.string.text_hide_d2e660d)) }, onClick = { menu = false; if (isOtp && otp != null) { otp = null; deadline = 0 } else if (revealed != null) revealed = null else readValue { if (!isOtp) revealed = it.value } })
-                    DropdownMenuItem(text = { Text(str(R.string.text_large_type_35f1ac3)) }, onClick = { menu = false; readValue { large = it.value } })
-                    if (!historical) DropdownMenuItem(text = { Text(str(R.string.text_field_reference_and_rotation_449f016)) }, onClick = {
-                        menu = false; client.navigation.push(Route("secret-reference", item.id, field = field.id))
-                    })
-                    val website = runCatching { URI(field.value) }.getOrNull()?.takeIf { field.kind == "url" && !field.concealed && it.scheme?.lowercase() in listOf("https", "http") && !it.host.isNullOrEmpty() }
-                    if (website != null) DropdownMenuItem(text = { Text(str(R.string.text_open_website_2c9debd)) }, onClick = { menu = false; uri.openUri(website.toASCIIString()) })
+    val code = otp?.takeIf { tick < deadline }
+    val shown = if (isOtp) code != null else revealed != null
+    val value = if (isOtp) code ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
+    val website = runCatching { URI(field.value) }.getOrNull()?.takeIf { field.kind == "url" && !field.concealed && it.scheme?.lowercase() in listOf("https", "http") && !it.host.isNullOrEmpty() }
+    val style = when {
+        isOtp -> MaterialTheme.typography.headlineSmall.tabular()
+        field.concealed -> MaterialTheme.typography.bodyLarge.code()
+        else -> MaterialTheme.typography.bodyLarge
+    }
+    Box {
+        ListItem(
+            headlineContent = {
+                Column {
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier,
+                        style = style.copy(textDirection = direction),
+                        color = if (website != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    if (code != null) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0),
+                        style = MaterialTheme.typography.labelSmall.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
+            },
+            trailingContent = if (readOnly) null else { {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (code != null) CircularProgressIndicator(progress = { ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) },
+                        Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.5.dp)
+                    if (field.concealed && (!isOtp || historical)) IconButton(onClick = ::toggleReveal) {
+                        Icon(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            str(if (shown) R.string.text_hide_d2e660d else R.string.text_reveal_5917b8a) + " · " + label)
+                    }
+                    if (website != null) IconButton(onClick = { uri.openUri(website.toASCIIString()) }) {
+                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, str(R.string.text_open_website_2c9debd) + " · " + label)
+                    }
+                    IconButton(onClick = ::copyValue) {
+                        Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.ContentCopy, str(R.string.text_copy_d6e9651) + " · " + label,
+                            tint = if (copiedAt != 0L) MaterialTheme.colorScheme.primary else LocalContentColor.current)
+                    }
+                }
+            } },
+            modifier = Modifier.clipTo(rowShape()).testTag("vault-field:" + field.id)
+                .semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
+                .combinedClickable(enabled = !readOnly, role = Role.Button, onClickLabel = str(R.string.text_copy_d6e9651) + " · " + label, onClick = ::copyValue,
+                    onLongClickLabel = str(R.string.text_field_actions_a2183fb), onLongClick = { menu = true })
+                .heightIn(min = 72.dp),
+        )
+        DropdownMenu(menu, { menu = false }) {
+            DropdownMenuItem(text = { Text(str(R.string.text_large_type_35f1ac3)) }, onClick = { menu = false; readValue { large = it.value } })
+            if (!historical) DropdownMenuItem(text = { Text(str(R.string.text_field_reference_and_rotation_449f016)) }, onClick = {
+                menu = false; client.navigation.push(Route("secret-reference", item.id, field = field.id))
+            })
         }
     }
     if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.headlineLarge.let { if (isOtp) it.tabular() else it }.copy(textDirection = direction)) } },
