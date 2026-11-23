@@ -75,6 +75,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
         LanguageChoice(tag, name, Locale.forLanguageTag(tag).getDisplayName(AppLanguage.locale()).takeUnless { it.equals(name, true) })
     }
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        SyncSystemBars()
         Surface(Modifier.fillMaxSize().testTag("language-picker")) {
             Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
                 Row(Modifier.fillMaxWidth()) {

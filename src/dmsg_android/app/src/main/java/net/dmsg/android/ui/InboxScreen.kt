@@ -83,8 +83,11 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                             val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
                             items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.sender, row.text, messageTime(row.createdAt), !row.read) { client.navigation.push(Route("inbox", id = row.id)) } }
                             if (rows.isEmpty() && blocked.valueOrNull() != null && (incoming is ReadState.Ready || incoming is ReadState.Empty || incoming is ReadState.Stale)) item {
-                                EmptyState(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches), glyph = if (search.isBlank()) R.drawable.glyph_inbox else null)
-                                if (folder == LetterFolder.INBOX && search.isBlank()) OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
+                                EmptyState(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches),
+                                    glyph = if (search.isBlank()) R.drawable.glyph_inbox else null,
+                                    action = if (folder == LetterFolder.INBOX && search.isBlank()) ({
+                                        OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
+                                    }) else null)
                             }
                             if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
                         }

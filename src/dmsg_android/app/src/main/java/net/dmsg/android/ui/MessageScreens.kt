@@ -247,6 +247,7 @@ import net.dmsg.core.MessageItem
     fun update(value: MessageComposer) = client.messages.edit(channel, value)
     val syncError = syncFailure?.takeIf { it.first == channel }?.second
     var dismissedError by remember(channel) { mutableStateOf<String?>(null) }
+    LaunchedEffect(syncError) { if (syncError == null) dismissedError = null }
     ScreenBar(info?.name, subtitle = str(R.string.text_encrypted_conversation_9f9e912), leading = { Avatar(info?.name.orEmpty(), channel, size = 36.dp, icon = if (info?.news == true) rememberVectorPainter(Icons.Outlined.Campaign) else null) }) {
         IconButton(onClick = { setSearchMode(BrowseSearchMode.Editing) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
         IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_conversation_settings_f07a685)) }
@@ -257,7 +258,7 @@ import net.dmsg.core.MessageItem
                 searchMode, setMode = setSearchMode)
         } else syncError?.takeIf { it != dismissedError }?.let { error ->
             Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) {
-                Notice(errorText(error), true) { TextButton(onClick = { dismissedError = error }) { Text(str(R.string.text_close_6cf4a77)) } }
+                Notice(errorText(error), true) { TextButton(onClick = { dismissedError = error }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_close_6cf4a77)) } }
             }
         }
         ReadFeedback(blocked, { client.safety.loadBlocks() })
@@ -420,7 +421,8 @@ import net.dmsg.core.MessageItem
 internal fun messageTime(ms: ULong?): String = if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else displayTime(ms)
 internal fun messageClock(ms: ULong): String = if (ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else
     java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT, net.dmsg.android.platform.AppLanguage.locale()).format(java.util.Date(ms.toLong()))
-internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(ms.toLong()))
+internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else
+    java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, net.dmsg.android.platform.AppLanguage.locale()).format(java.util.Date(ms.toLong()))
 
 @Composable fun ReferencedMessageScreen(client: ClientController, channel: String, sequence: ULong) {
     val state by client.state.collectAsStateWithLifecycle()
@@ -459,8 +461,8 @@ internal fun listTime(ms: ULong?, now: Long = System.currentTimeMillis()): Strin
     val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
     val days = java.time.temporal.ChronoUnit.DAYS.between(date, today)
     val skeleton = when {
-        days <= 0L -> "jm"
-        days < 7L -> "EEE"
+        days == 0L -> "jm"
+        days in 1L..6L -> "EEE"
         date.year == today.year -> "MMMd"
         else -> "yMMMd"
     }

@@ -43,6 +43,11 @@ internal enum class BrowseSearchMode { Browse, Editing, Results }
     actions: @Composable RowScope.() -> Unit, content: @Composable (searching: Boolean) -> Unit,
 ) {
     var mode by remember { mutableStateOf(if (query.isEmpty()) BrowseSearchMode.Browse else BrowseSearchMode.Results) }
+    var previousQuery by remember { mutableStateOf(query) }
+    LaunchedEffect(query) {
+        if (previousQuery.isNotEmpty() && query.isEmpty() && mode == BrowseSearchMode.Results) mode = BrowseSearchMode.Browse
+        previousQuery = query
+    }
     Column(Modifier.fillMaxSize().semantics { paneTitle = title }) {
         BrowseSearchRow(query, change, prompt, mode, actions) { mode = it }
         content(mode != BrowseSearchMode.Browse)

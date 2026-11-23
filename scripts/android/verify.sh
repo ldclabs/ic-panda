@@ -73,9 +73,10 @@ screenshots() {
   rm -rf "$output"
   mkdir -p "$output"
   local dir
-  for dir in $(adb -s "$ANDROID_SERIAL" shell 'ls -d /sdcard/Download/dmsg-*' | tr -d '\r'); do
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
     adb -s "$ANDROID_SERIAL" pull -q "$dir" "$output/"
-  done
+  done < <(adb -s "$ANDROID_SERIAL" shell 'for d in /sdcard/Download/dmsg-*; do [ -d "$d" ] && printf "%s\n" "$d"; done' | tr -d '\r')
   find "$output" -type f ! -name '*.png' -delete
   printf 'Screenshots: %s (%s files)\n' "$output" "$(find "$output" -name '*.png' | wc -l | tr -d ' ')"
 }

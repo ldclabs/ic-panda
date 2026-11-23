@@ -6,6 +6,7 @@ import android.graphics.Rect
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -75,8 +76,12 @@ internal data class WorkspaceFold(val bounds: Rect, val vertical: Boolean)
             if (left >= 240.dp && maxWidth - right >= 240.dp) (if (rtl) maxWidth - right else left) to (right - left).coerceAtLeast(1.dp) else null
         } }
         val listWidth = split?.first ?: (maxWidth * .4f).coerceIn(280.dp, 420.dp)
+        val listChrome = remember { ScreenChrome() }
         Row(Modifier.fillMaxSize()) {
-            Box(Modifier.width(listWidth).fillMaxHeight().testTag("workspace-list")) { list() }
+            Box(Modifier.width(listWidth).fillMaxHeight().testTag("workspace-list")) {
+                CompositionLocalProvider(LocalScreenChrome provides listChrome) { list() }
+                listChrome.fab?.let { fab -> Box(Modifier.align(Alignment.BottomEnd).padding(16.dp)) { fab() } }
+            }
             if (split == null) VerticalDivider() else Spacer(Modifier.width(split.second).fillMaxHeight().testTag("workspace-hinge"))
             Box(Modifier.weight(1f).fillMaxHeight().testTag("workspace-detail")) { detail() }
         }

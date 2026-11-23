@@ -40,7 +40,7 @@ import net.dmsg.android.ui.card
 
 /** Filter chips scroll sideways and fade at an edge that hides more; [trailing] holds the sort chip. */
 @Composable internal fun BrowseScopes(
-    trailing: @Composable () -> Unit = {}, content: @Composable RowScope.() -> Unit,
+    trailing: (@Composable () -> Unit)? = null, content: @Composable RowScope.() -> Unit,
 ) {
     val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -48,7 +48,7 @@ import net.dmsg.android.ui.card
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).fadingEdges(scroll).horizontalScroll(scroll),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, content = content)
-            Box(Modifier.padding(start = 8.dp).widthIn(max = actionWidth)) { trailing() }
+            trailing?.let { Box(Modifier.padding(start = 8.dp).widthIn(max = actionWidth)) { it() } }
         }
     }
 }
@@ -66,25 +66,23 @@ import net.dmsg.android.ui.card
 @Composable internal fun MenuChoice(label: String, selected: Boolean, modifier: Modifier = Modifier, content: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        ChoiceChip(label, selected, modifier.clickable(role = Role.DropdownList) { expanded = true }, trailing = Icons.Outlined.ArrowDropDown)
+        ChoiceChip(label, selected, Modifier.clickable(role = Role.DropdownList) { expanded = true }, outerModifier = modifier, trailing = Icons.Outlined.ArrowDropDown)
         DropdownMenu(expanded, { expanded = false }) { content { expanded = false } }
     }
 }
 
-@Composable private fun ChoiceChip(label: String, selected: Boolean, modifier: Modifier, trailing: ImageVector? = null) {
+@Composable private fun ChoiceChip(label: String, selected: Boolean, interaction: Modifier, outerModifier: Modifier = Modifier, trailing: ImageVector? = null) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
-    // The chip is 32 dp; the reserved 48 dp extends its touch target.
-    Box(Modifier.minimumInteractiveComponentSize(), contentAlignment = Alignment.Center) {
-        Surface(Modifier.clip(shape).then(modifier), shape = shape, color = if (selected) colors.secondaryContainer else Color.Transparent,
-            contentColor = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
-            border = if (selected) null else BorderStroke(1.dp, colors.outlineVariant)) {
-            Row(Modifier.heightIn(min = 32.dp).padding(start = if (selected) 8.dp else 16.dp, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(18.dp))
-                Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                trailing?.let { Icon(it, null, Modifier.size(18.dp)) }
-            }
+    // The visual chip is 32 dp; minimumInteractiveComponentSize on the same Surface extends the touch target to 48 dp.
+    Surface(outerModifier.minimumInteractiveComponentSize().clip(shape).then(interaction), shape = shape, color = if (selected) colors.secondaryContainer else Color.Transparent,
+        contentColor = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
+        border = if (selected) null else BorderStroke(1.dp, colors.outlineVariant)) {
+        Row(Modifier.heightIn(min = 32.dp).padding(start = if (selected) 8.dp else 16.dp, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(18.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            trailing?.let { Icon(it, null, Modifier.size(18.dp)) }
         }
     }
 }
@@ -93,7 +91,8 @@ import net.dmsg.android.ui.card
 @Composable internal fun SortMenu(selected: String, choices: List<Pair<String, Int>>, choose: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        AssistChip(onClick = { expanded = true }, label = { Text(str(choices.first { it.first == selected }.second), maxLines = 1) },
+        val current = choices.firstOrNull { it.first == selected } ?: choices.first()
+        AssistChip(onClick = { expanded = true }, label = { Text(str(current.second), maxLines = 1) },
             leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Sort, str(R.string.sort_by), Modifier.size(AssistChipDefaults.IconSize)) },
             trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, null, Modifier.size(AssistChipDefaults.IconSize)) })
         DropdownMenu(expanded, { expanded = false }) {

@@ -50,18 +50,23 @@ internal val LocalScreenChrome = staticCompositionLocalOf { ScreenChrome() }
 internal val LocalPageBar = staticCompositionLocalOf<PageBar?> { null }
 
 /**
- * Declares the page's bar [title] and [actions] while the page is shown. Every recomposition hands
- * the bar a new wrapper, so the bar redraws the actions with the page's current state.
+ * Declares the page's bar [title] and [actions] while the page is shown. Stable wrapper slots read
+ * the latest lambdas through [rememberUpdatedState] so the bar follows page recompositions without
+ * forcing the outer bar to recreate its slots on every tick.
  */
 @Composable internal fun ScreenBar(title: String?, subtitle: String? = null, leading: (@Composable () -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
     val bar = LocalPageBar.current ?: return
     val owner = remember { Any() }
+    val latestLeading by rememberUpdatedState(leading)
+    val latestActions by rememberUpdatedState(actions)
+    val leadingSlot: @Composable () -> Unit = remember { { latestLeading?.invoke() } }
+    val actionsSlot: @Composable RowScope.() -> Unit = remember { { latestActions() } }
     SideEffect {
         bar.owner = owner
         bar.title = title
         bar.subtitle = subtitle
-        bar.leading = leading?.let { content -> { content() } }
-        bar.actions = { actions() }
+        bar.leading = if (leading != null) leadingSlot else null
+        bar.actions = actionsSlot
     }
     DisposableEffect(bar) {
         onDispose { if (bar.owner === owner) { bar.owner = null; bar.title = null; bar.subtitle = null; bar.leading = null; bar.actions = null } }

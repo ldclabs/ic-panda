@@ -1072,7 +1072,7 @@ final class SubscriptionPresentationTests: NavigationTestCase {
     func testLocalizedCardsAndFullComparison() {
         for (language, locale, account, subscribe, dark) in [
             ("zh-Hans", "zh_CN", "账户", "订阅 Plus", false),
-            ("zh-Hant", "zh_TW", "账户", "訂閱 Plus", true),
+            ("zh-Hant", "zh_TW", "帳戶", "訂閱 Plus", true),
             ("de", "de_DE", "Konto", "Plus abonnieren", false),
             ("ar", "ar_SA", "الحساب", "الاشتراك في Plus", true)
         ] {

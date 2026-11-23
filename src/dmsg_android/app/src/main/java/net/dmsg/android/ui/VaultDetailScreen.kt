@@ -39,7 +39,6 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 import java.net.URI
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -63,7 +62,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     if (elapsed in 0 until 60_000) return relative.format(RelativeDateTimeFormatter.Direction.PLAIN, RelativeDateTimeFormatter.AbsoluteUnit.NOW)
     if (elapsed in 60_000 until 3_600_000) return relative.format((elapsed / 60_000).toDouble(), RelativeDateTimeFormatter.Direction.LAST, RelativeDateTimeFormatter.RelativeUnit.MINUTES)
     val zone = ZoneId.systemDefault()
-    val days = ChronoUnit.DAYS.between(Instant.ofEpochMilli(time).atZone(zone).toLocalDate(), LocalDate.now(zone))
+    val days = ChronoUnit.DAYS.between(Instant.ofEpochMilli(time).atZone(zone).toLocalDate(), Instant.ofEpochMilli(now).atZone(zone).toLocalDate())
     val clock = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT, locale).format(java.util.Date(time))
     return when (days) {
         0L -> relative.combineDateAndTime(relative.format(RelativeDateTimeFormatter.Direction.THIS, RelativeDateTimeFormatter.AbsoluteUnit.DAY), clock)
@@ -130,8 +129,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             }
         }
     }
-    // The bottom clearance keeps the last rows above the list's FAB in a wide window.
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding(bottom = FabClearance)), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -151,7 +149,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             // One banner at most: the state that blocks the most comes first.
             when {
                 item.conflict -> Notice(str(R.string.text_this_item_has_another_version_review_the_conflict_before_replacin_763272d), true) {
-                    TextButton(onClick = { client.navigation.open("conflicts") }) { Text(str(R.string.text_review_sync_conflicts_7186d41)) }
+                    TextButton(onClick = { client.navigation.open("conflicts") }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_review_sync_conflicts_7186d41)) }
                 }
                 item.deleted -> Notice(str(R.string.text_this_item_is_in_the_trash_restore_it_to_edit_history_is_retained_025a0c4),
                     action = if (historical || item.reserved) null else { {

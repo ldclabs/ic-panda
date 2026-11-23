@@ -61,7 +61,6 @@ import kotlinx.coroutines.launch
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
-    var activityMenu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
     val focus = LocalFocusManager.current
@@ -131,8 +130,9 @@ import kotlinx.coroutines.launch
                     }
                     val activityButton: @Composable () -> Unit = {
                         if (!local) Box {
-                            IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
-                            DropdownMenu(activityMenu, { activityMenu = false }) {
+                            var open by remember { mutableStateOf(false) }
+                            IconButton(onClick = { open = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
+                            DropdownMenu(open, { open = false }) {
                                 val reminders = noticeStatus.valueOrNull()?.counts?.total
                                 val approvals = state.session?.approvalsWaiting
                                 val actions = listOf(
@@ -141,14 +141,14 @@ import kotlinx.coroutines.launch
                                     Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncStatus?.error != null),
                                 )
                                 actions.sortedByDescending { it.third }.forEach { (page, label, _) ->
-                                    DropdownMenuItem(text = { Text(label) }, onClick = { activityMenu = false; go(page) })
+                                    DropdownMenuItem(text = { Text(label) }, onClick = { open = false; go(page) })
                                 }
-                                DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { activityMenu = false; go("secret-activity") })
+                                DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { open = false; go("secret-activity") })
                             }
                         }
                     }
                     // Every page brings its own bar, so a transition or a back gesture moves the title with the page.
-                    val pageFrame: @Composable (PageKey, @Composable () -> Unit) -> Unit = { key, content ->
+                    val pageFrame: @Composable (PageKey, @Composable (Boolean) -> Unit) -> Unit = { key, content ->
                         val page = key.route
                         val id = page.id.orEmpty()
                         val current = page == navigation.current
@@ -157,9 +157,10 @@ import kotlinx.coroutines.launch
                         val bar = !browsing && (wide || !conversation || !current || threadSearch == BrowseSearchMode.Browse)
                         val back = if (key.depth > 1) backButton else null
                         val parent = navigation.stacks.getValue(key.workspace).getOrNull(key.depth - 2)?.page
+                        val pageScopeList = id.isEmpty() && (page.page == "inbox" && parent == "messages" || page.page == "cloud-files" && parent == "files")
                         // The activity bell belongs to workspace roots and the scopes beside them.
                         val pageRoot = page.page in destinations.map { it.id }
-                        val rootLike = pageRoot && (wide || id.isEmpty()) || id.isEmpty() && (page.page == "inbox" && parent == "messages" || page.page == "cloud-files" && parent == "files")
+                        val rootLike = pageRoot && (wide || id.isEmpty()) || pageScopeList
                         val pageBar = remember { PageBar() }
                         val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
                         Column(Modifier.fillMaxSize().then(if (bar) Modifier.nestedScroll(collapse.nestedScrollConnection) else Modifier.statusBarsPadding())) {
@@ -169,7 +170,7 @@ import kotlinx.coroutines.launch
                                     conversation -> channelListing.valueOrNull()?.find { it.id == id }?.name ?: str(R.string.text_conversation_654b88b)
                                     // A vault item names itself through ScreenBar.
                                     page.page == "vault" && id.isNotEmpty() && !wide -> ""
-                                    current && scopeList -> str(destinations.first { it.id == key.workspace.route }.label)
+                                    pageScopeList -> str(destinations.first { it.id == key.workspace.route }.label)
                                     pageRoot -> str(destinations.first { it.id == page.page }.label)
                                     else -> title(page.page)
                                 }
@@ -195,7 +196,7 @@ import kotlinx.coroutines.launch
                                 }
                             }
                             CompositionLocalProvider(LocalBrowseChrome provides BrowseChrome(if (bar) null else back, if (rootLike && !bar) activityButton else { {} }), LocalPageBar provides pageBar) {
-                                Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+                                Box(Modifier.weight(1f).fillMaxWidth()) { content(pageScopeList) }
                             }
                         }
                     }
@@ -211,7 +212,7 @@ import kotlinx.coroutines.launch
                             snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->
                             WorkspaceBody(padding) {
-                                val pageContent: @Composable (Route) -> Unit = { page ->
+                                val pageContent: @Composable (Route, Boolean) -> Unit = { page, pageScopeList ->
                                     val route = page.page
                                     val selected = page.id.orEmpty()
                                     val inConversation = route == "messages" && selected.isNotEmpty()
@@ -231,7 +232,7 @@ import kotlinx.coroutines.launch
                                         if (wide) WorkspacePanes(fold, list = list, detail = { if (selected.isEmpty()) detail() else DetailPane(detail) })
                                         else if (inConversation) detail() else list()
                                     }
-                                    "inbox" -> InboxScreen(client, state, page, showScopes = scopeList)
+                                    "inbox" -> InboxScreen(client, state, page, showScopes = pageScopeList)
                                     "invite-letter-sender" -> InviteLetterSenderScreen(client, selected)
                                     "message-settings" -> MessageSettingsScreen(client)
                                     "inbox-settings" -> InboxSettingsScreen(client)
@@ -300,7 +301,7 @@ import kotlinx.coroutines.launch
                                     "feedback" -> FeedbackScreen(client)
                                     "file-transfers" -> TransferScreen(client)
                                     "file-preview" -> FilePreviewScreen(client, selected, page.revision.orEmpty())
-                                    "cloud-files" -> CloudFilesScreen(client, selected, showScopes = scopeList)
+                                    "cloud-files" -> CloudFilesScreen(client, selected, showScopes = pageScopeList)
                                     "file-unbacked" -> UnbackedFilesScreen(client)
                                     "file-backup" -> if (page.field == "batch") BatchBackupScreen(client)
                                         else FileBackupScreen(client, selected, page.revision, page.field == "revision")
@@ -331,14 +332,16 @@ import kotlinx.coroutines.launch
                                     "vault-backup" -> VaultBackupScreen(client)
                                     else -> EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account)
                                 } }
-                                val framedPage: @Composable (PageKey) -> Unit = { key -> pageFrame(key) { pageContent(key.route) } }
+                                val framedPage: @Composable (PageKey) -> Unit = { key -> pageFrame(key) { pageScopeList -> pageContent(key.route, pageScopeList) } }
                                 Box(Modifier.weight(1f).fillMaxWidth()) {
                                     CompositionLocalProvider(LocalScreenChrome provides screenChrome) {
                                         if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                             list = { pageFrame(PageKey(Workspace.ACCOUNT, 1, Route("account"))) { AccountScreen(client, state, ::go, openLogin) } },
                                             detail = {
-                                                if (route == "account") Box(Modifier.statusBarsPadding()) { EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) }
-                                                else AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = false, content = framedPage)
+                                                AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = false) { key ->
+                                                    if (key.route.page == "account") Box(Modifier.statusBarsPadding()) { EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) }
+                                                    else framedPage(key)
+                                                }
                                             })
                                         else AnimatedPage(navigation, !imeVisible, client.navigation::back, itemPages = !wide, content = framedPage)
                                     }
@@ -356,6 +359,7 @@ import kotlinx.coroutines.launch
             QrScannerHost(client, state.concealed)
             if (showEditor && state.unlocked && !state.concealed) Dialog(onDismissRequest = ::closeEditor,
                 properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnClickOutside = false)) {
+                SyncSystemBars()
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.page) { VaultEditor(client, close = ::closeEditor) }
             }
             if (discardEditor && state.unlocked && !state.concealed) AlertDialog(onDismissRequest = { discardEditor = false }, title = { Text(str(R.string.text_keep_your_changes_01fdac5)) },
@@ -380,6 +384,7 @@ private data class PageKey(val workspace: Workspace, val depth: Int, val route: 
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val distance = with(LocalDensity.current) { 30.dp.roundToPx() }
     val target = PageKey(navigation.workspace, navigation.stack.size, navigation.current)
+    val currentTarget by rememberUpdatedState(target)
     val previous = navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.let { PageKey(navigation.workspace, navigation.stack.lastIndex, it) }
     val pages = remember { SeekableTransitionState(target) }
     val scope = rememberCoroutineScope()
@@ -390,7 +395,7 @@ private data class PageKey(val workspace: Workspace, val depth: Int, val route: 
             progress.collect { event -> pages.seekTo(event.progress, to) }
             back()
         } catch (cancelled: CancellationException) {
-            scope.launch { pages.animateTo(pages.currentState) }
+            scope.launch { pages.animateTo(currentTarget) }
             throw cancelled
         }
     }

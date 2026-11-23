@@ -66,6 +66,7 @@ import net.dmsg.android.core.*
     }
     val loginExpired = state.session?.loginExpiresAtMs?.let { it <= System.currentTimeMillis().toULong() } == true
     if (loginExpired) {
+        Spacer(Modifier.height(12.dp))
         Notice(str(R.string.text_online_sign_in_has_expired_local_content_remains_available_b845b15))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { client.passkey() }, enabled = !state.busy) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }

@@ -3,7 +3,9 @@ package net.dmsg.android
 import net.dmsg.android.ui.kit.*
 import android.graphics.Rect
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect as ComposeRect
@@ -79,5 +81,46 @@ class AdaptiveLayoutTest {
         val label = compose.onNodeWithText("Complete account identifier", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val value = compose.onNodeWithText("aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg", useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue(value.top >= label.bottom)
+    }
+
+    @Test fun widePaneListFabStaysInsideTheListPane() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                DMsgTheme(false) {
+                    Box(Modifier.requiredSize(1000.dp, 600.dp)) {
+                        WorkspacePanes(null,
+                            list = {
+                                ScreenFab { FloatingActionButton(onClick = {}, modifier = Modifier.testTag("list-fab")) { Text("New") } }
+                                Text("Index")
+                            },
+                            detail = { Text("Detail") })
+                    }
+                }
+            }
+        }
+        val listBounds = compose.onNodeWithTag("workspace-list").getUnclippedBoundsInRoot()
+        val detailBounds = compose.onNodeWithTag("workspace-detail").getUnclippedBoundsInRoot()
+        val fabBounds = compose.onNodeWithTag("list-fab").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("FAB stays inside list pane: $fabBounds vs $listBounds", fabBounds.left >= listBounds.left && fabBounds.right <= listBounds.right)
+        assertTrue("FAB stays clear of detail pane: $fabBounds vs $detailBounds", fabBounds.right <= detailBounds.left)
+    }
+
+    @Test fun emptyStateWithMultipleActionsKeepsButtonsSeparated() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                DMsgTheme(false) {
+                    Box(Modifier.requiredSize(360.dp, 300.dp)) {
+                        EmptyState("No matches") {
+                            TextButton(onClick = {}) { Text("Clear search") }
+                            TextButton(onClick = {}) { Text("New item") }
+                        }
+                    }
+                }
+            }
+        }
+        val clear = compose.onNodeWithText("Clear search").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val create = compose.onNodeWithText("New item").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val separated = clear.right <= create.left || create.right <= clear.left || clear.bottom <= create.top || create.bottom <= clear.top
+        assertTrue("EmptyState buttons must not overlap: $clear vs $create", separated)
     }
 }

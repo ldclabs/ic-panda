@@ -43,6 +43,9 @@ import androidx.compose.ui.unit.dp
         detail?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
         }
-        action?.let { Box(Modifier.padding(top = 8.dp)) { it() } }
+        action?.let {
+            FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) { it() }
+        }
     }
 }

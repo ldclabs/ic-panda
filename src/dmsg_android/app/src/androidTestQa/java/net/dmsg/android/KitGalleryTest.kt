@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -98,7 +99,7 @@ class KitGalleryTest {
         }
         Notice(if (rtl) "تمت المزامنة قبل ٣ دقائق." else "Synchronized 3 minutes ago.")
         Notice(if (rtl) "تعذّر الوصول إلى الخدمة." else "The service is unavailable.", warning = true) {
-            TextButton(onClick = {}) { Text(if (rtl) "إعادة المحاولة" else "Try again") }
+            TextButton(onClick = {}, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(if (rtl) "إعادة المحاولة" else "Try again") }
         }
     }
 

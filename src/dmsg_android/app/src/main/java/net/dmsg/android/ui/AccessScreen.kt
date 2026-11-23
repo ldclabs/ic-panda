@@ -218,6 +218,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     if (choosingLanguage) LanguagePicker { choosingLanguage = false }
     information?.let { PublicInformationDialog(it, { information = null }, browser) }
     if (choosingAccount) androidx.compose.ui.window.Dialog(onDismissRequest = { choosingAccount = false }, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        SyncSystemBars()
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 TextButton(onClick = { choosingAccount = false }) { Text(str(R.string.text_close_6cf4a77)) }

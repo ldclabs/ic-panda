@@ -88,6 +88,7 @@ import net.dmsg.android.BuildConfig
     var current by remember(page) { mutableStateOf(page) }
     fun back() { if (current == "privacy" && page == "about") current = "about" else close() }
     Dialog(onDismissRequest = ::back, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        SyncSystemBars()
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(Modifier.fillMaxWidth()) {

@@ -131,7 +131,7 @@ import net.dmsg.core.*
                     }
                 }
                 val fieldContent: @Composable () -> Unit = {
-                    Column(if (customizing) Modifier.padding(16.dp) else Modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (customizing) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Box {
                                 TextButton(onClick = { types = true }, enabled = !working && (current.id == null || !field.concealed || field.changed)) { Text(fieldKindName(field.kind)) }
