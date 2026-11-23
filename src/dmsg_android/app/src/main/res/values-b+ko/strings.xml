@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"암호화 전송"</string>
     <string name="customize_fields" formatted="false">"필드 사용자화"</string>
     <string name="device_content_signing" formatted="false">"콘텐츠 서명"</string>
+    <string name="dynamic_color" formatted="false">"동적 색상"</string>
+    <string name="dynamic_color_detail" formatted="false">"색상이 배경화면을 따릅니다."</string>
     <string name="empty_folder" formatted="false">"이 폴더에 파일 없음"</string>
     <string name="file_moved_to_trash" formatted="false">"휴지통으로 이동됨"</string>
     <string name="file_name_rule" formatted="false">"슬래시나 제어 문자 없이 1~255자로 이름을 입력하세요."</string>

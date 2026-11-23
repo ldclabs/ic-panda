@@ -62,6 +62,22 @@ device() {
       -Pandroid.testInstrumentationRunnerArguments.networkProbe=true \
       :app:connectedProductionNoneDebugAndroidTest
   )
+  screenshots
+}
+
+# The QA suite copies its captures (kit gallery, root pages, languages, windows) to
+# /sdcard/Download/dmsg-*. Keep them with the reports so a change's before/after runs
+# can be compared directory by directory.
+screenshots() {
+  local output="src/dmsg_android/app/build/reports/dmsg/screenshots"
+  rm -rf "$output"
+  mkdir -p "$output"
+  local dir
+  for dir in $(adb -s "$ANDROID_SERIAL" shell 'ls -d /sdcard/Download/dmsg-*' | tr -d '\r'); do
+    adb -s "$ANDROID_SERIAL" pull -q "$dir" "$output/"
+  done
+  find "$output" -type f ! -name '*.png' -delete
+  printf 'Screenshots: %s (%s files)\n' "$output" "$(find "$output" -name '*.png' | wc -l | tr -d ' ')"
 }
 
 case "$mode" in

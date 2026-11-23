@@ -93,9 +93,11 @@ import androidx.compose.ui.unit.dp
     enabled: Boolean = true,
     description: String? = null,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     ListItem(
+        leadingContent = icon?.let { { RowIcon(it) } },
         headlineContent = { Text(title) },
         supportingContent = description?.let { { Text(it) } },
         trailingContent = { Switch(checked, onCheckedChange = null, enabled = enabled) },

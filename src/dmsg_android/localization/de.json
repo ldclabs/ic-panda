@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Wenn eingerichtet, nutzen Käufe über Google Play die Google-Dienste für Konten, Zahlungen und Geräteprüfung. Kauf-Token bleiben verschlüsselt gespeichert, bis der Dienst die Bereitstellung bestätigt. Inhalte aus dMsg werden nicht an Google gesendet. Die nachstehenden Dienstrichtlinien beschreiben auch Apple-spezifische Dienste anderer dMsg-Apps.",
   "cipher_transfer_running": "Verschlüsselte Datenblöcke werden übertragen",
   "cipher_transfer_title": "Verschlüsselte Übertragungen",
+  "dynamic_color": "Dynamische Farben",
+  "dynamic_color_detail": "Die Farben folgen deinem Hintergrundbild.",
   "follow_system_language": "Systemsprache verwenden",
   "language_search": "Sprache suchen",
   "links_created_progress": "%1$s von %2$s erstellt",

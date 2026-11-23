@@ -51,6 +51,7 @@ import net.dmsg.core.*
         SectionTitle(str(R.string.text_appearance_7bcd380))
         Section(iconColor = MaterialTheme.colorScheme.tertiaryContainer) {
             AppearanceRow(client, state)
+            SettingToggle(str(R.string.dynamic_color), state.dynamicColor, client::dynamicColor, description = str(R.string.dynamic_color_detail), icon = Icons.Outlined.Palette)
             AccountLanguageRow()
         }
         SectionTitle(str(R.string.text_settings_8d4d0d8))

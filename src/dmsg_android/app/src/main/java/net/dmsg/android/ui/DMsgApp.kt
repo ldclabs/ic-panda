@@ -90,7 +90,7 @@ import kotlinx.coroutines.launch
     val filePickers = rememberFilePickers(client)
     val noticePermission = rememberNoticePermission(client)
     CompositionLocalProvider(LocalFilePickers provides filePickers, LocalNoticePermission provides noticePermission) {
-    DMsgTheme(state.dark) {
+    DMsgTheme(state.dark, state.dynamicColor) {
         Surface(Modifier.fillMaxSize().fileDropTarget(client, !state.concealed && (!state.unlocked || navigation.workspace == Workspace.FILES))) {
             when {
                 state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }

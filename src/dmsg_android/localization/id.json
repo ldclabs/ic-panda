@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Jika dikonfigurasi, pembelian Google Play menggunakan layanan akun Google, penagihan, dan verifikasi perangkat. Token pembelian disimpan terenkripsi sampai layanan memverifikasi penyerahan hak. Konten dMsg tidak dikirim ke Google. Kebijakan layanan di bawah juga menjelaskan layanan khusus Apple yang digunakan aplikasi dMsg lainnya.",
   "cipher_transfer_running": "Mentransfer blok terenkripsi",
   "cipher_transfer_title": "Transfer terenkripsi",
+  "dynamic_color": "Warna dinamis",
+  "dynamic_color_detail": "Warna mengikuti wallpaper Anda.",
   "follow_system_language": "Ikuti bahasa sistem",
   "language_search": "Cari bahasa",
   "links_created_progress": "%1$s dari %2$s dibuat",

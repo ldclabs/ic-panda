@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Kapag naka-configure, ginagamit ng mga pagbili sa Google Play ang mga serbisyo ng Google account, pagsingil, at pag-verify ng device. Nananatiling naka-encrypt ang mga purchase token hanggang ma-verify ng serbisyo ang paghahatid ng mga karapatan. Hindi ipinapadala sa Google ang nilalaman ng dMsg. Inilalarawan din ng patakaran sa serbisyo sa ibaba ang mga serbisyong para sa Apple na ginagamit ng ibang dMsg app.",
   "cipher_transfer_running": "Inililipat ang mga naka-encrypt na block",
   "cipher_transfer_title": "Mga naka-encrypt na paglilipat",
+  "dynamic_color": "Dynamic na kulay",
+  "dynamic_color_detail": "Sumusunod ang mga kulay sa iyong wallpaper.",
   "follow_system_language": "Sundin ang wika ng system",
   "language_search": "Maghanap ng wika",
   "links_created_progress": "Nagawa na ang %1$s sa %2$s",

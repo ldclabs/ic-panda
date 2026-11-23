@@ -1,7 +1,10 @@
 package net.dmsg.android.ui
 
+import android.content.Context
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
@@ -57,6 +60,23 @@ internal val DarkColors = darkColorScheme(
     tertiaryFixed = Color(0xFFFFDBCA), tertiaryFixedDim = Color(0xFFFFB68E),
     onTertiaryFixed = Color(0xFF331200), onTertiaryFixedVariant = Color(0xFF763300),
 )
+
+/** The app's scheme, or the wallpaper's when dynamic colour is on. */
+internal fun appColors(context: Context, dark: Boolean, dynamic: Boolean): ColorScheme {
+    val fixed = if (dark) DarkColors else LightColors
+    if (!dynamic) return fixed
+    return (if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)).asAppColors(fixed, dark)
+}
+
+/**
+ * A wallpaper scheme in this app's roles. In light mode the page moves one container step down so
+ * cards stay lighter than the page; error roles stay the app's own so a warning reads the same on
+ * any wallpaper.
+ */
+internal fun ColorScheme.asAppColors(fixed: ColorScheme, dark: Boolean): ColorScheme {
+    val paper = if (dark) this else copy(background = surfaceContainerLow, surface = surfaceContainerLow, surfaceContainerLow = surfaceContainerLowest)
+    return paper.copy(error = fixed.error, onError = fixed.onError, errorContainer = fixed.errorContainer, onErrorContainer = fixed.onErrorContainer)
+}
 
 /** The page behind content: scaffold, top bar and sticky headers. */
 internal val ColorScheme.page: Color get() = background

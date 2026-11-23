@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Зашифрованные передачи"</string>
     <string name="customize_fields" formatted="false">"Настроить поля"</string>
     <string name="device_content_signing" formatted="false">"Подпись содержимого"</string>
+    <string name="dynamic_color" formatted="false">"Динамические цвета"</string>
+    <string name="dynamic_color_detail" formatted="false">"Цвета подстраиваются под обои."</string>
     <string name="empty_folder" formatted="false">"В этой папке нет файлов"</string>
     <string name="file_moved_to_trash" formatted="false">"Перемещено в корзину"</string>
     <string name="file_name_rule" formatted="false">"Используйте имя длиной 1–255 символов без косых черт и управляющих символов."</string>

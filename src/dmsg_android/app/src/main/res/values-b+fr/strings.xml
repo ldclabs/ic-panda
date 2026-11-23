@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Transferts chiffrés"</string>
     <string name="customize_fields" formatted="false">"Personnaliser les champs"</string>
     <string name="device_content_signing" formatted="false">"Signature de contenu"</string>
+    <string name="dynamic_color" formatted="false">"Couleurs dynamiques"</string>
+    <string name="dynamic_color_detail" formatted="false">"Les couleurs suivent votre fond d\'écran."</string>
     <string name="empty_folder" formatted="false">"Aucun fichier dans ce dossier"</string>
     <string name="file_moved_to_trash" formatted="false">"Déplacé dans la corbeille"</string>
     <string name="file_name_rule" formatted="false">"Utilisez un nom de 1 à 255 caractères, sans barres obliques ni caractères de contrôle."</string>

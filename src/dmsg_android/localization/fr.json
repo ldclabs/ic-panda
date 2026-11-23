@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Lorsqu’ils sont configurés, les achats Google Play utilisent les services Google de compte, de facturation et de vérification de l’appareil. Les jetons d’achat sont conservés chiffrés jusqu’à ce que le service vérifie la livraison. Le contenu dMsg n’est pas envoyé à Google. La politique du service ci-dessous décrit aussi les services propres à Apple utilisés par d’autres applications dMsg.",
   "cipher_transfer_running": "Transfert des blocs chiffrés",
   "cipher_transfer_title": "Transferts chiffrés",
+  "dynamic_color": "Couleurs dynamiques",
+  "dynamic_color_detail": "Les couleurs suivent votre fond d'écran.",
   "follow_system_language": "Suivre la langue du système",
   "language_search": "Rechercher une langue",
   "links_created_progress": "%1$s sur %2$s créés",

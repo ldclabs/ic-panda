@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>
     <string name="customize_fields" formatted="false">"ফিল্ড সাজান"</string>
     <string name="device_content_signing" formatted="false">"বিষয়বস্তু স্বাক্ষর"</string>
+    <string name="dynamic_color" formatted="false">"ডায়নামিক রং"</string>
+    <string name="dynamic_color_detail" formatted="false">"রং আপনার ওয়ালপেপার অনুসরণ করে।"</string>
     <string name="empty_folder" formatted="false">"এই ফোল্ডারে কোনো ফাইল নেই"</string>
     <string name="file_moved_to_trash" formatted="false">"ট্র্যাশে সরানো হয়েছে"</string>
     <string name="file_name_rule" formatted="false">"স্ল্যাশ বা নিয়ন্ত্রণ অক্ষর ছাড়া ১–২৫৫ অক্ষরের নাম ব্যবহার করুন।"</string>

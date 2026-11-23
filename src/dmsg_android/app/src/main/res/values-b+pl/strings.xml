@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Zaszyfrowane transfery"</string>
     <string name="customize_fields" formatted="false">"Dostosuj pola"</string>
     <string name="device_content_signing" formatted="false">"Podpisywanie treści"</string>
+    <string name="dynamic_color" formatted="false">"Kolory dynamiczne"</string>
+    <string name="dynamic_color_detail" formatted="false">"Kolory dopasowują się do tapety."</string>
     <string name="empty_folder" formatted="false">"Brak plików w tym folderze"</string>
     <string name="file_moved_to_trash" formatted="false">"Przeniesiono do kosza"</string>
     <string name="file_name_rule" formatted="false">"Użyj nazwy o długości 1–255 znaków, bez ukośników i znaków sterujących."</string>

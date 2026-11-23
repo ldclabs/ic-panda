@@ -28,6 +28,7 @@ data class UiState(
     val error: String? = null,
     val notice: String? = null,
     val dark: Boolean? = null,
+    val dynamicColor: Boolean = false,
     val immediateLock: Boolean = false,
 ) {
     val unlocked: Boolean get() = session?.state == "unlocked"

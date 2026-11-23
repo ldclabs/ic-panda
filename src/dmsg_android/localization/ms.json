@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Jika dikonfigurasikan, pembelian Google Play menggunakan perkhidmatan akaun Google, pengebilan, dan pengesahan peranti. Token pembelian disimpan disulitkan sehingga perkhidmatan mengesahkan penyerahan hak. Kandungan dMsg tidak dihantar ke Google. Dasar perkhidmatan di bawah juga menjelaskan perkhidmatan khusus Apple yang digunakan aplikasi dMsg lain.",
   "cipher_transfer_running": "Memindahkan blok disulitkan",
   "cipher_transfer_title": "Pemindahan disulitkan",
+  "dynamic_color": "Warna dinamik",
+  "dynamic_color_detail": "Warna mengikut kertas dinding anda.",
   "follow_system_language": "Ikuti bahasa sistem",
   "language_search": "Cari bahasa",
   "links_created_progress": "%1$s daripada %2$s telah dibuat",

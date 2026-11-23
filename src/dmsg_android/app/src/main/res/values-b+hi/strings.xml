@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"एन्क्रिप्टेड ट्रांसफ़र"</string>
     <string name="customize_fields" formatted="false">"फ़ील्ड कस्टमाइज़ करें"</string>
     <string name="device_content_signing" formatted="false">"सामग्री पर हस्ताक्षर"</string>
+    <string name="dynamic_color" formatted="false">"डायनैमिक रंग"</string>
+    <string name="dynamic_color_detail" formatted="false">"रंग आपके वॉलपेपर के अनुसार बदलते हैं।"</string>
     <string name="empty_folder" formatted="false">"इस फ़ोल्डर में कोई फ़ाइल नहीं"</string>
     <string name="file_moved_to_trash" formatted="false">"ट्रैश में भेज दिया गया"</string>
     <string name="file_name_rule" formatted="false">"1–255 वर्णों का नाम इस्तेमाल करें जिसमें स्लैश या कंट्रोल वर्ण न हों।"</string>

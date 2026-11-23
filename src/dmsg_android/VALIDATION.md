@@ -1,5 +1,41 @@
 # Android implementation validation
 
+## Dynamic colour, small feedback and the acceptance checklist — 2026-11-23
+
+Appearance on the account root gains a dynamic colour switch, off by default
+and saved with the other preferences. When it is on, the wallpaper scheme
+replaces the brand scheme; in light mode the page moves one container step
+down so cards stay lighter than the page, and the error roles stay the app's
+own. A segmented choice ticks once, the vault favourite star springs in with a
+haptic tick, and the account card's "Public profile" moved from 12 to 14 sp so
+the account root uses four type sizes. `UiConventionsTest` now keeps
+segmented buttons in the kit, wallpaper schemes in `ThemeColors.kt`, and
+`MenuChoice`, `SegmentedChoice` and `Avatar` in `ui/kit`; `ThemeColorsTest`
+checks the wallpaper mapping against the Material baseline schemes. The visual
+acceptance checklist is in DESIGN.md under "Checking a Change".
+`KitGalleryTest` also copies its captures to `/sdcard/Download/dmsg-kit-gallery`,
+and `scripts/android/verify.sh device` pulls every `/sdcard/Download/dmsg-*`
+capture into `app/build/reports/dmsg/screenshots/`.
+
+Checklist walk on the API 36 emulator, from this batch's and the earlier
+batches' screenshots: the vault, messages and files roots each have one FAB as
+the primary action and no banner; the lock screen has one filled button and
+four type sizes; the account root has no primary action (it is a settings
+page) and four type sizes; a conversation shows at most the one sync banner.
+Type sizes were counted only on the account root and the lock screen. Beside
+Android 16 Settings on the same emulator, the account root and the security
+page use the same grouped cards and large title; Google Password Manager and
+Google Messages were not compared (Messages needs an account set up on the
+emulator). Dynamic colour was checked on the account root and the vault list
+in light and the vault list in dark with the emulator's default wallpaper.
+TalkBack was not rerun.
+
+Debug: 140 JVM tests pass; lint reports 89 warnings and no errors. QA: JVM
+tests pass and the device suite ran 140 tests, 133 passed and 7 skipped. The
+screenshot collection from `verify.sh` was run on its own after the suite and
+pulled 202 captures from five directories; the full `verify.sh device` (GMS
+and debug channels) was not run.
+
 ## Account, entry and files — 2026-11-23
 
 The account card sits on the card colour with the account's avatar, name,

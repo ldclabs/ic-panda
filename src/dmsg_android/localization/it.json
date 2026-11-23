@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Quando configurati, gli acquisti Google Play usano i servizi Google per account, fatturazione e verifica del dispositivo. I token di acquisto vengono conservati cifrati finché il servizio non verifica l'erogazione dei diritti. I contenuti dMsg non vengono inviati a Google. L'informativa seguente descrive anche i servizi specifici Apple usati da altre app dMsg.",
   "cipher_transfer_running": "Trasferimento dei blocchi cifrati",
   "cipher_transfer_title": "Trasferimenti cifrati",
+  "dynamic_color": "Colori dinamici",
+  "dynamic_color_detail": "I colori seguono il tuo sfondo.",
   "follow_system_language": "Segui la lingua del sistema",
   "language_search": "Cerca una lingua",
   "links_created_progress": "Creati %1$s di %2$s",

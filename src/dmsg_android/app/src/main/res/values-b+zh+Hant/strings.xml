@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"加密傳輸"</string>
     <string name="customize_fields" formatted="false">"自訂欄位"</string>
     <string name="device_content_signing" formatted="false">"內容簽署"</string>
+    <string name="dynamic_color" formatted="false">"動態取色"</string>
+    <string name="dynamic_color_detail" formatted="false">"顏色跟隨桌布。"</string>
     <string name="empty_folder" formatted="false">"此資料夾中沒有檔案"</string>
     <string name="file_moved_to_trash" formatted="false">"已移至垃圾桶"</string>
     <string name="file_name_rule" formatted="false">"名稱須為 1–255 個字元，且不能包含斜線或控制字元。"</string>

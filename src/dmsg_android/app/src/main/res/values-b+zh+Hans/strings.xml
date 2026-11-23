@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"加密传输"</string>
     <string name="customize_fields" formatted="false">"自定义字段"</string>
     <string name="device_content_signing" formatted="false">"内容签名"</string>
+    <string name="dynamic_color" formatted="false">"动态取色"</string>
+    <string name="dynamic_color_detail" formatted="false">"颜色跟随壁纸。"</string>
     <string name="empty_folder" formatted="false">"此文件夹中没有文件"</string>
     <string name="file_moved_to_trash" formatted="false">"已移入回收站"</string>
     <string name="file_name_rule" formatted="false">"名称须为 1–255 个字符，且不能包含斜杠或控制字符。"</string>

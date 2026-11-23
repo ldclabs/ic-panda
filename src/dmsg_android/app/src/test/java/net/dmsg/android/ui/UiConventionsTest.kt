@@ -13,7 +13,7 @@ class UiConventionsTest {
 
     @Test fun coloursComeFromRoles() = assertNone("raw colour; use a colour role", Regex("""\bColor\(0x"""), "ThemeColors.kt")
 
-    @Test fun colourSchemesAreDefinedOnce() = assertNone("colour scheme outside the theme", Regex("""\b(light|dark)ColorScheme\("""), "ThemeColors.kt")
+    @Test fun colourSchemesAreDefinedOnce() = assertNone("colour scheme outside the theme", Regex("""\b(light|dark|dynamicLight|dynamicDark)ColorScheme\("""), "ThemeColors.kt")
 
     @Test fun themeIsProvidedOnce() = assertNone("nested MaterialTheme; use DMsgTheme or OnCard", Regex("""\bMaterialTheme\("""), "Theme.kt")
 
@@ -36,11 +36,14 @@ class UiConventionsTest {
     @Test fun overflowMenusUseTheVerticalIcon() = assertNone("horizontal ellipsis; overflow menus use Icons.Outlined.MoreVert",
         Regex("""\bMoreHoriz\b"""))
 
+    @Test fun segmentedChoicesUseTheKit() = assertNone("segmented button outside the kit; use SegmentedChoice",
+        Regex("""\b(SingleChoiceSegmentedButtonRow|MultiChoiceSegmentedButtonRow)\("""), "Filters.kt")
+
     @Test fun sharedComponentsLiveInTheKit() {
         val kit = File(root, "ui/kit")
         assertTrue(listOf("Section.kt", "Rows.kt", "Notice.kt", "EmptyState.kt", "Skeleton.kt", "Filters.kt").all { File(kit, it).isFile })
         assertNone("shared component defined outside ui/kit", Regex(
-            """fun (Section|ListRow|RowIcon|LabelValue|SettingToggle|SelectionRow|RadioChoiceRow|BrowseRow|BrowseIcon|BrowseChoice|SortMenu|Notice|EmptyState|DetailCard)\("""),
+            """fun (Section|ListRow|RowIcon|LabelValue|SettingToggle|SelectionRow|RadioChoiceRow|BrowseRow|BrowseIcon|BrowseChoice|SortMenu|MenuChoice|SegmentedChoice|Avatar|Notice|EmptyState|DetailCard)\("""),
             *kit.list().orEmpty())
     }
 

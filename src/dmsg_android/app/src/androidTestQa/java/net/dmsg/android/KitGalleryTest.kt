@@ -29,7 +29,7 @@ import java.io.File
 
 /**
  * Renders the component kit in light, dark and right-to-left at 200% text, checks touch targets
- * and saves screenshots to the app's external files (`kit-gallery/`) for visual review.
+ * and saves screenshots to the app's external files (`kit-gallery/`) and /sdcard/Download/dmsg-kit-gallery for visual review.
  */
 class KitGalleryTest {
     @get:Rule val compose = createComposeRule()
@@ -74,6 +74,11 @@ class KitGalleryTest {
             }
             val image = compose.onRoot().captureToImage().asAndroidBitmap()
             File(output, "${next.name}-$index.png").outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+        // scripts/android/verify.sh collects /sdcard/Download/dmsg-* as the screenshot baseline.
+        val shell = InstrumentationRegistry.getInstrumentation().uiAutomation
+        for (command in listOf("mkdir -p /sdcard/Download/dmsg-kit-gallery", "cp -r ${output.absolutePath}/. /sdcard/Download/dmsg-kit-gallery/")) {
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(shell.executeShellCommand(command)).use { it.readBytes() }
         }
     }
 

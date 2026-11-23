@@ -228,6 +228,7 @@ class ClientController internal constructor(private val application: Application
                 navigation.activate(session.account)
                 mutable.value = UiState(starting = false, concealed = !appForeground, session = session, epoch = epoch,
                     dark = when (saved?.optString("appearance")) { "dark" -> true; "light" -> false; else -> null },
+                    dynamicColor = saved?.optBoolean("dynamic_color") == true,
                     immediateLock = policy.immediateBackgroundLock, error = restored.draftError)
                 if (navigationIntent != 0L) this@ClientController.preferences()
                 incoming.checkPending()
@@ -258,7 +259,7 @@ class ClientController internal constructor(private val application: Application
         letters.clear(); safety.clear(); feedback.clear(); transfers.clear()
         vaultDrafts.clear()
         synchronization.stop(clear = true)
-        mutable.update { UiState(starting = false, concealed = concealed, epoch = epoch, dark = it.dark, immediateLock = it.immediateLock) }
+        mutable.update { UiState(starting = false, concealed = concealed, epoch = epoch, dark = it.dark, dynamicColor = it.dynamicColor, immediateLock = it.immediateLock) }
     }
 
     fun lock(suppressAutomaticUnlock: Boolean = true, after: (() -> Unit)? = null) {
@@ -481,7 +482,7 @@ class ClientController internal constructor(private val application: Application
         restoreEditors(pending)
         mutable.update {
             if (changed) UiState(starting = false, concealed = it.concealed, session = next, epoch = epoch,
-                dark = it.dark, immediateLock = it.immediateLock, error = draftError)
+                dark = it.dark, dynamicColor = it.dynamicColor, immediateLock = it.immediateLock, error = draftError)
             else it.copy(starting = false, session = next, epoch = epoch, error = draftError ?: it.error)
         }
         if (appForeground && !state.value.concealed) startForegroundWork()
@@ -774,6 +775,7 @@ class ClientController internal constructor(private val application: Application
 
     fun dark(value: Boolean) { mutable.update { it.copy(dark = value) }; preferences() }
     fun systemAppearance() { mutable.update { it.copy(dark = null) }; preferences() }
+    fun dynamicColor(value: Boolean) { mutable.update { it.copy(dynamicColor = value) }; preferences() }
     fun automaticSync(value: Boolean) {
         val account = state.value.session?.account ?: return
         syncPreferences[account] = value
@@ -786,7 +788,7 @@ class ClientController internal constructor(private val application: Application
         val root = files?.root ?: return
         scope.launch { preferencesTurn.withLock {
             val bytes = JSONObject().put("appearance", when (state.value.dark) { true -> "dark"; false -> "light"; null -> "system" })
-                .put("immediate_lock", state.value.immediateLock).put("automatic_sync", JSONObject(syncPreferences.toMap()))
+                .put("dynamic_color", state.value.dynamicColor).put("immediate_lock", state.value.immediateLock).put("automatic_sync", JSONObject(syncPreferences.toMap()))
                 .put("account_names", JSONObject(accountNamesValue.value)).put("pending_connect", incomingConnect?.url()).put("pending_workspace", pendingWorkspace?.url()).put("pending_notice", pendingNotice?.value).put("pending_reminder", noticeNavigation.save()).toString().toByteArray()
             withContext(Dispatchers.IO) { PrivateFiles.atomicWrite(File(root, "preferences.json"), bytes) }
         } }

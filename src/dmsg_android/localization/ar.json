@@ -2,6 +2,8 @@
   "android_purchase_privacy": "تستخدم مشتريات Google Play خدمات حساب Google والفوترة والتحقق من الجهاز عند إعدادها. تُحفظ رموز الشراء مشفّرة حتى تتحقق الخدمة من التسليم. لا يُرسل محتوى dMsg إلى Google. تصف سياسة الخدمة أدناه أيضًا الخدمات الخاصة بـ Apple التي تستخدمها تطبيقات dMsg الأخرى.",
   "cipher_transfer_running": "جارٍ نقل الكتل المشفّرة",
   "cipher_transfer_title": "عمليات النقل المشفّرة",
+  "dynamic_color": "الألوان الديناميكية",
+  "dynamic_color_detail": "تتبع الألوان خلفية شاشتك.",
   "follow_system_language": "اتباع لغة النظام",
   "language_search": "البحث عن لغة",
   "links_created_progress": "تم إنشاء %1$s من %2$s",

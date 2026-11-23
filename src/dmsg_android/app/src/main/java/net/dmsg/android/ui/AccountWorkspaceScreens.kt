@@ -47,7 +47,7 @@ import net.dmsg.android.core.*
             Avatar(name.orEmpty(), account, size = 56.dp, image = remember(image) { image?.asImageBitmap() }, icon = if (name == null) painterResource(R.drawable.glyph_profile) else null)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(name ?: str(R.string.text_your_account_ae9d708), style = MaterialTheme.typography.titleLarge)
-                Text(str(R.string.text_public_profile_a67b108), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(str(R.string.text_public_profile_a67b108), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
     }

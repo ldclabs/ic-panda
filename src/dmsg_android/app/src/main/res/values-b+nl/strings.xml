@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Versleutelde overdrachten"</string>
     <string name="customize_fields" formatted="false">"Velden aanpassen"</string>
     <string name="device_content_signing" formatted="false">"Inhoud ondertekenen"</string>
+    <string name="dynamic_color" formatted="false">"Dynamische kleuren"</string>
+    <string name="dynamic_color_detail" formatted="false">"De kleuren volgen je achtergrond."</string>
     <string name="empty_folder" formatted="false">"Geen bestanden in deze map"</string>
     <string name="file_moved_to_trash" formatted="false">"Verplaatst naar prullenmand"</string>
     <string name="file_name_rule" formatted="false">"Gebruik een naam van 1–255 tekens zonder schuine strepen of besturingstekens."</string>

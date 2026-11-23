@@ -2,6 +2,8 @@
   "android_purchase_privacy": "啟用 Google Play 購買後，會使用 Google 賬號、結算和裝置驗證服務。購買憑證將加密保留，直到服務核驗交付。dMsg 內容不會傳送給 Google。下方服務政策還說明其他 dMsg 應用使用的 Apple 專屬服務。",
   "cipher_transfer_running": "正在傳輸加密分塊",
   "cipher_transfer_title": "加密傳輸",
+  "dynamic_color": "動態取色",
+  "dynamic_color_detail": "顏色跟隨桌布。",
   "follow_system_language": "跟隨系統語言",
   "language_search": "查詢語言",
   "links_created_progress": "已建立 %1$s / %2$s",

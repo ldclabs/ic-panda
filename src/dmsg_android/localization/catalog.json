@@ -9626,5 +9626,13 @@
   "item_information": {
     "en": "Item information",
     "ios": "Item information"
+  },
+  "dynamic_color": {
+    "en": "Dynamic color",
+    "zh-Hans": "动态取色"
+  },
+  "dynamic_color_detail": {
+    "en": "Colors follow your wallpaper.",
+    "zh-Hans": "颜色跟随壁纸。"
   }
 }

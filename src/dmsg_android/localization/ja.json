@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Google Play の購入機能が設定されている場合、Google アカウント、決済、デバイス検証のサービスを使用します。購入トークンは、サービスが提供を確認するまで暗号化して保存されます。dMsg のコンテンツが Google に送信されることはありません。以下のサービス方針には、ほかの dMsg アプリが使用する Apple 固有のサービスについても記載されています。",
   "cipher_transfer_running": "暗号化ブロックを転送中",
   "cipher_transfer_title": "暗号化転送",
+  "dynamic_color": "ダイナミックカラー",
+  "dynamic_color_detail": "色が壁紙に合わせて変わります。",
   "follow_system_language": "システムの言語に合わせる",
   "language_search": "言語を検索",
   "links_created_progress": "%2$s 件中 %1$s 件を作成",

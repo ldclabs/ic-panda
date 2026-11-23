@@ -267,6 +267,10 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
   (`SeekableTransitionState`), so the parent page and its bar show as the
   finger moves; cancelling returns and releasing completes the transition.
 - **Lists** move inserted, removed and reordered rows with `animateItem()`.
+- **Small feedback.** Switches tick on and off, a segmented choice ticks once,
+  copying confirms, and a long press on a message buzzes as the sheet opens
+  (haptics). A favourite star springs in when set and fades when cleared; the
+  send button grows in; the entry mark grows in where the splash icon was.
 
 ## Messages
 
@@ -295,7 +299,9 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
 - **Account root.** A large bar; the identity card on the card colour with the
   account's `Avatar`, name, "Public profile" and the plan chip. Waiting
   approvals show as a badge. Appearance is its own group: the theme as a
-  `SegmentedChoice` (System, Light, Dark) and the app language. Sign out is a
+  `SegmentedChoice` (System, Light, Dark), dynamic colour (off by default; the
+  wallpaper scheme with the page one container step down so cards stay
+  lighter, and the app's own error roles) and the app language. Sign out is a
   red row in a group of its own and asks before it acts.
 - **Entry and lock.** No card: the mark grows in where the splash icon was,
   the greeting and one primary action sit centred, and a locked workspace
@@ -329,7 +335,24 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
    `AccountNavigationFlowTest` steps the page transition and the back gesture
    with the test clock; a screen recording of a loaded emulator drops frames
    and cannot show them.
-3. Report what was run and what was not.
+3. Walk the visual acceptance checklist on the pages the change touches:
+   - corners and colours come from the tokens (`UiConventionsTest`);
+   - one page margin (`pagePadding()` / `pageMargin()`);
+   - at most four type sizes in a page's bar and content, not counting the
+     navigation bar;
+   - one primary action: a FAB or one filled button;
+   - at most one banner, and only for a problem or a state the reader must act on;
+     explanations sit under their control;
+   - moving between pages animates along the shared axis;
+   - the card is lighter than the page in light and dark;
+   - beside the matching Android 16 Settings page or Google app on the same
+     emulator, nothing reads heavier or busier.
+4. `scripts/android/verify.sh device` ends by pulling the suite's captures
+   (`/sdcard/Download/dmsg-*`, including the kit gallery) into
+   `app/build/reports/dmsg/screenshots/`; keep the run from before a visual
+   change and compare the two directories, and attach before/after pairs to
+   the pull request.
+5. Report what was run and what was not.
 
 ## Known Gaps
 
@@ -338,4 +361,5 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
 - Dialogs use the Material defaults (`surfaceContainerHigh`, 28 dp).
 - Subpages outside the vault, messages, account and entry screens still stack
   several notices and text buttons.
-- Dynamic colour is not offered yet; when it is, state colours stay fixed.
+- With dynamic colour on, the launch window and splash keep the brand page
+  colour, so the first frame changes colour once Compose draws.

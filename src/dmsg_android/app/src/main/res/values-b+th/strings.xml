@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>
     <string name="customize_fields" formatted="false">"ปรับแต่งช่องข้อมูล"</string>
     <string name="device_content_signing" formatted="false">"การลงนามเนื้อหา"</string>
+    <string name="dynamic_color" formatted="false">"สีแบบไดนามิก"</string>
+    <string name="dynamic_color_detail" formatted="false">"สีจะเปลี่ยนตามวอลเปเปอร์ของคุณ"</string>
     <string name="empty_folder" formatted="false">"ไม่มีไฟล์ในโฟลเดอร์นี้"</string>
     <string name="file_moved_to_trash" formatted="false">"ย้ายไปถังขยะแล้ว"</string>
     <string name="file_name_rule" formatted="false">"ใช้ชื่อยาว 1–255 อักขระ โดยไม่มีเครื่องหมายทับหรืออักขระควบคุม"</string>

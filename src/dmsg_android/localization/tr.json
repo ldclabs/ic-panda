@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Yapılandırıldığında Google Play satın alımları, Google hesabı, faturalandırma ve cihaz doğrulama hizmetlerini kullanır. Satın alma jetonları, hizmet hakların teslimini doğrulayana kadar şifreli saklanır. dMsg içeriği Google'a gönderilmez. Aşağıdaki hizmet politikası, diğer dMsg uygulamalarının kullandığı Apple'a özgü hizmetleri de açıklar.",
   "cipher_transfer_running": "Şifreli bloklar aktarılıyor",
   "cipher_transfer_title": "Şifreli aktarımlar",
+  "dynamic_color": "Dinamik renkler",
+  "dynamic_color_detail": "Renkler duvar kağıdınıza uyar.",
   "follow_system_language": "Sistem dilini izle",
   "language_search": "Dil ara",
   "links_created_progress": "%2$s öğeden %1$s tanesi oluşturuldu",

@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Encrypted transfers"</string>
     <string name="customize_fields" formatted="false">"Customize fields"</string>
     <string name="device_content_signing" formatted="false">"Content signing"</string>
+    <string name="dynamic_color" formatted="false">"Dynamic color"</string>
+    <string name="dynamic_color_detail" formatted="false">"Colors follow your wallpaper."</string>
     <string name="empty_folder" formatted="false">"No files in this folder"</string>
     <string name="file_moved_to_trash" formatted="false">"Moved to Trash"</string>
     <string name="file_name_rule" formatted="false">"Use a name of 1–255 characters without slashes or control characters."</string>

@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Pemindahan disulitkan"</string>
     <string name="customize_fields" formatted="false">"Sesuaikan medan"</string>
     <string name="device_content_signing" formatted="false">"Tandatangan kandungan"</string>
+    <string name="dynamic_color" formatted="false">"Warna dinamik"</string>
+    <string name="dynamic_color_detail" formatted="false">"Warna mengikut kertas dinding anda."</string>
     <string name="empty_folder" formatted="false">"Tiada fail dalam folder ini"</string>
     <string name="file_moved_to_trash" formatted="false">"Dialihkan ke Sampah"</string>
     <string name="file_name_rule" formatted="false">"Gunakan nama sepanjang 1–255 aksara tanpa garis miring atau aksara kawalan."</string>

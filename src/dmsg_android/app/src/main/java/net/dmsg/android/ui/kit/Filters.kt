@@ -1,5 +1,7 @@
 package net.dmsg.android.ui.kit
 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -107,10 +109,11 @@ import net.dmsg.android.ui.card
 
 /** Exclusive choices as a segmented button; every segment takes the tallest label's height. */
 @Composable internal fun SegmentedChoice(labels: List<String>, selected: Int, enabled: Boolean = true, choose: (Int) -> Unit) {
+    val haptics = LocalHapticFeedback.current
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         labels.forEachIndexed { index, label ->
             SegmentedButton(
-                selected = index == selected, enabled = enabled, onClick = { if (index != selected) choose(index) },
+                selected = index == selected, enabled = enabled, onClick = { if (index != selected) { haptics.performHapticFeedback(HapticFeedbackType.SegmentTick); choose(index) } },
                 modifier = Modifier.fillMaxHeight(),
                 shape = SegmentedButtonDefaults.itemShape(index, labels.size),
                 colors = SegmentedButtonDefaults.colors(

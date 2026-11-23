@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"رمز شدہ منتقلیاں"</string>
     <string name="customize_fields" formatted="false">"فیلڈز حسب ضرورت بنائیں"</string>
     <string name="device_content_signing" formatted="false">"مواد پر دستخط"</string>
+    <string name="dynamic_color" formatted="false">"متحرک رنگ"</string>
+    <string name="dynamic_color_detail" formatted="false">"رنگ آپ کے وال پیپر کے مطابق ہوتے ہیں۔"</string>
     <string name="empty_folder" formatted="false">"اس فولڈر میں کوئی فائل نہیں"</string>
     <string name="file_moved_to_trash" formatted="false">"ردی کی ٹوکری میں منتقل ہو گیا"</string>
     <string name="file_name_rule" formatted="false">"۱–۲۵۵ حروف کا نام استعمال کریں جس میں سلیش یا کنٹرول حروف نہ ہوں۔"</string>

@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Indien ingesteld gebruiken Google Play-aankopen de Google-diensten voor accounts, facturering en apparaatverificatie. Aankooptokens blijven versleuteld bewaard totdat de dienst de levering van rechten verifieert. dMsg-inhoud wordt niet naar Google verzonden. Het onderstaande dienstbeleid beschrijft ook Apple-specifieke diensten die andere dMsg-apps gebruiken.",
   "cipher_transfer_running": "Versleutelde blokken overdragen",
   "cipher_transfer_title": "Versleutelde overdrachten",
+  "dynamic_color": "Dynamische kleuren",
+  "dynamic_color_detail": "De kleuren volgen je achtergrond.",
   "follow_system_language": "Systeemtaal volgen",
   "language_search": "Een taal zoeken",
   "links_created_progress": "%1$s van %2$s gemaakt",

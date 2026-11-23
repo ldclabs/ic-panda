@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import net.dmsg.android.platform.AppLanguage
 
-@Composable fun DMsgTheme(isDark: Boolean?, content: @Composable () -> Unit) {
+@Composable fun DMsgTheme(isDark: Boolean?, dynamic: Boolean = false, content: @Composable () -> Unit) {
     val darkTheme = isDark ?: isSystemInDarkTheme()
     val view = LocalView.current
     SideEffect {
@@ -27,7 +27,8 @@ import net.dmsg.android.platform.AppLanguage
     }
     val locale = AppLanguage.locale()
     val typography = remember(locale) { dmsgTypography(locale) }
-    MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, shapes = DMsgShapes,
+    val colors = remember(darkTheme, dynamic, view.context) { appColors(view.context, darkTheme, dynamic) }
+    MaterialTheme(colorScheme = colors, shapes = DMsgShapes,
         typography = typography, content = content)
 }
 

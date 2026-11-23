@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>
     <string name="customize_fields" formatted="false">"Tùy chỉnh trường"</string>
     <string name="device_content_signing" formatted="false">"Ký nội dung"</string>
+    <string name="dynamic_color" formatted="false">"Màu động"</string>
+    <string name="dynamic_color_detail" formatted="false">"Màu sắc theo hình nền của bạn."</string>
     <string name="empty_folder" formatted="false">"Không có tệp trong thư mục này"</string>
     <string name="file_moved_to_trash" formatted="false">"Đã chuyển vào Thùng rác"</string>
     <string name="file_name_rule" formatted="false">"Dùng tên dài 1–255 ký tự, không chứa dấu gạch chéo hoặc ký tự điều khiển."</string>

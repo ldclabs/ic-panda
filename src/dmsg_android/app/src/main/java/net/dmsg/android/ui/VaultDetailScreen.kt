@@ -23,6 +23,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -89,12 +94,21 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     val changing = state.working("vault:edit:" + id)
     var deleting by remember(id) { mutableStateOf(false) }
     var more by remember(id) { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
     val scroll = rememberScrollState()
     LaunchedEffect(item?.id, item?.deleted) { if (item != null) scroll.scrollTo(0) }
     ScreenBar(if (historical) null else item?.title) {
         if (item != null && !historical && !item.reserved && !item.deleted) {
-            IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
-                Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+            IconToggleButton(checked = item.favorite, onCheckedChange = { next ->
+                haptics.performHapticFeedback(if (next) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                client.vault.favorite(item)
+            }, enabled = !changing) {
+                // The filled star springs in; clearing it simply fades.
+                AnimatedContent(item.favorite, transitionSpec = {
+                    (if (targetState) scaleIn(Motion.spatial(), initialScale = 0.6f) else fadeIn(Motion.effectsFast())) togetherWith fadeOut(Motion.effectsFast())
+                }, label = "favorite") { favorite ->
+                    Icon(if (favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+                }
             }
             IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
         }

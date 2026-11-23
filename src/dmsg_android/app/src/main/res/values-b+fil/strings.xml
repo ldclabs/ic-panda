@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Mga naka-encrypt na paglilipat"</string>
     <string name="customize_fields" formatted="false">"Iangkop ang mga field"</string>
     <string name="device_content_signing" formatted="false">"Paglagda ng nilalaman"</string>
+    <string name="dynamic_color" formatted="false">"Dynamic na kulay"</string>
+    <string name="dynamic_color_detail" formatted="false">"Sumusunod ang mga kulay sa iyong wallpaper."</string>
     <string name="empty_folder" formatted="false">"Walang file sa folder na ito"</string>
     <string name="file_moved_to_trash" formatted="false">"Inilipat sa Basurahan"</string>
     <string name="file_name_rule" formatted="false">"Gumamit ng pangalang may 1–255 character na walang slash o control character."</string>

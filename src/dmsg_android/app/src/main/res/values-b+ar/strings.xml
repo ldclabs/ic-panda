@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"عمليات النقل المشفّرة"</string>
     <string name="customize_fields" formatted="false">"تخصيص الحقول"</string>
     <string name="device_content_signing" formatted="false">"توقيع المحتوى"</string>
+    <string name="dynamic_color" formatted="false">"الألوان الديناميكية"</string>
+    <string name="dynamic_color_detail" formatted="false">"تتبع الألوان خلفية شاشتك."</string>
     <string name="empty_folder" formatted="false">"لا توجد ملفات في هذا المجلد"</string>
     <string name="file_moved_to_trash" formatted="false">"تم النقل إلى سلة المهملات"</string>
     <string name="file_name_rule" formatted="false">"استخدم اسماً من 1 إلى 255 حرفاً دون شرطات مائلة أو أحرف تحكم."</string>

@@ -51,6 +51,19 @@ class ThemeColorsTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
+    @Test fun wallpaperColoursKeepTheCardAndErrorRoles() {
+        // The Material baseline stands in for a wallpaper scheme; on a device the system supplies it.
+        for ((mode, wallpaper, fixed) in listOf(Triple("light", androidx.compose.material3.lightColorScheme(), LightColors),
+                Triple("dark", androidx.compose.material3.darkColorScheme(), DarkColors))) {
+            val s = wallpaper.asAppColors(fixed, dark = mode == "dark")
+            assertTrue("$mode: card is lighter than the page", luminance(s.card) > luminance(s.page))
+            assertEquals("$mode: page", s.background, s.surface)
+            assertEquals("$mode: error", listOf(fixed.error, fixed.onError, fixed.errorContainer, fixed.onErrorContainer),
+                listOf(s.error, s.onError, s.errorContainer, s.onErrorContainer))
+            assertEquals("$mode: primary follows the wallpaper", wallpaper.primary, s.primary)
+        }
+    }
+
     @Test fun pagesAndCardsKeepTheirRoles() {
         for (s in schemes.values) {
             assertEquals(s.background, s.surface)

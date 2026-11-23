@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"暗号化転送"</string>
     <string name="customize_fields" formatted="false">"フィールドをカスタマイズ"</string>
     <string name="device_content_signing" formatted="false">"コンテンツの署名"</string>
+    <string name="dynamic_color" formatted="false">"ダイナミックカラー"</string>
+    <string name="dynamic_color_detail" formatted="false">"色が壁紙に合わせて変わります。"</string>
     <string name="empty_folder" formatted="false">"このフォルダにファイルはありません"</string>
     <string name="file_moved_to_trash" formatted="false">"ゴミ箱に移動しました"</string>
     <string name="file_name_rule" formatted="false">"スラッシュや制御文字を含まない、1～255文字の名前を使用してください。"</string>

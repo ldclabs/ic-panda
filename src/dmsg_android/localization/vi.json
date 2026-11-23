@@ -2,6 +2,8 @@
   "android_purchase_privacy": "Khi được cấu hình, giao dịch Google Play sử dụng dịch vụ tài khoản Google, thanh toán và xác minh thiết bị. Mã thông báo mua hàng được lưu mã hóa cho đến khi dịch vụ xác minh việc cấp quyền lợi. Nội dung dMsg không được gửi tới Google. Chính sách dịch vụ bên dưới cũng mô tả các dịch vụ riêng của Apple được những ứng dụng dMsg khác sử dụng.",
   "cipher_transfer_running": "Đang truyền các khối đã mã hóa",
   "cipher_transfer_title": "Truyền dữ liệu mã hóa",
+  "dynamic_color": "Màu động",
+  "dynamic_color_detail": "Màu sắc theo hình nền của bạn.",
   "follow_system_language": "Theo ngôn ngữ hệ thống",
   "language_search": "Tìm ngôn ngữ",
   "links_created_progress": "Đã tạo %1$s trên %2$s",

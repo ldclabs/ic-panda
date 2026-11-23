@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Şifreli aktarımlar"</string>
     <string name="customize_fields" formatted="false">"Alanları özelleştir"</string>
     <string name="device_content_signing" formatted="false">"İçerik imzalama"</string>
+    <string name="dynamic_color" formatted="false">"Dinamik renkler"</string>
+    <string name="dynamic_color_detail" formatted="false">"Renkler duvar kağıdınıza uyar."</string>
     <string name="empty_folder" formatted="false">"Bu klasörde dosya yok"</string>
     <string name="file_moved_to_trash" formatted="false">"Çöp kutusuna taşındı"</string>
     <string name="file_name_rule" formatted="false">"Eğik çizgi veya kontrol karakteri içermeyen, 1–255 karakter uzunluğunda bir ad kullanın."</string>

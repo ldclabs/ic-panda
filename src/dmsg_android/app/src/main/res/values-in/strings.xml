@@ -34,6 +34,8 @@
     <string name="cipher_transfer_title" formatted="false">"Transfer terenkripsi"</string>
     <string name="customize_fields" formatted="false">"Sesuaikan bidang"</string>
     <string name="device_content_signing" formatted="false">"Penandatanganan konten"</string>
+    <string name="dynamic_color" formatted="false">"Warna dinamis"</string>
+    <string name="dynamic_color_detail" formatted="false">"Warna mengikuti wallpaper Anda."</string>
     <string name="empty_folder" formatted="false">"Tidak ada file di folder ini"</string>
     <string name="file_moved_to_trash" formatted="false">"Dipindahkan ke Sampah"</string>
     <string name="file_name_rule" formatted="false">"Gunakan nama sepanjang 1–255 karakter tanpa garis miring atau karakter kontrol."</string>
