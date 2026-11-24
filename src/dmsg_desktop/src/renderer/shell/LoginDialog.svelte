@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { copyText } from '../components/clipboard'
+  import CopyButton from '../components/CopyButton.svelte'
   import Dialog from '../components/Dialog.svelte'
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
@@ -89,7 +89,7 @@
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
     {:else if login.phase === 'browser'}
-      <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(login.url)} data-testid="login-copy"><Icon name="copy" />{t('copyLink')}</button>
+      <CopyButton class={buttonClass('ghost', 'sm')} value={() => login.url} testid="login-copy" label={t('copyLink')} />
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={reopenLogin} data-testid="login-reopen"><Icon name="external" />{t('loginReopen')}</button>
     {:else if login.phase === 'failed'}

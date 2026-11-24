@@ -350,6 +350,17 @@ html[lang='ur'] {
 }
 
 /* Focus (base layer): an outline comes in from 6px out; a Tailwind ring, from 4px wider. */
+/* A sent message's receipt: the second stroke draws once every member has it. */
+.receipt path + path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 180ms var(--ease-calm);
+}
+
+[data-all] > .receipt path + path {
+  stroke-dashoffset: 0;
+}
+
 @keyframes focus-settle {
   from {
     outline-color: transparent;

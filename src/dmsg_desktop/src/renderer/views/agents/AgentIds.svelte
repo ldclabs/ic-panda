@@ -2,8 +2,8 @@
   import { onDestroy, tick } from 'svelte'
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Confirm from '../../components/Confirm.svelte'
-  import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Empty from '../../components/page/Empty.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -235,7 +235,7 @@
   <div class="grid gap-1">
     <div class="flex items-center justify-between gap-2">
       <h3 class="text-callout font-medium text-muted">{title}</h3>
-      <button class={buttonClass('ghost', 'xs')} aria-label={t('copy') + ' · ' + title} onclick={() => copyText(value)}><Icon name="copy" />{t('copy')}</button>
+      <CopyButton class={buttonClass('ghost', 'xs')} aria-label={t('copy') + ' · ' + title} value={() => value} label={t('copy')} />
     </div>
     <pre class="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-code break-all whitespace-pre-wrap text-ink select-all" data-testid={testid}>{value}</pre>
   </div>

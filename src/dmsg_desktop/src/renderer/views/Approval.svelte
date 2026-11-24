@@ -1017,7 +1017,10 @@
             {#if waiting && !ready && !expired}
               {#key request.digest}<span class="absolute inset-0 origin-left animate-[approve-delay_1.2s_linear_forwards] bg-on-forest/20 rtl:origin-right"></span>{/key}
             {/if}
-            {#if hold}<span class="absolute inset-0 origin-left bg-on-forest/25 rtl:origin-right" style:transform="scaleX({held})"></span>{/if}
+            {#if hold}<span
+                class={cn('absolute inset-0 origin-left bg-on-forest/25 rtl:origin-right', review.kind !== 'holding' && 'transition-transform duration-220 ease-calm')}
+                style:transform="scaleX({held})"
+              ></span>{/if}
             <span class="relative">{hold ? t('holdToApprove') : t('approve')}</span>
           </button>
         </div>

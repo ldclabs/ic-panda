@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CopyButton from '../../components/CopyButton.svelte'
   import Panel from './Panel.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Id from '../../components/page/Id.svelte'
@@ -6,7 +7,6 @@
   import { card, quoteShell } from './model'
   import { openVault } from './navigation.svelte'
   import { call } from '../../rpc'
-  import { copyText } from '../../components/clipboard'
   import { buttonClass } from '../../components/ui'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
@@ -97,10 +97,7 @@
           <pre
             class="my-3 overflow-x-auto whitespace-pre-wrap select-text break-all rounded-lg bg-wash p-3 text-callout"
             dir="ltr">{config(key)}</pre>
-          <button
-            class={buttonClass('secondary')}
-            onclick={() => copyText(config(key))}>{ux('copyConfig')}</button
-          >
+          <CopyButton class={buttonClass('secondary')} value={() => config(key)} label={ux('copyConfig')} />
           <p class="mt-2 text-callout text-muted">
             {w('sshEnableWarning')}
             {w('gitWarning')}

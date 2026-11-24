@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
@@ -153,7 +154,7 @@
         </div>
         <div class="flex items-center gap-1.5">
           <bdi dir="ltr" class="min-w-0 truncate font-mono text-code text-muted">{endpoint.url}</bdi>
-          <button class={iconButtonClass('ghost', 'md')} aria-label={t('copy') + ' · ' + endpoint.url} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
+          <CopyButton class={iconButtonClass('ghost', 'md')} aria-label={t('copy') + ' · ' + endpoint.url} value={() => endpoint.url} />
         </div>
         {#if endpoint.binding?.server}
           <p class="text-callout text-muted">{endpoint.binding.server}{endpoint.binding.refresh_before ? ` · ${t('refreshBefore')} ${when(endpoint.binding.refresh_before)}` : ''}</p>

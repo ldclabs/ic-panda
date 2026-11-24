@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import TextField from '../../components/TextField.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
   import { locale, t } from '../../i18n/index.svelte'
   import { call, errorText, when } from '../../rpc'
 
@@ -265,10 +265,7 @@
           readonly
           mono
           dir="ltr"
-        /><button
-          class={buttonClass('secondary', 'sm')}
-          onclick={() => copyText(pass!.code!)}>{t('copyCode')}</button
-        >{:else if pass}<Notice tone="warn" testid="guest-code-unavailable"
+        /><CopyButton class={buttonClass('secondary', 'sm')} value={() => pass!.code!} label={t('copyCode')} />{:else if pass}<Notice tone="warn" testid="guest-code-unavailable"
           >{t('promoGuestReplay', { slot: pass.slot })}</Notice
         >{/if}
       {#if pass?.ends_at_ms}<p>{t('expires')} {when(pass.ends_at_ms)}</p>{/if}

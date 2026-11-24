@@ -5,6 +5,7 @@
   import NoticeSetup from './NoticeSetup.svelte'
   let { status, go }: { status: any; go: (path: string) => void } = $props()
   import { display, watchDisplays, type Mode } from '../display.svelte'
+  import CopyButton from '../components/CopyButton.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Collapsible from '../components/Collapsible.svelte'
@@ -20,7 +21,6 @@
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
-  import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single } from '../rpc'
@@ -356,7 +356,7 @@
       {#if made.key_id}<Fact label={t('approvalKey')}><Id id={made.key_id} full wrap /></Fact>{/if}
       {#if made.qr}<img src={made.qr} alt={t('keyRequest')} width="200" height="200" class="max-w-full justify-self-center rounded-lg bg-white p-2" />{/if}
       <TextArea label={t('requestToken')} readonly rows={3} value={made.token} mono data-testid="approval-key-token" />
-      <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(made.token)} data-testid="approval-key-copy"><Icon name="copy" />{t('copy')}</button>
+      <CopyButton class={buttonClass('secondary', 'sm', 'justify-self-start')} value={() => made.token} testid="approval-key-copy" label={t('copy')} />
     {:else}
       {#if editor === 'bound'}<LocalOnly testid="device-bound-local-only" />{/if}
       {#if keys?.biometry}<Checkbox checked={biometryOnly} disabled={blocked || !!pending.key && editor === 'key'} onCheckedChange={(on) => (biometryOnly = on)} testid="security-biometry">{t('biometryOnly')}</Checkbox>{/if}

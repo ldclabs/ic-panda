@@ -1,10 +1,10 @@
 <script lang="ts">
   import { display, watchDisplays, type Mode } from '../../display.svelte'
   import { onMount, tick, untrack } from 'svelte'
-  import { copyText } from '../../components/clipboard'
   import { rememberedPlain, rememberPlain } from '../../view-memory'
   import { isNoticeAccount } from '../../../shared/notifications'
   import { reviewApproval } from './approval'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import TextArea from '../../components/TextArea.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
@@ -428,8 +428,8 @@
               {/if}
               {#if op.token && (state === 'offered' || state === 'committable')}
                 {#if op.to && state === 'offered'}<button class={buttonClass('subtle', 'xs')} onclick={() => composeTransfer(op.to, op.token)} data-testid="name-compose"><Icon name="channels" />{t('planComposeTransfer')}</button>{/if}
-                <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(op.token)} data-testid="name-copy-token"><Icon name="copy" />{t('copyToken')}</button>
-                <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(acceptLink(op.token))} data-testid="name-copy-link"><Icon name="link" />{t('copyLink')}</button>
+                <CopyButton class={buttonClass('ghost', 'xs')} value={() => op.token} testid="name-copy-token" label={t('copyToken')} />
+                <CopyButton class={buttonClass('ghost', 'xs')} value={() => acceptLink(op.token)} testid="name-copy-link" icon="link" label={t('copyLink')} />
               {/if}
               {#if op.phase === 'prepared' || op.phase === 'rejected' || state === 'expired'}
                 <button class={buttonClass(op.token ? 'danger' : 'ghost', 'xs')} disabled={busy} onclick={() => op.token ? (forgetting = op) : forget(op)} data-testid="name-forget">
@@ -492,12 +492,12 @@
       <Fact label={t('targetAccount')}><Id id={moving.target} full wrap /></Fact>
       <div class="flex flex-wrap gap-2">
         <button bind:this={composeButton} class={buttonClass('primary', 'sm')} onclick={() => composeTransfer(moving!.target, moving!.token!)} data-testid="transfer-send"><Icon name="channels" />{t('planComposeTransfer')}</button>
-        <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(acceptLink(moving!.token!))} data-testid="transfer-link"><Icon name="link" />{t('copyLink')}</button>
+        <CopyButton class={buttonClass('secondary', 'sm')} value={() => acceptLink(moving!.token!)} testid="transfer-link" icon="link" label={t('copyLink')} />
       </div>
       <Collapsible testid="transfer-token-details">
         {#snippet title()}<span class="text-callout">{t('token')}</span>{/snippet}
         <p class="my-2 rounded-lg bg-surface-2 p-2.5 font-mono text-code break-all select-all" dir="ltr" data-testid="transfer-token">{moving.token}</p>
-        <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(moving!.token!)} data-testid="transfer-copy"><Icon name="copy" />{t('copyToken')}</button>
+        <CopyButton class={buttonClass('ghost', 'sm')} value={() => moving!.token!} testid="transfer-copy" label={t('copyToken')} />
       </Collapsible>
     </div>
   {/if}

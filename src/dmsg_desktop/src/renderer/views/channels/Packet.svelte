@@ -1,8 +1,7 @@
 <script lang="ts">
   import Notice from '../../components/page/Notice.svelte'
-  import { copyText } from '../../components/clipboard'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
-  import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
@@ -71,7 +70,7 @@
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if handed}
-      <button class={buttonClass('secondary')} onclick={() => copyText(handed)}><Icon name="copy" />{t('copy')}</button>
+      <CopyButton class={buttonClass('secondary')} value={() => handed} label={t('copy')} />
       <button class={buttonClass('primary')} onclick={() => (open = false)}>{t('done')}</button>
     {:else}
       <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>

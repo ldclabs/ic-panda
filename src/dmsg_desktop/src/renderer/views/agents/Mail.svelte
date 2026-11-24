@@ -1,8 +1,8 @@
 <script lang="ts">
   import { recoverMailboxes } from '../../../shared/mail-recovery'
   import { onDestroy, onMount, untrack } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Confirm from '../../components/Confirm.svelte'
-  import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
@@ -367,11 +367,7 @@
             {#each mailboxes as box (box.mailbox_id)}
               <li class="grid grid-cols-1 gap-2 rounded-lg bg-surface-2 p-3 text-callout">
                 <div class="flex items-center gap-2">
-                  <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi><button
-                    class={buttonClass('ghost', 'xs')}
-                    aria-label={t('copy')}
-                    onclick={() => copyText(box.address)}><Icon name="copy" /></button
-                  ><Pill tone={box.status === 'open' ? 'ok' : 'neutral'}
+                  <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi><CopyButton class={buttonClass('ghost', 'xs')} aria-label={t('copy')} value={() => box.address} /><Pill tone={box.status === 'open' ? 'ok' : 'neutral'}
                     >{box.status === 'open' ? t('mailboxOpen') : box.status === 'expired' ? stateLabel('expired') : t('mailboxInactive')}</Pill
                   >
                 </div>

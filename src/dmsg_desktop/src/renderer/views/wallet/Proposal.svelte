@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Dialog from '../../components/Dialog.svelte'
@@ -8,7 +9,6 @@
   import Pill from '../../components/page/Pill.svelte'
   import Select from '../../components/Select.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
   import { call, bridge, single, when } from '../../rpc'
   import { t, locale } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
@@ -324,9 +324,7 @@
           >{#snippet title()}<span class="text-body">{w('details')}</span>{/snippet}<section class="border-line rounded-lg border p-3"
             ><h3 class="text-body font-semibold">{w('details')}</h3>{#each leaves(p.outcome) as row, i (i)}<p
                 class="text-callout break-all">{row.path.map(w).join(' · ')}: {w(row.value)}</p
-              >{/each}<button class={buttonClass('ghost', 'xs')} onclick={() => copyText(JSON.stringify(p!.outcome, null, 2))}
-              >{t('copy')}</button
-            ></section
+              >{/each}<CopyButton class={buttonClass('ghost', 'xs')} value={() => JSON.stringify(p!.outcome, null, 2)} label={t('copy')} /></section
           ></Collapsible
         >{/if}
       {#each p.plan_details ?? [] as detail, i (i)}
@@ -343,11 +341,7 @@
         {#if link}<button class={buttonClass('ghost', 'xs', 'justify-self-start')} onclick={() => bridge(() => window.dmsg.openUrl(link))}
             >{link}</button
           >{/if}<p class="flex gap-2 font-mono text-code break-all"
-          >#{signed.plan} · {signed.txid}<button
-            class={buttonClass('ghost', 'xs')}
-            aria-label={t('copy')}
-            onclick={() => copyText(signed.txid)}>{t('copy')}</button
-          ></p
+          >#{signed.plan} · {signed.txid}<CopyButton class={buttonClass('ghost', 'xs')} aria-label={t('copy')} value={() => signed.txid} label={t('copy')} /></p
         >{/each}
       {#each p.broadcasts ?? [] as b, i (i)}<p class="text-callout break-all">{when(b.at)} · {w(b.outcome)} · {b.member} · {b.note}</p
         >{/each}
@@ -391,9 +385,7 @@
             >{/if}
           <Collapsible
             >{#snippet title()}<span class="text-body">{w('packet')} · {w('technical')}</span>{/snippet}
-            {#if collection}<button class={buttonClass('secondary', 'sm')} onclick={() => copyText(collection.packet)}
-                >{w('copyPacket')}</button
-              >{/if}
+            {#if collection}<CopyButton class={buttonClass('secondary', 'sm')} value={() => collection.packet} label={w('copyPacket')} />{/if}
             <Field label={w('packet')}
               ><textarea bind:value={packet} rows="3" spellcheck="false" class="font-mono text-code" dir="ltr"></textarea></Field
             >

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
+  import CopyButton from '../components/CopyButton.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Icon from '../components/Icon.svelte'
   import Dialog from '../components/Dialog.svelte'
@@ -15,7 +16,6 @@
   import Select from '../components/Select.svelte'
   import TabBar from '../components/page/TabBar.svelte'
   import { buttonClass, iconButtonClass } from '../components/ui'
-  import { copyText } from '../components/clipboard'
   import { toast } from '../components/toast.svelte'
   import { call, bridge, code, single, when, units } from '../rpc'
   import { t, stateLabel } from '../i18n/index.svelte'
@@ -937,11 +937,7 @@
                         disabled={!usable || wallet.frozen}
                         onclick={() => (moving = a.id)}
                         data-testid="wallet-nc-move">{w('nativeMove')}</button
-                      >{/if}<button
-                      class={buttonClass('ghost', 'xs')}
-                      aria-label={`${t('copy')} ${a.label || a.chain}`}
-                      onclick={() => copyText(a.text)}><Icon name="copy" /></button
-                    ><button
+                      >{/if}<CopyButton class={buttonClass('ghost', 'xs')} aria-label={`${t('copy')} ${a.label || a.chain}`} value={() => a.text} /><button
                       class={buttonClass('subtle', 'xs')}
                       disabled={!usable || !a.verified}
                       onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
@@ -971,8 +967,7 @@
                     ><b class="text-body">{b.label}</b><p class="font-mono text-code break-all">{b.destination}</p><small
                       class="text-faint">{w('cooldown')}: {when(b.added_at + wallet.policy.address_book_cooldown_ms)}</small
                     ></div
-                  ><button class={buttonClass('ghost', 'xs')} onclick={() => copyText(b.destination)}>{t('copy')}</button
-                  >{#if mayPropose}<button
+                  ><CopyButton class={buttonClass('ghost', 'xs')} value={() => b.destination} label={t('copy')} />{#if mayPropose}<button
                       class={buttonClass('ghost', 'xs')}
                       disabled={!usable}
                       onclick={() => showManage('book_remove', b)}>{w('remove')}</button
@@ -1002,10 +997,7 @@
                         >{w('principals')}: {m.principals.join(', ')}</p
                       >{/if}{#if m.agent_ids?.length}<p class="mt-1 text-callout break-all">{w('agent_ids')}: {m.agent_ids.join(', ')}</p
                       >{/if}</div
-                  >{#if m.status === 'Invited'}<button
-                      class={buttonClass('subtle', 'xs')}
-                      onclick={() => copyText(`dmsg://wallet/${wallet!.wallet}`)}>{w('invite')}</button
-                    >{/if}{#if mayMembers}<button
+                  >{#if m.status === 'Invited'}<CopyButton class={buttonClass('subtle', 'xs')} value={() => `dmsg://wallet/${wallet!.wallet}`} label={w('invite')} />{/if}{#if mayMembers}<button
                       class={buttonClass('subtle', 'xs')}
                       disabled={!usable}
                       onclick={() => showManage('member', m)}>{w('editMember')}</button
@@ -1253,8 +1245,7 @@
           {:else}<p class="font-medium text-body">{receive.chain === 'Icp' ? 'Internet Computer' : receive.chain} {receive.network}</p>{/if}
           {#if receive.qr}<img src={receive.qr} alt={w('receive')} class="size-48" />{/if}
           <p class="font-mono text-body break-all select-all" dir="ltr">{receive.text}</p>
-          <button class={buttonClass('primary', 'sm')} onclick={() => copyText(receive.text)}>{t('copy')}</button
-          >{#if receive.owner}<dl class="grid w-full gap-2 text-callout break-all"
+          <CopyButton class={buttonClass('primary', 'sm')} value={() => receive.text} label={t('copy')} />{#if receive.owner}<dl class="grid w-full gap-2 text-callout break-all"
               ><dt>Owner</dt><dd class="font-mono">{receive.owner}</dd><dt>Subaccount</dt><dd class="font-mono">{receive.subaccount}</dd><dt
                 >AccountIdentifier</dt
               ><dd class="font-mono">{receive.account_identifier}</dd></dl

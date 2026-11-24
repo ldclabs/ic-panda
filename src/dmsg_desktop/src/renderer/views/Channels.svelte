@@ -5,7 +5,8 @@
   import Notice from '../components/page/Notice.svelte'
   import Empty from '../components/page/Empty.svelte'
   import { flip } from 'svelte/animate'
-  import { arrive, enter, flipDuration } from '../components/motion'
+  import { arrive, enter, flipDuration, pop, shrink } from '../components/motion'
+  import Count from '../components/Count.svelte'
   import { ContextMenu, DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
@@ -805,7 +806,9 @@
         {:else if entry.unread}
           <span
             class={cn('min-w-4.5 rounded-full px-1.5 text-center text-caption leading-[18px] font-semibold tabular-nums', entry.muted ? 'bg-wash text-muted' : 'bg-forest text-on-forest')}
-            data-testid="channel-unread">{entry.unread > 99 ? '99+' : entry.unread}</span
+            in:pop
+            out:shrink
+            data-testid="channel-unread"><Count value={entry.unread} max={99} /></span
           >
         {:else if entry.news && selected !== entry.id}
           <span

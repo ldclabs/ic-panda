@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import CopyButton from '../components/CopyButton.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
   import Progress from '../components/Progress.svelte'
@@ -9,7 +10,6 @@
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
-  import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
   import { bridge, call, errorText, onChange, size, when } from '../rpc'
@@ -153,7 +153,7 @@
         <dl>
           <Fact label={t('deviceTransferSession')}>
             <bdi dir="ltr" class="font-mono text-body tracking-wide select-all" data-testid="transfer-session-code">{view.session}</bdi>
-            <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(view.session)}><Icon name="copy" />{t('copy')}</button>
+            <CopyButton class={buttonClass('ghost', 'xs')} value={() => view.session} label={t('copy')} />
           </Fact>
           <Fact label={t('device')}><Id id={view.to} full wrap /></Fact>
         </dl>

@@ -56,6 +56,12 @@
 | 键盘焦点环 | 从外侧收拢到控件上，离开时立即消失；方向键移动焦点的组内不收拢 | `app.css` 的 `focus-settle` |
 | 菜单 | 从触发点长出，关闭时只淡出 | `ui.ts` 的 `menuContentClass` |
 | 提示 | 一次悬停的第一个提示从控件一侧滑入 4px；移到相邻控件时立即出现 | `Tooltip.svelte` |
+| 徽标 | 出现时弹出，清零时缩小消失 | `motion.ts` 的 `pop`、`shrink` |
+| 计数 | 只滚动变化的那几位：增加从下方进入，减少从上方进入；旧数字立即消失 | `Count.svelte`，`motion.ts` 的 `roll` |
+| 复制按钮 | 图标换成对勾 1.2 秒，代替提示条；读屏软件读出“已复制” | `CopyButton.svelte` |
+| 密码被拒 | 密码框左右摇动一次，并选中已输入的内容，可以直接重输 | `motion.ts` 的 `shake`，`shell/LocalAccount.svelte` |
+| 按住批准 | 提前松开时，填充沿原路退回 | `views/Approval.svelte` |
+| 已读回执 | 全部成员送达时画出第二个勾；有人读过后颜色转为森林绿 | `views/channels/Thread.svelte`，`app.css` 的 `.receipt` |
 
 ## 不做的
 

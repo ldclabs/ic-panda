@@ -336,15 +336,20 @@ shown secret) and the approve delay fills inside the button. Under
 `prefers-reduced-motion` every animation and transition ends at once, and the
 drain bars hide.
 
-Small motions, 120–200ms, from `components/motion.ts`, which asks for
+Small motions, 120–320ms, from `components/motion.ts`, which asks for
 reduced motion as each starts: a view, and the item in a detail, fade in
 when they change (`arrive`, without remounting); a channel that moves up
 on news slides there (`flip`) and a new one fades in, in lists under 100
 rows; another's message that arrives while the conversation is open fades
-in, and one's own outgoing message too; the favourite star, the unread and
-waiting counts and an ID's copy check pop once; notices spring in and fade
-out. A copy from an `Id` with a copy mark shows a check for 1.2s instead of
-a notice.
+in, and one's own outgoing message too; the favourite star and an ID's copy
+check pop once; notices spring in and fade out. A badge pops in and shrinks
+away when it clears (`pop`, `shrink`); its number is a `Count`, whose
+changed digits roll up when it grows and down when it shrinks (`roll`).
+A copy from an `Id` with a copy mark, or from a `CopyButton`, shows a check
+for 1.2s instead of a notice. A refused password shakes its field and
+selects what was typed (`shake`); releasing a hold-to-approve early runs
+its fill back. A sent message's receipt draws its second tick once every
+member has it.
 
 Controls show where a choice went (`docs/motion.zh.md`: grammar and
 budgets). A segmented control's thumb and a tab bar's underline slide to
@@ -370,6 +375,9 @@ restyle a control by hand.
   (`a[href]`) show the hand. A button its click disabled
   turns a ring over its label while the bridge calls that click started run
   (`pending.ts`, after 150 ms); views only disable it by their `busy` flag.
+  A button that copies text the window shows is a `CopyButton`: its icon
+  turns to a check for 1.2s instead of a notice. Secrets are copied through
+  the main process and keep their countdown notice.
 - **Menus** — bits-ui DropdownMenu and ContextMenu with `menuContentClass`
   and `menuItemClass`; destructive items last, after a separator, in Danger.
   `Select` is a dropdown that checks the chosen option. `SearchSelect` is a
@@ -388,7 +396,7 @@ restyle a control by hand.
   rule between rows, as the system's settings group them), `Notice` (info,
   warn, danger, ok), `Pill` (states), `Id` (the neutral ID chip), `Field`,
   `Fact` (label and value rows), `TabBar` (`onPick` when a route owns the
-  choice), `Empty` (an empty place: 40px Forest mark, a title, one line,
+  choice), `Count` (a badge's number), `Empty` (an empty place: 40px Forest mark, a title, one line,
   actions side by side).
 - **Loading** — a list's first read shows `Placeholder` rows after 300ms,
   still under reduced motion, with a status for screen readers; small

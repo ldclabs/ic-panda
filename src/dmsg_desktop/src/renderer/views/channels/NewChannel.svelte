@@ -2,7 +2,7 @@
   import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup, Tabs } from 'bits-ui'
   import { onDestroy, untrack } from 'svelte'
-  import { copyText } from '../../components/clipboard'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import type { Glyph } from '../../components/glyphs'
   import Icon from '../../components/Icon.svelte'
@@ -130,7 +130,7 @@
     <div class="grid gap-2" data-testid="channel-invitation-box">
       <p class="text-callout text-ink-2">{t('directInvited')}</p>
       <TextField readonly value={link} label={t('invitation')} hideLabel mono class="text-caption" data-testid="channel-invitation-link" />
-      <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(link)}><Icon name="link" />{t('copyLink')}</button>
+      <CopyButton class={buttonClass('secondary', 'sm', 'justify-self-start')} value={() => link} icon="link" label={t('copyLink')} />
     </div>
   {:else if direct}
     <div class="grid gap-2 text-callout text-ink-2" data-testid="channel-invite-pending">

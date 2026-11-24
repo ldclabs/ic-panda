@@ -9,6 +9,7 @@
   import { localeDir } from '../../../shared/locales'
   import ParticipantAvatar from './ParticipantAvatar.svelte'
   import { copyText } from '../../components/clipboard'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Empty from '../../components/page/Empty.svelte'
@@ -381,8 +382,10 @@
   {@const all = receipt.others > 0 && receipt.delivered === receipt.others}
   <Tooltip content={[t('storedBy', { seq: message.seq }), receipt.others ? t('deliveredTo', { n: receipt.delivered, of: receipt.others }) : '', receipt.read ? t('readBy', { n: receipt.read }) : ''].filter(Boolean).join(' · ')}>
     {#snippet children(props)}
-      <span {...props} class={cn('inline-flex', receipt.read ? 'text-forest' : 'text-faint')} data-testid="message-receipt">
-        <Icon name={all ? 'delivered' : 'check'} class="size-3.5" />
+      <span {...props} class={cn('inline-flex transition-colors duration-220', receipt.read ? 'text-forest' : 'text-faint')} data-testid="message-receipt" data-all={all || undefined}>
+        <svg viewBox="0 0 16 16" class="receipt size-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M1.75 8.75 4.75 11.75 10.75 5" /><path d="M8 11 8.75 11.75 14.75 5" pathLength="1" />
+        </svg>
       </span>
     {/snippet}
   </Tooltip>
@@ -554,7 +557,7 @@
               {#if message.text && !message.retracted}
                 <Tooltip content={t('copy')}>
                   {#snippet children(props)}
-                    <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copy')} onclick={() => copyText(message.text)}><Icon name="copy" /></button>
+                    <CopyButton {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copy')} value={() => message.text} />
                   {/snippet}
                 </Tooltip>
               {/if}

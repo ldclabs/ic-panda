@@ -2,7 +2,7 @@ import { backOut, cubicOut } from 'svelte/easing'
 import type { TransitionConfig } from 'svelte/transition'
 
 /**
- * The window's small motions (DESIGN.md, Motion), all 120–200ms. Under
+ * The window's small motions (DESIGN.md, Motion; docs/motion.zh.md), 120–320ms. Under
  * reduced motion each one ends at once: CSS animations by the global rule in
  * `app.css`, these by asking at the moment they start.
  */
@@ -38,6 +38,26 @@ export function leave(_node: Element): TransitionConfig {
 /** A mark that changed (the favourite star, a count) pops once. */
 export function pop(_node: Element): TransitionConfig {
   return { duration: still() ? 0 : 200, easing: backOut, css: (t) => `transform: scale(${0.6 + 0.4 * t})` }
+}
+
+/** A badge that clears shrinks away, a little faster than it came. */
+export function shrink(_node: Element): TransitionConfig {
+  return { duration: still() ? 0 : 140, easing: cubicOut, css: (t) => `opacity: ${t}; transform: scale(${0.6 + 0.4 * t})` }
+}
+
+/**
+ * A digit of a count that changed rolls in: from below when the count grew,
+ * from above when it shrank. The old digit is gone at once, so every frame
+ * shows the true value. `quiet` swaps it without rolling.
+ */
+export function roll(_node: Element, { up = true, quiet = false }: { up?: boolean; quiet?: boolean } = {}): TransitionConfig {
+  return { duration: still() || quiet ? 0 : 180, easing: cubicOut, css: (t) => `opacity: ${t}; transform: translateY(${(1 - t) * (up ? 0.5 : -0.5)}em)` }
+}
+
+/** A field whose value was refused shakes once, as a Mac password field does. */
+export function shake(node: Element) {
+  if (still()) return
+  node.animate([0, -6, 5, -3, 2, 0].map((x) => ({ transform: `translateX(${x}px)` })), { duration: 320 })
 }
 
 /** Reordering a short list moves its rows; a long one, or reduced motion, jumps. */

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CopyButton from '../components/CopyButton.svelte'
   import TextArea from '../components/TextArea.svelte'
   import TextField from '../components/TextField.svelte'
   import { onDestroy, onMount } from 'svelte'
@@ -11,7 +12,6 @@
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
-  import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { call, code, errorText, onChange, when } from '../rpc'
@@ -139,7 +139,7 @@
         {#if token}
           {#if bindingQr}<img src={bindingQr} alt={t('bindRequest')} width="224" height="224" class="max-w-full rounded-lg bg-white p-2 [image-rendering:pixelated]" data-testid="binding-qr" />{/if}
           <p>{t('principalShown')} <Id id={status.principal} full wrap /></p>
-          <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(token)}>{t('copy')} · {t('requestToken')}</button>
+          <CopyButton class={buttonClass('secondary', 'sm', 'justify-self-start')} value={() => token} label={`${t('copy')} · ${t('requestToken')}`} />
           <Collapsible>
             {#snippet title()}{t('requestToken')}{/snippet}
             <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-code break-all select-all" data-testid="bind-token">{token}</p>
@@ -191,7 +191,7 @@
             </Notice>
             <TextArea label={t('requestToken')} readonly rows={3} value={succession.token} mono data-testid="succession-token-made" />
             <div class="flex flex-wrap gap-2">
-              <button class={buttonClass('secondary')} onclick={() => copyText(succession.token)} data-testid="succession-token-copy"><Icon name="copy" />{t('copy')}</button>
+              <CopyButton class={buttonClass('secondary')} value={() => succession.token} testid="succession-token-copy" label={t('copy')} />
               <button class={buttonClass('primary')} disabled={busy} onclick={() => joined()}>{t('checkApproval')}</button>
             </div>
           {/if}

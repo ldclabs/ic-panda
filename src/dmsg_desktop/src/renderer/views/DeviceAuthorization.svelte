@@ -1,6 +1,7 @@
 <script lang="ts">
   import { deviceCapabilityName, deviceRoleName } from './security'
   import { onDestroy } from 'svelte'
+  import CopyButton from '../components/CopyButton.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
@@ -11,7 +12,6 @@
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import { buttonClass } from '../components/ui'
-  import { copyText } from '../components/clipboard'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, when } from '../rpc'
 
@@ -246,7 +246,7 @@
         <img src={invitation.qr} alt={t('authorizeDevice')} width="224" height="224" class="size-[min(224px,calc(100vh-340px))] min-h-40 min-w-40 max-w-full rounded-lg bg-white p-2 [image-rendering:pixelated]" data-testid="device-invitation-qr" />
         <p class="text-center text-body text-muted" role="status">{t('pairInvitationWaiting')}</p>
         <p class="text-callout text-muted">{t('expires')}: {when(invitation.expires_at)}</p>
-        <button class={buttonClass('subtle', 'xs')} onclick={() => copyText(invitation!.token)} data-testid="device-invitation-copy"><Icon name="copy" />{t('copy')}</button>
+        <CopyButton class={buttonClass('subtle', 'xs')} value={() => invitation!.token} testid="device-invitation-copy" label={t('copy')} />
       </div>
     {:else if busy === 'invite'}
       <p class="py-12 text-center text-muted" role="status">{t('loading')}</p>
@@ -284,13 +284,13 @@
               <Id id={candidate.principal ?? candidate.device_id} full wrap />
               {#if candidate.key_id}<Fact label={t('approvalKey')}><Id id={candidate.key_id} full wrap /></Fact>{/if}
             </Collapsible>
-            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(candidate!.token)}>{t('copy')} · {t('requestToken')}</button>
+            <CopyButton class={buttonClass('secondary', 'sm', 'justify-self-start')} value={() => candidate!.token} label={`${t('copy')} · ${t('requestToken')}`} />
           {/if}
           {#if enrollment}
             <Fact label={t('thisDevice')}><Id id={enrollment.device_id} full wrap /></Fact>
             <Fact label={t('approvalKey')}><Id id={enrollment.key_id} full wrap /></Fact>
             {#if enrollment.qr}<img src={enrollment.qr} alt={t('keyRequest')} width="200" height="200" class="max-w-full justify-self-center rounded-lg bg-white p-2" />{/if}
-            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(enrollment!.token)}>{t('copy')} · {t('keyRequest')}</button>
+            <CopyButton class={buttonClass('secondary', 'sm', 'justify-self-start')} value={() => enrollment!.token} label={`${t('copy')} · ${t('keyRequest')}`} />
             {#if candidate.kind === 'device_pair'}<Notice testid="device-pair-refresh-after-enrollment">{t('pairAfterRegistration')}</Notice>{/if}
           {:else if candidate.can_enroll}
             <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={!!busy} onclick={enrollHere} data-testid="device-pair-enroll">{t('pairEnableApprovals')}</button>

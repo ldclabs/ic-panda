@@ -2,6 +2,7 @@
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
   import ParticipantAvatar from './ParticipantAvatar.svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
@@ -84,8 +85,8 @@
     <input readonly value={invitationLink(packet)} class="font-mono text-code" data-testid="channel-invitation-link" />
     <textarea readonly class="hidden" data-testid="channel-invitation">{JSON.stringify(packet)}</textarea>
     <div class="flex gap-1.5">
-      <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(invitationLink(packet))} data-testid="invitation-copy-link"><Icon name="link" />{t('copyLink')}</button>
-      <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(JSON.stringify(packet))}><Icon name="copy" />{t('copyJson')}</button>
+      <CopyButton class={buttonClass('secondary', 'sm')} value={() => invitationLink(packet)} testid="invitation-copy-link" icon="link" label={t('copyLink')} />
+      <CopyButton class={buttonClass('ghost', 'sm')} value={() => JSON.stringify(packet)} label={t('copyJson')} />
     </div>
   </div>
 {/snippet}
@@ -194,7 +195,7 @@
           {#if item.packet}
             <Tooltip content={t('copyLink')}>
               {#snippet children(props)}
-                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copyLink')} onclick={() => copyText(invitationLink(item.packet))}><Icon name="link" /></button>
+                <CopyButton {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copyLink')} value={() => invitationLink(item.packet)} icon="link" />
               {/snippet}
             </Tooltip>
           {/if}

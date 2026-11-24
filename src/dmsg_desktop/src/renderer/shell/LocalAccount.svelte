@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, tick } from 'svelte'
   import Dialog from '../components/Dialog.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import SecretInput from '../components/SecretInput.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import { shake } from '../components/motion'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
   import { call, code, errorText, size, when } from '../rpc'
@@ -18,6 +19,7 @@
   let method = $state(''), plan = $state<Plan | null>(null), items = $state<number[]>([]), files = $state<number[]>([])
   let count = $state<{ vault: number; files: number } | null>(null)
   let bytes = $state(0)
+  let current = $state<HTMLElement>()
   let alive = true
   $effect(() => {
     if (!busy || !plan) return
@@ -75,12 +77,20 @@
     } catch (e) {
       if (alive) {
         error = errorText(e)
+        if (!plan && password) void refuse()
         if (plan && ['EXPIRED', 'VERSION_CONFLICT'].includes(code(e))) {
           void call('local_import/cancel', { id: plan.id }).catch(() => {})
           plan = null; items = []; files = []; bytes = 0
         }
       }
     } finally { busy = false }
+  }
+  /** A refused password shakes its field and is selected, ready to be typed again. */
+  async function refuse() {
+    await tick()
+    if (!current) return
+    shake(current)
+    current.querySelector('textarea')?.select()
   }
   function toggle(list: number[], index: number, yes: boolean) { return yes ? [...list, index] : list.filter(i => i !== index) }
 </script>
@@ -109,7 +119,7 @@
         </Checkbox>
       {/each}
     {:else}
-      {#if method === 'password' && action !== 'create'}<SecretInput bind:value={password} disabled={busy} label={t(action === 'password' ? 'settingsCurrentPassword' : 'localPassword')} testid="local-current-password" />{/if}
+      {#if method === 'password' && action !== 'create'}<div bind:this={current}><SecretInput bind:value={password} disabled={busy} label={t(action === 'password' ? 'settingsCurrentPassword' : 'localPassword')} testid="local-current-password" /></div>{/if}
       {#if setting}
         <SecretInput bind:value={next} disabled={busy} label={t(action === 'password' ? 'settingsNewPassword' : 'localPassword')} hint={t('localPasswordLength')}
           error={passwordLong ? t('settingsPasswordLong') : repeat && passwordShort ? t('localPasswordLength') : undefined} generate testid="local-new-password" />

@@ -1,14 +1,13 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
-  import Icon from '../../components/Icon.svelte'
   import Select from '../../components/Select.svelte'
   import TextArea from '../../components/TextArea.svelte'
   import TextField from '../../components/TextField.svelte'
   import Field from '../../components/page/Field.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText } from '../../rpc'
   import { requestLabels, requestLimit, requestTotals, MAX_REQUEST_LABELS } from './requests'
@@ -118,18 +117,12 @@
           <p class="min-w-0 flex-1 break-words text-body">
             <bdi dir="auto">{link.label || link.title}</bdi>
           </p>
-          <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} data-testid="request-copy"
-            >{t('linkCopy')}</button
-          >
+          <CopyButton class={buttonClass('ghost', 'xs')} value={() => link.url} testid="request-copy" label={t('linkCopy')} />
         </li>
       {/each}
     </ul>
     {#if created.length > 1}
-      <button
-        class={buttonClass('secondary', 'sm', 'mt-2')}
-        onclick={() => copyText(allLinks)}
-        data-testid="request-copy-all"><Icon name="link" />{t('requestCopyAll')}</button
-      >
+      <CopyButton class={buttonClass('secondary', 'sm', 'mt-2')} value={() => allLinks} testid="request-copy-all" icon="link" label={t('requestCopyAll')} />
     {/if}
   {/if}
   {#if !created.length || error}

@@ -116,7 +116,8 @@ try {
   await main.keyboard.press('Enter')
   await main.waitForFunction(id => window.testClipboard === id, fileId)
   const versionId = main.getByTestId('files-copy-current-version')
-  const copyStatus = versionId.locator('..').getByRole('status')
+  // The Id's own status follows it; a copy button beside it has another.
+  const copyStatus = versionId.locator('xpath=following-sibling::*[1][@role="status"]')
   await copy(versionId, current)
   await copyStatus.filter({ hasText: 'Copied' }).waitFor({ state: 'attached' })
   file.current = older

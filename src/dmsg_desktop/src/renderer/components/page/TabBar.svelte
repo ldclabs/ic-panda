@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Glyph } from '../glyphs'
   import Icon from '../Icon.svelte'
-  import { indicator } from '../motion'
+  import Count from '../Count.svelte'
+  import { indicator, pop, shrink } from '../motion'
   import { cn } from '../ui'
 
   /**
@@ -31,7 +32,7 @@
     >
       {#if item.icon}<Icon name={item.icon} class={value === item.value ? 'text-forest' : 'text-faint'} />{/if}
       {item.label}
-      {#if item.count}<span class="rounded-full bg-wash px-1.5 text-caption leading-4 text-ink-2 tabular-nums">{item.count}</span>{/if}
+      {#if item.count}<span class="rounded-full bg-wash px-1.5 text-caption leading-4 text-ink-2 tabular-nums" in:pop out:shrink><Count value={item.count} /></span>{/if}
     </button>
   {/each}
   <span

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { daemonBlocked } from '../connection-gate'
+  import CopyButton from '../components/CopyButton.svelte'
   import SecretInput from '../components/SecretInput.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
@@ -21,7 +22,6 @@
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { arrive } from '../components/motion'
   import { locale, t } from '../i18n/index.svelte'
-  import { copyText } from '../components/clipboard'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
   import { added, backups, downloads, scopeJobs, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
@@ -1231,7 +1231,7 @@
       <p class="text-body leading-relaxed">{t('linkReady')}</p>
       <div class="flex min-w-0 items-start gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
         <code class="min-w-0 flex-1 whitespace-normal font-mono text-code leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linkResult.url}</code>
-        <button class={buttonClass('subtle', 'xs')} onclick={() => copyText(linkResult.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
+        <CopyButton class={buttonClass('subtle', 'xs')} value={() => linkResult.url} testid="files-link-copy" label={t('linkCopy')} />
       </div>
       <Notice tone="info">{linkResult.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
     </div>

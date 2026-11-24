@@ -1,8 +1,8 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
-  import { copyText } from '../../components/clipboard'
   import { localeDir } from '../../../shared/locales'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
@@ -383,7 +383,7 @@
               <span class="block truncate text-caption text-faint">{t('linkExpires', { time: when(link.expires_at) })}</span>
             </span>
             {#if link.url && link.state === 'active'}
-              <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} aria-label={t('linkCopy')}><Icon name="copy" /></button>
+              <CopyButton class={buttonClass('ghost', 'xs')} value={() => link.url} aria-label={t('linkCopy')} />
             {/if}
             {#if link.state === 'active'}
               {#if !standalone}<button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy || !unlocked} onclick={() => onRevokeLink(link.share_id)} data-testid="files-link-revoke">{t('linkRevoke')}</button>{/if}
@@ -436,7 +436,7 @@
             <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="files-version-identity" data-version={version.id}>
               <span class="text-caption text-faint">{t('versionId')}</span>
               <Id id={version.id} copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-version" />
-              <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${version.id}`)} data-testid="files-copy-version-reference"><Icon name="link" />{t('copyFileReference')}</button>
+              <CopyButton class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} value={() => `dmsg-file://${file.id}/${version.id}`} testid="files-copy-version-reference" icon="link" label={t('copyFileReference')} />
             </div>
           </div>
           {#if unlocked && !trash}
@@ -500,7 +500,7 @@
         <dt>SHA-256</dt>
         <dd class="flex min-w-0 flex-1 items-center gap-1">
           <span class="min-w-0 flex-1 truncate font-mono text-code select-text" dir="ltr">{file.sha256}</span>
-          <button class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
+          <CopyButton class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} value={() => file.sha256} testid="files-copy-sha" />
         </dd>
       </div>
       <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -511,7 +511,7 @@
         <dt>{t('currentVersionId')}</dt>
         <dd class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <Id id={file.current} copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-current-version" />
-          <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${file.current}`)} data-testid="files-copy-reference"><Icon name="link" />{t('copyFileReference')}</button>
+          <CopyButton class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} value={() => `dmsg-file://${file.id}/${file.current}`} testid="files-copy-reference" icon="link" label={t('copyFileReference')} />
         </dd>
       </div>
       {#if current?.backup}

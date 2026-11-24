@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { copyText } from '../../components/clipboard'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
@@ -106,7 +106,7 @@
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if packet}
-      <button class={buttonClass('secondary')} onclick={() => copyText(JSON.stringify(packet))}><Icon name="copy" />{t('copy')}</button>
+      <CopyButton class={buttonClass('secondary')} value={() => JSON.stringify(packet)} label={t('copy')} />
       <button class={buttonClass('primary')} onclick={() => (open = false)}>{t('done')}</button>
     {:else}
       <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>

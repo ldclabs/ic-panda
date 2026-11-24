@@ -1,7 +1,7 @@
 <script lang="ts">
   import { RadioGroup } from 'bits-ui'
   import { onDestroy, untrack } from 'svelte'
-  import { copyText } from '../../components/clipboard'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Fact from '../../components/page/Fact.svelte'
@@ -217,7 +217,7 @@
           <Notice tone="info" icon="info">
             <p>{t('pandaHotkeyHint')}</p>
             <p class="mt-1"><Id id={panda.payer} full wrap testid="checkout-payer" /></p>
-            {#snippet action()}<button class={buttonClass('subtle', 'xs')} onclick={() => copyText(panda.payer)}><Icon name="copy" />{t('copy')}</button>{/snippet}
+            {#snippet action()}<CopyButton class={buttonClass('subtle', 'xs')} value={() => panda.payer} label={t('copy')} />{/snippet}
           </Notice>
           <dl>
             <Fact label={t('stake')} testid="checkout-stake">{required != null ? `${units(required, 8)} PANDA` : t('pandaNoRate')}</Fact>

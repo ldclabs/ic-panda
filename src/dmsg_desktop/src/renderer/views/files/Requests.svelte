@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
+  import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import TextField from '../../components/TextField.svelte'
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, size, when } from '../../rpc'
   import RequestComposer from './RequestComposer.svelte'
@@ -223,7 +223,7 @@
               </div>
               <div class="flex flex-wrap gap-1">
                 {#if link.url && isActiveRequest(link)}
-                  <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} data-testid="requests-copy">{t('linkCopy')}</button>
+                  <CopyButton class={buttonClass('ghost', 'xs')} value={() => link.url} testid="requests-copy" label={t('linkCopy')} />
                 {/if}
                 {#if isActiveRequest(link)}
                   <button
