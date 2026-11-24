@@ -32,6 +32,11 @@ The production debug application ID is net.dmsg.android.dev (staging adds .stagi
 
 For a local production GMS build, place the Firebase Android download at `app/google-services.json` and run `./gradlew :app:bundleProductionGmsRelease`. Gradle extracts the public fields for `net.dmsg.android`. To supply the normalized client JSON instead, pass `-Pdmsg.googleConfig=/absolute/path/to/android-client.json`. Only GMS variants matching the configured package and environment embed it. Push registration still requires user consent.
 
+Android and iOS builds use the workspace Cargo configuration. Both read the final
+library directory from `cargo metadata`, including any `CARGO_TARGET_DIR` override.
+Cargo reuses compatible dependencies and keeps native libraries under each target
+triple and profile. Android QA outputs use a separate `ui-fixtures` subdirectory.
+
 Generated Kotlin and libraries live in app/build/generated/dmsg. Gradle builds current bindings and the requested ABI slices, then verifies source/output fingerprints before native packaging. The app verifies its generated fingerprint against the loaded Rust library before opening a workspace. Never edit generated bindings or use stale libraries to fix a compiler error.
 
 The rustls JVM component uses the published org.rustls Maven group and the companion version from Cargo.lock. Gradle verification-metadata.xml pins downloaded artifacts. Changes to dependency verification must be reviewed against their upstream source. The AAR owns @xml/network_security_config: its default is HTTPS-only, with a CCADB list of CA revocation hosts allowed to fetch signed CRLs over HTTP. Do not shadow that resource; doing so makes valid CRL-only certificates fail as revoked. No certificate/hostname verification is disabled. See [upstream issue 221](https://github.com/rustls/rustls-platform-verifier/issues/221).

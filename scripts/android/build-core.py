@@ -36,9 +36,12 @@ def run(args, env=None):
     subprocess.run(args, cwd=ROOT, env=env, check=True)
 
 
-def sources():
-    metadata = json.loads(subprocess.check_output(
+def cargo_metadata():
+    return json.loads(subprocess.check_output(
         ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"], cwd=ROOT))
+
+
+def sources(metadata):
     packages = {p["name"]: p for p in metadata["packages"]}
     names, pending = set(), ["dmsg_mobile"]
     while pending:
@@ -91,7 +94,8 @@ def main():
     abis = args.abis.split(",")
     if not abis or any(a not in TARGETS for a in abis):
         parser.error("ABIs must be arm64-v8a and/or x86_64")
-    inputs = sources()
+    metadata = cargo_metadata()
+    inputs = sources(metadata)
     build_id = fingerprint(inputs, args.fixtures)
     manifest = GENERATED / "manifest.json"
     state = json.loads(manifest.read_text()) if manifest.exists() else {}
@@ -126,7 +130,7 @@ def main():
         return
     if args.native_only and not bindings_valid:
         raise SystemExit("Generate current Kotlin bindings before native slices")
-    target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target/android")).resolve()
+    target = Path(metadata["target_directory"])
     if args.fixtures:
         target = target / "ui-fixtures"
     env = dict(os.environ, CARGO_TARGET_DIR=str(target), DMSG_MOBILE_BUILD_ID=build_id)
@@ -174,7 +178,7 @@ def main():
             shutil.copy2(target / triple / "mobile/libdmsg_mobile.so", output / "libdmsg_mobile.so")
             recorded[library_name(abi)] = file_hash(output / "libdmsg_mobile.so")
             built.append(abi)
-    if fingerprint(sources(), args.fixtures) != build_id:
+    if fingerprint(sources(cargo_metadata()), args.fixtures) != build_id:
         raise SystemExit("Sources changed during build; rerun before packaging")
     outputs = {str(p.relative_to(GENERATED)): file_hash(p) for p in (GENERATED / "kotlin").rglob("*") if p.is_file()}
     outputs.update({library_name(abi): recorded[library_name(abi)] for abi in built})

@@ -23,11 +23,8 @@ def build_environment():
         if "JAVA_HOME" not in env and shutil.which("brew"):
             prefix = subprocess.check_output(["brew", "--prefix", "openjdk@21"], text=True).strip()
             env["JAVA_HOME"] = prefix
-    # When the app build directory points into the external cache, reuse its siblings.
-    if (BUILD.parent / "cargo-target").is_dir():
-        env.setdefault("CARGO_TARGET_DIR", str(BUILD.parent / "cargo-target"))
-        if (BUILD.parent / "tmp").is_dir():
-            env["TMPDIR"] = str(BUILD.parent / "tmp")
+    if (BUILD.parent / "tmp").is_dir():
+        env["TMPDIR"] = str(BUILD.parent / "tmp")
     return env
 
 
