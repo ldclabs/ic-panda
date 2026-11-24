@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"ขอให้ดำเนินการ"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"ใช้ข้อมูลลับผ่านนโยบายด้านอุปกรณ์"</string>
     <string name="permission_write" formatted="false">"เขียน"</string>
+    <string name="preview_cloud_only" formatted="false">"ไฟล์นี้เก็บไว้บนคลาวด์เท่านั้น กรุณาดาวน์โหลดก่อนเพื่อดูตัวอย่าง"</string>
+    <string name="preview_decode_failed" formatted="false">"ไม่สามารถถอดรหัสไฟล์นี้เพื่อดูตัวอย่างได้"</string>
+    <string name="preview_external_image_blocked" formatted="false">"บล็อกรูปภาพภายนอกแล้ว"</string>
+    <string name="preview_filter" formatted="false">"กรองไฟล์"</string>
+    <string name="preview_filter_documents" formatted="false">"เอกสาร"</string>
+    <string name="preview_filter_images" formatted="false">"รูปภาพ"</string>
+    <string name="preview_filter_previewable" formatted="false">"ดูตัวอย่างได้"</string>
+    <string name="preview_modified" formatted="false">"วันที่แก้ไข"</string>
+    <string name="preview_open_external_link" formatted="false">"เปิดลิงก์ภายนอกหรือไม่?"</string>
+    <string name="preview_reading" formatted="false">"อ่าน"</string>
+    <string name="preview_save_to_files" formatted="false">"บันทึกไปยังไฟล์"</string>
+    <string name="preview_size" formatted="false">"ขนาด"</string>
+    <string name="preview_too_large" formatted="false">"ไฟล์นี้ใหญ่เกินไปที่จะดูตัวอย่างในแอป"</string>
+    <string name="preview_truncated" formatted="false">"ตัดทอนเอกสารขนาดยาวสำหรับการดูตัวอย่าง ดาวน์โหลดหรือเปิดด้วยแอปภายนอกเพื่อดูทั้งหมด"</string>
+    <string name="preview_unavailable" formatted="false">"ไฟล์นี้ไม่สามารถใช้งานได้แล้ว"</string>
+    <string name="preview_unsupported" formatted="false">"ไม่รองรับการดูตัวอย่างสำหรับไฟล์ประเภทนี้"</string>
     <string name="promo_granted" formatted="false">"สมาชิกโปรโมชัน"</string>
     <string name="promo_no_charge" formatted="false">"ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ"</string>
     <string name="receive_closed" formatted="false">"เมื่อปิดรับจดหมาย จะไม่มีใครส่งจดหมายใหม่ถึงคุณได้"</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"เสียง"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"ที่อยู่ต้นทาง"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"อุปกรณ์ต้นทาง · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"แหล่งที่มา"</string>
+    <string name="text_source_fcdba0f" formatted="false">"ซอร์ส"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"ต้นทางจำกัดที่ 64 MiB ที่นี่ไม่นำเข้าไฟล์แนบในอาร์ไคฟ์ พาสคีย์ และประวัติ"</string>
     <string name="text_spam_afdcb81" formatted="false">"สแปม"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"ใช้จ่ายได้ตอนนี้"</string>

@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Richiedi un’azione"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Utilizzare un segreto tramite una policy del dispositivo"</string>
     <string name="permission_write" formatted="false">"Scrivi"</string>
+    <string name="preview_cloud_only" formatted="false">"Questo file è salvato solo nel cloud. Scaricalo prima per l’anteprima."</string>
+    <string name="preview_decode_failed" formatted="false">"Impossibile decodificare questo file per l’anteprima."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Immagine esterna bloccata"</string>
+    <string name="preview_filter" formatted="false">"Filtra file"</string>
+    <string name="preview_filter_documents" formatted="false">"Documenti"</string>
+    <string name="preview_filter_images" formatted="false">"Immagini"</string>
+    <string name="preview_filter_previewable" formatted="false">"Con anteprima"</string>
+    <string name="preview_modified" formatted="false">"Data di modifica"</string>
+    <string name="preview_open_external_link" formatted="false">"Aprire il link esterno?"</string>
+    <string name="preview_reading" formatted="false">"Lettura"</string>
+    <string name="preview_save_to_files" formatted="false">"Salva in File"</string>
+    <string name="preview_size" formatted="false">"Dimensione"</string>
+    <string name="preview_too_large" formatted="false">"Questo file è troppo grande per l’anteprima nell’app."</string>
+    <string name="preview_truncated" formatted="false">"Documento lungo troncato per l’anteprima. Scaricalo o aprilo esternamente per vedere tutto il contenuto."</string>
+    <string name="preview_unavailable" formatted="false">"Questo file non è più disponibile."</string>
+    <string name="preview_unsupported" formatted="false">"L’anteprima non è supportata per questo tipo di file."</string>
     <string name="promo_granted" formatted="false">"Abbonamento promozionale"</string>
     <string name="promo_no_charge" formatted="false">"Nessun addebito automatico alla scadenza."</string>
     <string name="receive_closed" formatted="false">"Nessuno può inviarti nuove lettere mentre la ricezione è chiusa."</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Suono"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Indirizzo di origine"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Dispositivo di origine · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Origine"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Sorgente"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Limite del sorgente: 64 MiB. Gli allegati dell\'archivio, le passkey e la cronologia non vengono importati qui."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Spendibile ora"</string>

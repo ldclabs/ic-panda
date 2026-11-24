@@ -742,6 +742,8 @@
 	<string>协签钥匙</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>拟定地址策略的联合签名者</string>
+	<key>Could not decode this file for preview.</key>
+	<string>无法解析此文件内容。</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>密码自动填充更新失败。</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>忽略此次观察结果</string>
 	<key>Dismiss this observation?</key>
 	<string>忽略此次观察结果？</string>
+	<key>Documents</key>
+	<string>文档</string>
 	<key>Done</key>
 	<string>完成</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>导出加密备份</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>将所选登录项导出到密码自动填充</string>
+	<key>External image blocked</key>
+	<string>已拦截外链图片</string>
 	<key>Failed</key>
 	<string>失败</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>仅填充这一次</string>
 	<key>Fill this login?</key>
 	<string>填入这个账号？</string>
+	<key>Filter files</key>
+	<string>筛选文件</string>
 	<key>Filters</key>
 	<string>保险库筛选</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>全部设备丢失后，可凭绑定的登录身份在等待期后恢复已上传内容。登录身份被盗且无人及时取消时，对方也可恢复内容。</string>
 	<key>Illegal content</key>
 	<string>违法内容</string>
+	<key>Images</key>
+	<string>图片</string>
 	<key>Import</key>
 	<string>导入</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>登录身份</string>
 	<key>Login identity</key>
 	<string>登录身份</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。</string>
 	<key>Manage Apple subscriptions</key>
 	<string>管理 Apple 订阅</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>打开 dMsg 工作区 → 账户 → 系统集成 → 密码自动填充 → 选择登录项</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>打开 dMsg。解锁和批准仍需你在应用内操作。</string>
+	<key>Open external link?</key>
+	<string>打开外部链接？</string>
 	<key>Open for</key>
 	<string>开放时长</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>预览会在本设备下载并验证秘密包，占用一次下载会话。请先选定接收设备再继续。</string>
 	<key>Preview file</key>
 	<string>预览文件</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>暂不支持预览此文件类型。</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>此文件类型不支持预览。可分享副本，在其他应用中打开。</string>
 	<key>Preview package</key>
 	<string>预览包内容</string>
 	<key>Preview transfer</key>
 	<string>预览转账</string>
+	<key>Previewable</key>
+	<string>可预览</string>
 	<key>Previous match</key>
 	<string>上一条匹配</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>阅读已发布的政策</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>为导入保留的只读副本。删除副本不影响旧 iPhone 和账号。</string>
+	<key>Reading</key>
+	<string>阅读</string>
 	<key>Reading account inventory…</key>
 	<string>正在读取账号内容清单…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>保存所选版本？</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>为 dMsg 暂存这些内容。打开并解锁应用后，选择账号再导入。</string>
+	<key>Save to Files</key>
+	<string>保存到文件</string>
 	<key>Save to dMsg</key>
 	<string>保存到 dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>排序方式</string>
 	<key>Source</key>
-	<string>来源</string>
+	<string>源码</string>
 	<key>Source address</key>
 	<string>来源地址</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>此文件超过当前云端备份的单文件大小限制。</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>此文件在回收站中，请先恢复再打开。</string>
+	<key>This file is no longer available.</key>
+	<string>此文件已不可用。</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>这个文件不在本机。dMsg 只会临时下载它来加密新副本，文件库不会有任何变化。</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>此文件仅保存在云端，请先下载到本地后再预览。</string>
+	<key>This file is too large to preview in app.</key>
+	<string>文件过大，暂不支持应用内预览。</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>这会释放存储空间。已保存到文件库的副本不受影响。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

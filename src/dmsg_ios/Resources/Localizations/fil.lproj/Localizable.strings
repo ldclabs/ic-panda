@@ -742,6 +742,8 @@
 	<string>Mga susi ng cosigner</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Mga cosigner para sa iminungkahing patakaran sa address</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Hindi ma-decode ang file na ito para sa preview.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Hindi ma-update ang awtomatikong pagpuno ng password.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Iwaksi ang obserbasyon na ito</string>
 	<key>Dismiss this observation?</key>
 	<string>I-dismiss ang obserbasyon na ito?</string>
+	<key>Documents</key>
+	<string>Mga dokumento</string>
 	<key>Done</key>
 	<string>Tapos na</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>I-export ang naka-encrypt na backup</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>I-export ang mga napiling item sa pag-log in sa AutoFill ng Password</string>
+	<key>External image blocked</key>
+	<string>Na-block ang panlabas na larawan</string>
 	<key>Failed</key>
 	<string>Nabigo</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Punan nang isang beses</string>
 	<key>Fill this login?</key>
 	<string>Punan gamit ang account na ito?</string>
+	<key>Filter files</key>
+	<string>I-filter ang mga file</string>
 	<key>Filters</key>
 	<string>Mga filter ng Vault</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Kung mawala ang lahat ng device, maibabalik ng naka-link na login ang na-upload na nilalaman matapos ang paghihintay. Magagawa rin ito ng ninakaw na login maliban kung kanselahin agad ng awtorisadong device.</string>
 	<key>Illegal content</key>
 	<string>Ilegal na nilalaman</string>
+	<key>Images</key>
+	<string>Mga larawan</string>
 	<key>Import</key>
 	<string>I-import</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Mga pagkakakilanlan sa pag-login</string>
 	<key>Login identity</key>
 	<string>Identity sa pag-login</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Pinaikli ang mahabang dokumento para sa preview. I-download o buksan sa labas upang makita ang buong nilalaman.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Pamahalaan ang mga subscription sa Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Buksan ang dMsg workspace → Account → Mga pagsasama ng system → AutoFill ng Password → Pumili ng mga item sa pag-log in</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Buksan ang dMsg. Ang pag-unlock at pag-apruba ay nangangailangan pa rin ng iyong pakikipag-ugnayan sa app.</string>
+	<key>Open external link?</key>
+	<string>Buksan ang panlabas na link?</string>
 	<key>Open for</key>
 	<string>Bukas nang</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>I-preview ang mga pag-download at i-verify ang package sa device na ito at gumagamit ng session sa pag-download. Piliin ang receiving device bago magpatuloy.</string>
 	<key>Preview file</key>
 	<string>I-preview ang file</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Hindi sinusuportahan ang preview para sa ganitong uri ng file.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Walang preview para sa ganitong uri ng file. Magbahagi ng kopya para buksan ito sa ibang app.</string>
 	<key>Preview package</key>
 	<string>I-preview ang package</string>
 	<key>Preview transfer</key>
 	<string>I-preview ang paglilipat</string>
+	<key>Previewable</key>
+	<string>Mapi-preview</string>
 	<key>Previous match</key>
 	<string>Nakaraang tugma</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Basahin ang naka-publish na patakaran</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Mga read-only na kopyang itinabi para ma-import. Hindi apektado ang lumang iPhone o ang iyong account kapag binura ang isa.</string>
+	<key>Reading</key>
+	<string>Pagbasa</string>
 	<key>Reading account inventory…</key>
 	<string>Binabasa ang listahan ng nilalaman ng account…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>I-save ang napiling bersyon?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>I-save ang mga item na ito para sa dMsg. Pumili ng account at i-import ang mga ito pagkatapos buksan at i-unlock ang app.</string>
+	<key>Save to Files</key>
+	<string>I-save sa Mga File</string>
 	<key>Save to dMsg</key>
 	<string>I-save sa dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>Ayusin ayon sa</string>
 	<key>Source</key>
-	<string>Pinagmulan</string>
+	<string>Source</string>
 	<key>Source address</key>
 	<string>Address ng pinagmulan</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>Lumampas ang file na ito sa kasalukuyang limitasyon ng laki ng file para sa cloud backup.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Nasa Basurahan ang file na ito. Ibalik muna bago buksan.</string>
+	<key>This file is no longer available.</key>
+	<string>Hindi na available ang file na ito.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Wala sa device na ito ang file. Dina-download lang ito ng dMsg nang sapat para i-encrypt ang bagong kopya, at hindi magbabago ang library mo.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Nasa cloud lang ang file na ito. I-download muna ito para ma-preview.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Masyadong malaki ang file na ito para i-preview sa app.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Magpapaluwag ito ng storage. Mananatili ang kopyang naka-save sa library mo.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

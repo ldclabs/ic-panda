@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Poproś o działanie"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Użyj klucza tajnego za pośrednictwem zasad dotyczących urządzeń"</string>
     <string name="permission_write" formatted="false">"Zapis"</string>
+    <string name="preview_cloud_only" formatted="false">"Ten plik jest zapisany tylko w chmurze. Pobierz go najpierw, aby wyświetlić podgląd."</string>
+    <string name="preview_decode_failed" formatted="false">"Nie udało się odczytać tego pliku do podglądu."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Zablokowano zewnętrzny obraz"</string>
+    <string name="preview_filter" formatted="false">"Filtruj pliki"</string>
+    <string name="preview_filter_documents" formatted="false">"Dokumenty"</string>
+    <string name="preview_filter_images" formatted="false">"Obrazy"</string>
+    <string name="preview_filter_previewable" formatted="false">"Do podglądu"</string>
+    <string name="preview_modified" formatted="false">"Data modyfikacji"</string>
+    <string name="preview_open_external_link" formatted="false">"Otworzyć link zewnętrzny?"</string>
+    <string name="preview_reading" formatted="false">"Czytanie"</string>
+    <string name="preview_save_to_files" formatted="false">"Zapisz w Plikach"</string>
+    <string name="preview_size" formatted="false">"Rozmiar"</string>
+    <string name="preview_too_large" formatted="false">"Ten plik jest zbyt duży do podglądu w aplikacji."</string>
+    <string name="preview_truncated" formatted="false">"Długi dokument skrócono w podglądzie. Pobierz lub otwórz w zewnętrznej aplikacji, aby zobaczyć całość."</string>
+    <string name="preview_unavailable" formatted="false">"Ten plik nie jest już dostępny."</string>
+    <string name="preview_unsupported" formatted="false">"Podgląd nie jest obsługiwany dla tego typu pliku."</string>
     <string name="promo_granted" formatted="false">"Członkostwo promocyjne"</string>
     <string name="promo_no_charge" formatted="false">"Po wygaśnięciu nie pobierzemy opłaty automatycznie."</string>
     <string name="receive_closed" formatted="false">"Gdy odbiór jest wyłączony, nikt nie może wysyłać nowych listów."</string>

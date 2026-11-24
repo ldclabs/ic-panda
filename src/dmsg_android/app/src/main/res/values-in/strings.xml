@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Minta tindakan"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gunakan rahasia melalui kebijakan perangkat"</string>
     <string name="permission_write" formatted="false">"Tulis"</string>
+    <string name="preview_cloud_only" formatted="false">"File ini hanya tersimpan di cloud. Unduh terlebih dahulu untuk melihat pratinjau."</string>
+    <string name="preview_decode_failed" formatted="false">"Tidak dapat mendekode file ini untuk pratinjau."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Gambar eksternal diblokir"</string>
+    <string name="preview_filter" formatted="false">"Filter file"</string>
+    <string name="preview_filter_documents" formatted="false">"Dokumen"</string>
+    <string name="preview_filter_images" formatted="false">"Gambar"</string>
+    <string name="preview_filter_previewable" formatted="false">"Dapat dipratinjau"</string>
+    <string name="preview_modified" formatted="false">"Tanggal diubah"</string>
+    <string name="preview_open_external_link" formatted="false">"Buka tautan eksternal?"</string>
+    <string name="preview_reading" formatted="false">"Baca"</string>
+    <string name="preview_save_to_files" formatted="false">"Simpan ke File"</string>
+    <string name="preview_size" formatted="false">"Ukuran"</string>
+    <string name="preview_too_large" formatted="false">"File ini terlalu besar untuk pratinjau di aplikasi."</string>
+    <string name="preview_truncated" formatted="false">"Dokumen panjang dipotong untuk pratinjau. Unduh atau buka secara eksternal untuk melihat seluruh isi."</string>
+    <string name="preview_unavailable" formatted="false">"File ini tidak lagi tersedia."</string>
+    <string name="preview_unsupported" formatted="false">"Pratinjau tidak didukung untuk jenis file ini."</string>
     <string name="promo_granted" formatted="false">"Keanggotaan promosi"</string>
     <string name="promo_no_charge" formatted="false">"Tidak ada tagihan otomatis saat berakhir."</string>
     <string name="receive_closed" formatted="false">"Tidak ada yang dapat mengirim surat baru saat penerimaan ditutup."</string>

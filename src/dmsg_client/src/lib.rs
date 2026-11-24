@@ -56,6 +56,7 @@ pub mod pairing;
 pub mod passkey;
 pub mod payer;
 pub mod payment;
+pub mod preview;
 pub mod principal;
 pub mod qr;
 pub mod recovery;

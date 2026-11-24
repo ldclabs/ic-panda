@@ -42,6 +42,26 @@ object BoundedImages {
         return decode(ImageDecoder.createSource(ByteBuffer.wrap(bytes)), edge)
     }
 
+    /** Decode a verified fullscreen preview image (up to 20 MiB) bounded to [edge] pixels. */
+    fun fullscreen(bytes: ByteArray, edge: Int = 2560): Bitmap? {
+        if (bytes.isEmpty() || bytes.size > 20 * 1024 * 1024) return null
+        require(edge in 1..4096)
+        return try {
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(ByteBuffer.wrap(bytes))) { decoder, info, _ ->
+                val width = info.size.width
+                val height = info.size.height
+                check(width > 0 && height > 0 && width.toLong() * height <= 64_000_000) { "FILE_LIMIT" }
+                val scale = minOf(1.0, edge.toDouble() / maxOf(width, height))
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                decoder.setTargetSize(maxOf(1, (width * scale).toInt()), maxOf(1, (height * scale).toInt()))
+            }
+        } catch (_: IOException) {
+            null
+        } catch (_: IllegalStateException) {
+            null
+        }
+    }
+
     fun decode(source: ImageDecoder.Source, edge: Int): Bitmap {
         require(edge in 1..1600)
         return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->

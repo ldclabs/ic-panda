@@ -742,6 +742,8 @@
 	<string>คีย์ผู้ลงนามร่วม</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners สำหรับนโยบายที่อยู่ที่นำเสนอ</string>
+	<key>Could not decode this file for preview.</key>
+	<string>ไม่สามารถถอดรหัสไฟล์นี้เพื่อดูตัวอย่างได้</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>อัปเดตการกรอกรหัสผ่านอัตโนมัติไม่สำเร็จ</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>ยกเลิกข้อสังเกตนี้</string>
 	<key>Dismiss this observation?</key>
 	<string>ยกเลิกข้อสังเกตนี้ใช่ไหม</string>
+	<key>Documents</key>
+	<string>เอกสาร</string>
 	<key>Done</key>
 	<string>เสร็จสิ้น</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>ส่งออกข้อมูลสำรองที่เข้ารหัส</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>ส่งออกรายการเข้าสู่ระบบที่เลือกไปยังการป้อนรหัสผ่านอัตโนมัติ</string>
+	<key>External image blocked</key>
+	<string>บล็อกรูปภาพภายนอกแล้ว</string>
 	<key>Failed</key>
 	<string>ไม่สำเร็จ</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>กรอกครั้งนี้เท่านั้น</string>
 	<key>Fill this login?</key>
 	<string>กรอกด้วยบัญชีนี้หรือไม่</string>
+	<key>Filter files</key>
+	<string>กรองไฟล์</string>
 	<key>Filters</key>
 	<string>ตัวกรองห้องนิรภัย</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>หากอุปกรณ์ทั้งหมดสูญหาย การเข้าสู่ระบบที่ผูกไว้จะกู้คืนเนื้อหาที่อัปโหลดได้หลังระยะรอ ผู้ที่ขโมยข้อมูลเข้าสู่ระบบก็ทำได้หากอุปกรณ์ที่ได้รับอนุญาตไม่ยกเลิกทันเวลา</string>
 	<key>Illegal content</key>
 	<string>เนื้อหาที่ผิดกฎหมาย</string>
+	<key>Images</key>
+	<string>รูปภาพ</string>
 	<key>Import</key>
 	<string>นำเข้า</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>ข้อมูลระบุตัวตนในการเข้าสู่ระบบ</string>
 	<key>Login identity</key>
 	<string>ข้อมูลประจำตัวในการเข้าสู่ระบบ</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>ตัดทอนเอกสารขนาดยาวสำหรับการดูตัวอย่าง ดาวน์โหลดหรือเปิดด้วยแอปภายนอกเพื่อดูทั้งหมด</string>
 	<key>Manage Apple subscriptions</key>
 	<string>จัดการการสมัครสมาชิก Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>เปิดเวิร์กสเปซ dMsg → บัญชี → บูรณาการระบบ → ป้อนรหัสผ่านอัตโนมัติ → เลือกรายการเข้าสู่ระบบ</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>เปิด dMsg การปลดล็อกและการอนุมัติยังคงต้องมีการโต้ตอบจากคุณในแอป</string>
+	<key>Open external link?</key>
+	<string>เปิดลิงก์ภายนอกหรือไม่?</string>
 	<key>Open for</key>
 	<string>เปิดเป็นเวลา</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>ดูตัวอย่างการดาวน์โหลดและยืนยันแพ็กเกจบนอุปกรณ์นี้และใช้เซสชันการดาวน์โหลด เลือกอุปกรณ์รับก่อนดำเนินการต่อ</string>
 	<key>Preview file</key>
 	<string>ดูตัวอย่างไฟล์</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>ไม่รองรับการดูตัวอย่างสำหรับไฟล์ประเภทนี้</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>ไม่สามารถแสดงตัวอย่างไฟล์ชนิดนี้ได้ แชร์สำเนาเพื่อเปิดในแอปอื่น</string>
 	<key>Preview package</key>
 	<string>ดูตัวอย่างแพ็คเกจ</string>
 	<key>Preview transfer</key>
 	<string>ดูตัวอย่างการโอน</string>
+	<key>Previewable</key>
+	<string>ดูตัวอย่างได้</string>
 	<key>Previous match</key>
 	<string>รายการที่ตรงกันก่อนหน้า</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>อ่านนโยบายที่เผยแพร่</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>สำเนาแบบอ่านอย่างเดียวที่เก็บไว้เพื่อนำเข้า การลบสำเนาไม่มีผลต่อ iPhone เครื่องเดิมหรือบัญชีของคุณ</string>
+	<key>Reading</key>
+	<string>อ่าน</string>
 	<key>Reading account inventory…</key>
 	<string>กำลังอ่านรายการเนื้อหาบัญชี…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>บันทึกเวอร์ชันที่เลือกหรือไม่</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>บันทึกรายการเหล่านี้สำหรับ dMsg เลือกบัญชีและนำเข้าหลังจากเปิดและปลดล็อคแอป</string>
+	<key>Save to Files</key>
+	<string>บันทึกไปยังไฟล์</string>
 	<key>Save to dMsg</key>
 	<string>บันทึกไปที่ dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>จัดเรียงตาม</string>
 	<key>Source</key>
-	<string>แหล่งที่มา</string>
+	<string>ซอร์ส</string>
 	<key>Source address</key>
 	<string>ที่อยู่ต้นทาง</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>ไฟล์นี้เกินขีดจำกัดขนาดไฟล์สำรองบนคลาวด์ปัจจุบัน</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>ไฟล์นี้อยู่ในถังขยะ โปรดกู้คืนก่อนเปิด</string>
+	<key>This file is no longer available.</key>
+	<string>ไฟล์นี้ไม่สามารถใช้งานได้แล้ว</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>ไฟล์นี้ไม่ได้อยู่ในอุปกรณ์นี้ dMsg จะดาวน์โหลดชั่วคราวเพื่อเข้ารหัสสำเนาใหม่เท่านั้น และคลังของคุณจะไม่เปลี่ยนแปลง</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>ไฟล์นี้เก็บไว้บนคลาวด์เท่านั้น กรุณาดาวน์โหลดก่อนเพื่อดูตัวอย่าง</string>
+	<key>This file is too large to preview in app.</key>
+	<string>ไฟล์นี้ใหญ่เกินไปที่จะดูตัวอย่างในแอป</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>การลบจะเพิ่มพื้นที่ว่าง สำเนาที่บันทึกในคลังยังคงอยู่</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

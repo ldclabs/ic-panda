@@ -742,6 +742,8 @@
 	<string>Kunci kosigner</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners untuk dasar alamat yang dicadangkan</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Tidak dapat menyahkod fail ini untuk pratonton.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Autoisi kata laluan gagal dikemas kini.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Tolak pemerhatian ini</string>
 	<key>Dismiss this observation?</key>
 	<string>Tolak pemerhatian ini?</string>
+	<key>Documents</key>
+	<string>Dokumen</string>
 	<key>Done</key>
 	<string>Selesai</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Eksport sandaran disulitkan</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Eksport item log masuk yang dipilih ke AutoFill Kata Laluan</string>
+	<key>External image blocked</key>
+	<string>Imej luaran disekat</string>
 	<key>Failed</key>
 	<string>Gagal</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Isi sekali</string>
 	<key>Fill this login?</key>
 	<string>Isi dengan akaun ini?</string>
+	<key>Filter files</key>
+	<string>Tapis fail</string>
 	<key>Filters</key>
 	<string>Penapis bilik kebal</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Jika semua peranti hilang, log masuk terpaut boleh memulihkan kandungan yang dimuat naik selepas tempoh menunggu. Log masuk yang dicuri juga boleh berbuat demikian jika tiada peranti dibenarkan membatalkannya tepat pada masanya.</string>
 	<key>Illegal content</key>
 	<string>Kandungan haram</string>
+	<key>Images</key>
+	<string>Imej</string>
 	<key>Import</key>
 	<string>Import</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Identiti log masuk</string>
 	<key>Login identity</key>
 	<string>Identiti log masuk</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Dokumen panjang dipendekkan untuk pratonton. Muat turun atau buka secara luaran untuk melihat semua kandungan.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Urus langganan Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Buka ruang kerja dMsg → Akaun → Penyepaduan sistem → AutoIsi Kata Laluan → Pilih item log masuk</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Buka dMsg. Membuka kunci dan kelulusan masih memerlukan interaksi anda dalam apl.</string>
+	<key>Open external link?</key>
+	<string>Buka pautan luaran?</string>
 	<key>Open for</key>
 	<string>Dibuka selama</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Pratonton muat turun dan sahkan pakej pada peranti ini dan menggunakan sesi muat turun. Pilih peranti penerima sebelum meneruskan.</string>
 	<key>Preview file</key>
 	<string>Pratonton fail</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Pratonton tidak disokong untuk jenis fail ini.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Pratonton tidak tersedia untuk jenis fail ini. Kongsi salinan untuk membukanya dalam aplikasi lain.</string>
 	<key>Preview package</key>
 	<string>Pakej pratonton</string>
 	<key>Preview transfer</key>
 	<string>Pratonton pindahan</string>
+	<key>Previewable</key>
+	<string>Boleh dipratonton</string>
 	<key>Previous match</key>
 	<string>Padanan sebelumnya</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Baca dasar yang diterbitkan</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Salinan baca sahaja yang disimpan untuk diimport. Memadam satu tidak menjejaskan iPhone lama atau akaun anda.</string>
+	<key>Reading</key>
+	<string>Bacaan</string>
 	<key>Reading account inventory…</key>
 	<string>Membaca senarai kandungan akaun…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Simpan versi yang dipilih?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Simpan item ini untuk dMsg. Pilih akaun dan importnya selepas membuka dan membuka kunci apl.</string>
+	<key>Save to Files</key>
+	<string>Simpan ke Fail</string>
 	<key>Save to dMsg</key>
 	<string>Jimat kepada dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>Fail ini melebihi had saiz fail sandaran awan semasa.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Fail ini berada dalam Sampah. Pulihkannya sebelum dibuka.</string>
+	<key>This file is no longer available.</key>
+	<string>Fail ini tidak lagi tersedia.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Fail ini tiada pada peranti ini. dMsg memuat turunnya hanya untuk menyulitkan salinan baharu, dan pustaka anda tidak berubah.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Fail ini disimpan dalam awan sahaja. Muat turun dahulu untuk pratonton.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Fail ini terlalu besar untuk dipratonton dalam aplikasi.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Ini mengosongkan ruang. Salinan dalam pustaka anda kekal.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

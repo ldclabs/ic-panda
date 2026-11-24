@@ -742,6 +742,8 @@
 	<string>Ortak imza anahtarları</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Önerilen adres politikası için ortak imzacılar</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Bu dosya önizleme için çözümlenemedi.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Otomatik parola doldurma güncellenemedi.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Bu gözlemi reddet</string>
 	<key>Dismiss this observation?</key>
 	<string>Bu gözlem reddedilsin mi?</string>
+	<key>Documents</key>
+	<string>Belgeler</string>
 	<key>Done</key>
 	<string>Bitti</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Şifreli yedeği dışa aktar</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Seçilen oturum açma öğelerini Parola Otomatik Doldurma'ya aktarın</string>
+	<key>External image blocked</key>
+	<string>Harici görsel engellendi</string>
 	<key>Failed</key>
 	<string>Başarısız</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Bir kez doldur</string>
 	<key>Fill this login?</key>
 	<string>Bu hesapla doldurulsun mu?</string>
+	<key>Filter files</key>
+	<string>Dosyaları filtrele</string>
 	<key>Filters</key>
 	<string>Kasa filtreleri</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Tüm cihazlar kaybolursa bağlı giriş, bekleme süresinden sonra yüklenen içeriği kurtarabilir. Yetkili bir cihaz zamanında iptal etmezse çalınan giriş de bunu yapabilir.</string>
 	<key>Illegal content</key>
 	<string>Yasa dışı içerik</string>
+	<key>Images</key>
+	<string>Görseller</string>
 	<key>Import</key>
 	<string>İthalat</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Giriş kimlikleri</string>
 	<key>Login identity</key>
 	<string>Giriş kimliği</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Uzun belge önizleme için kısaltıldı. Tüm içeriği görmek için indirin veya harici olarak açın.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple aboneliklerini yönetin</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>dMsg çalışma alanını açın → Hesap → Sistem entegrasyonları → Şifre Otomatik Doldurma → Oturum açma öğelerini seçin</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg'yu açın. Kilit açma ve onaylar yine de uygulamadaki etkileşiminizi gerektirir.</string>
+	<key>Open external link?</key>
+	<string>Harici bağlantı açılsın mı?</string>
 	<key>Open for</key>
 	<string>Açık kalma süresi</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Önizleme, bu cihazdaki paketi indirip doğrular ve bir indirme oturumu kullanır. Devam etmeden önce alıcı cihazı seçin.</string>
 	<key>Preview file</key>
 	<string>Dosyayı önizleyin</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Bu dosya türü için önizleme desteklenmiyor.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Bu dosya türü için önizleme yok. Başka bir uygulamada açmak için bir kopya paylaşın.</string>
 	<key>Preview package</key>
 	<string>Paketi önizleyin</string>
 	<key>Preview transfer</key>
 	<string>Transferi önizle</string>
+	<key>Previewable</key>
+	<string>Önizlenebilir</string>
 	<key>Previous match</key>
 	<string>Önceki eşleşme</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Yayınlanan politikayı okuyun</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>İçe aktarmak için saklanan salt okunur kopyalar. Birini silmek eski iPhone’u veya hesabınızı etkilemez.</string>
+	<key>Reading</key>
+	<string>Okuma</string>
 	<key>Reading account inventory…</key>
 	<string>Hesap içerik listesi okunuyor…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Seçilen sürüm kaydedilsin mi?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Bu öğeleri dMsg için kaydedin. Bir hesap seçin ve uygulamayı açıp kilidini açtıktan sonra bunları içe aktarın.</string>
+	<key>Save to Files</key>
+	<string>Dosyalara kaydet</string>
 	<key>Save to dMsg</key>
 	<string>dMsg'ya kaydet</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>Bu dosya mevcut bulut yedekleme dosya boyutu sınırını aşıyor.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Bu dosya çöp kutusunda. Açmadan önce geri yükleyin.</string>
+	<key>This file is no longer available.</key>
+	<string>Bu dosya artık kullanılamıyor.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Bu dosya bu cihazda değil. dMsg onu yalnızca yeni kopyayı şifreleyecek kadar süreyle indirir ve kitaplığınız değişmez.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Bu dosya yalnızca bulutta saklanıyor. Önizlemek için önce indirin.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Bu dosya uygulama içinde önizlemek için çok büyük.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Bu, alan açar. Kitaplığınızdaki kopya kalır.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

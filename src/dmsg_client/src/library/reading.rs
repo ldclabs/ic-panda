@@ -178,6 +178,89 @@ pub async fn preview<H: Hold>(h: &H, id: &str, version: Option<&str>) -> Result<
     Ok(result)
 }
 
+/// Build a full verified in-memory preview for fullscreen viewing (original image up to
+/// 20 MiB, parsed safe Markdown up to 2 MiB, or plain text up to 1 MiB) without writing
+/// plaintext temporary files. Cloud-only, trashed, oversized, or unsupported files return
+/// a metadata fallback without reading chunks.
+/// # Errors
+/// Returns `Error::Locked` while locked, `Error::NotFound` for an unknown file/version,
+/// or `Error::IntegrityFailed` if verification fails.
+pub async fn preview_full<H: Hold>(
+    h: &H,
+    id: &str,
+    version: Option<&str>,
+) -> Result<crate::preview::FullPreview> {
+    enum Plan {
+        Read(Reading),
+        Fallback(crate::preview::FullPreview),
+    }
+    let plan = h
+        .with(|c| {
+            let (file, record, manifest) = c.library_manifest(id, version)?;
+            let name = manifest.name.clone();
+            let mime = manifest.mime.clone();
+            let size = manifest.size;
+            let sha256 = Some(manifest.sha256.clone());
+            if file.trashed_at.is_some() {
+                return Ok(Plan::Fallback(crate::preview::FullPreview::fallback(
+                    mime,
+                    name,
+                    size,
+                    sha256,
+                    crate::preview::FallbackReason::Unavailable,
+                )));
+            }
+            if !record.local {
+                return Ok(Plan::Fallback(crate::preview::FullPreview::fallback(
+                    mime,
+                    name,
+                    size,
+                    sha256,
+                    crate::preview::FallbackReason::CloudOnly,
+                )));
+            }
+            let class = crate::preview::classify(&mime, &name);
+            let Some(limit) = crate::preview::size_limit(class) else {
+                return Ok(Plan::Fallback(crate::preview::FullPreview::fallback(
+                    mime,
+                    name,
+                    size,
+                    sha256,
+                    crate::preview::FallbackReason::UnsupportedType,
+                )));
+            };
+            if size > limit {
+                return Ok(Plan::Fallback(crate::preview::FullPreview::fallback(
+                    mime,
+                    name,
+                    size,
+                    sha256,
+                    crate::preview::FallbackReason::TooLarge,
+                )));
+            }
+            Ok(Plan::Read(Reading {
+                manifest,
+                generation: c.session_generation,
+                max: limit,
+            }))
+        })
+        .await?;
+    let reading = match plan {
+        Plan::Fallback(fallback) => return Ok(fallback),
+        Plan::Read(reading) => reading,
+    };
+    let mut bytes = Zeroizing::new(Vec::with_capacity(reading.manifest.size as usize));
+    reading.read(h, &mut *bytes).await?;
+    h.with(|c| reading.check(c)).await?;
+    Ok(crate::preview::from_verified_bytes(
+        reading.manifest.mime.clone(),
+        reading.manifest.name.clone(),
+        reading.manifest.size,
+        Some(reading.manifest.sha256.clone()),
+        bytes,
+    ))
+}
+
 /// Verify a file's versions one chunk at a time.
 /// # Errors
 /// As [`Client::files_verify`].

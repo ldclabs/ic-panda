@@ -83,3 +83,15 @@ internal val ColorScheme.page: Color get() = background
 
 /** Card paper, one step lighter than the page in both modes: grouped rows, detail cards, sheets and search fields. */
 internal val ColorScheme.card: Color get() = surfaceContainerLow
+
+/** Fullscreen image lightbox backdrop: deep dark tone in both light and dark themes. */
+internal val ColorScheme.viewerBackdrop: Color get() = Color(0xFF0A0F0D)
+
+/** Translucent floating bar over the dark image backdrop. */
+internal val ColorScheme.viewerChrome: Color get() = Color(0xCC161E1B)
+
+/** High-contrast foreground on [viewerBackdrop] and [viewerChrome]. */
+internal val ColorScheme.onViewerBackdrop: Color get() = Color(0xFFEFF3F0)
+
+/** Secondary foreground on [viewerBackdrop] and [viewerChrome]. */
+internal val ColorScheme.onViewerBackdropMuted: Color get() = Color(0xFFB3C0B9)

@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"要求執行操作"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"按裝置策略使用秘密"</string>
     <string name="permission_write" formatted="false">"寫入"</string>
+    <string name="preview_cloud_only" formatted="false">"此檔案僅保存在雲端，請先下載至本機後再預覽。"</string>
+    <string name="preview_decode_failed" formatted="false">"無法解析此檔案內容。"</string>
+    <string name="preview_external_image_blocked" formatted="false">"已封鎖外部圖片"</string>
+    <string name="preview_filter" formatted="false">"篩選檔案"</string>
+    <string name="preview_filter_documents" formatted="false">"文件"</string>
+    <string name="preview_filter_images" formatted="false">"圖片"</string>
+    <string name="preview_filter_previewable" formatted="false">"可預覽"</string>
+    <string name="preview_modified" formatted="false">"修改時間"</string>
+    <string name="preview_open_external_link" formatted="false">"開啟外部連結？"</string>
+    <string name="preview_reading" formatted="false">"閱讀"</string>
+    <string name="preview_save_to_files" formatted="false">"儲存至檔案"</string>
+    <string name="preview_size" formatted="false">"大小"</string>
+    <string name="preview_too_large" formatted="false">"檔案過大，暫不支援於應用程式內預覽。"</string>
+    <string name="preview_truncated" formatted="false">"文件較長，已截斷部分預覽內容；請下載或以其他應用程式檢視完整內容。"</string>
+    <string name="preview_unavailable" formatted="false">"此檔案已無法使用。"</string>
+    <string name="preview_unsupported" formatted="false">"暫不支援預覽此檔案類型。"</string>
     <string name="promo_granted" formatted="false">"贈予會員"</string>
     <string name="promo_no_charge" formatted="false">"到期不會自動扣款。"</string>
     <string name="receive_closed" formatted="false">"關閉收信後，任何人都無法寄來新信。"</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"聲音"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"來源地址"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"來源裝置 · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"來源"</string>
+    <string name="text_source_fcdba0f" formatted="false">"原始碼"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"原始檔上限為 64 MiB；此入口不匯入歸檔附件、Passkey 或歷史版本。"</string>
     <string name="text_spam_afdcb81" formatted="false">"垃圾資訊"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"現在可花費"</string>

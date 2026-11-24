@@ -1591,8 +1591,8 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Report message").assertIsDisplayed()
         assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
         compose.onNodeWithText("Preview", substring = false).performScrollTo().performClick()
-        compose.waitUntil(10_000) { client.filePreview.preview.value()?.bitmap != null }
-        compose.onNodeWithText("Complete file verified").assertExists()
+        compose.waitUntil(10_000) { client.fullscreenPreview.session.value?.content is net.dmsg.android.core.LoadedPreviewContent.Image }
+        compose.onNodeWithContentDescription("Close").assertExists()
     }
 
     @Test fun markingAnOpenLetterUnreadDoesNotImmediatelyMarkItReadAgain() {

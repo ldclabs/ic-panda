@@ -742,6 +742,8 @@
 	<string>連署キー</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>提案されたアドレスポリシーの連帯保証人</string>
+	<key>Could not decode this file for preview.</key>
+	<string>このファイルをプレビュー用に解析できませんでした。</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>パスワードの自動入力を更新できませんでした。</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>この観察を却下する</string>
 	<key>Dismiss this observation?</key>
 	<string>この観察を無視しますか?</string>
+	<key>Documents</key>
+	<string>ドキュメント</string>
 	<key>Done</key>
 	<string>完了</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>暗号化バックアップを書き出す</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>選択したログイン項目をパスワード自動入力にエクスポートします</string>
+	<key>External image blocked</key>
+	<string>外部画像をブロックしました</string>
 	<key>Failed</key>
 	<string>失敗しました</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>今回のみ入力</string>
 	<key>Fill this login?</key>
 	<string>このアカウントで入力しますか？</string>
+	<key>Filter files</key>
+	<string>ファイルを絞り込む</string>
 	<key>Filters</key>
 	<string>ボールトフィルター</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>すべての端末を紛失した場合、紐付けたログインで待機期間後にアップロード済みの内容を復元できます。ログインを盗まれた場合も、承認済み端末で期限内に取り消さない限り同様です。</string>
 	<key>Illegal content</key>
 	<string>違法なコンテンツ</string>
+	<key>Images</key>
+	<string>画像</string>
 	<key>Import</key>
 	<string>インポート</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>ログイン ID</string>
 	<key>Login identity</key>
 	<string>ログインID</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>長いドキュメントのためプレビューを一部省略しました。全文を見るにはダウンロードするか外部アプリで開いてください。</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple のサブスクリプションを管理する</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>dMsg ワークスペースを開く → アカウント → システム統合 → パスワードの自動入力 → ログイン項目を選択する</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg を開きます。ロック解除と承認には、引き続きアプリ内での操作が必要です。</string>
+	<key>Open external link?</key>
+	<string>外部リンクを開きますか？</string>
 	<key>Open for</key>
 	<string>受付期間</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>プレビューは、このデバイス上のパッケージをダウンロードして検証し、ダウンロード セッションを使用します。続行する前に受信デバイスを選択してください。</string>
 	<key>Preview file</key>
 	<string>プレビューファイル</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>このファイル形式のプレビューには対応していません。</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>このファイル形式はプレビューできません。コピーを共有して別のアプリで開いてください。</string>
 	<key>Preview package</key>
 	<string>プレビューパッケージ</string>
 	<key>Preview transfer</key>
 	<string>送金をプレビュー</string>
+	<key>Previewable</key>
+	<string>プレビュー可能</string>
 	<key>Previous match</key>
 	<string>前の一致</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>公開されたポリシーを読む</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>読み込み用に保管された読み取り専用のコピーです。削除しても古い iPhone やアカウントには影響しません。</string>
+	<key>Reading</key>
+	<string>閲覧</string>
 	<key>Reading account inventory…</key>
 	<string>アカウントのコンテンツ一覧を読み込み中…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>選択したバージョンを保存しますか?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>これらのアイテムを dMsg 用に保存します。アカウントを選択し、アプリを開いてロックを解除した後、アカウントをインポートします。</string>
+	<key>Save to Files</key>
+	<string>ファイルに保存</string>
 	<key>Save to dMsg</key>
 	<string>dMsg に保存します</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>このファイルは現在のクラウドバックアップのファイルサイズ上限を超えています。</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>このファイルはゴミ箱にあります。復元してから開いてください。</string>
+	<key>This file is no longer available.</key>
+	<string>このファイルは利用できなくなりました。</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>このファイルはこのデバイスにありません。dMsg は新しいコピーを暗号化するあいだだけ一時的にダウンロードし、ライブラリは変更されません。</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>このファイルはクラウドにのみ保存されています。プレビューするには先にダウンロードしてください。</string>
+	<key>This file is too large to preview in app.</key>
+	<string>ファイルサイズが大きすぎるためアプリ内でプレビューできません。</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>ストレージが空きます。ライブラリに保存したコピーは残ります。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

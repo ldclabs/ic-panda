@@ -33,7 +33,7 @@ import { mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises
 import { homedir, tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
-import type { DaemonEvent } from '../shared/contract'
+import type { DaemonEvent, PreviewSource } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { single } from '../shared/single'
 import { walletHistoryCsv } from '../shared/wallet-report'
@@ -327,6 +327,7 @@ function showMain(route?: string) {
     window.setFullScreen(false)
   })
   window.on('closed', () => {
+    cancelAllPreviews()
     main = null
     hideAfterFullScreen = false
   })
@@ -1037,9 +1038,66 @@ handle('dmsg:open-link', 'main', async (_event, url: string) => {
   if (!parseLink(String(url))) throw new DaemonError('INVALID_INPUT', 'Not a dMsg link')
   await openLink(String(url))
 })
-/** An image shown in a window, to the clipboard: only an image's own data address. */
-handle('dmsg:copy-image', 'main', async (_event, url: string) => {
-  const image = /^data:image\/(png|jpeg|gif|webp);base64,/.test(String(url)) ? nativeImage.createFromDataURL(String(url)) : null
+/** In-flight fullscreen preview fetches; aborted on switch, close, lock or quit. */
+const previewControllers = new Map<string, AbortController>()
+let previewSeq = 0
+function cancelAllPreviews() {
+  for (const controller of previewControllers.values()) controller.abort()
+  previewControllers.clear()
+}
+app.on('will-quit', cancelAllPreviews)
+
+function parsePreviewSource(raw: unknown): PreviewSource {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new DaemonError('INVALID_INPUT', 'Preview source')
+  const value = raw as Record<string, unknown>
+  if (value.source === 'library') {
+    if (typeof value.id !== 'string' || !value.id.trim()) throw new DaemonError('INVALID_INPUT', 'Library file ID')
+    const version = value.version == null || value.version === '' ? null : typeof value.version === 'string' ? value.version : null
+    if (value.version != null && typeof value.version !== 'string') throw new DaemonError('INVALID_INPUT', 'Library version')
+    return { source: 'library', id: value.id, version }
+  }
+  if (value.source === 'channel') {
+    if (typeof value.channel !== 'string' || !value.channel.trim()) throw new DaemonError('INVALID_INPUT', 'Channel ID')
+    const seq = Number(value.seq)
+    if (!Number.isSafeInteger(seq) || seq <= 0) throw new DaemonError('INVALID_INPUT', 'Message sequence')
+    return { source: 'channel', channel: value.channel, seq }
+  }
+  throw new DaemonError('INVALID_INPUT', 'Preview source')
+}
+
+handle('dmsg:preview-file', 'main', async (_event, source: unknown, requestId?: unknown) => {
+  const parsed = parsePreviewSource(source)
+  const key = typeof requestId === 'string' && requestId ? requestId : String(++previewSeq)
+  previewControllers.get(key)?.abort()
+  const controller = new AbortController()
+  previewControllers.set(key, controller)
+  try {
+    return await daemon.fetchPreview(parsed, controller.signal)
+  } finally {
+    if (previewControllers.get(key) === controller) previewControllers.delete(key)
+  }
+})
+
+handle('dmsg:preview-cancel', 'main', (_event, requestId?: unknown) => {
+  if (typeof requestId === 'string' && requestId) {
+    const controller = previewControllers.get(requestId)
+    if (controller) {
+      previewControllers.delete(requestId)
+      controller.abort()
+    }
+  } else {
+    cancelAllPreviews()
+  }
+})
+
+/** An image shown in a window, to the clipboard: a data URL or raw image bytes. */
+handle('dmsg:copy-image', 'main', async (_event, input: string | Uint8Array) => {
+  let image: Electron.NativeImage | null = null
+  if (typeof input === 'string') {
+    image = /^data:image\/(png|jpeg|gif|webp);base64,/.test(input) ? nativeImage.createFromDataURL(input) : null
+  } else if (input instanceof Uint8Array && input.byteLength > 0 && input.byteLength <= 25 * 1024 * 1024) {
+    image = nativeImage.createFromBuffer(Buffer.from(input.buffer, input.byteOffset, input.byteLength))
+  }
   if (!image || image.isEmpty()) throw new DaemonError('INVALID_INPUT', 'Not an image')
   await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(image.toPNG())], { type: 'image/png' }) })])
 })
@@ -1461,7 +1519,7 @@ function updateMenu() {
 daemon.on('event', (event: DaemonEvent) => {
   if (event.type === 'session/changed') closeBackup()
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
-  if (event.type === 'session/changed') { dropSystemCopies(); void updates.sessionChanged() }
+  if (event.type === 'session/changed') { cancelAllPreviews(); dropSystemCopies(); void updates.sessionChanged() }
   broadcast('dmsg:event', event)
   if (['notifications/changed', 'session/changed', 'resync', 'sync/changed', 'sync/finished'].includes(event.type)) {
     noticeEpoch++
@@ -1473,6 +1531,7 @@ daemon.on('event', (event: DaemonEvent) => {
 // The tray follows the connection: the daemon's state once connected, else connecting again.
 daemon.on('state', () => {
   if (!daemon.connected) {
+    cancelAllPreviews()
     closeBackup()
     cancelImport()
   }

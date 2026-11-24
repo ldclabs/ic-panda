@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
     LaunchedEffect(route) { if (route !in setOf("vault-backup", "approvals")) client.vaultBackup.clear() }
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
+    val previewSession by client.fullscreenPreview.session.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
@@ -381,12 +382,12 @@ import kotlinx.coroutines.launch
                                         if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                             list = { pageFrame(PageKey(Workspace.ACCOUNT, 1, Route("account"))) { AccountScreen(client, state, ::go, openLogin) } },
                                             detail = {
-                                                AnimatedPage(navigation, !imeVisible && !showEditor, client.navigation::back, itemPages = false) { key ->
+                                                AnimatedPage(navigation, !imeVisible && !showEditor && previewSession == null, client.navigation::back, itemPages = false) { key ->
                                                     if (key.route.page == "account") Box(Modifier.statusBarsPadding()) { EmptyState(str(R.string.text_choose_a_destination_f70f6ae), glyph = R.drawable.glyph_account) }
                                                     else framedPage(key)
                                                 }
                                             })
-                                        else AnimatedPage(navigation, !imeVisible && !showEditor, client.navigation::back, itemPages = !wide, content = framedPage)
+                                        else AnimatedPage(navigation, !imeVisible && !showEditor && previewSession == null, client.navigation::back, itemPages = !wide, content = framedPage)
                                     }
                                     // Work in progress shows over the page instead of reserving a strip on every page.
                                     // The page sits in a Column further out, so name the scope-free overload.
@@ -402,6 +403,9 @@ import kotlinx.coroutines.launch
             NoticeBanner(client)
             NoticeDestinationDialog(client)
             QrScannerHost(client, state.concealed)
+            previewSession?.takeIf { state.unlocked && !state.concealed }?.let { activePreview ->
+                FullscreenFilePreviewOverlay(client, activePreview, browser, share)
+            }
             if (showEditor && state.unlocked && !state.concealed) Dialog(onDismissRequest = ::closeEditor,
                 properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnClickOutside = false)) {
                 SyncSystemBars()

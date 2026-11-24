@@ -970,6 +970,59 @@ impl Client {
         )
     }
 
+    /// Return all locally synced, readable ordinary file attachments in `channel`,
+    /// ordered from oldest to newest (`seq` ascending). Secret packages, retracted,
+    /// hidden, unreadable, blocked, and deleted attachments are excluded.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked or `Error::InvalidInput` for an invalid channel ID.
+    pub fn channel_attachments(
+        &self,
+        channel: &str,
+    ) -> Result<Vec<crate::preview::ChannelAttachmentItem>> {
+        let blocked: HashSet<String> = self
+            .blocked_accounts()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        let indexed = self.ensure_channel_search_index(channel)?;
+        let mut items = Vec::new();
+        for cached in indexed {
+            if cached.entry.file_name.is_none() || blocked.contains(&cached.entry.account) {
+                continue;
+            }
+            let Some(message) = self.channel_message_public(channel, cached.entry.seq)? else {
+                continue;
+            };
+            if message.retracted || message.hidden || message.unreadable || message.file_deleted {
+                continue;
+            }
+            let Some(file) = message.file else {
+                continue;
+            };
+            if file.mime == crate::secrets::package::MIME {
+                continue;
+            }
+            let mime = crate::preview::effective_mime(&file.mime, &file.name);
+            let preview_class = crate::preview::classify(&mime, &file.name);
+            let previewable = crate::preview::is_previewable(&mime, &file.name, file.size);
+            items.push(crate::preview::ChannelAttachmentItem {
+                seq: message.seq,
+                digest: message.digest,
+                account: message.account,
+                created_at: message.created_at,
+                stored_at: message.stored_at,
+                name: file.name,
+                mime,
+                size: file.size,
+                preview_class,
+                previewable,
+            });
+        }
+        items.sort_by_key(|item| item.seq);
+        Ok(items)
+    }
+
     /// Search messages across all non-hidden channels in a single call using LDK-sealed buckets.
     ///
     /// # Errors

@@ -148,6 +148,26 @@ class PrivateFiles(private val context: Context) {
         finally { streams.remove(job) }
     }
 
+    /** Write verified in-memory bytes to an ephemeral FileProvider share copy; wiped on lock/restart. */
+    fun shareBytes(name: String, bytes: ByteArray, account: String, current: () -> Boolean): File {
+        require(account.matches(Regex("[0-9a-v]{20}")))
+        val at = epoch.get()
+        val safeName = name.replace(Regex("[\\\\/\\p{Cntrl}]"), "_").take(180)
+            .takeIf { it.isNotBlank() && it != "." && it != ".." } ?: "file"
+        val owner = File(shared, account).apply { check(mkdirs() || isDirectory) }
+        val directory = File(owner, UUID.randomUUID().toString()).apply { check(mkdir()) }
+        val destination = File(directory, safeName)
+        try {
+            check(at == epoch.get() && current()) { "CANCELLED" }
+            destination.outputStream().use { output ->
+                output.write(bytes)
+                output.flush()
+            }
+            check(at == epoch.get() && current()) { "CANCELLED" }
+            return destination
+        } catch (error: Throwable) { directory.deleteRecursively(); throw error }
+    }
+
     fun workspaceFile(path: String): File = File(path).canonicalFile.also { source ->
         require(source.toPath().startsWith(workspace.canonicalFile.toPath()))
         require(source.isFile && source.length() <= MAX_FILE_BYTES)

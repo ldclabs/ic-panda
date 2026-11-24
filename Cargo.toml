@@ -138,6 +138,7 @@ zeroize = "1"
 num-bigint = "0.5"
 num-traits = "0.2"
 mime = "0.3"
+pulldown-cmark = { version = "0.13", default-features = false }
 ic-agent = "0.49"
 ic-cdk = "0.20"
 ic-cdk-management-canister = "0.3"

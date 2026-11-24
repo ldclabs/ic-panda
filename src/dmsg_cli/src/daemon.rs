@@ -571,6 +571,7 @@ pub(crate) fn app(daemon: Arc<Daemon>) -> Router {
             "/app/v1",
             post(rpc).layer(DefaultBodyLimit::max(MAX_REQUEST)),
         )
+        .route("/app/v1/preview", post(preview))
         .route("/ws/app/v1", get(socket))
         .route("/auth/callback", get(callback_page).post(callback))
         .route("/dav/{token}/{volume}", any(crate::mount::serve))
@@ -2396,6 +2397,96 @@ async fn rpc(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes)
         return Json(reply_error(&Value::Null, -32700, "parse error")).into_response();
     };
     Json(daemon.dispatch(request, &session, false).await).into_response()
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "source", rename_all = "snake_case")]
+enum PreviewRequest {
+    Library {
+        id: String,
+        #[serde(default)]
+        version: Option<String>,
+    },
+    Channel {
+        channel: String,
+        seq: u64,
+    },
+}
+
+/// Binary/JSON in-memory fullscreen preview endpoint for the owner desktop app.
+/// Images stream as raw bytes (avoiding base64 inflation and WS frame caps);
+/// Markdown, text, and fallbacks return structured JSON.
+async fn preview(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes) -> Response {
+    if !daemon.owner(&headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if daemon.stopping() {
+        return preview_error(Error::Unavailable("the daemon is stopping".into()));
+    }
+    let Ok(request) = serde_json::from_slice::<PreviewRequest>(&body) else {
+        return preview_error(Error::InvalidInput("preview request".into()));
+    };
+    let h = daemon.hold();
+    let result = match request {
+        PreviewRequest::Library { id, version } => {
+            dmsg_client::library::reading::preview_full(&h, &id, version.as_deref()).await
+        }
+        PreviewRequest::Channel { channel, seq } => {
+            dmsg_client::channel::preview_attachment(&h, &channel, seq, &mut |_, _| {}).await
+        }
+    };
+    let value = match result {
+        Ok(value) => value,
+        Err(error) => return preview_error(error),
+    };
+    match value.content {
+        dmsg_client::preview::PreviewContent::Image(bytes) => {
+            let meta_json = serde_json::to_vec(&value.meta).unwrap_or_default();
+            let meta_header = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(meta_json);
+            let mut resp = Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, value.meta.mime.as_str())
+                .header(header::CACHE_CONTROL, "no-store")
+                .header("x-dmsg-preview-kind", "image")
+                .header("x-dmsg-preview-meta", meta_header);
+            if resp.headers_ref().is_none() {
+                resp = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, "application/octet-stream")
+                    .header(header::CACHE_CONTROL, "no-store")
+                    .header("x-dmsg-preview-kind", "image");
+            }
+            resp.body(axum::body::Body::from(bytes.to_vec()))
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+        }
+        _ => {
+            let mut response = Json(value.to_json()).into_response();
+            response.headers_mut().insert(
+                header::CACHE_CONTROL,
+                axum::http::HeaderValue::from_static("no-store"),
+            );
+            response.headers_mut().insert(
+                axum::http::HeaderName::from_static("x-dmsg-preview-kind"),
+                axum::http::HeaderValue::from_static("json"),
+            );
+            response
+        }
+    }
+}
+
+fn preview_error(error: Error) -> Response {
+    let status = match &error {
+        Error::Locked => StatusCode::LOCKED,
+        Error::NotFound => StatusCode::NOT_FOUND,
+        Error::Forbidden | Error::UnsupportedProtocol => StatusCode::FORBIDDEN,
+        Error::InvalidInput(_) => StatusCode::BAD_REQUEST,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+    (
+        status,
+        Json(json!({"error": {"code": error_code(&error), "message": error.to_string()}})),
+    )
+        .into_response()
 }
 
 /// A JSON-RPC error reply.

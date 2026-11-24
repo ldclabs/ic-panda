@@ -26,6 +26,7 @@
     showPath = false,
     onSelect,
     onOpenFolder,
+    onPreview,
     onOpen,
     onExport,
     onBackup,
@@ -49,6 +50,7 @@
     showPath?: boolean
     onSelect: (event: MouseEvent) => void
     onOpenFolder: () => void
+    onPreview?: () => void
     onOpen: () => void
     onExport: () => void
     onBackup: () => void
@@ -102,7 +104,7 @@
 
 <li>
   <ContextMenu.Root dir={localeDir(locale())}>
-    <ContextMenu.Trigger onclick={onSelect} oncontextmenu={onSelect} ondblclick={folder ? onOpenFolder : status === 'cloud_only' ? undefined : onOpen}>
+    <ContextMenu.Trigger onclick={onSelect} oncontextmenu={onSelect} ondblclick={folder ? onOpenFolder : onPreview ?? (status === 'cloud_only' ? undefined : onOpen)}>
       {#snippet child({ props })}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <button
@@ -169,6 +171,11 @@
               <span class="flex items-center gap-2"><Icon name="agents" class="text-faint" />{t('grantAgent')}</span>
             </ContextMenu.Item>{/if}
           {:else}
+            {#if onPreview}
+              <ContextMenu.Item class={menuItemClass} onSelect={onPreview}>
+                <span class="flex items-center gap-2"><Icon name="eye" class="text-faint" />{t('preview')}</span>
+              </ContextMenu.Item>
+            {/if}
             <ContextMenu.Item class={menuItemClass} onSelect={onOpen} disabled={status === 'cloud_only'}>
               <span class="flex items-center gap-2"><Icon name="external" class="text-faint" />{t('openFile')}</span>
             </ContextMenu.Item>

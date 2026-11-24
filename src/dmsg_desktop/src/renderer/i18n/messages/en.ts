@@ -2983,7 +2983,26 @@ const messages = {
     "wallet.replaceKeyHint": "For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.",
     "wallet.replaceWith": "Replacement key",
     "wallet.unbind": "Unbind",
-    "wallet.unbindHint": "{n} devices revoked or no longer in your account are still bound to this wallet."
+    "wallet.unbindHint": "{n} devices revoked or no longer in your account are still bound to this wallet.",
+    "preview": "Preview",
+    "previewFilter": "Filter files",
+    "previewFilterAll": "All",
+    "previewFilterPreviewable": "Previewable",
+    "previewFilterImages": "Images",
+    "previewFilterDocuments": "Documents",
+    "previewMode": "View mode",
+    "previewReading": "Reading",
+    "previewSource": "Source",
+    "previewZoomIn": "Zoom in",
+    "previewZoomOut": "Zoom out",
+    "previewResetZoom": "Reset zoom",
+    "previewUnsupported": "Preview is not supported for this file type.",
+    "previewTooLarge": "This file is too large to preview in app.",
+    "previewCloudOnly": "This file is stored in the cloud only. Download it first to preview.",
+    "previewDecodeFailed": "Could not decode this file for preview.",
+    "previewUnavailable": "This file is no longer available.",
+    "previewExternalImageBlocked": "External image blocked",
+    "previewTruncated": "Long document truncated for preview. Download or open externally to view all content."
 }
 
 /** Approval states, as the approvals list and the approval window show them. */

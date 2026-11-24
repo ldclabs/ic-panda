@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Minta tindakan"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gunakan rahsia melalui dasar peranti"</string>
     <string name="permission_write" formatted="false">"Tulis"</string>
+    <string name="preview_cloud_only" formatted="false">"Fail ini disimpan dalam awan sahaja. Muat turun dahulu untuk pratonton."</string>
+    <string name="preview_decode_failed" formatted="false">"Tidak dapat menyahkod fail ini untuk pratonton."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Imej luaran disekat"</string>
+    <string name="preview_filter" formatted="false">"Tapis fail"</string>
+    <string name="preview_filter_documents" formatted="false">"Dokumen"</string>
+    <string name="preview_filter_images" formatted="false">"Imej"</string>
+    <string name="preview_filter_previewable" formatted="false">"Boleh dipratonton"</string>
+    <string name="preview_modified" formatted="false">"Tarikh diubah"</string>
+    <string name="preview_open_external_link" formatted="false">"Buka pautan luaran?"</string>
+    <string name="preview_reading" formatted="false">"Bacaan"</string>
+    <string name="preview_save_to_files" formatted="false">"Simpan ke Fail"</string>
+    <string name="preview_size" formatted="false">"Saiz"</string>
+    <string name="preview_too_large" formatted="false">"Fail ini terlalu besar untuk dipratonton dalam aplikasi."</string>
+    <string name="preview_truncated" formatted="false">"Dokumen panjang dipendekkan untuk pratonton. Muat turun atau buka secara luaran untuk melihat semua kandungan."</string>
+    <string name="preview_unavailable" formatted="false">"Fail ini tidak lagi tersedia."</string>
+    <string name="preview_unsupported" formatted="false">"Pratonton tidak disokong untuk jenis fail ini."</string>
     <string name="promo_granted" formatted="false">"Keahlian promosi"</string>
     <string name="promo_no_charge" formatted="false">"Tiada caj automatik apabila tamat."</string>
     <string name="receive_closed" formatted="false">"Tiada sesiapa boleh menghantar surat baharu apabila penerimaan ditutup."</string>

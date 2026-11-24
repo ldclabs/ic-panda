@@ -19,6 +19,8 @@ enum Theme {
     static let fill = Color("Fill")
     /// Approval counts keep their white text legible against the red badge.
     static let badgeRed = Color("BadgeRed")
+    /// Fullscreen image lightbox backdrop.
+    static let viewerBackdrop = Color("ViewerBackdrop")
 
     static let radiusSmall = NativeTheme.radiusSmall
     static let radius = NativeTheme.radius

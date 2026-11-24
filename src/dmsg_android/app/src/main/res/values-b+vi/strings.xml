@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Yêu cầu thao tác"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Sử dụng bí mật thông qua chính sách thiết bị"</string>
     <string name="permission_write" formatted="false">"Ghi"</string>
+    <string name="preview_cloud_only" formatted="false">"Tệp này chỉ được lưu trên đám mây. Hãy tải xuống trước để xem trước."</string>
+    <string name="preview_decode_failed" formatted="false">"Không thể giải mã tệp này để xem trước."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Đã chặn hình ảnh ngoài"</string>
+    <string name="preview_filter" formatted="false">"Lọc tệp"</string>
+    <string name="preview_filter_documents" formatted="false">"Tài liệu"</string>
+    <string name="preview_filter_images" formatted="false">"Hình ảnh"</string>
+    <string name="preview_filter_previewable" formatted="false">"Xem trước được"</string>
+    <string name="preview_modified" formatted="false">"Ngày sửa đổi"</string>
+    <string name="preview_open_external_link" formatted="false">"Mở liên kết ngoài?"</string>
+    <string name="preview_reading" formatted="false">"Đọc"</string>
+    <string name="preview_save_to_files" formatted="false">"Lưu vào Tệp"</string>
+    <string name="preview_size" formatted="false">"Kích thước"</string>
+    <string name="preview_too_large" formatted="false">"Tệp này quá lớn để xem trước trong ứng dụng."</string>
+    <string name="preview_truncated" formatted="false">"Tài liệu dài đã được rút gọn khi xem trước. Hãy tải xuống hoặc mở bằng ứng dụng ngoài để xem toàn bộ."</string>
+    <string name="preview_unavailable" formatted="false">"Tệp này không còn khả dụng."</string>
+    <string name="preview_unsupported" formatted="false">"Không hỗ trợ xem trước loại tệp này."</string>
     <string name="promo_granted" formatted="false">"Gói thành viên khuyến mãi"</string>
     <string name="promo_no_charge" formatted="false">"Không tự động tính phí khi hết hạn."</string>
     <string name="receive_closed" formatted="false">"Không ai có thể gửi thư mới khi bạn đóng nhận thư."</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Âm thanh"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Địa chỉ nguồn"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Thiết bị nguồn · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Nguồn"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Mã nguồn"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Giới hạn nguồn: 64 MiB. Tệp đính kèm trong kho lưu trữ, khóa truy cập và lịch sử không được nhập tại đây."</string>
     <string name="text_spam_afdcb81" formatted="false">"Thư rác"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Có thể chi tiêu ngay"</string>

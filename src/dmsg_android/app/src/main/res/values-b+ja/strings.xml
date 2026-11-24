@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"操作をリクエスト"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"デバイスポリシーを通じてシークレットを使用する"</string>
     <string name="permission_write" formatted="false">"書き込み"</string>
+    <string name="preview_cloud_only" formatted="false">"このファイルはクラウドにのみ保存されています。プレビューするには先にダウンロードしてください。"</string>
+    <string name="preview_decode_failed" formatted="false">"このファイルをプレビュー用に解析できませんでした。"</string>
+    <string name="preview_external_image_blocked" formatted="false">"外部画像をブロックしました"</string>
+    <string name="preview_filter" formatted="false">"ファイルを絞り込む"</string>
+    <string name="preview_filter_documents" formatted="false">"ドキュメント"</string>
+    <string name="preview_filter_images" formatted="false">"画像"</string>
+    <string name="preview_filter_previewable" formatted="false">"プレビュー可能"</string>
+    <string name="preview_modified" formatted="false">"変更日時"</string>
+    <string name="preview_open_external_link" formatted="false">"外部リンクを開きますか？"</string>
+    <string name="preview_reading" formatted="false">"閲覧"</string>
+    <string name="preview_save_to_files" formatted="false">"ファイルに保存"</string>
+    <string name="preview_size" formatted="false">"サイズ"</string>
+    <string name="preview_too_large" formatted="false">"ファイルサイズが大きすぎるためアプリ内でプレビューできません。"</string>
+    <string name="preview_truncated" formatted="false">"長いドキュメントのためプレビューを一部省略しました。全文を見るにはダウンロードするか外部アプリで開いてください。"</string>
+    <string name="preview_unavailable" formatted="false">"このファイルは利用できなくなりました。"</string>
+    <string name="preview_unsupported" formatted="false">"このファイル形式のプレビューには対応していません。"</string>
     <string name="promo_granted" formatted="false">"特典による会員資格"</string>
     <string name="promo_no_charge" formatted="false">"期間終了時の自動課金はありません。"</string>
     <string name="receive_closed" formatted="false">"受信を閉じている間は、誰からも新しい手紙を受け取りません。"</string>

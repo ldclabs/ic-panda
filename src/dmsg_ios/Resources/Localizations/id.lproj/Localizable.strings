@@ -742,6 +742,8 @@
 	<string>Kunci cosigner</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners untuk kebijakan alamat yang diusulkan</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Tidak dapat mendekode file ini untuk pratinjau.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Isi otomatis kata sandi gagal diperbarui.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Abaikan pengamatan ini</string>
 	<key>Dismiss this observation?</key>
 	<string>Singkirkan observasi ini?</string>
+	<key>Documents</key>
+	<string>Dokumen</string>
 	<key>Done</key>
 	<string>Selesai</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Ekspor cadangan terenkripsi</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Ekspor item login yang dipilih ke IsiOtomatis Kata Sandi</string>
+	<key>External image blocked</key>
+	<string>Gambar eksternal diblokir</string>
 	<key>Failed</key>
 	<string>Gagal</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Isi sekali</string>
 	<key>Fill this login?</key>
 	<string>Isi dengan akun ini?</string>
+	<key>Filter files</key>
+	<string>Filter file</string>
 	<key>Filters</key>
 	<string>Filter brankas</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Jika semua perangkat hilang, login tertaut dapat memulihkan konten yang diunggah setelah masa tunggu. Login yang dicuri juga bisa, kecuali perangkat berizin membatalkan tepat waktu.</string>
 	<key>Illegal content</key>
 	<string>Konten ilegal</string>
+	<key>Images</key>
+	<string>Gambar</string>
 	<key>Import</key>
 	<string>Impor</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Identitas masuk</string>
 	<key>Login identity</key>
 	<string>Identitas masuk</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Dokumen panjang dipotong untuk pratinjau. Unduh atau buka secara eksternal untuk melihat seluruh isi.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Kelola langganan Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Buka ruang kerja dMsg → Akun → Integrasi sistem → IsiOtomatis Kata Sandi → Pilih item masuk</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Buka dMsg. Membuka kunci dan persetujuan masih memerlukan interaksi Anda di aplikasi.</string>
+	<key>Open external link?</key>
+	<string>Buka tautan eksternal?</string>
 	<key>Open for</key>
 	<string>Terbuka selama</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Pratinjau unduhan dan verifikasi paket pada perangkat ini dan gunakan sesi unduhan. Pilih perangkat penerima sebelum melanjutkan.</string>
 	<key>Preview file</key>
 	<string>Pratinjau berkas</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Pratinjau tidak didukung untuk jenis file ini.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Pratinjau tidak tersedia untuk jenis file ini. Bagikan salinan untuk membukanya di aplikasi lain.</string>
 	<key>Preview package</key>
 	<string>Paket pratinjau</string>
 	<key>Preview transfer</key>
 	<string>Pratinjau transfer</string>
+	<key>Previewable</key>
+	<string>Dapat dipratinjau</string>
 	<key>Previous match</key>
 	<string>Kecocokan sebelumnya</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Baca kebijakan yang dipublikasikan</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Salinan hanya baca yang disimpan untuk diimpor. Menghapusnya tidak memengaruhi iPhone lama maupun akun Anda.</string>
+	<key>Reading</key>
+	<string>Baca</string>
 	<key>Reading account inventory…</key>
 	<string>Membaca daftar konten akun…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Simpan versi yang dipilih?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Simpan item ini untuk dMsg. Pilih akun dan impor akun tersebut setelah membuka dan membuka kunci aplikasi.</string>
+	<key>Save to Files</key>
+	<string>Simpan ke File</string>
 	<key>Save to dMsg</key>
 	<string>Simpan ke dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>File ini melebihi batas ukuran file cadangan cloud saat ini.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>File ini ada di Sampah. Pulihkan sebelum membukanya.</string>
+	<key>This file is no longer available.</key>
+	<string>File ini tidak lagi tersedia.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>File ini tidak ada di perangkat ini. dMsg mengunduhnya hanya untuk mengenkripsi salinan baru, dan pustaka Anda tidak berubah.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>File ini hanya tersimpan di cloud. Unduh terlebih dahulu untuk melihat pratinjau.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>File ini terlalu besar untuk pratinjau di aplikasi.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Ini mengosongkan ruang. Salinan di pustaka Anda tetap ada.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

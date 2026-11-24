@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"طلب إجراء"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"استخدام سر وفق سياسة الجهاز"</string>
     <string name="permission_write" formatted="false">"كتابة"</string>
+    <string name="preview_cloud_only" formatted="false">"هذا الملف محفوظ في السحابة فقط. نزّله أولاً للمعاينة."</string>
+    <string name="preview_decode_failed" formatted="false">"تعذر فك ترميز هذا الملف للمعاينة."</string>
+    <string name="preview_external_image_blocked" formatted="false">"تم حظر صورة خارجية"</string>
+    <string name="preview_filter" formatted="false">"تصفية الملفات"</string>
+    <string name="preview_filter_documents" formatted="false">"المستندات"</string>
+    <string name="preview_filter_images" formatted="false">"الصور"</string>
+    <string name="preview_filter_previewable" formatted="false">"قابل للمعاينة"</string>
+    <string name="preview_modified" formatted="false">"تاريخ التعديل"</string>
+    <string name="preview_open_external_link" formatted="false">"فتح رابط خارجي؟"</string>
+    <string name="preview_reading" formatted="false">"قراءة"</string>
+    <string name="preview_save_to_files" formatted="false">"حفظ في الملفات"</string>
+    <string name="preview_size" formatted="false">"الحجم"</string>
+    <string name="preview_too_large" formatted="false">"هذا الملف كبير جداً للمعاينة داخل التطبيق."</string>
+    <string name="preview_truncated" formatted="false">"تم اختصار المستند الطويل للمعاينة. نزّله أو افتحه خارجياً لعرض المحتوى بالكامل."</string>
+    <string name="preview_unavailable" formatted="false">"هذا الملف لم يعد متاحاً."</string>
+    <string name="preview_unsupported" formatted="false">"المعاينة غير مدعومة لهذا النوع من الملفات."</string>
     <string name="promo_granted" formatted="false">"عضوية ترويجية"</string>
     <string name="promo_no_charge" formatted="false">"لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة."</string>
     <string name="receive_closed" formatted="false">"لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا."</string>

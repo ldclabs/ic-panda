@@ -742,6 +742,8 @@
 	<string>Cosigner keys</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners for the proposed address policy</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Could not decode this file for preview.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Could not update Password AutoFill.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Dismiss this observation</string>
 	<key>Dismiss this observation?</key>
 	<string>Dismiss this observation?</string>
+	<key>Documents</key>
+	<string>Documents</string>
 	<key>Done</key>
 	<string>Done</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Export encrypted backup</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Export the selected login items to Password AutoFill</string>
+	<key>External image blocked</key>
+	<string>External image blocked</string>
 	<key>Failed</key>
 	<string>Failed</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Fill once</string>
 	<key>Fill this login?</key>
 	<string>Fill this login?</string>
+	<key>Filter files</key>
+	<string>Filter files</string>
 	<key>Filters</key>
 	<string>Filters</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</string>
 	<key>Illegal content</key>
 	<string>Illegal content</string>
+	<key>Images</key>
+	<string>Images</string>
 	<key>Import</key>
 	<string>Import</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Login identities</string>
 	<key>Login identity</key>
 	<string>Login identity</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Long document truncated for preview. Download or open externally to view all content.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Manage Apple subscriptions</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Open dMsg. Unlocking and approvals still require your interaction in the app.</string>
+	<key>Open external link?</key>
+	<string>Open external link?</string>
 	<key>Open for</key>
 	<string>Open for</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</string>
 	<key>Preview file</key>
 	<string>Preview file</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Preview is not supported for this file type.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Preview is unavailable for this file type. Share a copy to open it in another app.</string>
 	<key>Preview package</key>
 	<string>Preview package</string>
 	<key>Preview transfer</key>
 	<string>Preview transfer</string>
+	<key>Previewable</key>
+	<string>Previewable</string>
 	<key>Previous match</key>
 	<string>Previous match</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Read the published policy</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</string>
+	<key>Reading</key>
+	<string>Reading</string>
 	<key>Reading account inventory…</key>
 	<string>Reading account inventory…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Save the selected version?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</string>
+	<key>Save to Files</key>
+	<string>Save to Files</string>
 	<key>Save to dMsg</key>
 	<string>Save to dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>This file exceeds your current cloud backup file limit.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>This file is in Trash. Restore it before opening it.</string>
+	<key>This file is no longer available.</key>
+	<string>This file is no longer available.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>This file is stored in the cloud only. Download it first to preview.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>This file is too large to preview in app.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>This frees its storage. A copy saved to your library stays.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

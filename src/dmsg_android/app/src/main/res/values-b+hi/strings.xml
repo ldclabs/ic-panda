@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"कार्रवाई का अनुरोध करें"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"डिवाइस नीति के माध्यम से एक रहस्य का प्रयोग करें"</string>
     <string name="permission_write" formatted="false">"लिखें"</string>
+    <string name="preview_cloud_only" formatted="false">"यह फ़ाइल केवल क्लाउड में सहेजी गई है। पूर्वावलोकन के लिए पहले इसे डाउनलोड करें।"</string>
+    <string name="preview_decode_failed" formatted="false">"पूर्वावलोकन के लिए इस फ़ाइल को डिकोड नहीं किया जा सका।"</string>
+    <string name="preview_external_image_blocked" formatted="false">"बाहरी चित्र अवरुद्ध"</string>
+    <string name="preview_filter" formatted="false">"फ़ाइलें फ़िल्टर करें"</string>
+    <string name="preview_filter_documents" formatted="false">"दस्तावेज़"</string>
+    <string name="preview_filter_images" formatted="false">"चित्र"</string>
+    <string name="preview_filter_previewable" formatted="false">"पूर्वावलोकन योग्य"</string>
+    <string name="preview_modified" formatted="false">"बदलाव की तारीख"</string>
+    <string name="preview_open_external_link" formatted="false">"बाहरी लिंक खोलें?"</string>
+    <string name="preview_reading" formatted="false">"पठन"</string>
+    <string name="preview_save_to_files" formatted="false">"फ़ाइलों में सहेजें"</string>
+    <string name="preview_size" formatted="false">"आकार"</string>
+    <string name="preview_too_large" formatted="false">"यह फ़ाइल ऐप में पूर्वावलोकन के लिए बहुत बड़ी है।"</string>
+    <string name="preview_truncated" formatted="false">"लंबा दस्तावेज़ पूर्वावलोकन के लिए छोटा किया गया है। पूरी सामग्री देखने के लिए डाउनलोड करें या बाहर खोलें।"</string>
+    <string name="preview_unavailable" formatted="false">"यह फ़ाइल अब उपलब्ध नहीं है।"</string>
+    <string name="preview_unsupported" formatted="false">"इस फ़ाइल प्रकार के लिए पूर्वावलोकन समर्थित नहीं है।"</string>
     <string name="promo_granted" formatted="false">"प्रचार सदस्यता"</string>
     <string name="promo_no_charge" formatted="false">"अवधि पूरी होने पर कोई स्वचालित शुल्क नहीं लगेगा।"</string>
     <string name="receive_closed" formatted="false">"पत्र पाना बंद होने पर कोई भी नया पत्र नहीं भेज सकता।"</string>

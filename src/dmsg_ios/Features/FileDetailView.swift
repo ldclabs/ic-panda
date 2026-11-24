@@ -135,6 +135,7 @@ struct FileDetailView: View {
     var previewed = false
     @Environment(SessionModel.self) private var model
     @State private var preview: SharedFile?
+    @State private var fullscreenPreview: FullscreenPreviewLaunch?
     @State private var sharing: SharedFile?
     @State private var needsRestore = false
     @State private var confirmBackup = false
@@ -162,7 +163,13 @@ struct FileDetailView: View {
                 .compactObjectRow().listRowBackground(Color.clear).accessibilityIdentifier("file.detail.title")
             Section {
                 if !previewed {
-                    SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) { actionTask = Task { await open(share: false) } }
+                    SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) {
+                        if PreviewFilterLogic.classify(mime: file.mime, name: file.name) != .unsupported {
+                            openFullscreenPreview()
+                        } else {
+                            actionTask = Task { await open(share: false) }
+                        }
+                    }
                         .disabled(!available)
                     SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
                 }
@@ -212,6 +219,7 @@ struct FileDetailView: View {
                 }
             }
         }.privateScreen().navigationTitle("File").navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(item: $fullscreenPreview) { launch in FullscreenFilePreviewView(launch: launch) }
             .sheet(item: $preview) { file in VerifiedPreview(url: file.url) }
             .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
             .sheet(isPresented: $confirmBackup) { NavigationStack { FileBackupView(files: [file]) } }
@@ -229,6 +237,23 @@ struct FileDetailView: View {
             .onChange(of: sharing?.id) { before, after in if before != nil && after == nil { cleanup() } }
             .onAppear { visible = true }
             .onDisappear { visible = false; if preview == nil && sharing == nil { actionTask?.cancel(); cleanup() } }
+    }
+
+    private func openFullscreenPreview() {
+        if historical {
+            let label = file.updatedAt.map { fileDate($0).formatted(date: .abbreviated, time: .shortened) }
+            let item = FullscreenPreviewItem.fromLibrary(file, version: file.current, versionLabel: label)
+            fullscreenPreview = FullscreenPreviewLaunch(items: [item], initialID: item.id, showFilter: false)
+            return
+        }
+        let folder = file.folder ?? model.filesFolder
+        let listing = model.filesListings[folder] ?? model.library
+        let sorted = model.filesSort.files(listing.files)
+        var items = sorted.map { FullscreenPreviewItem.fromLibrary($0) }
+        if !items.contains(where: { $0.id == file.id }) {
+            items = [FullscreenPreviewItem.fromLibrary(file)]
+        }
+        fullscreenPreview = FullscreenPreviewLaunch(items: items, initialID: file.id)
     }
 
     private func open(share: Bool) async {

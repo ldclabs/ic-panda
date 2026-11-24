@@ -451,3 +451,67 @@ pub struct StagingDeployment {
     pub wallet_hub: Option<String>,
     pub connect_url: String,
 }
+
+/// Verified in-memory fullscreen preview payload returned to native mobile UIs
+/// without writing plaintext temporary files.
+#[derive(Clone, uniffi::Record)]
+pub struct PreviewPayload {
+    pub generation: u64,
+    /// `"image"`, `"markdown"`, `"text"`, or `"unsupported"`.
+    pub kind: String,
+    pub mime: String,
+    pub name: String,
+    pub size: u64,
+    pub sha256: Option<String>,
+    /// Verified raw image bytes when rendering an image.
+    pub image_bytes: Option<Vec<u8>>,
+    /// Serialized `MarkdownDocument` JSON when rendering Markdown.
+    pub markdown_json: Option<String>,
+    /// Original UTF-8 text when rendering Markdown or plain text.
+    pub text: Option<String>,
+    /// Metadata fallback reason (`unsupported_type`, `too_large`, `cloud_only`, `decode_failed`, `unavailable`).
+    pub fallback_reason: Option<String>,
+}
+
+impl PreviewPayload {
+    pub fn from_full(generation: u64, preview: dmsg_client::preview::FullPreview) -> Self {
+        use dmsg_client::preview::{FallbackReason, PreviewClass, PreviewContent};
+        let kind = match preview.meta.kind {
+            PreviewClass::Image => "image",
+            PreviewClass::Markdown => "markdown",
+            PreviewClass::Text => "text",
+            PreviewClass::Unsupported => "unsupported",
+        }
+        .to_string();
+        let (image_bytes, markdown_json, text, fallback_reason) = match preview.content {
+            PreviewContent::Image(bytes) => (Some(bytes.to_vec()), None, None, None),
+            PreviewContent::Markdown { document, raw } => {
+                (None, serde_json::to_string(&document).ok(), Some(raw), None)
+            }
+            PreviewContent::Text { text } => (None, None, Some(text), None),
+            PreviewContent::Fallback { reason } => {
+                let code = match reason {
+                    FallbackReason::UnsupportedType => "unsupported_type",
+                    FallbackReason::TooLarge => "too_large",
+                    FallbackReason::CloudOnly => "cloud_only",
+                    FallbackReason::DecodeFailed => "decode_failed",
+                    FallbackReason::Unavailable => "unavailable",
+                }
+                .to_string();
+                (None, None, None, Some(code))
+            }
+        };
+        Self {
+            generation,
+            kind,
+            mime: preview.meta.mime,
+            name: preview.meta.name,
+            size: preview.meta.size,
+            sha256: preview.meta.sha256,
+            image_bytes,
+            markdown_json,
+            text,
+            fallback_reason,
+        }
+    }
+}

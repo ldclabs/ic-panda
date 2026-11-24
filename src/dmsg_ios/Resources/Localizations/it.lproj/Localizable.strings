@@ -742,6 +742,8 @@
 	<string>Chiavi di cofirma</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cofirmatari della politica di indirizzo proposta</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Impossibile decodificare questo file per l’anteprima.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Impossibile aggiornare l’inserimento automatico delle password.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Respingi questa osservazione</string>
 	<key>Dismiss this observation?</key>
 	<string>Ignorare questa osservazione?</string>
+	<key>Documents</key>
+	<string>Documenti</string>
 	<key>Done</key>
 	<string>Fatto</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Esporta backup cifrato</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Esporta gli elementi di accesso selezionati in Compilazione automatica password</string>
+	<key>External image blocked</key>
+	<string>Immagine esterna bloccata</string>
 	<key>Failed</key>
 	<string>Fallito</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Compila una volta</string>
 	<key>Fill this login?</key>
 	<string>Compilare con questo account?</string>
+	<key>Filter files</key>
+	<string>Filtra file</string>
 	<key>Filters</key>
 	<string>Filtri della cassaforte</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Se tutti i dispositivi vengono persi, un accesso collegato può recuperare i contenuti caricati dopo l’attesa. Anche un accesso rubato può farlo, salvo annullamento tempestivo da un dispositivo autorizzato.</string>
 	<key>Illegal content</key>
 	<string>Contenuti illegali</string>
+	<key>Images</key>
+	<string>Immagini</string>
 	<key>Import</key>
 	<string>Importa</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Identità di accesso</string>
 	<key>Login identity</key>
 	<string>Identità di accesso</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Documento lungo troncato per l’anteprima. Scaricalo o aprilo esternamente per vedere tutto il contenuto.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Gestisci gli abbonamenti Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Aprire l'area di lavoro dMsg → Account → Integrazioni di sistema → Compilazione automatica della password → Seleziona gli elementi di accesso</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Apri dMsg. Lo sblocco e le approvazioni richiedono comunque la tua interazione nell'app.</string>
+	<key>Open external link?</key>
+	<string>Aprire il link esterno?</string>
 	<key>Open for</key>
 	<string>Aperto per</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Anteprima dei download, verifica il pacchetto su questo dispositivo e utilizza una sessione di download. Scegli il dispositivo ricevente prima di continuare.</string>
 	<key>Preview file</key>
 	<string>File di anteprima</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>L’anteprima non è supportata per questo tipo di file.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Anteprima non disponibile per questo tipo di file. Condividi una copia per aprirla in un’altra app.</string>
 	<key>Preview package</key>
 	<string>Pacchetto in anteprima</string>
 	<key>Preview transfer</key>
 	<string>Anteprima trasferimento</string>
+	<key>Previewable</key>
+	<string>Con anteprima</string>
 	<key>Previous match</key>
 	<string>Risultato precedente</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Leggi la policy pubblicata</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Copie in sola lettura conservate per l’importazione. Eliminarne una non influisce sul vecchio iPhone né sul tuo account.</string>
+	<key>Reading</key>
+	<string>Lettura</string>
 	<key>Reading account inventory…</key>
 	<string>Lettura dell’inventario dell’account…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Salvare la versione selezionata?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Salva questi articoli per dMsg. Scegli un account e importalo dopo aver aperto e sbloccato l'app.</string>
+	<key>Save to Files</key>
+	<string>Salva in File</string>
 	<key>Save to dMsg</key>
 	<string>Salva in dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>Ordina per</string>
 	<key>Source</key>
-	<string>Origine</string>
+	<string>Sorgente</string>
 	<key>Source address</key>
 	<string>Indirizzo di origine</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>Questo file supera il limite attuale per le dimensioni di un backup nel cloud.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Questo file è nel cestino. Ripristinalo prima di aprirlo.</string>
+	<key>This file is no longer available.</key>
+	<string>Questo file non è più disponibile.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Questo file non è su questo dispositivo. dMsg lo scarica solo il tempo necessario per cifrare la nuova copia e la tua libreria non cambia.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Questo file è salvato solo nel cloud. Scaricalo prima per l’anteprima.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Questo file è troppo grande per l’anteprima nell’app.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Libera spazio. La copia salvata nella libreria resta.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

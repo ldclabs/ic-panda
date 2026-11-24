@@ -466,7 +466,9 @@ import net.dmsg.core.MessageItem
                                     }
                                     if (message.attachmentName != null) {
                                         if (message.text.isNotEmpty()) Spacer(Modifier.height(8.dp))
-                                        MessageAttachmentRow(client, channel, message)
+                                        MessageAttachmentRow(client, channel, message) {
+                                            client.fullscreenPreview.openChannel(channel, rows, message.sequence)
+                                        }
                                     }
                                 }
                             }

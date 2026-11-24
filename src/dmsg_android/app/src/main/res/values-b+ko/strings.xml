@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"작업 요청"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"장치 정책을 통해 비밀 사용"</string>
     <string name="permission_write" formatted="false">"쓰기"</string>
+    <string name="preview_cloud_only" formatted="false">"이 파일은 클라우드에만 저장되어 있습니다. 미리보려면 먼저 다운로드하세요."</string>
+    <string name="preview_decode_failed" formatted="false">"미리보기를 위해 이 파일을 해석할 수 없습니다."</string>
+    <string name="preview_external_image_blocked" formatted="false">"외부 이미지 차단됨"</string>
+    <string name="preview_filter" formatted="false">"파일 필터"</string>
+    <string name="preview_filter_documents" formatted="false">"문서"</string>
+    <string name="preview_filter_images" formatted="false">"이미지"</string>
+    <string name="preview_filter_previewable" formatted="false">"미리보기 가능"</string>
+    <string name="preview_modified" formatted="false">"수정한 날짜"</string>
+    <string name="preview_open_external_link" formatted="false">"외부 링크를 여시겠습니까?"</string>
+    <string name="preview_reading" formatted="false">"읽기"</string>
+    <string name="preview_save_to_files" formatted="false">"파일에 저장"</string>
+    <string name="preview_size" formatted="false">"크기"</string>
+    <string name="preview_too_large" formatted="false">"파일이 너무 커서 앱 내에서 미리볼 수 없습니다."</string>
+    <string name="preview_truncated" formatted="false">"긴 문서의 미리보기 일부가 생략되었습니다. 전체 내용을 보려면 다운로드하거나 외부 앱으로 여세요."</string>
+    <string name="preview_unavailable" formatted="false">"이 파일은 더 이상 사용할 수 없습니다."</string>
+    <string name="preview_unsupported" formatted="false">"이 파일 형식은 미리보기를 지원하지 않습니다."</string>
     <string name="promo_granted" formatted="false">"프로모션 멤버십"</string>
     <string name="promo_no_charge" formatted="false">"만료 시 자동 결제되지 않습니다."</string>
     <string name="receive_closed" formatted="false">"수신을 닫으면 아무도 새 편지를 보낼 수 없습니다."</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"소리"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"소스 주소"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"원본 기기 · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"출처"</string>
+    <string name="text_source_fcdba0f" formatted="false">"원본"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"원본 한도는 64 MiB입니다. 아카이브 첨부파일, 패스키 및 기록은 여기서 가져오지 않습니다."</string>
     <string name="text_spam_afdcb81" formatted="false">"스팸"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"지금 사용 가능"</string>

@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"کارروائی کی درخواست کریں"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"ڈیوائس پالیسی کے ذریعے خفیہ استعمال کریں"</string>
     <string name="permission_write" formatted="false">"لکھیں"</string>
+    <string name="preview_cloud_only" formatted="false">"یہ فائل صرف کلاؤڈ میں محفوظ ہے۔ پیش منظر کے لیے پہلے اسے ڈاؤن لوڈ کریں۔"</string>
+    <string name="preview_decode_failed" formatted="false">"پیش منظر کے لیے اس فائل کو ڈی کوڈ نہیں کیا جا سکا۔"</string>
+    <string name="preview_external_image_blocked" formatted="false">"بیرونی تصویر بلاک کی گئی"</string>
+    <string name="preview_filter" formatted="false">"فائلیں فلٹر کریں"</string>
+    <string name="preview_filter_documents" formatted="false">"دستاویزات"</string>
+    <string name="preview_filter_images" formatted="false">"تصاویر"</string>
+    <string name="preview_filter_previewable" formatted="false">"پیش منظر کے قابل"</string>
+    <string name="preview_modified" formatted="false">"تبدیلی کی تاریخ"</string>
+    <string name="preview_open_external_link" formatted="false">"بیرونی لنک کھولیں؟"</string>
+    <string name="preview_reading" formatted="false">"مطالعہ"</string>
+    <string name="preview_save_to_files" formatted="false">"فائلوں میں محفوظ کریں"</string>
+    <string name="preview_size" formatted="false">"سائز"</string>
+    <string name="preview_too_large" formatted="false">"یہ فائل ایپ میں پیش منظر کے لیے بہت بڑی ہے۔"</string>
+    <string name="preview_truncated" formatted="false">"طویل دستاویز کو پیش منظر کے لیے مختصر کیا گیا ہے۔ مکمل مواد دیکھنے کے لیے ڈاؤن لوڈ کریں یا باہر کھولیں۔"</string>
+    <string name="preview_unavailable" formatted="false">"یہ فائل اب دستیاب نہیں ہے۔"</string>
+    <string name="preview_unsupported" formatted="false">"اس فائل کی قسم کے لیے پیش منظر دستیاب نہیں ہے۔"</string>
     <string name="promo_granted" formatted="false">"تشہیری رکنیت"</string>
     <string name="promo_no_charge" formatted="false">"مدت ختم ہونے پر خودکار رقم نہیں کاٹی جائے گی۔"</string>
     <string name="receive_closed" formatted="false">"وصولی بند ہو تو کوئی نیا خط نہیں بھیج سکتا۔"</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"آواز"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"ماخذ کا پتہ"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"ماخذ آلہ · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"ماخذ"</string>
+    <string name="text_source_fcdba0f" formatted="false">"سورس"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"ماخذ کی حد: 64 MiB۔ آرکائیو کے منسلکات، پاس کی اور تاریخ یہاں درآمد نہیں ہوتے۔"</string>
     <string name="text_spam_afdcb81" formatted="false">"سپیم"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"ابھی قابل خرچ"</string>

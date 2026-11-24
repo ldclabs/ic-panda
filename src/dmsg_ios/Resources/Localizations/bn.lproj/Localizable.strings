@@ -742,6 +742,8 @@
 	<string>সহ-স্বাক্ষর কী</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>প্রস্তাবিত ঠিকানা নীতির জন্য cosigners</string>
+	<key>Could not decode this file for preview.</key>
+	<string>প্রিভিউয়ের জন্য ফাইলটি ডিকোড করা যায়নি।</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>পাসওয়ার্ড অটোফিল আপডেট করা যায়নি।</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>এই পর্যবেক্ষণ খারিজ</string>
 	<key>Dismiss this observation?</key>
 	<string>এই পর্যবেক্ষণ খারিজ?</string>
+	<key>Documents</key>
+	<string>নথি</string>
 	<key>Done</key>
 	<string>সম্পন্ন</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>এনক্রিপ্ট করা ব্যাকআপ রপ্তানি করুন</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>নির্বাচিত লগইন আইটেম পাসওয়ার্ড অটোফিল এ রপ্তানি করুন</string>
+	<key>External image blocked</key>
+	<string>বাহ্যিক ছবি অবরুদ্ধ</string>
 	<key>Failed</key>
 	<string>ব্যর্থ</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>শুধু একবার পূরণ করুন</string>
 	<key>Fill this login?</key>
 	<string>এই অ্যাকাউন্টের তথ্য পূরণ করবেন?</string>
+	<key>Filter files</key>
+	<string>ফাইল ফিল্টার করুন</string>
 	<key>Filters</key>
 	<string>ভল্ট ফিল্টার</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>সব ডিভাইস হারালে সংযুক্ত লগইন অপেক্ষার সময় শেষে আপলোড করা বিষয়বস্তু পুনরুদ্ধার করতে পারে। চুরি হওয়া লগইনও তা করতে পারে, যদি অনুমোদিত ডিভাইস সময়মতো বাতিল না করে।</string>
 	<key>Illegal content</key>
 	<string>বেআইনি বিষয়বস্তু</string>
+	<key>Images</key>
+	<string>ছবি</string>
 	<key>Import</key>
 	<string>ইমপোর্ট করুন</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>লগইন পরিচয়</string>
 	<key>Login identity</key>
 	<string>লগইন পরিচয়</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>দীর্ঘ নথি প্রিভিউয়ের জন্য সংক্ষিপ্ত করা হয়েছে। সম্পূর্ণ বিষয়বস্তু দেখতে ডাউনলোড বা বাহ্যিকভাবে খুলুন।</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple সাবস্ক্রিপশন পরিচালনা করুন</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>dMsg ওয়ার্কস্পেস খুলুন → অ্যাকাউন্ট → সিস্টেম ইন্টিগ্রেশন → পাসওয়ার্ড অটোফিল → লগইন আইটেম নির্বাচন করুন</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg খুলুন। আনলক এবং অনুমোদনের জন্য এখনও অ্যাপে আপনার মিথস্ক্রিয়া প্রয়োজন।</string>
+	<key>Open external link?</key>
+	<string>বাহ্যিক লিঙ্ক খুলবেন?</string>
 	<key>Open for</key>
 	<string>খোলা থাকবে</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>ডাউনলোডের পূর্বরূপ দেখুন এবং এই ডিভাইসে প্যাকেজ যাচাই করে এবং একটি ডাউনলোড সেশন ব্যবহার করে। চালিয়ে যাওয়ার আগে রিসিভিং ডিভাইসটি বেছে নিন।</string>
 	<key>Preview file</key>
 	<string>পূর্বরূপ ফাইল</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>এই ফাইল ধরনের জন্য প্রিভিউ সমর্থিত নয়।</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>এই ধরনের ফাইলের পূর্বরূপ নেই। অন্য অ্যাপে খুলতে একটি কপি শেয়ার করুন।</string>
 	<key>Preview package</key>
 	<string>পূর্বরূপ প্যাকেজ</string>
 	<key>Preview transfer</key>
 	<string>স্থানান্তরের পূর্বরূপ</string>
+	<key>Previewable</key>
+	<string>প্রিভিউযোগ্য</string>
 	<key>Previous match</key>
 	<string>পূর্ববর্তী মিল</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>প্রকাশিত নীতি পড়ুন</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>ইমপোর্টের জন্য রাখা শুধু পড়ার কপি। একটি মুছলে পুরোনো iPhone বা আপনার অ্যাকাউন্টে কোনো প্রভাব পড়ে না।</string>
+	<key>Reading</key>
+	<string>পাঠ</string>
 	<key>Reading account inventory…</key>
 	<string>অ্যাকাউন্টের বিষয়বস্তুর তালিকা পড়া হচ্ছে…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>নির্বাচিত সংস্করণ সংরক্ষণ করবেন?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>dMsg এর জন্য এই আইটেমগুলি সংরক্ষণ করুন৷ একটি অ্যাকাউন্ট চয়ন করুন এবং অ্যাপটি খোলার এবং আনলক করার পরে সেগুলি আমদানি করুন।</string>
+	<key>Save to Files</key>
+	<string>ফাইলে সংরক্ষণ করুন</string>
 	<key>Save to dMsg</key>
 	<string>dMsg এ সংরক্ষণ করুন</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>সাজানোর ক্রম</string>
 	<key>Source</key>
-	<string>উৎস</string>
+	<string>সোর্স</string>
 	<key>Source address</key>
 	<string>উৎস ঠিকানা</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>এই ফাইল বর্তমান ক্লাউড ব্যাকআপের ফাইল আকারের সীমা ছাড়িয়ে গেছে।</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>এই ফাইল ট্র্যাশে আছে। খোলার আগে পুনরুদ্ধার করুন।</string>
+	<key>This file is no longer available.</key>
+	<string>এই ফাইলটি আর উপলব্ধ নয়।</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>এই ফাইলটি এই ডিভাইসে নেই। dMsg শুধু নতুন কপি এনক্রিপ্ট করার জন্য এটি সাময়িকভাবে ডাউনলোড করে, আর আপনার লাইব্রেরি বদলায় না।</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>এই ফাইলটি কেবল ক্লাউডে সংরক্ষিত আছে। প্রিভিউ করতে আগে ডাউনলোড করুন।</string>
+	<key>This file is too large to preview in app.</key>
+	<string>এই ফাইলটি অ্যাপের মধ্যে প্রিভিউ করার জন্য খুব বড়।</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>এতে জায়গা খালি হবে। লাইব্রেরিতে সংরক্ষিত কপি থেকে যাবে।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

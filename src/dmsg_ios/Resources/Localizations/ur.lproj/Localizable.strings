@@ -742,6 +742,8 @@
 	<string>مشترکہ دستخط کی کلیدیں</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>مجوزہ ایڈریس پالیسی کے لیے کازائنرز</string>
+	<key>Could not decode this file for preview.</key>
+	<string>پیش منظر کے لیے اس فائل کو ڈی کوڈ نہیں کیا جا سکا۔</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>پاس ورڈ آٹو فل کو اپ ڈیٹ نہیں کیا جا سکا۔</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>اس مشاہدے کو مسترد کریں</string>
 	<key>Dismiss this observation?</key>
 	<string>اس مشاہدے کو مسترد کریں؟</string>
+	<key>Documents</key>
+	<string>دستاویزات</string>
 	<key>Done</key>
 	<string>مکمل</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>رمز شدہ بیک اپ برآمد کریں</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>منتخب لاگ ان آئٹمز کو پاس ورڈ آٹو فل میں ایکسپورٹ کریں</string>
+	<key>External image blocked</key>
+	<string>بیرونی تصویر بلاک کی گئی</string>
 	<key>Failed</key>
 	<string>ناکام</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>صرف ایک بار بھریں</string>
 	<key>Fill this login?</key>
 	<string>اس اکاؤنٹ کی معلومات بھریں؟</string>
+	<key>Filter files</key>
+	<string>فائلیں فلٹر کریں</string>
 	<key>Filters</key>
 	<string>والٹ فلٹرز</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>تمام آلات گم ہونے پر منسلک لاگ ان انتظار کی مدت کے بعد اپ لوڈ کردہ مواد بازیاب کر سکتا ہے۔ چوری شدہ لاگ ان بھی ایسا کر سکتا ہے، اگر مجاز آلہ بروقت درخواست منسوخ نہ کرے۔</string>
 	<key>Illegal content</key>
 	<string>غیر قانونی مواد</string>
+	<key>Images</key>
+	<string>تصاویر</string>
 	<key>Import</key>
 	<string>درآمد کریں</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>لاگ ان کی شناخت</string>
 	<key>Login identity</key>
 	<string>لاگ ان شناخت</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>طویل دستاویز کو پیش منظر کے لیے مختصر کیا گیا ہے۔ مکمل مواد دیکھنے کے لیے ڈاؤن لوڈ کریں یا باہر کھولیں۔</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple سبسکرپشنز کا نظم کریں</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>dMsg ورک اسپیس کھولیں ← اکاؤنٹ ← سسٹم انضمام ← پاس ورڈ آٹو فل ← لاگ ان آئٹمز کو منتخب کریں</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg کھولیں۔ غیر مقفل کرنے اور منظوریوں کے لیے اب بھی ایپ میں آپ کے تعامل کی ضرورت ہے۔</string>
+	<key>Open external link?</key>
+	<string>بیرونی لنک کھولیں؟</string>
 	<key>Open for</key>
 	<string>کھلا رہے گا</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>اس ڈیوائس پر ڈاؤن لوڈز کا پیش نظارہ اور پیکج کی تصدیق کرتا ہے اور ڈاؤن لوڈ سیشن کا استعمال کرتا ہے۔ جاری رکھنے سے پہلے وصول کرنے والا آلہ منتخب کریں۔</string>
 	<key>Preview file</key>
 	<string>پیش نظارہ فائل</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>اس فائل کی قسم کے لیے پیش منظر دستیاب نہیں ہے۔</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>اس قسم کی فائل کا پیش نظارہ دستیاب نہیں۔ دوسری ایپ میں کھولنے کے لیے ایک کاپی شیئر کریں۔</string>
 	<key>Preview package</key>
 	<string>پیش نظارہ پیکج</string>
 	<key>Preview transfer</key>
 	<string>منتقلی کا پیش منظر</string>
+	<key>Previewable</key>
+	<string>پیش منظر کے قابل</string>
 	<key>Previous match</key>
 	<string>پچھلا نتیجہ</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>شائع شدہ پالیسی پڑھیں</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>درآمد کے لیے رکھی گئی صرف پڑھنے والی کاپیاں۔ کسی ایک کو حذف کرنے سے پرانے iPhone یا آپ کے اکاؤنٹ پر کوئی اثر نہیں پڑتا۔</string>
+	<key>Reading</key>
+	<string>مطالعہ</string>
 	<key>Reading account inventory…</key>
 	<string>اکاؤنٹ کے مواد کی فہرست پڑھی جا رہی ہے…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>منتخب ورژن کو محفوظ کریں؟</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>ان اشیاء کو dMsg کے لیے محفوظ کریں۔ ایک اکاؤنٹ کا انتخاب کریں اور ایپ کو کھولنے اور ان لاک کرنے کے بعد انہیں درآمد کریں۔</string>
+	<key>Save to Files</key>
+	<string>فائلوں میں محفوظ کریں</string>
 	<key>Save to dMsg</key>
 	<string>dMsg میں محفوظ کریں</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>ترتیب دیں</string>
 	<key>Source</key>
-	<string>ماخذ</string>
+	<string>سورس</string>
 	<key>Source address</key>
 	<string>ماخذ کا پتہ</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>یہ فائل کلاؤڈ بیک اپ کے موجودہ فائل سائز کی حد سے بڑی ہے۔</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>یہ فائل ردی کی ٹوکری میں ہے۔ کھولنے سے پہلے بحال کریں۔</string>
+	<key>This file is no longer available.</key>
+	<string>یہ فائل اب دستیاب نہیں ہے۔</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>یہ فائل اس ڈیوائس پر نہیں ہے۔ dMsg اسے صرف نئی کاپی انکرپٹ کرنے کے لیے عارضی طور پر ڈاؤن لوڈ کرتا ہے، اور آپ کی لائبریری نہیں بدلتی۔</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>یہ فائل صرف کلاؤڈ میں محفوظ ہے۔ پیش منظر کے لیے پہلے اسے ڈاؤن لوڈ کریں۔</string>
+	<key>This file is too large to preview in app.</key>
+	<string>یہ فائل ایپ میں پیش منظر کے لیے بہت بڑی ہے۔</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>اس سے جگہ خالی ہوگی۔ لائبریری میں محفوظ کاپی رہے گی۔</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

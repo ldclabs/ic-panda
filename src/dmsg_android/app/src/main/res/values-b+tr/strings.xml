@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Eylem iste"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Cihaz politikası aracılığıyla bir gizli dizi kullanma"</string>
     <string name="permission_write" formatted="false">"Yaz"</string>
+    <string name="preview_cloud_only" formatted="false">"Bu dosya yalnızca bulutta saklanıyor. Önizlemek için önce indirin."</string>
+    <string name="preview_decode_failed" formatted="false">"Bu dosya önizleme için çözümlenemedi."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Harici görsel engellendi"</string>
+    <string name="preview_filter" formatted="false">"Dosyaları filtrele"</string>
+    <string name="preview_filter_documents" formatted="false">"Belgeler"</string>
+    <string name="preview_filter_images" formatted="false">"Görseller"</string>
+    <string name="preview_filter_previewable" formatted="false">"Önizlenebilir"</string>
+    <string name="preview_modified" formatted="false">"Değiştirilme tarihi"</string>
+    <string name="preview_open_external_link" formatted="false">"Harici bağlantı açılsın mı?"</string>
+    <string name="preview_reading" formatted="false">"Okuma"</string>
+    <string name="preview_save_to_files" formatted="false">"Dosyalara kaydet"</string>
+    <string name="preview_size" formatted="false">"Boyut"</string>
+    <string name="preview_too_large" formatted="false">"Bu dosya uygulama içinde önizlemek için çok büyük."</string>
+    <string name="preview_truncated" formatted="false">"Uzun belge önizleme için kısaltıldı. Tüm içeriği görmek için indirin veya harici olarak açın."</string>
+    <string name="preview_unavailable" formatted="false">"Bu dosya artık kullanılamıyor."</string>
+    <string name="preview_unsupported" formatted="false">"Bu dosya türü için önizleme desteklenmiyor."</string>
     <string name="promo_granted" formatted="false">"Promosyon üyeliği"</string>
     <string name="promo_no_charge" formatted="false">"Süre sonunda otomatik ücret alınmaz."</string>
     <string name="receive_closed" formatted="false">"Mektup alımı kapalıyken kimse yeni mektup gönderemez."</string>

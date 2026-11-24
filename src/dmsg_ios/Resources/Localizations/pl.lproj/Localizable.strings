@@ -742,6 +742,8 @@
 	<string>Klucze współpodpisu</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners dla proponowanej polityki adresowej</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Nie udało się odczytać tego pliku do podglądu.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Nie udało się zaktualizować autouzupełniania haseł.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Odrzuć tę obserwację</string>
 	<key>Dismiss this observation?</key>
 	<string>Odrzucić tę obserwację?</string>
+	<key>Documents</key>
+	<string>Dokumenty</string>
 	<key>Done</key>
 	<string>Gotowe</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Eksportuj zaszyfrowaną kopię</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Eksportuj wybrane elementy logowania do funkcji automatycznego uzupełniania haseł</string>
+	<key>External image blocked</key>
+	<string>Zablokowano zewnętrzny obraz</string>
 	<key>Failed</key>
 	<string>Niepowodzenie</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Wypełnij jednorazowo</string>
 	<key>Fill this login?</key>
 	<string>Wypełnić danymi tego konta?</string>
+	<key>Filter files</key>
+	<string>Filtruj pliki</string>
 	<key>Filters</key>
 	<string>Filtry skarbca</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Po utracie wszystkich urządzeń powiązane logowanie pozwala odzyskać przesłane treści po okresie oczekiwania. Skradzione logowanie również, jeśli autoryzowane urządzenie nie anuluje wniosku na czas.</string>
 	<key>Illegal content</key>
 	<string>Nielegalne treści</string>
+	<key>Images</key>
+	<string>Obrazy</string>
 	<key>Import</key>
 	<string>Importuj</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Tożsamości logowania</string>
 	<key>Login identity</key>
 	<string>Tożsamość logowania</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Długi dokument skrócono w podglądzie. Pobierz lub otwórz w zewnętrznej aplikacji, aby zobaczyć całość.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Zarządzaj subskrypcjami Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Otwórz obszar roboczy dMsg → Konto → Integracje systemowe → Automatyczne uzupełnianie hasła → Wybierz elementy logowania</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Otwórz dMsg. Odblokowanie i zatwierdzenie nadal wymaga interakcji w aplikacji.</string>
+	<key>Open external link?</key>
+	<string>Otworzyć link zewnętrzny?</string>
 	<key>Open for</key>
 	<string>Otwarte przez</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Wyświetl podgląd pobranych plików i weryfikuje pakiet na tym urządzeniu oraz korzysta z sesji pobierania. Zanim przejdziesz dalej, wybierz urządzenie odbiorcze.</string>
 	<key>Preview file</key>
 	<string>Podgląd pliku</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Podgląd nie jest obsługiwany dla tego typu pliku.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Podgląd tego typu pliku jest niedostępny. Udostępnij kopię, aby otworzyć ją w innej aplikacji.</string>
 	<key>Preview package</key>
 	<string>Podgląd pakietu</string>
 	<key>Preview transfer</key>
 	<string>Podgląd przelewu</string>
+	<key>Previewable</key>
+	<string>Do podglądu</string>
 	<key>Previous match</key>
 	<string>Poprzednie dopasowanie</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Przeczytaj opublikowaną politykę</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Kopie tylko do odczytu zachowane do importu. Usunięcie jednej nie wpływa na starego iPhone’a ani na konto.</string>
+	<key>Reading</key>
+	<string>Czytanie</string>
 	<key>Reading account inventory…</key>
 	<string>Odczytywanie listy zawartości konta…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Zapisać wybraną wersję?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Zapisz te elementy dla dMsg. Wybierz konto i zaimportuj je po otwarciu i odblokowaniu aplikacji.</string>
+	<key>Save to Files</key>
+	<string>Zapisz w Plikach</string>
 	<key>Save to dMsg</key>
 	<string>Zapisz w dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>Ten plik przekracza obecny limit rozmiaru pliku kopii w chmurze.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Ten plik jest w koszu. Przywróć go przed otwarciem.</string>
+	<key>This file is no longer available.</key>
+	<string>Ten plik nie jest już dostępny.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Tego pliku nie ma na tym urządzeniu. dMsg pobiera go tylko na czas zaszyfrowania nowej kopii, a Twoja biblioteka się nie zmienia.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Ten plik jest zapisany tylko w chmurze. Pobierz go najpierw, aby wyświetlić podgląd.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Ten plik jest zbyt duży do podglądu w aplikacji.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>To zwalnia miejsce. Kopia zapisana w bibliotece zostaje.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

@@ -742,6 +742,8 @@
 	<string>Ключи совместной подписи</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Соподписанты предлагаемой политики адреса</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Не удалось декодировать файл для предпросмотра.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Не удалось обновить автозаполнение паролей.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Скрыть это наблюдение</string>
 	<key>Dismiss this observation?</key>
 	<string>Скрыть это наблюдение?</string>
+	<key>Documents</key>
+	<string>Документы</string>
 	<key>Done</key>
 	<string>Готово</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Экспортировать зашифрованную копию</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Экспортировать выбранные записи для автозаполнения</string>
+	<key>External image blocked</key>
+	<string>Внешнее изображение заблокировано</string>
 	<key>Failed</key>
 	<string>Ошибка</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Заполнить один раз</string>
 	<key>Fill this login?</key>
 	<string>Заполнить данными этого аккаунта?</string>
+	<key>Filter files</key>
+	<string>Фильтр файлов</string>
 	<key>Filters</key>
 	<string>Фильтры хранилища</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>При потере всех устройств привязанный вход позволяет восстановить загруженные данные после ожидания. Украденный вход тоже позволяет это сделать, если авторизованное устройство не отменит запрос вовремя.</string>
 	<key>Illegal content</key>
 	<string>Незаконный контент</string>
+	<key>Images</key>
+	<string>Изображения</string>
 	<key>Import</key>
 	<string>Импорт</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Учётные записи входа</string>
 	<key>Login identity</key>
 	<string>Учетные данные для входа</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Длинный документ сокращён в предпросмотре. Скачайте его или откройте во внешнем приложении целиком.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Управлять подписками Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Открыть рабочее пространство dMsg → Аккаунт → Системные интеграции → Автозаполнение паролей → Выбрать учётные записи</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Открыть dMsg. Разблокировка и одобрения по-прежнему требуют действий в приложении.</string>
+	<key>Open external link?</key>
+	<string>Открыть внешнюю ссылку?</string>
 	<key>Open for</key>
 	<string>Открыта</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Предпросмотр загружает и проверяет пакет на этом устройстве, используя сеанс загрузки. Выберите принимающее устройство, прежде чем продолжить.</string>
 	<key>Preview file</key>
 	<string>Просмотреть файл</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Предпросмотр для этого типа файла не поддерживается.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Предпросмотр этого типа файла недоступен. Поделитесь копией, чтобы открыть её в другом приложении.</string>
 	<key>Preview package</key>
 	<string>Просмотреть пакет</string>
 	<key>Preview transfer</key>
 	<string>Предпросмотр перевода</string>
+	<key>Previewable</key>
+	<string>Доступные</string>
 	<key>Previous match</key>
 	<string>Предыдущее совпадение</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Прочитать опубликованную политику</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Копии только для чтения, сохранённые для импорта. Удаление копии не затрагивает старый iPhone и аккаунт.</string>
+	<key>Reading</key>
+	<string>Чтение</string>
 	<key>Reading account inventory…</key>
 	<string>Чтение списка данных аккаунта…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Сохранить выбранную версию?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Сохраните элементы для dMsg. Откройте и разблокируйте приложение, затем выберите аккаунт для импорта.</string>
+	<key>Save to Files</key>
+	<string>Сохранить в Файлы</string>
 	<key>Save to dMsg</key>
 	<string>Сохранить для dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>Сортировка</string>
 	<key>Source</key>
-	<string>Источник</string>
+	<string>Исходник</string>
 	<key>Source address</key>
 	<string>Исходный адрес</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>Этот файл превышает текущий лимит размера файла для облачного резервного копирования.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Этот файл в корзине. Восстановите его перед открытием.</string>
+	<key>This file is no longer available.</key>
+	<string>Этот файл больше недоступен.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Этого файла нет на устройстве. dMsg скачает его только на время шифрования новой копии, а ваша библиотека не изменится.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Этот файл хранится только в облаке. Сначала загрузите его для предпросмотра.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Этот файл слишком велик для предпросмотра в приложении.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Это освободит место. Копия в библиотеке останется.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

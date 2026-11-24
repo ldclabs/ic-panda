@@ -742,6 +742,8 @@
 	<string>Khóa đồng ký</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Người đồng ký tên cho chính sách địa chỉ được đề xuất</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Không thể giải mã tệp này để xem trước.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Không thể cập nhật tính năng tự động điền mật khẩu.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Loại bỏ quan sát này</string>
 	<key>Dismiss this observation?</key>
 	<string>Loại bỏ quan sát này?</string>
+	<key>Documents</key>
+	<string>Tài liệu</string>
 	<key>Done</key>
 	<string>Xong</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Xuất bản sao lưu mã hóa</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Xuất các mục đăng nhập đã chọn sang Tự động điền mật khẩu</string>
+	<key>External image blocked</key>
+	<string>Đã chặn hình ảnh ngoài</string>
 	<key>Failed</key>
 	<string>Thất bại</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Chỉ điền lần này</string>
 	<key>Fill this login?</key>
 	<string>Điền bằng tài khoản này?</string>
+	<key>Filter files</key>
+	<string>Lọc tệp</string>
 	<key>Filters</key>
 	<string>Bộ lọc vault</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Nếu mất mọi thiết bị, thông tin đăng nhập đã liên kết có thể khôi phục nội dung đã tải lên sau thời gian chờ. Kẻ đánh cắp thông tin đăng nhập cũng có thể làm vậy nếu thiết bị được cấp quyền không hủy kịp.</string>
 	<key>Illegal content</key>
 	<string>Nội dung bất hợp pháp</string>
+	<key>Images</key>
+	<string>Hình ảnh</string>
 	<key>Import</key>
 	<string>Nhập</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Danh tính đăng nhập</string>
 	<key>Login identity</key>
 	<string>Danh tính đăng nhập</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Tài liệu dài đã được rút gọn khi xem trước. Hãy tải xuống hoặc mở bằng ứng dụng ngoài để xem toàn bộ.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Quản lý đăng ký Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Mở không gian làm việc dMsg → Tài khoản → Tích hợp hệ thống → Tự động điền mật khẩu → Chọn mục đăng nhập</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Mở dMsg. Việc mở khóa và phê duyệt vẫn yêu cầu sự tương tác của bạn trong ứng dụng.</string>
+	<key>Open external link?</key>
+	<string>Mở liên kết ngoài?</string>
 	<key>Open for</key>
 	<string>Mở trong</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Xem trước các bản tải xuống và xác minh gói trên thiết bị này và sử dụng phiên tải xuống. Chọn thiết bị nhận trước khi tiếp tục.</string>
 	<key>Preview file</key>
 	<string>Xem trước tập tin</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Không hỗ trợ xem trước loại tệp này.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Không hỗ trợ xem trước loại tệp này. Chia sẻ bản sao để mở trong ứng dụng khác.</string>
 	<key>Preview package</key>
 	<string>Gói xem trước</string>
 	<key>Preview transfer</key>
 	<string>Xem trước chuyển khoản</string>
+	<key>Previewable</key>
+	<string>Xem trước được</string>
 	<key>Previous match</key>
 	<string>Kết quả trước</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Đọc chính sách đã công bố</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Bản sao chỉ đọc được giữ để nhập. Xóa một bản không ảnh hưởng đến iPhone cũ hay tài khoản của bạn.</string>
+	<key>Reading</key>
+	<string>Đọc</string>
 	<key>Reading account inventory…</key>
 	<string>Đang đọc danh mục nội dung tài khoản…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Lưu phiên bản đã chọn?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Lưu các mục này cho dMsg. Chọn một tài khoản và nhập chúng sau khi mở và mở khóa ứng dụng.</string>
+	<key>Save to Files</key>
+	<string>Lưu vào Tệp</string>
 	<key>Save to dMsg</key>
 	<string>Lưu vào dMsg</string>
 	<key>Save to library</key>
@@ -2781,7 +2803,7 @@
 	<key>Sort by</key>
 	<string>Sắp xếp theo</string>
 	<key>Source</key>
-	<string>Nguồn</string>
+	<string>Mã nguồn</string>
 	<key>Source address</key>
 	<string>Địa chỉ nguồn</string>
 	<key>Source address %u</key>
@@ -3064,8 +3086,14 @@
 	<string>Tệp này vượt giới hạn kích thước tệp sao lưu đám mây hiện tại.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Tệp này nằm trong Thùng rác. Khôi phục trước khi mở.</string>
+	<key>This file is no longer available.</key>
+	<string>Tệp này không còn khả dụng.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Tệp này không có trên thiết bị này. dMsg chỉ tải xuống tạm thời để mã hóa bản sao mới và thư viện của bạn không thay đổi.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Tệp này chỉ được lưu trên đám mây. Hãy tải xuống trước để xem trước.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Tệp này quá lớn để xem trước trong ứng dụng.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Thao tác này giải phóng dung lượng. Bản đã lưu trong thư viện vẫn còn.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

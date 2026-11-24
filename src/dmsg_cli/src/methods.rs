@@ -18,7 +18,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 91] = [
+pub(crate) const METHODS: [&str; 92] = [
     "search/global",
     "feedback/get",
     "feedback/save",
@@ -68,6 +68,7 @@ pub(crate) const METHODS: [&str; 91] = [
     "channel/search_list",
     "channel/hide",
     "channel/preview",
+    "channel/attachments",
     "channel/sponsor_cancel",
     "channel/names",
     "channel/receipts",
@@ -128,6 +129,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "channel/search_all"
         | "channel/search_list"
         | "channel/preview"
+        | "channel/attachments"
         | "channel/names"
         | "channel/avatar"
         | "channel/receipts"
@@ -784,6 +786,7 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                 let query = params["query"].as_str().unwrap_or_default();
                 to_json(&client.channel_list_search(query)?)
             }
+            "channel/attachments" => to_json(&client.channel_attachments(&id()?)?),
             "inbox/search" => {
                 let query = params["query"].as_str().unwrap_or_default();
                 let box_kind = params["box"].as_str();

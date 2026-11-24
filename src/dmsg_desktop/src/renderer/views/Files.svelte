@@ -8,6 +8,8 @@
   import { onMount, tick, untrack } from 'svelte'
   import { localeDir } from '../../shared/locales'
   import Dialog from '../components/Dialog.svelte'
+  import FileLightbox from '../components/FileLightbox.svelte'
+  import type { PreviewItem } from '../components/preview'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Empty from '../components/page/Empty.svelte'
@@ -74,6 +76,9 @@
   /** Where a shift-extended selection starts. */
   let anchor = $state<string | null>(null)
   let details = $state<any>(null)
+  let lightboxOpen = $state(false)
+  let lightboxKey = $state<string | null>(null)
+  let versionPreview = $state<PreviewItem | null>(null)
   let error = $state('')
   let loaded = $state(false)
   let busy = $state(false)
@@ -183,6 +188,46 @@
   const chosen = $derived(new Set(selected))
   const tabRow = $derived(shown.findLast(row => chosen.has(row.id))?.id ?? shown[0]?.id)
   const chosenFiles = $derived(rows.filter((r) => chosen.has(r.id) && r.kind === 'file'))
+  const previewDateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))
+  const previewItems = $derived<PreviewItem[]>(
+    rows
+      .filter((r) => r.kind === 'file')
+      .map((f) => ({
+        key: f.id,
+        source: { source: 'library', id: f.id, version: null },
+        name: f.name,
+        mime: f.mime ?? '',
+        size: f.size ?? 0,
+        updatedAt: f.updated_at,
+        sha256: f.sha256,
+        status: statusOf(f.status)
+      }))
+  )
+  const lightboxItems = $derived<PreviewItem[]>(versionPreview ? [versionPreview] : previewItems)
+
+  function openPreview(fileId: string, version?: { id: string; created_at: number; size: number; sha256?: string; local?: boolean } | null) {
+    if (version) {
+      const file = details?.file?.id === fileId ? details.file : rows.find((r) => r.id === fileId)
+      const item: PreviewItem = {
+        key: `${fileId}@${version.id}`,
+        source: { source: 'library', id: fileId, version: version.id },
+        name: file?.name ?? '',
+        mime: file?.mime ?? '',
+        size: version.size ?? file?.size ?? 0,
+        updatedAt: version.created_at,
+        sha256: version.sha256,
+        status: version.local === false ? 'cloud_only' : 'local',
+        versionLabel: previewDateFormat.format(version.created_at)
+      }
+      versionPreview = item
+      lightboxKey = item.key
+      lightboxOpen = true
+      return
+    }
+    versionPreview = null
+    lightboxKey = fileId
+    lightboxOpen = true
+  }
   /** What an export can write: a file only in the cloud has no bytes here. */
   const exportable = $derived(chosenFiles.filter((f) => statusOf(f.status) !== 'cloud_only'))
   const moveSource = $derived.by(() => {
@@ -498,9 +543,9 @@
       const row = rows.find(row => row.id === id) ?? currentRow
       if (row?.kind === 'folder') pick(row.id)
       else if (row && statusOf(row.status) !== 'cloud_only') open(row.id, null)
-    } else if (key === ' ' && current && window.dmsg.platform === 'darwin' && statusOf(current.status) !== 'cloud_only') {
+    } else if (key === ' ' && current) {
       event.preventDefault()
-      void bridge(() => window.dmsg.filesPreview(current.id, current.name)).catch(fail)
+      openPreview(current.id)
     } else if (key === 'F2' && currentRow) {
       event.preventDefault()
       renameItem(currentRow)
@@ -707,7 +752,10 @@
       .catch((e) => { if (alive && quoteState === loading) quoteState = { kind: 'failed', error: errorText(e) } })
   })
   $effect(() => {
-    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; quoteState = { kind: 'idle' }; backupState = { kind: 'idle' } }
+    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; lightboxOpen = false; versionPreview = null; quoteState = { kind: 'idle' }; backupState = { kind: 'idle' } }
+  })
+  $effect(() => {
+    if (!lightboxOpen) versionPreview = null
   })
   const share = () =>
     attempt(async () => {
@@ -1079,6 +1127,7 @@
               showPath={spread}
               onSelect={(event) => select(row.id, event)}
               onOpenFolder={() => pick(row.id)}
+              onPreview={() => openPreview(row.id)}
               onOpen={() => open(row.id, null)}
               onExport={() => exportFile(row.id, null, row.name)}
               onBackup={() => askBackup(chosen.has(row.id) && selected.length > 1 ? selected : [row.id], false)}
@@ -1131,6 +1180,7 @@
               trash={false}
               {unlocked}
               device={status?.device_id ?? ''}
+              onFullscreen={(version) => openPreview(current.id, version ?? null)}
               onOpen={(version) => open(current.id, version)}
               onExport={(version) => exportFile(current.id, version, current.name)}
               onBackup={(all) => {
@@ -1365,3 +1415,22 @@
     <button class={buttonClass('primary')} disabled={busy} onclick={() => settleCopy(true)} data-testid="files-copy-save"><Icon name="history" />{t('saveAsVersion')}</button>
   {/snippet}
 </Dialog>
+
+<FileLightbox
+  bind:open={lightboxOpen}
+  items={lightboxItems}
+  bind:activeKey={lightboxKey}
+  showFilter={!versionPreview}
+  onActiveChange={(item) => {
+    if (!versionPreview && item.source.source === 'library' && (selected.length !== 1 || selected[0] !== item.source.id)) {
+      selected = [item.source.id]
+      anchor = item.source.id
+    }
+  }}
+  onDownload={(item) => {
+    if (item.source.source === 'library') void exportFile(item.source.id, item.source.version ?? null, item.name)
+  }}
+  onOpen={(item) => {
+    if (item.source.source === 'library') open(item.source.id, item.source.version ?? null)
+  }}
+/>

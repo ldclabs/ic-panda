@@ -28,6 +28,28 @@ impl MobileEngine {
             .await
     }
 
+    /// Full verified in-memory preview for fullscreen viewing (images up to 20 MiB,
+    /// parsed safe Markdown up to 2 MiB, plain text up to 1 MiB) without writing
+    /// plaintext temporary files.
+    pub async fn preview_library_file(
+        &self,
+        id: String,
+        version: Option<String>,
+        operation: Arc<OperationToken>,
+    ) -> Result<PreviewPayload> {
+        let generation = self.host.generation();
+        operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let preview =
+                        dmsg_client::library::reading::preview_full(h, &id, version.as_deref())
+                            .await?;
+                    Ok(PreviewPayload::from_full(generation, preview))
+                })
+            }))
+            .await
+    }
+
     /// Compare the original fields, so two edits within one clock millisecond
     /// cannot overwrite each other through a timestamp collision.
     pub async fn update_file_metadata(

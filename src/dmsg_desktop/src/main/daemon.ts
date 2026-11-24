@@ -9,7 +9,7 @@ import { EventEmitter } from 'node:events'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import WebSocket from 'ws'
-import type { DaemonEvent } from '../shared/contract'
+import type { DaemonEvent, PreviewJsonPayload, PreviewMeta, PreviewResult, PreviewSource } from '../shared/contract'
 import { DaemonError } from './error.ts'
 import { ReadRecovery } from './recovery.ts'
 import { requireRuntimeVersion } from './runtime.ts'
@@ -70,6 +70,7 @@ export class Daemon extends EventEmitter {
   readonly options: DaemonOptions
   lastError: string | undefined
   private connection: Connection = { kind: 'stopped' }
+  private endpoint: { url: string; token: string } | null = null
   private waiting = new Map<number, Waiting>()
   private next = 0
   private delay = 1000
@@ -131,6 +132,7 @@ export class Daemon extends EventEmitter {
     try {
       const { url, token } = await this.credential()
       if (!this.owns(attempt)) return
+      this.endpoint = { url, token }
       const ws = url.replace(/^http/, 'ws') + '/ws/app/v1'
       const socket = new WebSocket(ws, { handshakeTimeout: 10_000, headers: { authorization: `Bearer ${token}` } })
       attempt.socket = socket
@@ -162,6 +164,7 @@ export class Daemon extends EventEmitter {
   private stopConnection() {
     const state = this.connection
     this.connection = { kind: 'stopped' }
+    this.endpoint = null
     if (state.kind === 'waiting') clearTimeout(state.timer)
     if (state.kind === 'connecting') {
       // Keep the handshake listeners: termination must settle its promise too.
@@ -257,6 +260,45 @@ export class Daemon extends EventEmitter {
       this.waiting.set(id, { method, read, resolve, reject, timer })
       socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
     })
+  }
+
+  /** Stream a verified full-resolution preview directly from the local daemon over loopback HTTP. */
+  async fetchPreview(source: PreviewSource, signal?: AbortSignal): Promise<PreviewResult> {
+    const endpoint = this.endpoint
+    if (!this.connected || !endpoint) throw new DaemonError('DAEMON_DISCONNECTED', 'daemon disconnected')
+    let response: Response
+    try {
+      response = await fetch(`${endpoint.url}/app/v1/preview`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${endpoint.token}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(source),
+        signal
+      })
+    } catch (error) {
+      if (signal?.aborted) throw new DaemonError('CANCELLED', 'preview cancelled')
+      throw new DaemonError('NETWORK_UNAVAILABLE', reasonOf(error))
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null
+      throw new DaemonError(body?.error?.code ?? 'UNAVAILABLE', body?.error?.message ?? (response.statusText || 'preview failed'))
+    }
+    if (response.headers.get('x-dmsg-preview-kind') === 'image') {
+      const rawMeta = response.headers.get('x-dmsg-preview-meta') ?? ''
+      let meta: PreviewMeta = { kind: 'image', mime: response.headers.get('content-type') || 'application/octet-stream', name: '', size: 0 }
+      if (rawMeta) {
+        try {
+          meta = JSON.parse(Buffer.from(rawMeta, 'base64url').toString('utf8')) as PreviewMeta
+        } catch { /* keep header-derived fallback metadata */ }
+      }
+      const bytes = new Uint8Array(await response.arrayBuffer())
+      if (!meta.size) meta.size = bytes.byteLength
+      return { kind: 'image', meta, bytes }
+    }
+    const payload = (await response.json()) as PreviewJsonPayload
+    return { kind: 'json', payload }
   }
 
   /** A person used a window. */

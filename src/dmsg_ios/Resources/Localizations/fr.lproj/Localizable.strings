@@ -742,6 +742,8 @@
 	<string>Clés de cosignature</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosignataires de la politique proposée</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Impossible de décoder ce fichier pour l’aperçu.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Impossible de mettre à jour le remplissage automatique des mots de passe.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Ignorer cette observation</string>
 	<key>Dismiss this observation?</key>
 	<string>Ignorer cette observation ?</string>
+	<key>Documents</key>
+	<string>Documents</string>
 	<key>Done</key>
 	<string>Terminée</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Exporter une sauvegarde chiffrée</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Exporter les identifiants sélectionnés vers AutoFill</string>
+	<key>External image blocked</key>
+	<string>Image externe bloquée</string>
 	<key>Failed</key>
 	<string>Échec</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Remplir une fois</string>
 	<key>Fill this login?</key>
 	<string>Remplir avec ce compte ?</string>
+	<key>Filter files</key>
+	<string>Filtrer les fichiers</string>
 	<key>Filters</key>
 	<string>Filtres du coffre</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Si tous les appareils sont perdus, une identité liée peut récupérer le contenu envoyé après le délai. Une identité volée le peut aussi, sauf annulation à temps par un appareil autorisé.</string>
 	<key>Illegal content</key>
 	<string>Contenu illégal</string>
+	<key>Images</key>
+	<string>Images</string>
 	<key>Import</key>
 	<string>Importer</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Identités de connexion</string>
 	<key>Login identity</key>
 	<string>Identité de connexion</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Document long tronqué pour l’aperçu. Téléchargez-le ou ouvrez-le dans une autre application pour tout voir.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Gérer les abonnements Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Ouvrir l’espace dMsg → Compte → Intégrations système → Remplissage automatique des mots de passe → Choisir les identifiants</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Ouvrir dMsg. Le déverrouillage et les approbations exigent toujours votre intervention dans l’app.</string>
+	<key>Open external link?</key>
+	<string>Ouvrir le lien externe ?</string>
 	<key>Open for</key>
 	<string>Ouvert pendant</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>L’aperçu télécharge et vérifie le paquet sur cet appareil et utilise une session de téléchargement. Choisissez l’appareil de réception avant de continuer.</string>
 	<key>Preview file</key>
 	<string>Aperçu du fichier</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>L’aperçu n’est pas pris en charge pour ce type de fichier.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Aperçu indisponible pour ce type de fichier. Partagez une copie pour l’ouvrir dans une autre app.</string>
 	<key>Preview package</key>
 	<string>Prévisualiser le paquet</string>
 	<key>Preview transfer</key>
 	<string>Aperçu du transfert</string>
+	<key>Previewable</key>
+	<string>Prévisualisables</string>
 	<key>Previous match</key>
 	<string>Résultat précédent</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Lire la politique publiée</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Copies en lecture seule conservées pour l’importation. En supprimer une n’affecte ni l’ancien iPhone ni votre compte.</string>
+	<key>Reading</key>
+	<string>Lecture</string>
 	<key>Reading account inventory…</key>
 	<string>Lecture de l’inventaire du compte…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>Enregistrer la version sélectionnée ?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Préparez ces éléments pour dMsg. Ouvrez et déverrouillez l’app, puis choisissez un compte pour les importer.</string>
+	<key>Save to Files</key>
+	<string>Enregistrer dans Fichiers</string>
 	<key>Save to dMsg</key>
 	<string>Enregistrer pour dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>Ce fichier dépasse la taille maximale actuelle d’une sauvegarde cloud.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Ce fichier est dans la corbeille. Restaurez-le avant de l’ouvrir.</string>
+	<key>This file is no longer available.</key>
+	<string>Ce fichier n’est plus disponible.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Ce fichier n’est pas sur cet appareil. dMsg le télécharge juste le temps de chiffrer la nouvelle copie, et votre bibliothèque ne change pas.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Ce fichier est uniquement dans le cloud. Téléchargez-le d’abord pour l’afficher.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Ce fichier est trop volumineux pour un aperçu dans l’application.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Cela libère de l’espace. La copie enregistrée dans votre bibliothèque reste.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

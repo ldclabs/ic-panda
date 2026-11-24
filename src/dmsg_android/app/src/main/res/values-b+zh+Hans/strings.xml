@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"请求执行操作"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"按设备策略使用秘密"</string>
     <string name="permission_write" formatted="false">"写入"</string>
+    <string name="preview_cloud_only" formatted="false">"此文件仅保存在云端，请先下载到本地后再预览。"</string>
+    <string name="preview_decode_failed" formatted="false">"无法解析此文件内容。"</string>
+    <string name="preview_external_image_blocked" formatted="false">"已拦截外链图片"</string>
+    <string name="preview_filter" formatted="false">"筛选文件"</string>
+    <string name="preview_filter_documents" formatted="false">"文档"</string>
+    <string name="preview_filter_images" formatted="false">"图片"</string>
+    <string name="preview_filter_previewable" formatted="false">"可预览"</string>
+    <string name="preview_modified" formatted="false">"修改时间"</string>
+    <string name="preview_open_external_link" formatted="false">"打开外部链接？"</string>
+    <string name="preview_reading" formatted="false">"阅读"</string>
+    <string name="preview_save_to_files" formatted="false">"保存到文件"</string>
+    <string name="preview_size" formatted="false">"大小"</string>
+    <string name="preview_too_large" formatted="false">"文件过大，暂不支持应用内预览。"</string>
+    <string name="preview_truncated" formatted="false">"文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。"</string>
+    <string name="preview_unavailable" formatted="false">"此文件已不可用。"</string>
+    <string name="preview_unsupported" formatted="false">"暂不支持预览此文件类型。"</string>
     <string name="promo_granted" formatted="false">"赠予会员"</string>
     <string name="promo_no_charge" formatted="false">"到期不会自动扣费。"</string>
     <string name="receive_closed" formatted="false">"关闭收信后，任何人都无法发来新信。"</string>

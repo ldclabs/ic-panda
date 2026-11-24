@@ -58,6 +58,75 @@ export interface DesktopSettings {
   open_at_login: boolean
 }
 
+export type PreviewClass = 'image' | 'markdown' | 'text' | 'unsupported'
+export type FallbackReason = 'unsupported_type' | 'too_large' | 'cloud_only' | 'decode_failed' | 'unavailable'
+export type TableAlignment = 'none' | 'left' | 'center' | 'right'
+
+export type PreviewSource =
+  | { source: 'library'; id: string; version?: string | null }
+  | { source: 'channel'; channel: string; seq: number }
+
+export type MarkdownInline =
+  | { type: 'text'; text: string }
+  | { type: 'strong'; children: MarkdownInline[] }
+  | { type: 'emphasis'; children: MarkdownInline[] }
+  | { type: 'strikethrough'; children: MarkdownInline[] }
+  | { type: 'code'; code: string }
+  | { type: 'link'; url: string; children: MarkdownInline[] }
+  | { type: 'blocked_image'; alt: string }
+  | { type: 'soft_break' }
+  | { type: 'hard_break' }
+
+export interface MarkdownListItem {
+  checked?: boolean
+  blocks: MarkdownBlock[]
+}
+
+export type MarkdownBlock =
+  | { type: 'heading'; level: number; inlines: MarkdownInline[] }
+  | { type: 'paragraph'; inlines: MarkdownInline[] }
+  | { type: 'code_block'; language?: string; code: string }
+  | { type: 'block_quote'; blocks: MarkdownBlock[] }
+  | { type: 'list'; ordered: boolean; start: number; items: MarkdownListItem[] }
+  | { type: 'table'; alignments: TableAlignment[]; headers: MarkdownInline[][]; rows: MarkdownInline[][][] }
+  | { type: 'thematic_break' }
+
+export interface MarkdownDocument {
+  blocks: MarkdownBlock[]
+  truncated?: boolean
+}
+
+export interface PreviewMeta {
+  kind: PreviewClass
+  mime: string
+  name: string
+  size: number
+  sha256?: string
+}
+
+export interface PreviewJsonPayload extends PreviewMeta {
+  document?: MarkdownDocument
+  text?: string
+  reason?: FallbackReason
+}
+
+export type PreviewResult =
+  | { kind: 'image'; meta: PreviewMeta; bytes: Uint8Array }
+  | { kind: 'json'; payload: PreviewJsonPayload }
+
+export interface ChannelAttachmentItem {
+  seq: number
+  digest: string
+  account: string
+  created_at: number
+  stored_at: number
+  name: string
+  mime: string
+  size: number
+  preview_class: PreviewClass
+  previewable: boolean
+}
+
 export interface DesktopBridge {
   /** Ask the OS for camera access from the main window's scan action. */
   cameraAccess(): Promise<boolean>
@@ -215,8 +284,12 @@ export interface DesktopBridge {
   captureShortcut(active: boolean): Promise<void>
   /** Follow a `dmsg://` link found in a message or letter; it moves the view and executes nothing. */
   openLink(url: string): Promise<void>
-  /** Copy an image a window shows, by its data address. */
-  copyImage(url: string): Promise<void>
+  /** Copy an image a window shows, by its data address or raw image bytes. */
+  copyImage(image: string | Uint8Array): Promise<void>
+  /** Read a verified in-memory fullscreen preview from the local daemon without writing temporary files. */
+  previewFile(source: PreviewSource, requestId?: string): Promise<PreviewResult>
+  /** Cancel an in-flight preview request (or all in-flight previews when omitted). */
+  previewCancel(requestId?: string): Promise<void>
   /** The app's version and where its update stands; the main window only. `updates/changed` events follow it. */
   updates(): Promise<AppUpdates>
   /** Opt this installation into beta releases, or stop receiving them without downgrading. */

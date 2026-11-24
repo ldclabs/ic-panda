@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Solicitar uma ação"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Use um segredo por meio de uma política de dispositivo"</string>
     <string name="permission_write" formatted="false">"Gravar"</string>
+    <string name="preview_cloud_only" formatted="false">"Este arquivo está salvo apenas na nuvem. Baixe-o primeiro para pré-visualizar."</string>
+    <string name="preview_decode_failed" formatted="false">"Não foi possível decodificar este arquivo para pré-visualização."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Imagem externa bloqueada"</string>
+    <string name="preview_filter" formatted="false">"Filtrar arquivos"</string>
+    <string name="preview_filter_documents" formatted="false">"Documentos"</string>
+    <string name="preview_filter_images" formatted="false">"Imagens"</string>
+    <string name="preview_filter_previewable" formatted="false">"Visualizáveis"</string>
+    <string name="preview_modified" formatted="false">"Data da modificação"</string>
+    <string name="preview_open_external_link" formatted="false">"Abrir link externo?"</string>
+    <string name="preview_reading" formatted="false">"Leitura"</string>
+    <string name="preview_save_to_files" formatted="false">"Salvar em Arquivos"</string>
+    <string name="preview_size" formatted="false">"Tamanho"</string>
+    <string name="preview_too_large" formatted="false">"Este arquivo é grande demais para pré-visualizar no aplicativo."</string>
+    <string name="preview_truncated" formatted="false">"Documento longo truncado na pré-visualização. Baixe ou abra externamente para ver todo o conteúdo."</string>
+    <string name="preview_unavailable" formatted="false">"Este arquivo não está mais disponível."</string>
+    <string name="preview_unsupported" formatted="false">"A pré-visualização não é compatível com este tipo de arquivo."</string>
     <string name="promo_granted" formatted="false">"Assinatura promocional"</string>
     <string name="promo_no_charge" formatted="false">"Sem cobrança automática no vencimento."</string>
     <string name="receive_closed" formatted="false">"Ninguém pode enviar novas cartas enquanto o recebimento estiver fechado."</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Som"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Endereço de origem"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Dispositivo de origem · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Origem"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Código"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Limite da origem: 64 MiB. Anexos do arquivo de exportação, chaves de acesso e histórico não são importados aqui."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Disponível agora"</string>

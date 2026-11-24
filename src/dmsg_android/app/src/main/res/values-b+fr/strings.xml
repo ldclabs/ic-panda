@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Demander une action"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Utiliser un secret selon une politique de l’appareil"</string>
     <string name="permission_write" formatted="false">"Écrire"</string>
+    <string name="preview_cloud_only" formatted="false">"Ce fichier est uniquement dans le cloud. Téléchargez-le d’abord pour l’afficher."</string>
+    <string name="preview_decode_failed" formatted="false">"Impossible de décoder ce fichier pour l’aperçu."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Image externe bloquée"</string>
+    <string name="preview_filter" formatted="false">"Filtrer les fichiers"</string>
+    <string name="preview_filter_documents" formatted="false">"Documents"</string>
+    <string name="preview_filter_images" formatted="false">"Images"</string>
+    <string name="preview_filter_previewable" formatted="false">"Prévisualisables"</string>
+    <string name="preview_modified" formatted="false">"Modifié le"</string>
+    <string name="preview_open_external_link" formatted="false">"Ouvrir le lien externe ?"</string>
+    <string name="preview_reading" formatted="false">"Lecture"</string>
+    <string name="preview_save_to_files" formatted="false">"Enregistrer dans Fichiers"</string>
+    <string name="preview_size" formatted="false">"Taille"</string>
+    <string name="preview_too_large" formatted="false">"Ce fichier est trop volumineux pour un aperçu dans l’application."</string>
+    <string name="preview_truncated" formatted="false">"Document long tronqué pour l’aperçu. Téléchargez-le ou ouvrez-le dans une autre application pour tout voir."</string>
+    <string name="preview_unavailable" formatted="false">"Ce fichier n’est plus disponible."</string>
+    <string name="preview_unsupported" formatted="false">"L’aperçu n’est pas pris en charge pour ce type de fichier."</string>
     <string name="promo_granted" formatted="false">"Abonnement offert"</string>
     <string name="promo_no_charge" formatted="false">"Aucun prélèvement automatique à l’échéance."</string>
     <string name="receive_closed" formatted="false">"Personne ne peut vous écrire tant que la réception est désactivée."</string>

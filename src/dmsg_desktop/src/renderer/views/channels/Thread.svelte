@@ -10,18 +10,16 @@
   import ParticipantAvatar from './ParticipantAvatar.svelte'
   import { copyText } from '../../components/clipboard'
   import CopyButton from '../../components/CopyButton.svelte'
-  import Dialog from '../../components/Dialog.svelte'
   import type { HighlightSpan } from '../../components/highlight'
   import Icon from '../../components/Icon.svelte'
   import Empty from '../../components/page/Empty.svelte'
   import LinkedText from '../../components/LinkedText.svelte'
   import TargetMenu from '../../components/TargetMenu.svelte'
-  import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { enter } from '../../components/motion'
   import { locale, t } from '../../i18n/index.svelte'
-  import { bridge, errorText, size, when } from '../../rpc'
+  import { size, when } from '../../rpc'
   import { remember, remembered } from '../../view-memory'
   import { validPrincipal, walletRoute } from '../wallet/model'
   import { w } from '../wallet/text'
@@ -79,6 +77,7 @@
     onRetract,
     onHide,
     onPreview,
+    onOpenAttachment,
     onPacket,
     onRead
   }: {
@@ -119,6 +118,7 @@
     onRetract: (message: any) => void
     onHide: (message: any, hidden: boolean) => void
     onPreview: (message: any) => void
+    onOpenAttachment?: (message: any) => void
     onPacket: (message: any, step: 'accept' | 'commit') => void
     onRead: (seq: number) => void
   } = $props()
@@ -134,7 +134,6 @@
   /** What this account had read as the channel opened, for the line above what is new. */
   const readAt = untrack(() => channel?.read ?? 0)
   const unreadAt = untrack(() => (channel?.unread ? firstUnread(messages, readAt, me) : null))
-  let large = $state<any>(null)
 
   const ledger = $derived(channel?.ledger)
   const groups = $derived(days(messages))
@@ -341,7 +340,6 @@
 
   /** What a person selected in the message, else its whole text. */
   const copyMessage = (message: any) => copyText(getSelection()?.toString() || message.text)
-  const copyImage = (message: any) => void bridge(() => window.dmsg.copyImage(images[message.seq])).catch((error) => toast(() => errorText(error)))
   const messageOf = (element: Element) => {
     const seq = Number(element.closest('[data-seq]')?.getAttribute('data-seq'))
     return messages.find((message) => message.seq === seq && !message.unreadable && !message.hidden) ?? null
@@ -374,6 +372,11 @@
     </Item>
   {/if}
   {#if message.file && !message.file_deleted && !message.retracted && message.file.mime !== 'application/vnd.dmsg.secret-package'}
+    {#if onOpenAttachment}
+      <Item class={menuItemClass} onSelect={() => onOpenAttachment(message)} data-testid="menu-preview">
+        <span class="flex items-center gap-2"><Icon name="eye" class="text-faint" />{t('preview')}</span>
+      </Item>
+    {/if}
     <Item class={menuItemClass} onSelect={() => onSave(message)} data-testid="menu-save">
       <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('saveToLibrary')}</span>
     </Item>
@@ -554,36 +557,48 @@
               {#if message.file_deleted}<p class="mt-2 text-callout text-muted" data-testid="attachment-deleted">{t('storageAttachmentDeleted')}</p>
               {:else if message.file}
                 {#if isImage(message) && images[message.seq]}
-                  <button class="mt-1.5 block max-w-sm cursor-zoom-in overflow-hidden rounded-xl border border-line" onclick={() => (large = message)} title={message.file.name} data-testid="message-image-open">
+                  <button class="mt-1.5 block max-w-sm cursor-zoom-in overflow-hidden rounded-xl border border-line" onclick={() => onOpenAttachment?.(message)} title={message.file.name} data-testid="message-image-open">
                     <img src={images[message.seq]} alt={message.file.name} class="max-h-72 w-auto object-contain" data-testid="message-image" />
                   </button>
                 {/if}
                 <div
                   {@attach isImage(message) && preview(message)}
-                  class="mt-1.5 flex max-w-sm items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
+                  class="mt-1.5 flex max-w-sm items-center gap-2 rounded-xl border border-line bg-surface px-2.5 py-1.5"
                 >
-                  <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={isImage(message) ? 'image' : 'file'} /></span>
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-body font-medium">{message.file.name}</span>
-                    <span class="block text-caption text-faint">{size(message.file.size)}</span>
-                  </span>
-                  {#if message.file.mime==='application/vnd.dmsg.secret-package'}
+                  {#if message.file.mime === 'application/vnd.dmsg.secret-package'}
+                    <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name="file" /></span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-body font-medium">{message.file.name}</span>
+                      <span class="block text-caption text-faint">{size(message.file.size)}</span>
+                    </span>
                     <button class={buttonClass('secondary','sm')} onclick={()=>onSnapshot(message)} data-testid="message-snapshot">{workflowText('channelSnapshot')}</button>
                   {:else}
-                  <Tooltip content={t('saveToLibrary')}>
-                    {#snippet children(props)}
-                      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
-                        <Icon name="folder-add" />
-                      </button>
-                    {/snippet}
-                  </Tooltip>
-                  <Tooltip content={t('download')}>
-                    {#snippet children(props)}
-                      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('download')} onclick={() => onDownload(message)} data-testid="message-download">
-                        <Icon name="download" />
-                      </button>
-                    {/snippet}
-                  </Tooltip>
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-0.5 text-start outline-none transition-colors hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35"
+                      onclick={() => onOpenAttachment?.(message)}
+                      data-testid="message-attachment-open"
+                    >
+                      <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={isImage(message) ? 'image' : 'file'} /></span>
+                      <span class="min-w-0 flex-1">
+                        <span class="block truncate text-body font-medium">{message.file.name}</span>
+                        <span class="block text-caption text-faint">{size(message.file.size)}</span>
+                      </span>
+                    </button>
+                    <Tooltip content={t('saveToLibrary')}>
+                      {#snippet children(props)}
+                        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
+                          <Icon name="folder-add" />
+                        </button>
+                      {/snippet}
+                    </Tooltip>
+                    <Tooltip content={t('download')}>
+                      {#snippet children(props)}
+                        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('download')} onclick={() => onDownload(message)} data-testid="message-download">
+                          <Icon name="download" />
+                        </button>
+                      {/snippet}
+                    </Tooltip>
                   {/if}
                 </div>
               {/if}
@@ -669,18 +684,6 @@
   </button>
 {/if}
 </div>
-
-{#if large}
-  <Dialog bind:open={() => !!large, (open) => !open && (large = null)} title={large.file.name} icon="image" wide testid="message-image-large">
-    <img src={images[large.seq]} alt={large.file.name} class="mx-auto max-h-[64vh] w-auto rounded-lg object-contain" />
-    {#snippet footer()}
-      <span class="min-w-0 flex-1 truncate text-callout text-muted">{size(large.file.size)}</span>
-      <button class={buttonClass('ghost')} onclick={() => copyImage(large)} data-testid="image-copy"><Icon name="copy" />{t('copy')}</button>
-      <button class={buttonClass('ghost')} onclick={() => onSave(large)}><Icon name="folder-add" />{t('saveToLibrary')}</button>
-      <button class={buttonClass('primary')} onclick={() => onDownload(large)} data-testid="image-download"><Icon name="download" />{t('download')}</button>
-    {/snippet}
-  </Dialog>
-{/if}
 
 {#if writes}
   <div class="border-t border-line px-4 pt-2.5 pb-3">

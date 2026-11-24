@@ -274,7 +274,7 @@ import net.dmsg.android.core.*
                     val pathSpans = file?.pathSpans ?: matchedFolder?.pathSpans.orEmpty()
                     BrowseRow(buildHighlightedText(entry.name, nameSpans), Modifier.animateItem().semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
                         .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
-                            onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }), supporting = {
+                            onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else client.fullscreenPreview.openLibrary(sortedFiles, entry.id) }, onLongClick = { client.library.choose(entry.id) }), supporting = {
                             if (preferences.query.isNotBlank() || file != null) Column {
                                 if (preferences.query.isNotBlank()) {
                                     val path = file?.path ?: matchedFolder?.path ?: folderMap[entry.id]?.path.orEmpty()
@@ -327,6 +327,16 @@ import net.dmsg.android.core.*
                 }
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 if (!trash) {
+                    if (!item.folder) {
+                        SheetAction(str(R.string.text_preview_68dd3b5), Icons.Outlined.Visibility) {
+                            target = null
+                            client.fullscreenPreview.openLibrary(sortedFiles, item.id)
+                        }
+                        SheetAction(str(R.string.text_file_details_27e9099), Icons.Outlined.Info) {
+                            target = null
+                            select(item.id)
+                        }
+                    }
                     SheetAction(str(R.string.text_rename_dd3a2f7), Icons.Outlined.Edit) { renaming = item; target = null }
                     SheetAction(str(R.string.text_move_207d5fe), Icons.AutoMirrored.Outlined.DriveFileMove) { start("move", listOf(item)); target = null }
                 }

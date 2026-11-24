@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Aktion anfordern"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Verwenden Sie ein Geheimnis über eine Geräterichtlinie"</string>
     <string name="permission_write" formatted="false">"Schreiben"</string>
+    <string name="preview_cloud_only" formatted="false">"Diese Datei ist nur in der Cloud gespeichert. Laden Sie sie zuerst herunter."</string>
+    <string name="preview_decode_failed" formatted="false">"Diese Datei konnte für die Vorschau nicht dekodiert werden."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Externes Bild blockiert"</string>
+    <string name="preview_filter" formatted="false">"Dateien filtern"</string>
+    <string name="preview_filter_documents" formatted="false">"Dokumente"</string>
+    <string name="preview_filter_images" formatted="false">"Bilder"</string>
+    <string name="preview_filter_previewable" formatted="false">"Mit Vorschau"</string>
+    <string name="preview_modified" formatted="false">"Geändert am"</string>
+    <string name="preview_open_external_link" formatted="false">"Externen Link öffnen?"</string>
+    <string name="preview_reading" formatted="false">"Lesen"</string>
+    <string name="preview_save_to_files" formatted="false">"In Dateien speichern"</string>
+    <string name="preview_size" formatted="false">"Größe"</string>
+    <string name="preview_too_large" formatted="false">"Diese Datei ist zu groß für die Vorschau in der App."</string>
+    <string name="preview_truncated" formatted="false">"Langes Dokument für die Vorschau gekürzt. Zum vollständigen Lesen herunterladen oder extern öffnen."</string>
+    <string name="preview_unavailable" formatted="false">"Diese Datei ist nicht mehr verfügbar."</string>
+    <string name="preview_unsupported" formatted="false">"Für diesen Dateityp wird keine Vorschau unterstützt."</string>
     <string name="promo_granted" formatted="false">"Aktionsmitgliedschaft"</string>
     <string name="promo_no_charge" formatted="false">"Bei Ablauf erfolgt keine automatische Abbuchung."</string>
     <string name="receive_closed" formatted="false">"Bei geschlossenem Posteingang kann niemand neue Briefe senden."</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Ton"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Quelladresse"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Quellgerät · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Quelle"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Quelltext"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Quelldateilimit: 64 MiB. Archivanhänge, Passkeys und Verlauf werden hier nicht importiert."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Jetzt verfügbar"</string>

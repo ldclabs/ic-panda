@@ -742,6 +742,8 @@
 	<string>مفاتيح التوقيع المشترك</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>المشاركون في توقيع سياسة العنوان المقترحة</string>
+	<key>Could not decode this file for preview.</key>
+	<string>تعذر فك ترميز هذا الملف للمعاينة.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>تعذّر تحديث التعبئة التلقائية لكلمات المرور.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>استبعاد هذه الملاحظة</string>
 	<key>Dismiss this observation?</key>
 	<string>استبعاد هذه الملاحظة؟</string>
+	<key>Documents</key>
+	<string>المستندات</string>
 	<key>Done</key>
 	<string>تم</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>تصدير نسخة احتياطية مشفّرة</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>تصدير بيانات الدخول المختارة إلى الملء التلقائي لكلمات المرور</string>
+	<key>External image blocked</key>
+	<string>تم حظر صورة خارجية</string>
 	<key>Failed</key>
 	<string>فشل</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>تعبئة هذه المرة فقط</string>
 	<key>Fill this login?</key>
 	<string>هل تريد تعبئة بيانات هذا الحساب؟</string>
+	<key>Filter files</key>
+	<string>تصفية الملفات</string>
 	<key>Filters</key>
 	<string>عوامل تصفية الخزنة</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>إذا فُقدت كل الأجهزة، يمكن لهوية دخول مرتبطة استرداد المحتوى المرفوع بعد فترة الانتظار. ويمكن لمن يسرق هوية الدخول فعل ذلك ما لم يلغِ جهاز معتمد الطلب في الوقت المناسب.</string>
 	<key>Illegal content</key>
 	<string>محتوى غير قانوني</string>
+	<key>Images</key>
+	<string>الصور</string>
 	<key>Import</key>
 	<string>استيراد</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>هويات تسجيل الدخول</string>
 	<key>Login identity</key>
 	<string>هوية تسجيل الدخول</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>تم اختصار المستند الطويل للمعاينة. نزّله أو افتحه خارجياً لعرض المحتوى بالكامل.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>إدارة اشتراكات Apple</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>فتح مساحة عمل dMsg ← الحساب ← تكامل النظام ← الملء التلقائي لكلمات المرور ← اختيار بيانات الدخول</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>فتح dMsg. يظل فتح القفل والموافقات بحاجة إلى تفاعلك داخل التطبيق.</string>
+	<key>Open external link?</key>
+	<string>فتح رابط خارجي؟</string>
 	<key>Open for</key>
 	<string>مفتوح لمدة</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>تُنزّل المعاينة الحزمة وتتحقق منها على هذا الجهاز وتستخدم جلسة تنزيل. اختر جهاز الاستلام قبل المتابعة.</string>
 	<key>Preview file</key>
 	<string>معاينة الملف</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>المعاينة غير مدعومة لهذا النوع من الملفات.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>المعاينة غير متاحة لهذا النوع من الملفات. شارك نسخة لفتحها في تطبيق آخر.</string>
 	<key>Preview package</key>
 	<string>معاينة الحزمة</string>
 	<key>Preview transfer</key>
 	<string>معاينة التحويل</string>
+	<key>Previewable</key>
+	<string>قابل للمعاينة</string>
 	<key>Previous match</key>
 	<string>النتيجة السابقة</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>قراءة السياسة المنشورة</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>نسخ للقراءة فقط محفوظة للاستيراد. حذف إحداها لا يؤثر في جهاز iPhone القديم ولا في حسابك.</string>
+	<key>Reading</key>
+	<string>قراءة</string>
 	<key>Reading account inventory…</key>
 	<string>جارٍ قراءة قائمة محتوى الحساب…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>هل تريد حفظ النسخة المحددة؟</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>احفظ هذه العناصر لـ dMsg. افتح التطبيق وافتح قفله ثم اختر حسابًا لاستيرادها.</string>
+	<key>Save to Files</key>
+	<string>حفظ في الملفات</string>
 	<key>Save to dMsg</key>
 	<string>الحفظ في dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>يتجاوز هذا الملف الحد الحالي لحجم ملف النسخ الاحتياطي السحابي.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>هذا الملف في سلة المهملات. استعده قبل فتحه.</string>
+	<key>This file is no longer available.</key>
+	<string>هذا الملف لم يعد متاحاً.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>هذا الملف غير موجود على هذا الجهاز. يُنزّله dMsg مؤقتًا فقط لتشفير النسخة الجديدة، ولا تتغير مكتبتك.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>هذا الملف محفوظ في السحابة فقط. نزّله أولاً للمعاينة.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>هذا الملف كبير جداً للمعاينة داخل التطبيق.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>يحرر هذا مساحة التخزين. تبقى النسخة المحفوظة في مكتبتك.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>

@@ -2338,6 +2338,16 @@ pub(crate) async fn fetch_file<H: Hold>(
     reference: &FileRef,
     uploader: &str,
 ) -> Result<FileManifest> {
+    fetch_file_progress(h, channel, reference, uploader, &mut |_, _| {}).await
+}
+
+async fn fetch_file_progress<H: Hold>(
+    h: &H,
+    channel: &str,
+    reference: &FileRef,
+    uploader: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<FileManifest> {
     let bound = crate::display::Scoped {
         session: h.with(|c| c.display_session()).await?,
         inner: h,
@@ -2370,18 +2380,27 @@ pub(crate) async fn fetch_file<H: Hold>(
     ensure(of_file(&plan, reference), Error::IntegrityFailed)?;
     let file = shared_manifest(channel, reference, &plan, &sealed)?;
     let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
-    let missing = h
+    let total = file.chunks.len() as u64;
+    let (missing, mut done) = h
         .with(|c| {
             let mut missing = vec![];
+            let mut present = 0u64;
             for (index, chunk) in file.chunks.iter().enumerate() {
                 if !c.workspace.store.has_chunk(&chunk.digest)? {
                     missing.push((format!("{objects}/{index}"), chunk.digest.clone()));
+                } else {
+                    present += 1;
                 }
             }
-            Ok(missing)
+            Ok((missing, present))
         })
         .await?;
-    crate::upload::download_file_chunks(h, Source::Store, &missing, |_| {}).await?;
+    progress(done, total);
+    crate::upload::download_file_chunks(h, Source::Store, &missing, |count| {
+        done = done.saturating_add(count as u64).min(total);
+        progress(done, total);
+    })
+    .await?;
     Ok(FileManifest {
         key: reference.key.clone(),
         ..file
@@ -2509,6 +2528,107 @@ pub async fn preview_image<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<Js
         Ok(json!({"mime":reference.mime,"url":format!("data:{};base64,{data}",reference.mime)}))
     })
     .await
+}
+
+/// Preview an ordinary channel attachment in memory for fullscreen viewing.
+///
+/// Unsupported or oversized attachments return metadata immediately without
+/// fetching remote chunks. Previewable attachments reuse an existing saved
+/// library copy when present, otherwise fetch encrypted chunks into the
+/// bounded attachment cache (`workspace.store`) without importing into Files.
+///
+/// # Errors
+/// Returns `Error::NotFound` if the message has no attachment,
+/// `Error::UnsupportedProtocol` for secret packages, `Error::Forbidden` if the
+/// message was retracted/hidden/deleted, or `Error::IntegrityFailed` on bad data.
+pub async fn preview_attachment<H: Hold>(
+    h: &H,
+    channel: &str,
+    seq: u64,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<crate::preview::FullPreview> {
+    let bound = crate::hold::Unlocked::new(h).await?;
+    let h = &bound;
+    let (reference, author, saved) = h
+        .with(|c| {
+            let message = c.attachment_message(channel, seq)?;
+            let reference = message.file.clone().ok_or(Error::NotFound)?;
+            ensure(
+                reference.mime != crate::secrets::package::MIME,
+                Error::UnsupportedProtocol,
+            )?;
+            let saved = c
+                .channel_saved_attachment(channel, seq)?
+                .filter(|f| f.status != "cloud_only" && f.trashed_at.is_none())
+                .map(|f| (f.id, f.current));
+            Ok((reference, message.account, saved))
+        })
+        .await?;
+    let class = crate::preview::classify(&reference.mime, &reference.name);
+    let Some(limit) = crate::preview::size_limit(class) else {
+        return Ok(crate::preview::FullPreview::fallback(
+            reference.mime,
+            reference.name,
+            reference.size,
+            None,
+            crate::preview::FallbackReason::UnsupportedType,
+        ));
+    };
+    if reference.size > limit {
+        return Ok(crate::preview::FullPreview::fallback(
+            reference.mime,
+            reference.name,
+            reference.size,
+            None,
+            crate::preview::FallbackReason::TooLarge,
+        ));
+    }
+    if let Some((file_id, version)) = saved
+        && let Ok(preview) =
+            crate::library::reading::preview_full(h, &file_id, Some(&version)).await
+    {
+        return Ok(preview);
+    }
+    let manifest = fetch_file_progress(h, channel, &reference, &author, progress).await?;
+    let manifest_class = crate::preview::classify(&manifest.mime, &manifest.name);
+    let Some(manifest_limit) = crate::preview::size_limit(manifest_class) else {
+        return Ok(crate::preview::FullPreview::fallback(
+            manifest.mime,
+            manifest.name,
+            manifest.size,
+            Some(manifest.sha256),
+            crate::preview::FallbackReason::UnsupportedType,
+        ));
+    };
+    if manifest.size > manifest_limit {
+        return Ok(crate::preview::FullPreview::fallback(
+            manifest.mime,
+            manifest.name,
+            manifest.size,
+            Some(manifest.sha256),
+            crate::preview::FallbackReason::TooLarge,
+        ));
+    }
+    let plain = h
+        .with(|c| {
+            c.attachment_message(channel, seq)?;
+            let mut buf = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
+            read_file(
+                &c.workspace.store,
+                &manifest,
+                manifest_limit,
+                Some(&mut *buf),
+            )?;
+            Ok(buf)
+        })
+        .await?;
+    Ok(crate::preview::from_verified_bytes(
+        manifest.mime,
+        manifest.name,
+        manifest.size,
+        Some(manifest.sha256),
+        plain,
+    ))
 }
 
 /// Open a message's body under its epoch's key. A body that does not open,

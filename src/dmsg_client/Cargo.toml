@@ -45,6 +45,7 @@ ic-vetkeys.workspace = true
 k256 = { workspace = true, features = ["schnorr"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 pinyin.workspace = true
+pulldown-cmark.workspace = true
 rqrr.workspace = true
 qrcode.workspace = true
 reqwest = { workspace = true, features = ["rustls", "json", "http2"] }

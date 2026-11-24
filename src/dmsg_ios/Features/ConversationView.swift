@@ -18,6 +18,7 @@ struct ConversationView: View {
     @State private var receivedFiles: [UInt64: LibraryFile] = [:]
     @State private var checkedAttachments: Set<UInt64> = []
     @State private var openingFile: LibraryFile?
+    @State private var previewLaunch: FullscreenPreviewLaunch?
     @State private var receiving: UInt64?
     @State private var firstUnread: UInt64?
     @State private var lastSeen: UInt64 = 0
@@ -106,7 +107,7 @@ struct ConversationView: View {
                             if row.message.sequence == firstUnread && !hasAfter {
                                 Label("Unread messages", systemImage: "circle.fill").font(.footnote).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
-                            bubble(row, own: row.message.account == own, references: references) { sequence in
+                            bubble(row, own: row.message.account == own, references: references, shown: shown) { sequence in
                                 jumpToReply(sequence, proxy: proxy)
                             }
                         }.padding(.top, row.firstOfGroup ? 10 : 0)
@@ -236,6 +237,7 @@ struct ConversationView: View {
                 Button("Withdraw", role: .destructive) { if let message = retracting { actionTask = Task { await withdraw(message) } } }
             }
             .sheet(item: $openingFile) { file in NavigationStack { FileDetailDestination(id: file.id, version: file.current).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openingFile = nil } } } } }
+            .fullScreenCover(item: $previewLaunch) { launch in FullscreenFilePreviewView(launch: launch) }
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
             .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:]; checkedAttachments = [] }
@@ -529,7 +531,7 @@ struct ConversationView: View {
         } else { model.notice = String(localized: "The original message is not available on this device.") }
     }
 
-    private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
+    private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], shown: [MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
         let message = row.message
         let isAnchor = highlightedSequence == message.sequence
         return ConversationMessageRow(own: own, account: message.account, name: model.personName(message.account), avatar: model.people.avatar(message.account),
@@ -550,7 +552,7 @@ struct ConversationView: View {
                             Text(message.text)
                         }
                     }
-                    if let name = message.attachmentName { attachment(message, name: name, own: own) }
+                    if let name = message.attachmentName { attachment(message, name: name, own: own, shown: shown) }
                     if message.edited || row.lastOfGroup {
                         HStack(spacing: 4) {
                             if message.edited { Text("Edited") }
@@ -583,13 +585,12 @@ struct ConversationView: View {
         }.buttonStyle(.plain).accessibilityLabel("Open original message")
     }
 
-    @ViewBuilder private func attachment(_ message: MessageItem, name: String, own: Bool) -> some View {
+    @ViewBuilder private func attachment(_ message: MessageItem, name: String, own: Bool, shown: [MessageItem]) -> some View {
         let secret = message.attachmentMime == "application/vnd.dmsg.secret-package"
         let saved = receivedFiles[message.sequence]
         Button {
             if secret { secretPackage = .init(channel: channel.id, sequence: message.sequence) }
-            else if let saved { openingFile = saved }
-            else { actionTask = Task { await receiveAttachment(message) } }
+            else { openAttachmentPreview(for: message, in: shown) }
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 if let saved, ThumbnailStore.supports(saved) {
@@ -607,9 +608,24 @@ struct ConversationView: View {
             .background(.bubbleInset(own: own), in: RoundedRectangle(cornerRadius: Theme.radius))
     }
 
+    private func openAttachmentPreview(for message: MessageItem, in shown: [MessageItem]) {
+        guard let initial = FullscreenPreviewItem.fromMessage(channel: channel.id, message: message) else { return }
+        var items = shown.compactMap { FullscreenPreviewItem.fromMessage(channel: channel.id, message: $0) }
+        if !items.contains(where: { $0.id == initial.id }) {
+            items.append(initial)
+        }
+        previewLaunch = FullscreenPreviewLaunch(items: items, initialID: initial.id, showFilter: true, channelID: channel.id)
+    }
+
     @ViewBuilder private func messageActions(_ message: MessageItem, own: Bool) -> some View {
         if !message.hidden && !message.unreadable && !message.retracted {
             if currentChannel.canPublish { Button("Reply") { model.replyDrafts[channel.id] = message } }
+            if message.attachmentName != nil && !message.attachmentDeleted && message.attachmentMime != "application/vnd.dmsg.secret-package" {
+                Button("Save to Files", systemImage: "folder.badge.plus") {
+                    actionTask = Task { await receiveAttachment(message) }
+                }
+                .disabled(receiving != nil)
+            }
             if !message.text.isEmpty {
                 Button("Copy") { model.clipboard.copy(message.text); model.notice = String(localized: "Copied") }
                 Button("Select text") { selectingText = MessageEdit(message: message) }

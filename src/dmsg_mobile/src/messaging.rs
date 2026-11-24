@@ -48,6 +48,43 @@ impl MobileEngine {
         .await
     }
 
+    /// Return all locally synced ordinary file attachments in `channel`, ordered oldest-first.
+    pub async fn channel_attachments(&self, channel: String) -> Result<ObjectSnapshot> {
+        self.object(move |c| Box::pin(async move { c.channel_attachments(&channel) }))
+            .await
+    }
+
+    /// Preview an ordinary channel attachment in memory (fetches into bounded encrypted
+    /// attachment cache without importing into Files; unsupported/oversized items return
+    /// metadata immediately without network reads).
+    pub async fn preview_channel_attachment(
+        &self,
+        channel: String,
+        sequence: u64,
+        operation: Arc<OperationToken>,
+    ) -> Result<PreviewPayload> {
+        let generation = self.host.generation();
+        let progress = operation.clone();
+        let turn = self
+            .read_turns
+            .lane(&format!("attachment-preview:{channel}:{sequence}"));
+        operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    let preview = dmsg_client::channel::preview_attachment(
+                        h,
+                        &channel,
+                        sequence,
+                        &mut |done, total| progress.report(done, total),
+                    )
+                    .await?;
+                    Ok(PreviewPayload::from_full(generation, preview))
+                })
+            }))
+            .await
+    }
+
     pub async fn letter_history(&self) -> Result<ObjectSnapshot> {
         self.object(|c| Box::pin(async { c.letter_history() }))
             .await

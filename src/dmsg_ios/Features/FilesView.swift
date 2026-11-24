@@ -23,6 +23,14 @@ struct FilesView: View {
     @State private var importingPhotos = false
     @State private var searchScope: WorkspaceSearchScope = .current
     @State private var globalSearch = GlobalSearchStore()
+    @State private var previewLaunch: FullscreenPreviewLaunch?
+
+    private var opensFullscreenPreview: Bool {
+        #if DEBUG
+        if model.uiTesting && !ProcessInfo.processInfo.arguments.contains("--ui-files-preview") { return false }
+        #endif
+        return true
+    }
 
     private var compact: Bool { sizeClass == .compact }
     private var filesFiltered: Bool {
@@ -121,6 +129,9 @@ struct FilesView: View {
         .confirmationDialog("Move to Trash", isPresented: Binding(get: { !removing.isEmpty }, set: { if !$0 { removing = [] } }), titleVisibility: .visible) {
             Button("Move to Trash", role: .destructive) { let values = removing; removing = []; Task { await trash(values) } }
         } message: { Text(fileTrashConfirmation(removing.map(\.name), localAccount: model.localAccount)) }
+        .fullScreenCover(item: $previewLaunch) { launch in
+            FullscreenFilePreviewView(launch: launch)
+        }
     }
 
     private var stackRoot: some View {
@@ -211,7 +222,7 @@ struct FilesView: View {
                     .contextMenu { itemMenu(target) }
             }
             ForEach(files(shown)) { file in
-                fileRow(file)
+                fileRow(file, in: shown)
                     .compactObjectRow().accessibilityIdentifier("file.item.\(file.id)")
                     .swipeActions {
                         Button("Move to Trash", systemImage: "trash") { removing = [LibraryItemTarget(id: file.id, name: file.name, folder: false)] }.tint(.red)
@@ -219,6 +230,7 @@ struct FilesView: View {
                             .disabled(file.size > FileLinkTarget.maxBytes) }
                     }
                     .contextMenu {
+                        Button("Preview", systemImage: "eye") { launchPreview(for: file, in: shown) }
                         if !model.localAccount { Button("Back up to cloud", glyph: .cloudUp) { sheet = .backup([file]) } }
                         if !model.localAccount { Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
                             .disabled(file.size > FileLinkTarget.maxBytes) }
@@ -278,13 +290,23 @@ struct FilesView: View {
         }
     }
 
-    @ViewBuilder private func fileRow(_ file: LibraryFile) -> some View {
+    private func launchPreview(for file: LibraryFile, in listing: LibraryListing) {
+        let items = files(listing).map { FullscreenPreviewItem.fromLibrary($0) }
+        previewLaunch = FullscreenPreviewLaunch(items: items.isEmpty ? [FullscreenPreviewItem.fromLibrary(file)] : items, initialID: file.id)
+    }
+
+    @ViewBuilder private func fileRow(_ file: LibraryFile, in listing: LibraryListing) -> some View {
         let row = FileRow(file: file, showsLocation: filesFiltered)
         if selecting {
             Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); row } }
                 .buttonStyle(.plain).accessibilityAddTraits(selection.contains(file.id) ? .isSelected : [])
         } else if compact {
-            NavigationLink(value: FilesRoute.file(file.id)) { row }.matchedTransitionSource(id: file.id, in: zoom)
+            if opensFullscreenPreview {
+                Button { launchPreview(for: file, in: listing) } label: { row.contentShape(Rectangle()) }
+                    .buttonStyle(.plain)
+            } else {
+                NavigationLink(value: FilesRoute.file(file.id)) { row }.matchedTransitionSource(id: file.id, in: zoom)
+            }
         } else {
             Button { model.route.file = file.id } label: { row.contentShape(Rectangle()) }
                 .buttonStyle(.plain)

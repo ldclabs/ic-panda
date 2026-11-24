@@ -57,6 +57,17 @@
   --field-edge: rgb(16 37 31 / 18%);
   --field-edge-hover: rgb(16 37 31 / 30%);
   --field-inset: inset 0 1px 1px rgb(16 37 31 / 6%);
+  /* Fullscreen file preview lightbox backdrop and floating chrome. */
+  --scrim: rgb(10 18 14 / 82%);
+  --lightbox-bar: rgb(16 27 22 / 78%);
+  --lightbox-bar-hover: rgb(28 44 37 / 92%);
+  --lightbox-ink: #f3f7f4;
+  --lightbox-muted: #b8cbc0;
+  --lightbox-border: rgb(229 238 232 / 14%);
+  --lightbox-control: rgb(255 255 255 / 95%);
+  --lightbox-control-hover: #eef2eb;
+  --lightbox-control-ink: #10251f;
+  --lightbox-control-border: rgb(16 37 31 / 12%);
 }
 @media (prefers-color-scheme: light) {
   /* Small secondary text on tinted surfaces needs the stronger existing ink. */
@@ -107,6 +118,16 @@
     --on-select-strong: #ffffff;
     --bubble-mine: #1f6b52;
     --on-bubble-mine: #ffffff;
+    --scrim: rgb(4 8 6 / 88%);
+    --lightbox-bar: rgb(20 30 26 / 84%);
+    --lightbox-bar-hover: rgb(32 48 41 / 94%);
+    --lightbox-ink: #f3f7f4;
+    --lightbox-muted: #b8cbc0;
+    --lightbox-border: rgb(229 238 232 / 14%);
+    --lightbox-control: rgb(30 45 38 / 95%);
+    --lightbox-control-hover: #283b32;
+    --lightbox-control-ink: #e5eee8;
+    --lightbox-control-border: rgb(229 238 232 / 16%);
   }
 }
 
@@ -155,6 +176,16 @@
   --color-avatar-sage-ink: var(--avatar-sage-ink);
   --color-avatar-amber: var(--avatar-amber);
   --color-avatar-amber-ink: var(--avatar-amber-ink);
+  --color-scrim: var(--scrim);
+  --color-lightbox-bar: var(--lightbox-bar);
+  --color-lightbox-bar-hover: var(--lightbox-bar-hover);
+  --color-lightbox-ink: var(--lightbox-ink);
+  --color-lightbox-muted: var(--lightbox-muted);
+  --color-lightbox-border: var(--lightbox-border);
+  --color-lightbox-control: var(--lightbox-control);
+  --color-lightbox-control-hover: var(--lightbox-control-hover);
+  --color-lightbox-control-ink: var(--lightbox-control-ink);
+  --color-lightbox-control-border: var(--lightbox-control-border);
   --shadow-pop: var(--pop-shadow);
   --shadow-control: var(--control-shadow);
   --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',

@@ -14,6 +14,9 @@
   import { localeDir } from '../../shared/locales'
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
+  import FileLightbox from '../components/FileLightbox.svelte'
+  import type { PreviewItem } from '../components/preview'
+  import type { ChannelAttachmentItem } from '../../shared/contract'
   import HighlightText from '../components/HighlightText.svelte'
   import { messagePreview, type HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
@@ -100,6 +103,11 @@
   let outbox = $state<Outgoing[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
+  let lightboxOpen = $state(false)
+  let lightboxKey = $state<string | null>(null)
+  let channelAttachmentList = $state<ChannelAttachmentItem[] | null>(null)
+  let attachmentListChannel = $state<string | null>(null)
+  let attachmentListReq = 0
   let search = $state<{
     open: boolean
     query: string
@@ -172,6 +180,60 @@
     for (const row of currentDeliveries) if (row.state === 'confirmed') rows.set(row.message.seq, row.message)
     return [...rows.values()].sort((a, b) => a.seq - b.seq)
   })
+  const lightboxItems = $derived.by<PreviewItem[]>(() => {
+    const id = channel?.id
+    if (!id) return []
+    const bySeq = new Map<number, PreviewItem>()
+    if (channelAttachmentList && attachmentListChannel === id) {
+      for (const item of channelAttachmentList) {
+        bySeq.set(item.seq, {
+          key: String(item.seq),
+          source: { source: 'channel', channel: id, seq: item.seq },
+          name: item.name,
+          mime: item.mime,
+          size: item.size,
+          updatedAt: item.stored_at || item.created_at,
+          previewClass: item.preview_class,
+          previewable: item.previewable,
+          placeholderUrl: images[item.seq] || undefined
+        })
+      }
+    }
+    for (const m of shownMessages) {
+      if (m.retracted || m.hidden || m.unreadable || m.file_deleted || !m.file) continue
+      if (m.file.mime === 'application/vnd.dmsg.secret-package') continue
+      if (!bySeq.has(m.seq)) {
+        bySeq.set(m.seq, {
+          key: String(m.seq),
+          source: { source: 'channel', channel: id, seq: m.seq },
+          name: m.file.name,
+          mime: m.file.mime ?? '',
+          size: m.file.size ?? 0,
+          updatedAt: m.stored_at || m.created_at,
+          placeholderUrl: images[m.seq] || undefined
+        })
+      } else if (images[m.seq]) {
+        const existing = bySeq.get(m.seq)!
+        if (!existing.placeholderUrl) bySeq.set(m.seq, { ...existing, placeholderUrl: images[m.seq] })
+      }
+    }
+    return [...bySeq.entries()].sort((a, b) => a[0] - b[0]).map(([, item]) => item)
+  })
+
+  function openAttachmentPreview(message: any) {
+    const id = channel?.id
+    if (!id || !message?.file || message.file_deleted || message.retracted || message.file.mime === 'application/vnd.dmsg.secret-package') return
+    lightboxKey = String(message.seq)
+    lightboxOpen = true
+    const req = ++attachmentListReq
+    void call<ChannelAttachmentItem[]>('channel/attachments', { id })
+      .then((list) => {
+        if (!alive || selected !== id || req !== attachmentListReq) return
+        channelAttachmentList = list
+        attachmentListChannel = id
+      })
+      .catch(() => { /* keep currently loaded thread attachments */ })
+  }
   const shownOutbox = $derived(reading ? [] : [
     ...currentDeliveries.filter(row => row.state !== 'confirmed' && !shownMessages.some((m: any) => m.message_id === row.message_id)),
     ...outbox.filter(row => !currentDeliveries.some(pending => pending.message_id === row.message_id))
@@ -321,6 +383,9 @@
         flushDraft()
         editing = null
         images = {}
+        lightboxOpen = false
+        channelAttachmentList = null
+        attachmentListChannel = null
         search = { open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 }
         drafts[id] ??= next.draft ?? ''
         marked = 0
@@ -360,6 +425,9 @@
       editing = null
       reading = false
       images = {}
+      lightboxOpen = false
+      channelAttachmentList = null
+      attachmentListChannel = null
       highlight = null
       highlightSpans = null
       search = { open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 }
@@ -1408,6 +1476,7 @@
           onRetract={(message) => (retracting = message)}
           onHide={hide}
           onPreview={preview}
+          onOpenAttachment={openAttachmentPreview}
           onPacket={settlePacket}
           onRead={markRead}
         />
@@ -1537,3 +1606,15 @@
   {#if snapshotError}<p class="text-danger">{snapshotError}</p>{/if}
   {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} open={id=>{snapshotOpen=false;void bridge(()=>window.dmsg.openApproval(id)).catch(fail)}} />{/key}{/if}
 </Dialog>
+
+<FileLightbox
+  bind:open={lightboxOpen}
+  items={lightboxItems}
+  bind:activeKey={lightboxKey}
+  onDownload={(item) => {
+    if (item.source.source === 'channel') void download({ seq: item.source.seq, file: { name: item.name } })
+  }}
+  onSave={(item) => {
+    if (item.source.source === 'channel') void save({ seq: item.source.seq, file: { name: item.name } })
+  }}
+/>

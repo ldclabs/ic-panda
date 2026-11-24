@@ -9700,5 +9700,85 @@
     "en": "Open in conversation",
     "zh-Hans": "在会话中查看",
     "ios": "Open in conversation"
+  },
+  "preview_filter": {
+    "en": "Filter files",
+    "zh-Hans": "筛选文件",
+    "ios": "Filter files"
+  },
+  "preview_filter_previewable": {
+    "en": "Previewable",
+    "zh-Hans": "可预览",
+    "ios": "Previewable"
+  },
+  "preview_filter_images": {
+    "en": "Images",
+    "zh-Hans": "图片",
+    "ios": "Images"
+  },
+  "preview_filter_documents": {
+    "en": "Documents",
+    "zh-Hans": "文档",
+    "ios": "Documents"
+  },
+  "preview_reading": {
+    "en": "Reading",
+    "zh-Hans": "阅读",
+    "ios": "Reading"
+  },
+  "preview_unsupported": {
+    "en": "Preview is not supported for this file type.",
+    "zh-Hans": "暂不支持预览此文件类型。",
+    "ios": "Preview is not supported for this file type."
+  },
+  "preview_too_large": {
+    "en": "This file is too large to preview in app.",
+    "zh-Hans": "文件过大，暂不支持应用内预览。",
+    "ios": "This file is too large to preview in app."
+  },
+  "preview_cloud_only": {
+    "en": "This file is stored in the cloud only. Download it first to preview.",
+    "zh-Hans": "此文件仅保存在云端，请先下载到本地后再预览。",
+    "ios": "This file is stored in the cloud only. Download it first to preview."
+  },
+  "preview_decode_failed": {
+    "en": "Could not decode this file for preview.",
+    "zh-Hans": "无法解析此文件内容。",
+    "ios": "Could not decode this file for preview."
+  },
+  "preview_unavailable": {
+    "en": "This file is no longer available.",
+    "zh-Hans": "此文件已不可用。",
+    "ios": "This file is no longer available."
+  },
+  "preview_external_image_blocked": {
+    "en": "External image blocked",
+    "zh-Hans": "已拦截外链图片",
+    "ios": "External image blocked"
+  },
+  "preview_truncated": {
+    "en": "Long document truncated for preview. Download or open externally to view all content.",
+    "zh-Hans": "文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。",
+    "ios": "Long document truncated for preview. Download or open externally to view all content."
+  },
+  "preview_save_to_files": {
+    "en": "Save to Files",
+    "zh-Hans": "保存到文件",
+    "ios": "Save to Files"
+  },
+  "preview_size": {
+    "en": "Size",
+    "zh-Hans": "大小",
+    "ios": "Size"
+  },
+  "preview_open_external_link": {
+    "en": "Open external link?",
+    "zh-Hans": "打开外部链接？",
+    "ios": "Open external link?"
+  },
+  "preview_modified": {
+    "en": "Modified",
+    "zh-Hans": "修改时间",
+    "ios": "Modified"
   }
 }

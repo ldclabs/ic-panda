@@ -32,6 +32,7 @@
     trash,
     unlocked,
     device,
+    onFullscreen,
     onOpen,
     onExport,
     onBackup,
@@ -53,6 +54,7 @@
     unlocked: boolean
     /** This device's ID, to name the versions made here. */
     device: string
+    onFullscreen?: (version?: any | null) => void
     onOpen: (version: string | null) => void
     onExport: (version: string | null) => void
     onBackup: (allVersions: boolean) => void
@@ -238,6 +240,15 @@
               </button>
             {/snippet}
           </Tooltip>
+          {#if onFullscreen}
+            <Tooltip content={t('preview')}>
+              {#snippet children(props)}
+                <button {...props} class={buttonClass('ghost', 'md')} disabled={busy} onclick={() => onFullscreen(null)} data-testid="files-fullscreen-preview">
+                  <Icon name="eye" />{t('preview')}
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
           <Tooltip content={t('openFileHint')}>
             {#snippet children(props)}
               <button {...props} class={buttonClass('ghost', 'md')} disabled={busy || !canRead} onclick={() => onOpen(null)} data-testid="files-open">
@@ -315,10 +326,26 @@
           </div>
         {/if}
         {#if preview.kind === 'image'}
-          <img src={preview.url} alt={file.name} class="mx-auto max-h-72 object-contain" />
+          <button
+            type="button"
+            class="block w-full cursor-zoom-in outline-none focus-visible:ring-3 focus-visible:ring-focus/35"
+            onclick={() => onFullscreen?.(previewing)}
+            aria-label={t('preview')}
+            data-testid="files-preview-open"
+          >
+            <img src={preview.url} alt={file.name} class="mx-auto max-h-72 object-contain" />
+          </button>
           {#if preview.thumbnail}<p class="px-3 py-1.5 text-caption text-faint">{t('thumbnail')}</p>{/if}
         {:else}
-          <pre class="max-h-72 overflow-auto px-4 py-3 font-mono text-code leading-relaxed whitespace-pre-wrap select-text">{preview.text}</pre>
+          <button
+            type="button"
+            class="block w-full cursor-zoom-in text-start outline-none focus-visible:ring-3 focus-visible:ring-focus/35"
+            onclick={() => onFullscreen?.(previewing)}
+            aria-label={t('preview')}
+            data-testid="files-preview-open"
+          >
+            <pre class="max-h-72 overflow-auto px-4 py-3 font-mono text-code leading-relaxed whitespace-pre-wrap">{preview.text}</pre>
+          </button>
         {/if}
       </div>
     {/if}
@@ -450,7 +477,7 @@
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => useVersion(version.id)}>
                       <span class="flex items-center gap-2"><Icon name="check" class="text-faint" />{t('useVersion')}</span>
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item class={menuItemClass} disabled={!version.local || !previewable(file.mime)} onSelect={() => (previewing = version)} data-testid="files-version-preview">
+                    <DropdownMenu.Item class={menuItemClass} disabled={!version.local} onSelect={() => (onFullscreen ? onFullscreen(version) : (previewing = version))} data-testid="files-version-preview">
                       <span class="flex items-center gap-2"><Icon name="eye" class="text-faint" />{t('previewVersion')}</span>
                     </DropdownMenu.Item>
                   {/if}

@@ -74,7 +74,16 @@ import java.io.File
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (file.local) {
-                        Button(onClick = { client.navigation.push(Route("file-preview", id = file.id, revision = file.version)) }, modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = {
+                            val label = if (file.version != current.file.version) historical?.createdAt?.let(::messageTime) else null
+                            client.fullscreenPreview.openLibrary(
+                                files = listOf(file),
+                                initialId = file.id,
+                                version = file.version,
+                                versionLabel = label,
+                                showFilter = false,
+                            )
+                        }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Visibility, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_verified_contents_49f2c13))
                         }
                         OutlinedButton(onClick = { confirmation = "share" }, enabled = !state.working("file:open:" + file.id), modifier = Modifier.fillMaxWidth()) {

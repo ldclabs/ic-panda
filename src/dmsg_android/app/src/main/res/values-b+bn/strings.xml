@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"পদক্ষেপের অনুরোধ করুন"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"একটি ডিভাইস নীতি মাধ্যমে একটি গোপন ব্যবহার করুন"</string>
     <string name="permission_write" formatted="false">"লিখুন"</string>
+    <string name="preview_cloud_only" formatted="false">"এই ফাইলটি কেবল ক্লাউডে সংরক্ষিত আছে। প্রিভিউ করতে আগে ডাউনলোড করুন।"</string>
+    <string name="preview_decode_failed" formatted="false">"প্রিভিউয়ের জন্য ফাইলটি ডিকোড করা যায়নি।"</string>
+    <string name="preview_external_image_blocked" formatted="false">"বাহ্যিক ছবি অবরুদ্ধ"</string>
+    <string name="preview_filter" formatted="false">"ফাইল ফিল্টার করুন"</string>
+    <string name="preview_filter_documents" formatted="false">"নথি"</string>
+    <string name="preview_filter_images" formatted="false">"ছবি"</string>
+    <string name="preview_filter_previewable" formatted="false">"প্রিভিউযোগ্য"</string>
+    <string name="preview_modified" formatted="false">"পরিবর্তনের তারিখ"</string>
+    <string name="preview_open_external_link" formatted="false">"বাহ্যিক লিঙ্ক খুলবেন?"</string>
+    <string name="preview_reading" formatted="false">"পাঠ"</string>
+    <string name="preview_save_to_files" formatted="false">"ফাইলে সংরক্ষণ করুন"</string>
+    <string name="preview_size" formatted="false">"আকার"</string>
+    <string name="preview_too_large" formatted="false">"এই ফাইলটি অ্যাপের মধ্যে প্রিভিউ করার জন্য খুব বড়।"</string>
+    <string name="preview_truncated" formatted="false">"দীর্ঘ নথি প্রিভিউয়ের জন্য সংক্ষিপ্ত করা হয়েছে। সম্পূর্ণ বিষয়বস্তু দেখতে ডাউনলোড বা বাহ্যিকভাবে খুলুন।"</string>
+    <string name="preview_unavailable" formatted="false">"এই ফাইলটি আর উপলব্ধ নয়।"</string>
+    <string name="preview_unsupported" formatted="false">"এই ফাইল ধরনের জন্য প্রিভিউ সমর্থিত নয়।"</string>
     <string name="promo_granted" formatted="false">"প্রচারমূলক সদস্যতা"</string>
     <string name="promo_no_charge" formatted="false">"মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।"</string>
     <string name="receive_closed" formatted="false">"চিঠি গ্রহণ বন্ধ থাকলে কেউ নতুন চিঠি পাঠাতে পারবেন না।"</string>
@@ -1713,7 +1729,7 @@
     <string name="text_sound_29e55cd" formatted="false">"শব্দ"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"উৎস ঠিকানা"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"উৎস ডিভাইস · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"উৎস"</string>
+    <string name="text_source_fcdba0f" formatted="false">"সোর্স"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"উৎসের সীমা: 64 MiB। আর্কাইভের সংযুক্তি, পাসকি ও ইতিহাস এখানে আমদানি হয় না।"</string>
     <string name="text_spam_afdcb81" formatted="false">"স্প্যাম"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"এখন খরচযোগ্য"</string>

@@ -90,6 +90,22 @@
     <string name="permission_request_an_action" formatted="false">"Actie aanvragen"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gebruik een geheim via een apparaatbeleid"</string>
     <string name="permission_write" formatted="false">"Schrijven"</string>
+    <string name="preview_cloud_only" formatted="false">"Dit bestand staat alleen in de cloud. Download het eerst om een voorbeeld te bekijken."</string>
+    <string name="preview_decode_failed" formatted="false">"Dit bestand kon niet worden gedecodeerd voor voorbeeldweergave."</string>
+    <string name="preview_external_image_blocked" formatted="false">"Externe afbeelding geblokkeerd"</string>
+    <string name="preview_filter" formatted="false">"Bestanden filteren"</string>
+    <string name="preview_filter_documents" formatted="false">"Documenten"</string>
+    <string name="preview_filter_images" formatted="false">"Afbeeldingen"</string>
+    <string name="preview_filter_previewable" formatted="false">"Met voorbeeld"</string>
+    <string name="preview_modified" formatted="false">"Gewijzigd op"</string>
+    <string name="preview_open_external_link" formatted="false">"Externe link openen?"</string>
+    <string name="preview_reading" formatted="false">"Lezen"</string>
+    <string name="preview_save_to_files" formatted="false">"Opslaan in Bestanden"</string>
+    <string name="preview_size" formatted="false">"Grootte"</string>
+    <string name="preview_too_large" formatted="false">"Dit bestand is te groot voor een voorbeeld in de app."</string>
+    <string name="preview_truncated" formatted="false">"Lang document ingekort voor voorbeeldweergave. Download of open extern om alle inhoud te bekijken."</string>
+    <string name="preview_unavailable" formatted="false">"Dit bestand is niet meer beschikbaar."</string>
+    <string name="preview_unsupported" formatted="false">"Voorbeeldweergave wordt niet ondersteund voor dit bestandstype."</string>
     <string name="promo_granted" formatted="false">"Promotioneel lidmaatschap"</string>
     <string name="promo_no_charge" formatted="false">"Geen automatische afschrijving na afloop."</string>
     <string name="receive_closed" formatted="false">"Zolang de ontvangst is gesloten, kan niemand nieuwe brieven sturen."</string>

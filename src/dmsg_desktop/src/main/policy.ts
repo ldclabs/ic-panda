@@ -257,6 +257,7 @@ export const WINDOW_METHODS = new Set([
   'channel/search_list',
   'channel/hide',
   'channel/preview',
+  'channel/attachments',
   'channel/sponsor_cancel',
   'channel/names',
   'channel/receipts',

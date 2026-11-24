@@ -742,6 +742,8 @@
 	<string>Medeondertekeningssleutels</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Medeondertekenaars voor het voorgestelde adresbeleid</string>
+	<key>Could not decode this file for preview.</key>
+	<string>Dit bestand kon niet worden gedecodeerd voor voorbeeldweergave.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Automatisch invullen van wachtwoorden kon niet worden bijgewerkt.</string>
 	<key>Create</key>
@@ -944,6 +946,8 @@
 	<string>Negeer deze observatie</string>
 	<key>Dismiss this observation?</key>
 	<string>Deze observatie afwijzen?</string>
+	<key>Documents</key>
+	<string>Documenten</string>
 	<key>Done</key>
 	<string>Gereed</string>
 	<key>Download encrypted copy in background</key>
@@ -1062,6 +1066,8 @@
 	<string>Versleutelde back-up exporteren</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Exporteer de geselecteerde login-items naar Wachtwoord automatisch aanvullen</string>
+	<key>External image blocked</key>
+	<string>Externe afbeelding geblokkeerd</string>
 	<key>Failed</key>
 	<string>Mislukt</string>
 	<key>Favorite</key>
@@ -1120,6 +1126,8 @@
 	<string>Eenmalig invullen</string>
 	<key>Fill this login?</key>
 	<string>Invullen met dit account?</string>
+	<key>Filter files</key>
+	<string>Bestanden filteren</string>
 	<key>Filters</key>
 	<string>Kluisfilters</string>
 	<key>Fingerprint</key>
@@ -1210,6 +1218,8 @@
 	<string>Bij verlies van alle apparaten kan een gekoppelde aanmelding geüploade inhoud na de wachttijd herstellen. Een gestolen aanmelding kan dit ook, tenzij een bevoegd apparaat op tijd annuleert.</string>
 	<key>Illegal content</key>
 	<string>Illegale inhoud</string>
+	<key>Images</key>
+	<string>Afbeeldingen</string>
 	<key>Import</key>
 	<string>Importeren</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
@@ -1452,6 +1462,8 @@
 	<string>Login-identiteiten</string>
 	<key>Login identity</key>
 	<string>Aanmeldidentiteit</string>
+	<key>Long document truncated for preview. Download or open externally to view all content.</key>
+	<string>Lang document ingekort voor voorbeeldweergave. Download of open extern om alle inhoud te bekijken.</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Beheer Apple-abonnementen</string>
 	<key>Manage event endpoints</key>
@@ -1810,6 +1822,8 @@
 	<string>Open de dMsg-werkruimte → Account → Systeemintegraties → Wachtwoord automatisch aanvullen → Selecteer inlogitems</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Open dMsg. Voor het ontgrendelen en goedkeuren is nog steeds je interactie in de app vereist.</string>
+	<key>Open external link?</key>
+	<string>Externe link openen?</string>
 	<key>Open for</key>
 	<string>Open gedurende</string>
 	<key>Open in conversation</key>
@@ -1962,12 +1976,16 @@
 	<string>Preview downloadt en verifieert het pakket op dit apparaat en maakt gebruik van een downloadsessie. Kies het ontvangende apparaat voordat je doorgaat.</string>
 	<key>Preview file</key>
 	<string>Voorbeeldbestand</string>
+	<key>Preview is not supported for this file type.</key>
+	<string>Voorbeeldweergave wordt niet ondersteund voor dit bestandstype.</string>
 	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
 	<string>Voor dit bestandstype is geen voorvertoning beschikbaar. Deel een kopie om het in een andere app te openen.</string>
 	<key>Preview package</key>
 	<string>Voorbeeldpakket</string>
 	<key>Preview transfer</key>
 	<string>Overboeking bekijken</string>
+	<key>Previewable</key>
+	<string>Met voorbeeld</string>
 	<key>Previous match</key>
 	<string>Vorige overeenkomst</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
@@ -2070,6 +2088,8 @@
 	<string>Lees het gepubliceerde beleid</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Alleen-lezen kopieën die bewaard blijven om te importeren. Een kopie verwijderen heeft geen invloed op de oude iPhone of je account.</string>
+	<key>Reading</key>
+	<string>Lezen</string>
 	<key>Reading account inventory…</key>
 	<string>Accountinhoud inventariseren…</string>
 	<key>Ready</key>
@@ -2490,6 +2510,8 @@
 	<string>De geselecteerde versie opslaan?</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
 	<string>Bewaar deze items voor dMsg. Kies een account en importeer deze na het openen en ontgrendelen van de app.</string>
+	<key>Save to Files</key>
+	<string>Opslaan in Bestanden</string>
 	<key>Save to dMsg</key>
 	<string>Opslaan in dMsg</string>
 	<key>Save to library</key>
@@ -3064,8 +3086,14 @@
 	<string>Dit bestand overschrijdt de huidige bestandsgroottelimiet voor cloudback-ups.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Dit bestand staat in de prullenmand. Herstel het voordat je het opent.</string>
+	<key>This file is no longer available.</key>
+	<string>Dit bestand is niet meer beschikbaar.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Dit bestand staat niet op dit apparaat. dMsg downloadt het alleen zolang als nodig is om de nieuwe kopie te versleutelen, en je bibliotheek verandert niet.</string>
+	<key>This file is stored in the cloud only. Download it first to preview.</key>
+	<string>Dit bestand staat alleen in de cloud. Download het eerst om een voorbeeld te bekijken.</string>
+	<key>This file is too large to preview in app.</key>
+	<string>Dit bestand is te groot voor een voorbeeld in de app.</string>
 	<key>This frees its storage. A copy saved to your library stays.</key>
 	<string>Dit maakt opslag vrij. De kopie in je bibliotheek blijft.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
