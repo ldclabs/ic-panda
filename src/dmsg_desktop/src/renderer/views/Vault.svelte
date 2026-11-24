@@ -304,7 +304,8 @@
           tag: currentScope.startsWith('tag:') ? currentScope.slice(4) : null,
           sort: currentSort,
           offset: 0,
-          limit: 500
+          // Every match: the list below shows only the items this page ranks.
+          limit: 10_000
         })
         if (cancelled || !valid(at) || req !== searchSeq) return
         const hits = new Map<string, VaultSearchMeta>()

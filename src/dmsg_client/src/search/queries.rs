@@ -961,6 +961,8 @@ impl Client {
             .into_iter()
             .collect();
         let indexed = self.ensure_channel_search_index(channel)?;
+        let empty = PreparedText::new("");
+        let mut senders: HashMap<String, PreparedText> = HashMap::new();
 
         let mut hits = Vec::with_capacity(limit + 1);
         for cached in indexed {
@@ -983,16 +985,14 @@ impl Client {
             let (score, text_ranges, file_ranges, text_matched) = if parsed.is_empty() {
                 (100, Vec::new(), Vec::new(), true)
             } else {
-                let prepared_sender = sender_name
-                    .as_deref()
-                    .map(PreparedText::new)
-                    .unwrap_or_else(|| PreparedText::new(""));
-                let empty_file = PreparedText::new("");
-                let file_ref = cached.prepared_file.as_ref().unwrap_or(&empty_file);
+                let prepared_sender = senders
+                    .entry(cached.entry.account.clone())
+                    .or_insert_with(|| PreparedText::new(sender_name.as_deref().unwrap_or("")));
+                let file_ref = cached.prepared_file.as_ref().unwrap_or(&empty);
                 let fields = [
                     ("text", 100u32, &cached.prepared_text),
                     ("file", 95u32, file_ref),
-                    ("sender", 75u32, &prepared_sender),
+                    ("sender", 75u32, &*prepared_sender),
                 ];
                 let Some(doc_match) = parsed.match_prepared_fields(&fields) else {
                     continue;

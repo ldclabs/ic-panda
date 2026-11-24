@@ -210,10 +210,6 @@ impl MobileEngine {
         Ok(())
     }
 
-    pub async fn search_messages(&self, channel: String, query: String) -> Result<MessagePage> {
-        self.search_messages_page(channel, query, None).await
-    }
-
     pub async fn queue_message_action(
         &self,
         channel: String,

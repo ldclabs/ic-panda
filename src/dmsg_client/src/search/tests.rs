@@ -148,6 +148,15 @@ fn multi_token_cross_field_normalization_and_typo_tolerance() {
     assert!(Query::parse("gihub").match_text("GitHub").is_some());
     assert!(Query::parse("alipy").match_text("Alipay").is_some());
     assert!(Query::parse("zhaoshnag").match_text("招商银行").is_some());
+
+    // Typo tolerance steps over non-ASCII letters instead of stalling on them.
+    assert!(Query::parse("wrld").match_text("Привет world").is_some());
+    assert!(
+        Query::parse("helo")
+            .match_text("こんにちは hello")
+            .is_some()
+    );
+    assert!(Query::parse("vodka").match_text("Водка").is_none());
 }
 
 #[test]

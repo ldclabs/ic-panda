@@ -559,11 +559,13 @@ fn attachment_search_pages_preserve_all_matches_and_reply_targets() {
         .unwrap();
     assert!(
         client
-            .channel_search(&channel, "plan.pdf", 1)
+            .channel_search_before(&channel, "plan.pdf", u64::MAX, 1)
             .unwrap()
             .is_empty()
     );
-    let body_matches = client.channel_search(&channel, "keyword", 1).unwrap();
+    let body_matches = client
+        .channel_search_before(&channel, "keyword", u64::MAX, 1)
+        .unwrap();
     assert_eq!(body_matches[0].seq, 105);
     assert!(body_matches[0].file_deleted);
 }
@@ -653,15 +655,53 @@ fn edits_and_withdrawals_reach_their_authors_messages_in_any_order() {
     );
     // Search finds text and file names, never what was withdrawn.
     assert_eq!(
-        seqs(client.channel_search(&channel, "EDITED", 5).unwrap()),
+        seqs(
+            client
+                .channel_search_before(&channel, "EDITED", u64::MAX, 5)
+                .unwrap()
+        ),
         [1]
     );
     assert!(
         client
-            .channel_search(&channel, "secret", 5)
+            .channel_search_before(&channel, "secret", u64::MAX, 5)
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn a_window_in_the_recent_island_stops_at_the_unfetched_gap() {
+    let dir = crate::testing::TempDir::new();
+    let client = crate::testing::unlocked(&dir.0, false, None);
+    let me = client.me().unwrap();
+    let channel = "0".repeat(64);
+    let keys = client.keys().unwrap();
+    for seq in (1..=3).chain(8..=12) {
+        let message = written(seq, &me, "text");
+        client
+            .workspace
+            .put_private(keys, &format!("{INBOX}{channel}:{seq:020}"), &message)
+            .unwrap();
+    }
+    let mut local = client.local(&channel).unwrap();
+    local.message = 3;
+    local.recent = Some((7, 12));
+    client
+        .workspace
+        .put_private(keys, &format!("{LOCAL}{channel}"), &local)
+        .unwrap();
+    let seqs = |items: &[Message]| items.iter().map(|m| m.seq).collect::<Vec<_>>();
+
+    let island = client.channel_messages_around(&channel, 9, 5, 1).unwrap();
+    assert_eq!(seqs(&island.items), [8, 9, 10]);
+    assert!(island.has_before);
+    assert_eq!(island.next_before, Some(8));
+
+    let prefix = client.channel_messages_around(&channel, 3, 1, 0).unwrap();
+    assert_eq!(seqs(&prefix.items), [2, 3]);
+    assert!(prefix.has_before);
+    assert_eq!(prefix.next_before, Some(2));
 }
 
 #[test]

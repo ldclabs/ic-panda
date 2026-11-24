@@ -217,7 +217,7 @@
       try {
         const [channelHits, msgGroups] = await Promise.all([
           call<any[]>('channel/search_list', { query: q }).catch(() => null),
-          call<any[]>('channel/search_all', { query: q, limit_per_channel: 3, max_channels: 15, has_file: false }).catch(() => null)
+          call<any[]>('channel/search_all', { query: q, limit: 3, max_channels: 15, has_file: false }).catch(() => null)
         ])
         if (cancelled || !alive || req !== listSearchSeq) return
         if (channelHits) listSearchHits = { key: q, map: new Map(channelHits.map((h) => [h.id, h])) }
@@ -334,6 +334,9 @@
       reading = win.has_after
       channel = next
       outbox = box
+      messageDeliveries.loaded(id, win.items.map((m: any) => m.seq), sendRevision)
+      for (const item of box) if (messageDeliveries.adopt(id, item)) retry(item)
+      if (switching && next.ledger?.members?.[me ?? '']) void refreshChannel(id)
       return
     }
     // Edits and withdrawals update their original rows; reread the opening

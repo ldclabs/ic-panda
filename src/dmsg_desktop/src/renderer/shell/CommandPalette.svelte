@@ -96,7 +96,7 @@
     const rest = trimmed.slice(1).trim()
     if (first === '>') return { mode: 'commands' as const, query: rest, scopes: [] as string[] }
     if (first === '#' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['vault'] }
-    if (first === '@' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['channels', 'messages', 'inbox'] }
+    if (first === '@' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['channels', 'messages', 'letters'] }
     if (first === '/' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['files'] }
     return { mode: 'all' as const, query: trimmed, scopes: [] as string[] }
   })
@@ -231,8 +231,9 @@
     })
   )
 
+  // The inbox opens received letters by id; sent, pending and draft letters live elsewhere.
   const letterEntries = $derived(
-    (hits?.letters ?? []).map((hit): Entry => ({
+    (hits?.letters ?? []).filter((hit) => hit.box_kind === 'inbox' || hit.box_kind === 'archive').map((hit): Entry => ({
       label: (hit.snippet_spans?.map((s: HighlightSpan) => s.text).join('') || hit.display_name || shortId(hit.account)),
       spans: hit.snippet_spans?.length ? hit.snippet_spans : hit.name_spans,
       value: `letter:${hit.box_kind}:${hit.id}`,

@@ -21,9 +21,9 @@ class MessageComposerTest {
         assertEquals(listOf(second), authored.native().attachments)
     }
 
-    @Test fun refreshedMessagesReplaceTheCoveredRangeAndObsoleteSearchHits() {
+    @Test fun refreshedMessagesReplaceTheCoveredRange() {
         fun message(n: Int) = MessageItem(n.toString(), n.toULong(), "author", "message", 0u, null, null, null, false, "digest", null, false, false, false, false)
-        val loaded = MessageTimeline("channel", "", (2..5).map(::message), true, 2u)
+        val loaded = MessageTimeline("channel", (2..5).map(::message), true, 2u)
         val refreshed = MessagePage(1u, listOf(message(3), message(5).copy(text = "edited"), message(6)), true, 3u)
         val joined = loaded.withPage(refreshed, older = false)
         assertEquals(listOf("2", "3", "5", "6"), joined.items.map { it.id })
@@ -32,9 +32,6 @@ class MessageComposerTest {
         val gap = MessagePage(1u, listOf(message(9)), true, 9u)
         assertEquals(9uL, joined.withPage(gap, older = false).before)
         assertEquals(gap.items, joined.withPage(gap, older = false).items)
-        val search = loaded.copy(query = "message").withPage(MessagePage(1u, emptyList(), false, null), older = false)
-        assertTrue(search.items.isEmpty())
-        assertFalse(search.hasMore)
     }
     @Test fun persistedReplyUsesExactUnsignedSequenceAndMissingSelectionsFail() {
         val value = """[{"channel":"channel","draft":{"text":"draft","attachments":[{"file":"file","version":"v1","name":"Review.txt"}],"reply_to":{"seq":9007199254740993,"digest":"digest"}}}]"""

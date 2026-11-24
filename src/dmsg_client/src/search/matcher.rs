@@ -1246,7 +1246,8 @@ fn match_typo(prepared: &PreparedText, needle: &str) -> Option<FieldMatch> {
     // 1) Check contiguous ASCII alphanumeric words (and camelCase subwords).
     let mut i = 0usize;
     while i < prepared.units.len() {
-        if prepared.units[i].is_separator || prepared.units[i].pinyin.is_some() {
+        let unit = &prepared.units[i];
+        if unit.is_separator || unit.pinyin.is_some() || !unit.folded.is_ascii_alphanumeric() {
             i += 1;
             continue;
         }

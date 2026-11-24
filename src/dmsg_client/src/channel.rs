@@ -4936,8 +4936,15 @@ impl Client {
         base(channel)?;
         let before = before.min(500);
         let after = after.min(500);
+        let local = self.local(channel)?;
+        // Like `channel_message_page`, a recent island is not joined to older cached
+        // messages across an unfetched gap; `earlier_messages` fills it from `next_before`.
+        let floor = local
+            .recent
+            .filter(|(gap, _)| seq > *gap)
+            .map_or(0, |(gap, _)| gap);
         let earlier = if before > 0 {
-            self.channel_messages_before(channel, seq, before.saturating_add(1))?
+            self.messages_before(channel, seq, before.saturating_add(1), floor)?
         } else {
             Vec::new()
         };
@@ -4970,10 +4977,10 @@ impl Client {
         }
         items.extend(newer);
 
-        let local = self.local(channel)?;
         let first_seq = items.first().map(|m| m.seq);
         let last_seq = items.last().map(|m| m.seq);
         let has_before = has_earlier_local
+            || floor > 0
             || first_seq.is_some_and(|s| {
                 s > 1 && local.recent.is_none_or(|(after_gap, _)| s > after_gap + 1)
             });
@@ -5012,15 +5019,6 @@ impl Client {
             has_more,
             next_before,
         })
-    }
-
-    /// The messages of a channel matching `query` via the unified search engine
-    /// (text, attachment filename, or cached sender name), newest first, at most `limit`.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked.
-    pub fn channel_search(&self, channel: &str, query: &str, limit: usize) -> Result<Vec<Message>> {
-        self.channel_search_before(channel, query, u64::MAX, limit)
     }
 
     /// Search older verified local messages, including attachment names and sender display names.

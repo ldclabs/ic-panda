@@ -162,33 +162,6 @@ impl MobileEngine {
         .await
     }
 
-    pub async fn search_messages_page(
-        &self,
-        channel: String,
-        query: String,
-        before: Option<u64>,
-    ) -> Result<MessagePage> {
-        let generation = self.host.generation();
-        let mut items = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(async move {
-                    c.channel_search_before(&channel, &query, before.unwrap_or(u64::MAX), 101)
-                })
-            })
-            .await?;
-        let has_more = items.len() > 100;
-        items.truncate(100);
-        let next_before = has_more.then(|| items.last().map_or(0, |m| m.seq));
-        items.reverse();
-        Ok(MessagePage {
-            generation,
-            items: items.into_iter().map(MessageItem::from).collect(),
-            has_more,
-            next_before,
-        })
-    }
-
     pub async fn queue_attachment_reply(
         &self,
         channel: String,

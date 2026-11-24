@@ -329,7 +329,7 @@ import net.dmsg.core.MessageItem
             scrolledAnchor = null
             client.messages.loadAround(channel, anchorSequence)
         } else {
-            client.messages.load(channel, search = "")
+            client.messages.load(channel)
         }
     }
     LaunchedEffect(channel, rows, currentTimeline?.hasAfter, pageActive, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
@@ -364,7 +364,7 @@ import net.dmsg.core.MessageItem
                     setSearchMode(next)
                     if (next == BrowseSearchMode.Browse) {
                         search = ""; searchHasFile = false; activeHitIndex = -1
-                        if (currentTimeline?.hasAfter == true) client.messages.load(channel, false, search = "")
+                        if (currentTimeline?.hasAfter == true) client.messages.load(channel, false)
                     }
                 })
             Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -485,7 +485,7 @@ import net.dmsg.core.MessageItem
                         OutlinedButton(onClick = client.messages::newer, enabled = timeline !is ReadState.Loading) {
                             Text(str(R.string.search_newer_messages))
                         }
-                        TextButton(onClick = { scrolledAnchor = null; opened = false; client.messages.load(channel, false, search = "") }) {
+                        TextButton(onClick = { scrolledAnchor = null; opened = false; client.messages.load(channel, false) }) {
                             Text(str(R.string.search_latest_messages))
                         }
                     }

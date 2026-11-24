@@ -145,6 +145,8 @@ pub const PREFIXES: &[(&str, Class)] = &[
     // Channels and the inbox sync through the relay.
     ("channel:", Class::Stays),
     ("channel-msg:", Class::Stays),
+    // The sealed message search index is rebuilt from the messages it covers.
+    ("search-msg:", Class::Stays),
     ("channel-file:", Class::Stays),
     ("channel-observed:", Class::Stays),
     ("channel-job:", Class::Stays),

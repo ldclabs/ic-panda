@@ -183,10 +183,10 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { compose.onAllNodesWithText("No matching results").fetchSemanticsNodes().isNotEmpty() }
         capture("ux-search-no-matches")
         compose.onNode(hasSetTextAction()).performTextReplacement("Received image.png")
-        compose.waitUntil(12_000) { client.messages.matches.value()?.singleOrNull()?.channel == channel }
+        compose.waitUntil(12_000) { client.messages.richMatches.value()?.singleOrNull()?.channelId == channel }
         capture("ux-search-across-conversations")
         compose.onNode(hasClickAction() and hasText("A file already saved on this device")).performScrollTo().performClick()
-        compose.waitUntil(10_000) { client.messages.reference.value()?.message?.sequence == 1uL }
+        compose.waitUntil(10_000) { client.messages.timeline.value()?.let { it.channel == channel && it.anchor == 1uL } == true }
         capture("ux-search-original")
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("browse-search-entry").assertTextContains("Received image.png")

@@ -455,7 +455,8 @@ struct ConversationView: View {
             hasAfter = window.hasAfter
             nextAfter = window.nextAfter
             oldestLoaded = window.items.first?.sequence
-            historyAnchor = window.anchor
+            // A window that reaches the newest message continues as the live timeline.
+            historyAnchor = window.hasAfter ? window.anchor : nil
             highlightedSequence = window.anchor
             highlightSpans = spans
             messagesKnown = true
@@ -726,6 +727,11 @@ struct ConversationView: View {
                 hasAfter = window.hasAfter
                 nextAfter = window.nextAfter
                 highlightedSequence = window.anchor
+                // Refreshes then read the live timeline down to the window instead of resetting to it.
+                if !window.hasAfter {
+                    oldestLoaded = window.items.first?.sequence
+                    historyAnchor = nil
+                }
             } else {
                 var page = try await readMessages(before: historyAnchor.map { $0 == .max ? $0 : $0 + 1 })
                 fresh = page.items
@@ -755,7 +761,7 @@ struct ConversationView: View {
             }
             if hasEarlier != moreBefore { hasEarlier = moreBefore }
             if nextBefore != cursorBefore { nextBefore = cursorBefore }
-            if historyAnchor == nil && firstUnread == nil && channel.unread > 0 {
+            if historyAnchor == nil && highlightedSequence == nil && firstUnread == nil && channel.unread > 0 {
                 firstUnread = fresh.first { $0.sequence > channel.readThrough && $0.account != model.session?.account }?.sequence
             }
             if !messagesKnown { messagesKnown = true }

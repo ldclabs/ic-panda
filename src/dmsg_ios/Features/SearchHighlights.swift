@@ -16,21 +16,52 @@ func highlightedText(_ fallback: String, spans: [HighlightSpan]?) -> AttributedS
 }
 
 /// Renders matched term highlights inside a conversation bubble while keeping own-bubble contrast high.
-func bubbleHighlightedText(_ fallback: String, spans: [HighlightSpan]?, own: Bool) -> AttributedString {
-    guard let spans, !spans.isEmpty else { return AttributedString(fallback) }
-    var output = AttributedString()
-    for span in spans {
-        var piece = AttributedString(span.text)
-        if span.matched {
-            piece.inlinePresentationIntent = .stronglyEmphasized
-            if own {
-                piece.underlineStyle = .single
-            } else {
-                piece.backgroundColor = Theme.fill
-            }
+/// The bubble always shows the full message: spans that slice a shortened snippet only name the terms to mark.
+func bubbleHighlightedText(_ text: String, spans: [HighlightSpan]?, own: Bool) -> AttributedString {
+    guard let spans, !spans.isEmpty else { return AttributedString(text) }
+    func marked(_ value: Substring) -> AttributedString {
+        var piece = AttributedString(String(value))
+        piece.inlinePresentationIntent = .stronglyEmphasized
+        if own {
+            piece.underlineStyle = .single
+        } else {
+            piece.backgroundColor = Theme.fill
         }
-        output.append(piece)
+        return piece
     }
+    if spans.map(\.text).joined() == text {
+        var output = AttributedString()
+        for span in spans {
+            output.append(span.matched ? marked(Substring(span.text)) : AttributedString(span.text))
+        }
+        return output
+    }
+    var ranges: [Range<String.Index>] = []
+    for term in Set(spans.filter { $0.matched && !$0.text.isEmpty }.map(\.text)) {
+        var from = text.startIndex
+        while from < text.endIndex,
+              let found = text.range(of: term, options: .caseInsensitive, range: from..<text.endIndex) {
+            ranges.append(found)
+            from = found.upperBound
+        }
+    }
+    guard !ranges.isEmpty else { return AttributedString(text) }
+    var merged: [Range<String.Index>] = []
+    for range in ranges.sorted(by: { $0.lowerBound < $1.lowerBound }) {
+        if let last = merged.last, range.lowerBound <= last.upperBound {
+            merged[merged.count - 1] = last.lowerBound..<max(last.upperBound, range.upperBound)
+        } else {
+            merged.append(range)
+        }
+    }
+    var output = AttributedString()
+    var position = text.startIndex
+    for range in merged {
+        output.append(AttributedString(String(text[position..<range.lowerBound])))
+        output.append(marked(text[range]))
+        position = range.upperBound
+    }
+    output.append(AttributedString(String(text[position...])))
     return output
 }
 
