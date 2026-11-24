@@ -5,6 +5,8 @@ import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
 import android.content.Intent
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -204,7 +206,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 Text(secretStateName(value.state), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 LabelValue(str(R.string.text_package_size_04b1f98).trimEnd(' ', '·', ':'), fileSize(value.bytes))
                 if (value.chunks > 0u) {
-                    LinearProgressIndicator(progress = { (value.uploaded.toDouble() / value.chunks.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    Progress((value.uploaded.toDouble() / value.chunks.toDouble()).toFloat().coerceIn(0f, 1f))
                     Text(localizedNumber(value.uploaded) + " / " + localizedNumber(value.chunks), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -236,9 +238,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     Text(str(R.string.text_share_link_b335ffa), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     SelectionContainer { Text(link, style = MaterialTheme.typography.bodySmall.code()) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { client.clipboard.copy(link) }) {
-                            Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_link_8e702f5))
-                        }
+                        CopyButton(str(R.string.text_copy_link_8e702f5)) { client.clipboard.copy(link) }
                         TextButton(onClick = { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link), null)) }) {
                             Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa))
                         }
@@ -284,6 +284,11 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     var choosingFolder by remember { mutableStateOf(false) }
     val working = state.working("secret:preview") || state.working("secret:import")
     LaunchedEffect(source) { client.secretSharing.receiver(source); client.secretSharing.refreshIncoming() }
+    // A package the device refuses to open (wrong password, altered or expired) answers with the Reject haptic.
+    val haptics = LocalHapticFeedback.current
+    val refused = read is ReadState.Failed<*>
+    val wasRefused = remember { booleanArrayOf(refused) }
+    LaunchedEffect(refused) { if (refused && !wasRefused[0]) haptics.performHapticFeedback(HapticFeedbackType.Reject); wasRefused[0] = refused }
     LaunchedEffect(qr.result) { client.qr.consume("secret-package")?.let { link -> client.secretSharing.editIncoming { it.copy(link = link) } } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (current == null) return@Column

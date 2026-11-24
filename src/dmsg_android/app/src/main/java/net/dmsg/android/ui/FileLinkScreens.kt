@@ -162,7 +162,7 @@ import net.dmsg.android.core.*
                     DetailCard {
                         Text(str(R.string.text_encrypting_and_publishing_the_selected_copy_84ee298), style = MaterialTheme.typography.bodyMedium)
                         val value = progress[id]
-                        if (value != null && value.total > 0u) LinearProgressIndicator(progress = { (value.completed.toDouble() / value.total.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                        if (value != null && value.total > 0u) Progress((value.completed.toDouble() / value.total.toDouble()).toFloat().coerceIn(0f, 1f))
                         else LinearProgressIndicator(Modifier.fillMaxWidth())
                         OutlinedButton(onClick = { client.fileLinks.pause(id) }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_pause_and_keep_this_creation_31febec)) }
                     }
@@ -203,10 +203,10 @@ import net.dmsg.android.core.*
                 Button(onClick = {
                     if (link.active) { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link.url) }, null)) }
                 }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa)) }
-                OutlinedButton(onClick = {
+                CopyButton(str(R.string.text_copy_link_8e702f5), outlined = true) {
                     val now = System.currentTimeMillis().coerceAtLeast(0).toULong()
                     if (link.active && now < link.expiresAt) client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
-                }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_link_8e702f5)) }
+                }
             }
         }
         if (link.state != "revoked") {

@@ -71,14 +71,12 @@ import net.dmsg.android.core.*
                     )
                     if (transfer.role == "receive") {
                         TransferIdentity(str(R.string.text_session_code_78cc2a3), transfer.session)
-                        OutlinedButton(onClick = { client.clipboard.copy(transfer.session) }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_session_code_9c60941))
-                        }
+                        CopyButton(str(R.string.text_copy_session_code_9c60941), outlined = true) { client.clipboard.copy(transfer.session) }
                         TransferIdentity(str(R.string.text_receiving_device_id_2b4bb35), transfer.to)
                         if (transfer.running) transfer.addresses.forEach { address -> TransferIdentity(str(R.string.text_address_d082ce5), address) }
                     } else TransferIdentity(str(R.string.text_receiving_device_id_2b4bb35), transfer.to)
                     if (transfer.state == "running") {
-                        LinearProgressIndicator(progress = { if (transfer.report.total == 0uL) 0f else (transfer.report.bytes.toDouble() / transfer.report.total.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                        Progress(if (transfer.report.total == 0uL) 0f else (transfer.report.bytes.toDouble() / transfer.report.total.toDouble()).toFloat().coerceIn(0f, 1f))
                         Text(fileSize(transfer.report.bytes) + " / " + fileSize(transfer.report.total), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (!transfer.running && transfer.report.peer != null) {

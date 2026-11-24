@@ -5,6 +5,7 @@ import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.localizedNumber
 import net.dmsg.android.platform.str
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.focusable
@@ -118,11 +119,12 @@ import net.dmsg.core.MessageItem
                     }, trailing = {
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             listTime(channel.lastAt).takeIf { it.isNotEmpty() }?.let { time ->
-                                Text(time, style = MaterialTheme.typography.labelSmall, color = if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                val timeColor by animateColorAsState(if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, Motion.effects(), label = "time")
+                                Text(time, style = MaterialTheme.typography.labelSmall, color = timeColor)
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (channel.muted) Icon(Icons.Outlined.NotificationsOff, str(R.string.text_muted_8d0508d), Modifier.size(16.dp))
-                                if (channel.unread > 0u) Badge { Text(localizedNumber(channel.unread)) }
+                                CountBadge(channel.unread.toLong()) { localizedNumber(it) }
                             }
                         }
                     })
@@ -208,6 +210,13 @@ import net.dmsg.core.MessageItem
     val pending = outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty().filter {
         search.isBlank() || it.text.contains(search, true) || it.attachmentName?.contains(search, true) == true
     }
+    // A send that fails answers with the Reject haptic, once per failure.
+    val failedSends = pending.count { !state.working("message:send:" + it.id) && it.error != null && it.error != "EXECUTION_UNKNOWN" }
+    val failedBefore = remember(channel) { intArrayOf(failedSends) }
+    LaunchedEffect(failedSends) {
+        if (failedSends > failedBefore[0]) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        failedBefore[0] = failedSends
+    }
     LaunchedEffect(focusReply) {
         if (focusReply) { composerFocus.requestFocus(); keyboard?.show(); focusReply = false }
     }
@@ -266,9 +275,15 @@ import net.dmsg.core.MessageItem
         if (searchMode != BrowseSearchMode.Browse) {
             BrowseSearchRow(search, { search = it; client.messages.search(it) }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
                 searchMode, setMode = setSearchMode)
-        } else syncError?.takeIf { it != dismissedError }?.let { error ->
-            Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) {
-                Notice(errorText(error), true) { TextButton(onClick = { dismissedError = error }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_close_6cf4a77)) } }
+        } else {
+            val shownError = syncError?.takeIf { it != dismissedError }
+            val error = retained(shownError)
+            Reveal(shownError != null) {
+                error?.let {
+                    Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) {
+                        Notice(errorText(it), true) { TextButton(onClick = { dismissedError = it }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_close_6cf4a77)) } }
+                    }
+                }
             }
         }
         ReadFeedback(blocked, { client.safety.loadBlocks() })
@@ -284,7 +299,8 @@ import net.dmsg.core.MessageItem
                 // Consecutive messages from one sender on one day form a group: 2 dp apart, inner corners tucked in.
                 val joinsPrevious = !newDay && previous?.account == message.account && message.id != firstUnread
                 val joinsNext = next != null && next.account == message.account && messageDay(next.createdAtMs) == day && next.id != firstUnread
-                Column(Modifier.fillMaxWidth().padding(top = if (joinsPrevious) 2.dp else 12.dp), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+                // New messages fade in and the rest make room; a queued message fades into its stored copy.
+                Column(Modifier.animateItem().fillMaxWidth().padding(top = if (joinsPrevious) 2.dp else 12.dp), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
                     if (newDay) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     if (message.id == firstUnread) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     if (!joinsPrevious) ParticipantIdentity(client, message.account)
@@ -320,7 +336,7 @@ import net.dmsg.core.MessageItem
             }
             item { ReadFeedback(outgoing, { client.messages.load(channel, false) }) }
             items(pending, key = { "outgoing:" + it.id }) { queued ->
-                Column(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalAlignment = Alignment.End) {
+                Column(Modifier.animateItem().fillMaxWidth().padding(top = 12.dp), horizontalAlignment = Alignment.End) {
                     Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.padding(start = 48.dp)
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest, bubbleShape(mine = true, joinsPrevious = false, joinsNext = false)).padding(horizontal = 14.dp, vertical = 10.dp))
                     if (queued.text.isNotBlank()) queued.attachmentName?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -345,17 +361,20 @@ import net.dmsg.core.MessageItem
                 item { EmptyState(str(if (search.isBlank()) R.string.text_no_messages_yet_1d23127 else R.string.no_matches)) }
             }
         }
-        composer.reply?.let { reply -> Row(Modifier.padding(start = pageMargin(), top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // The reply and attachments unfold above the composer and the conversation makes room.
+        val replying = retained(composer.reply)
+        Reveal(composer.reply != null) { replying?.let { reply -> Row(Modifier.padding(start = pageMargin(), top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             QuoteBar(Modifier.weight(1f)) {
                 Text(str(R.string.text_reply_b4c9334), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = { update(composer.copy(reply = null)) }) { Icon(Icons.Outlined.Close, str(R.string.text_cancel_reply_b66716c)) }
-        } }
-        if (composer.attachments.isNotEmpty()) LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(composer.attachments, key = { "${it.file}:${it.version}" }) { file -> InputChip(selected = true, onClick = {}, label = { Text(file.name, Modifier.widthIn(max = 180.dp), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        } } }
+        val attachments = retained(composer.attachments.takeIf { it.isNotEmpty() }).orEmpty()
+        Reveal(composer.attachments.isNotEmpty()) { LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(if (composer.attachments.isEmpty()) attachments else composer.attachments, key = { "${it.file}:${it.version}" }) { file -> InputChip(selected = true, onClick = {}, modifier = Modifier.animateItem(), label = { Text(file.name, Modifier.widthIn(max = 180.dp), maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, trailingIcon = { IconButton(onClick = { update(composer.copy(attachments = composer.attachments.filterNot { it.file == file.file && it.version == file.version })) }) { Icon(Icons.Outlined.Close, str(R.string.text_remove_attachment_d043b7e) + file.name) } }) }
-        }
+        } }
         if (!draftsReady) ReadFeedback(channels, client.messages::browse)
         if (info?.canPublish == false) Notice(str(R.string.text_you_cannot_publish_in_the_current_channel_state_a56d35a))
         // A filled capsule holds the attachment menu and the text; the send button grows in once there is something to send.
@@ -471,9 +490,7 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
                         }
                     }
                 }
-                OutlinedButton(onClick = { client.clipboard.copy(shown.text) }, enabled = shown.text.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_d6e9651))
-                }
+                CopyButton(str(R.string.text_copy_d6e9651), outlined = true, enabled = shown.text.isNotEmpty()) { client.clipboard.copy(shown.text) }
             }
         }
     }

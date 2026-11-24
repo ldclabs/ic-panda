@@ -1,5 +1,6 @@
 package net.dmsg.android.ui.kit
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.dmsg.android.ui.Motion
 
 /**
  * A round avatar: the [image] when there is one, else an [icon], else the first letter of [label]
@@ -29,11 +31,16 @@ import androidx.compose.ui.unit.dp
         colors.tertiaryContainer to colors.onTertiaryContainer)
     val (background, content) = tones[Math.floorMod(seed.hashCode(), tones.size)]
     Box(modifier.size(size).clip(CircleShape).background(background), contentAlignment = Alignment.Center) {
-        when {
-            image != null -> Image(image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            icon != null -> Icon(icon, null, Modifier.size(size * 0.55f), tint = content)
-            else -> Text(initial(label), color = content, maxLines = 1,
-                style = if (size >= 40.dp) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge)
+        // A picture that arrives after the initial fades in over it; one already loaded shows at once.
+        Crossfade(image, animationSpec = Motion.effects(), label = "avatar") { picture ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                when {
+                    picture != null -> Image(picture, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    icon != null -> Icon(icon, null, Modifier.size(size * 0.55f), tint = content)
+                    else -> Text(initial(label), color = content, maxLines = 1,
+                        style = if (size >= 40.dp) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge)
+                }
+            }
         }
     }
 }

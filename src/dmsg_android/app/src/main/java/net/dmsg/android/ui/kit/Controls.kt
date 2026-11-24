@@ -1,5 +1,7 @@
 package net.dmsg.android.ui.kit
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -8,12 +10,15 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
+import net.dmsg.android.ui.Motion
 import net.dmsg.android.ui.page
 import net.dmsg.android.ui.pageMargin
 
@@ -60,4 +65,21 @@ import net.dmsg.android.ui.pageMargin
             }
         },
     )
+}
+
+/** A determinate progress bar that glides to each new value instead of jumping. */
+@Composable internal fun Progress(fraction: Float, modifier: Modifier = Modifier.fillMaxWidth()) {
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.progress(), label = "progress")
+    LinearProgressIndicator(progress = { shown }, modifier = modifier)
+}
+
+/**
+ * A secret being shown develops from a blur each time a new [value] appears (a reveal, a new
+ * one-time code); hiding it, when [value] turns null, is instant.
+ */
+@Composable internal fun Modifier.develop(value: Any?): Modifier {
+    // A new value starts blurred in the same frame that shows it.
+    val clarity = remember(value) { Animatable(if (value == null) 1f else 0f) }
+    LaunchedEffect(clarity) { clarity.animateTo(1f, Motion.effects()) }
+    return blur(((1f - clarity.value) * 6f).dp).graphicsLayer { alpha = 0.35f + 0.65f * clarity.value }
 }

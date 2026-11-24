@@ -33,7 +33,7 @@ import net.dmsg.android.core.*
         } else {
             Text(if (job.plan.method == "PUT") str(R.string.text_encrypted_backup_upload_5b29d9b) else str(R.string.text_encrypted_backup_download_9382fee),
                 style = MaterialTheme.typography.bodyMedium)
-            LinearProgressIndicator(progress = { if (job.plan.parts.isEmpty()) 1f else job.completed.size.toFloat() / job.plan.parts.size }, modifier = Modifier.fillMaxWidth())
+            Progress(if (job.plan.parts.isEmpty()) 1f else job.completed.size.toFloat() / job.plan.parts.size)
             Text(fileSize(job.bytes.toULong()) + " / " + fileSize(job.plan.size.toULong()),
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(when (job.phase) {

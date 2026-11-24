@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -35,9 +37,9 @@ import net.dmsg.core.*
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
         Section {
-            val waiting = state.session?.approvalsWaiting?.takeIf { it > 0u }
+            val waiting = state.session?.approvalsWaiting
             ListRow(str(R.string.text_approvals_1b5e94c), glyph = R.drawable.glyph_approvals,
-                trailing = waiting?.let { count -> { Badge { Text(if (count > 99u) "99+" else localizedNumber(count)) } } }) { go("approvals") }
+                trailing = { CountBadge((waiting ?: 0u).toLong()) { count -> if (count > 99) "99+" else localizedNumber(count) } }) { go("approvals") }
             ListRow(str(R.string.text_account_security_41c2886), glyph = R.drawable.glyph_security) { go("security") }
             ListRow(str(R.string.text_devices_bebe058), glyph = R.drawable.glyph_device) { go("devices") }
             ListRow(str(R.string.text_switch_account_52f71df), glyph = R.drawable.glyph_account) { go("accounts") }
@@ -202,6 +204,14 @@ private fun approvalSource(source: String): String = when {
     var decision by remember(selected, state.epoch) { mutableStateOf<Pair<ApprovalDetail, Boolean>?>(null) }
     var technical by remember(selected) { mutableStateOf(false) }
     val current = detail.valueOrNull()?.takeIf { it.id == selected }
+    // A decision that went through answers with the Confirm haptic once the request leaves "awaiting_user".
+    val haptics = LocalHapticFeedback.current
+    val decided = remember(selected) { booleanArrayOf(false) }
+    val deciding = state.working("approval:decide:" + selected)
+    LaunchedEffect(deciding, current?.state) {
+        if (deciding) decided[0] = true
+        else if (decided[0] && current != null && current.state != "awaiting_user") { decided[0] = false; haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
+    }
     LaunchedEffect(selected, state.epoch) { if (selected.isEmpty()) client.approvals.refreshRemote() else client.approvals.select(selected) }
     DisposableEffect(selected) { onDispose { client.approvals.leave(selected) } }
     val scroll = if (selected.isEmpty()) workspaceScrollState(client.navigation, "approvals:index") else key(selected) { rememberScrollState() }

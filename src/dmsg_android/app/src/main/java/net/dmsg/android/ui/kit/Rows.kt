@@ -9,9 +9,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,9 +127,7 @@ import net.dmsg.android.ui.code
                 copiedAt = SystemClock.elapsedRealtime()
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             }) {
-                Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
-                    str(R.string.text_copy_d6e9651) + " · " + label,
-                    tint = if (copiedAt != 0L) MaterialTheme.colorScheme.primary else LocalContentColor.current)
+                CopyIcon(copiedAt != 0L, str(R.string.text_copy_d6e9651) + " · " + label)
             }
         } },
         modifier = modifier.clipTo(rowShape())

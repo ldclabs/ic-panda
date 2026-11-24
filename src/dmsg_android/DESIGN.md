@@ -54,6 +54,9 @@ motion:
   components: material3 1.4.0 standard motion scheme (its MotionScheme API is internal)
   spatial: 'spring, damping 0.8 / stiffness 380 (page slides)'
   effects: 'critically damped springs, stiffness 1600 (fades in), 3800 (fades out)'
+  spatialFast: 'spring, damping 0.6 / stiffness 800 (ticks, badges, stars)'
+  tick: 'linear, 1000 ms (countdown rings)'
+  progress: 'ProgressIndicatorDefaults.ProgressAnimationSpec (determinate bars)'
   pulse: '900 ms, reversing (skeleton rows)'
 ---
 
@@ -268,11 +271,41 @@ changes never do. `UiConventionsTest` rejects literal specs elsewhere.
   (`SeekableTransitionState`), so the parent page and its bar show as the
   finger moves; cancelling returns and releasing completes the transition.
   Routes that update a shared pane keep its selection until the gesture commits.
-- **Lists** move inserted, removed and reordered rows with `animateItem()`.
-- **Small feedback.** Switches tick on and off, a segmented choice ticks once,
-  copying confirms, and a long press on a message buzzes as the sheet opens
-  (haptics). A favourite star springs in when set and fades when cleared; the
-  send button grows in; the entry mark grows in where the splash icon was.
+- **Lists** move inserted, removed and reordered rows with `animateItem()`;
+  so do a conversation's messages, queued ones and the attachments above the
+  composer.
+
+The small motion follows the desktop's seven verbs
+(`src/dmsg_desktop/docs/motion.zh.md`) with the kit in `ui/kit`:
+
+- **Making room.** `Reveal` opens a block downwards and closes it again; the
+  rest of the column moves with it. Status lines (a failed or stale read, the
+  refresh bar, a conversation's sync error), the reply card and the attachments
+  above the composer use it; `retained()` keeps the last content drawn while it
+  leaves. A first read keeps its skeleton without a transition.
+- **Floating.** The in-app reminder card drops 16 dp into place and fades out;
+  covering the screen hides it at once. Work in progress fades in at the top.
+- **Counts.** `Count` rolls only the digits that changed, up as a count grows,
+  inside its own bounds and left to right in every language. `CountBadge` pops
+  in when a count leaves zero and shrinks away at zero; `DotBadge` does the same
+  for the activity dot.
+- **Copies** confirm in place: `CopyButton` turns its icon into a tick and its
+  label into "Copied" for two seconds and keeps its width; `CopyIcon` and
+  `CopyIconButton` do the same for icon-only copies. Menu copies, which close,
+  are left to the system's clipboard confirmation.
+- **Developing.** A revealed vault value and each new one-time code develop
+  from a 6 dp blur (`Modifier.develop`); hiding is instant. The code ring sweeps
+  evenly through each second and fills at once for a new code.
+- **Settling.** Chips move their tick and colours together; a favourite star
+  springs in (`spatialFast`) when set and fades when cleared; the send button
+  grows in; the entry mark grows in where the splash icon was. Progress bars
+  glide to their value (`Progress`); an avatar's picture fades in over its
+  initial.
+- **Haptics answer results:** Confirm for a copy and a finished approval,
+  Reject for a failed send and a refused package preview, toggle ticks for
+  switches, favourites and segmented choices, a long press as the message sheet
+  opens. Counts and arriving messages do not buzz. System animator scale 0
+  turns the motion off.
 
 ## Messages
 

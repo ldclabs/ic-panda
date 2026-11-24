@@ -133,8 +133,7 @@ import net.dmsg.android.platform.numericExpression
                         LabelValue(str(R.string.text_used_20c05e4), if (limit == null) fileSize(cloud.committed) else numericExpression(fileSize(cloud.committed) + " / " + fileSize(limit)))
                         if (limit != null && limit > 0uL) {
                             val occupied = (cloud.committed.toDouble() + cloud.reserved.toDouble()) / limit.toDouble()
-                            LinearProgressIndicator(progress = { occupied.coerceIn(0.0, 1.0).toFloat() },
-                                modifier = Modifier.fillMaxWidth().semantics { contentDescription = str(R.string.text_cloud_storage_3a75090) })
+                            Progress(occupied.coerceIn(0.0, 1.0).toFloat(), Modifier.fillMaxWidth().semantics { contentDescription = str(R.string.text_cloud_storage_3a75090) })
                         }
                         LabelValue(str(R.string.text_reserved_for_uploads_c224c25), fileSize(cloud.reserved))
                         LabelValue(str(R.string.text_remaining_storage_78b2855), cloud.remaining?.let(::fileSize) ?: str(R.string.text_unavailable_4ae32d2))

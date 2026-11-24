@@ -61,7 +61,7 @@ import net.dmsg.android.core.*
                 if (task.saving) {
                     Text(if (task.waiting) str(R.string.text_waiting_for_an_attachment_slot_1882c88) else str(R.string.text_downloading_verifying_and_saving_c1571eb),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (task.total > 0u) LinearProgressIndicator(progress = { (task.completed.toDouble() / task.total.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    if (task.total > 0u) Progress((task.completed.toDouble() / task.total.toDouble()).toFloat().coerceIn(0f, 1f))
                     else LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 task.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
@@ -79,7 +79,7 @@ import net.dmsg.android.core.*
                 Text((if (job.kind == "upload") str(R.string.text_backup_2a0ff4c) else str(R.string.text_restore_c7c5c0e)) + transferStage(job.stage),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 if (job.stage != "done") {
-                    if (job.totalBytes > 0u) LinearProgressIndicator(progress = { (job.bytes.toDouble() / job.totalBytes.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    if (job.totalBytes > 0u) Progress((job.bytes.toDouble() / job.totalBytes.toDouble()).toFloat().coerceIn(0f, 1f))
                     else LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 Text(fileSize(job.bytes) + " / " + fileSize(job.totalBytes), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -102,7 +102,7 @@ import net.dmsg.android.core.*
                 }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (task.phase == "working") {
                     if (task.total > 0u) {
-                        LinearProgressIndicator(progress = { (task.completed.toDouble() / task.total.toDouble()).toFloat().coerceIn(0f, 1f) }, Modifier.fillMaxWidth())
+                        Progress((task.completed.toDouble() / task.total.toDouble()).toFloat().coerceIn(0f, 1f))
                         Text(fileSize(task.completed) + " / " + fileSize(task.total), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else LinearProgressIndicator(Modifier.fillMaxWidth())
                     TextButton(onClick = { client.transfers.cancel(task.id) }) { Text(str(R.string.text_stop_waiting_be4e25a)) }

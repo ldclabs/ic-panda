@@ -33,7 +33,7 @@ import net.dmsg.core.MessageItem
             when {
                 message.attachmentDeleted -> Text(str(R.string.text_this_shared_attachment_was_removed_97f6cbf), style = MaterialTheme.typography.bodySmall)
                 current?.saving == true -> {
-                    if (current.total > 0u) LinearProgressIndicator(progress = { (current.completed.toDouble() / current.total.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth()) else LinearProgressIndicator(Modifier.fillMaxWidth())
+                    if (current.total > 0u) Progress((current.completed.toDouble() / current.total.toDouble()).toFloat().coerceIn(0f, 1f)) else LinearProgressIndicator(Modifier.fillMaxWidth())
                     Text(if (current.waiting) str(R.string.text_waiting_for_another_attachment_to_finish_2780f57) else str(R.string.text_downloading_verifying_and_saving_c1571eb), style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { client.messageAttachments.cancel(channel, message) }) { Text(str(R.string.text_cancel_download_1a40278)) }
                 }

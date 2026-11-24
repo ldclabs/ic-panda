@@ -2,6 +2,13 @@ package net.dmsg.android.ui.kit
 
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -36,6 +43,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
+import net.dmsg.android.ui.Motion
 import net.dmsg.android.ui.card
 
 /** Filter chips scroll sideways and fade at an edge that hides more; [trailing] holds the sort chip. */
@@ -74,15 +82,22 @@ import net.dmsg.android.ui.card
 @Composable private fun ChoiceChip(label: String, selected: Boolean, interaction: Modifier, outerModifier: Modifier = Modifier, trailing: ImageVector? = null) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
+    // Selecting hands the colours over while the tick grows in and moves the label along.
+    val container by animateColorAsState(if (selected) colors.secondaryContainer else colors.secondaryContainer.copy(alpha = 0f), Motion.effects(), label = "chip")
+    val content by animateColorAsState(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant, Motion.effects(), label = "chip content")
+    val border by animateColorAsState(if (selected) colors.outlineVariant.copy(alpha = 0f) else colors.outlineVariant, Motion.effects(), label = "chip border")
+    val start by animateDpAsState(if (selected) 8.dp else 16.dp, Motion.spatialFast(), label = "chip start")
     // The visual chip is 32 dp; minimumInteractiveComponentSize on the same Surface extends the touch target to 48 dp.
-    Surface(outerModifier.minimumInteractiveComponentSize().clip(shape).then(interaction), shape = shape, color = if (selected) colors.secondaryContainer else Color.Transparent,
-        contentColor = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
-        border = if (selected) null else BorderStroke(1.dp, colors.outlineVariant)) {
-        Row(Modifier.heightIn(min = 32.dp).padding(start = if (selected) 8.dp else 16.dp, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(18.dp))
+    Surface(outerModifier.minimumInteractiveComponentSize().clip(shape).then(interaction), shape = shape, color = container,
+        contentColor = content, border = BorderStroke(1.dp, border)) {
+        Row(Modifier.heightIn(min = 32.dp).padding(start = start, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            AnimatedVisibility(selected, enter = expandHorizontally(Motion.spatialFast()) + fadeIn(Motion.effects()),
+                exit = shrinkHorizontally(Motion.spatialFast()) + fadeOut(Motion.effectsFast())) {
+                Row { Icon(Icons.Outlined.Check, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
+            }
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-            trailing?.let { Icon(it, null, Modifier.size(18.dp)) }
+            trailing?.let { Spacer(Modifier.width(8.dp)); Icon(it, null, Modifier.size(18.dp)) }
         }
     }
 }

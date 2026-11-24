@@ -160,7 +160,7 @@ import net.dmsg.android.core.*
                 val running = progress?.takeIf { it.batch == batch }
                 if (running != null) {
                     DetailCard {
-                        LinearProgressIndicator(progress = { running.done.toFloat() / running.total.coerceAtLeast(1) }, modifier = Modifier.fillMaxWidth())
+                        Progress(running.done.toFloat() / running.total.coerceAtLeast(1))
                         Text(str(R.string.links_created_progress, localizedNumber(running.done.toULong()), localizedNumber(running.total.toULong())),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedButton(onClick = { client.fileRequests.pausePublication() }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_pause_c65f066)) }
@@ -200,10 +200,10 @@ import net.dmsg.android.core.*
         TextButton(onClick = { if (link.shareable) { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link.url) }, null)) } }) {
             Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa))
         }
-        TextButton(onClick = {
+        CopyButton(str(R.string.text_copy_link_8e702f5)) {
             val now = System.currentTimeMillis().coerceAtLeast(0).toULong()
             if (link.shareable && now < link.expiresAt) client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
-        }) { Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_link_8e702f5)) }
+        }
     } else if (link.shareable) Notice(str(R.string.text_this_device_does_not_yet_have_this_link_s_content_key_synchronize_2d2794e))
 }
 
@@ -262,7 +262,7 @@ import net.dmsg.android.core.*
                 }
                 val progress = saving[file.id]
                 if (progress != null) {
-                    if (progress.total > 0u) LinearProgressIndicator(progress = { (progress.completed.toDouble() / progress.total.toDouble()).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    if (progress.total > 0u) Progress((progress.completed.toDouble() / progress.total.toDouble()).toFloat().coerceIn(0f, 1f))
                     else LinearProgressIndicator(Modifier.fillMaxWidth())
                     Text(str(R.string.text_downloading_and_verifying_keep_dmsg_open_the_file_is_saved_only_a_3156684), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { client.fileRequests.cancelSave(file.id) }) { Text(str(R.string.text_stop_saving_839873c)) }

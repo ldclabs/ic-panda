@@ -234,9 +234,7 @@ import net.dmsg.android.core.*
                 LabelValue(str(R.string.text_cosigner_262b6c6), if (value.cosigner) str(R.string.text_created_36ba304) else str(R.string.text_unavailable_a19c84a))
                 Text(str(R.string.text_on_the_old_device_open_devices_replace_a_device_review_a_request_c03fa26),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { client.clipboard.copy(value.token) }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_replacement_request_58c84f4))
-                }
+                CopyButton(str(R.string.text_copy_replacement_request_58c84f4), outlined = true) { client.clipboard.copy(value.token) }
                 Button(onClick = client.handovers::checkAuthorization, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                     Text(str(R.string.text_check_authorization_039f8a2))
                 }

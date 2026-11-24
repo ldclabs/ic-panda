@@ -1,13 +1,16 @@
 package net.dmsg.android.ui
 
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
@@ -65,11 +68,21 @@ internal fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 /**
  * Material 3 expressive springs and the skeleton pulse. Movement may overshoot a little; fades
  * never do. With Android's "remove animations" setting on, Compose finishes the springs at once.
+ * The verbs they serve are the desktop's (docs/motion.zh.md); see DESIGN.md, Motion.
  */
 internal object Motion {
+    /** Pages and blocks that unfold: about 0.26 s, 1.5% overshoot. */
     fun <T> spatial(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 380f)
+    /** Small things settling into a new state (a tick, a badge, a star): fast spatial, about 0.24 s, 9% overshoot. */
+    fun <T> spatialFast(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.6f, stiffness = 800f)
     fun <T> effects(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
     fun <T> effectsFast(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
+
+    /** A countdown ring sweeping evenly through one second. */
+    fun <T> tick(): FiniteAnimationSpec<T> = tween(1000, easing = LinearEasing)
+
+    /** A determinate progress bar gliding to its new value. */
+    fun progress(): AnimationSpec<Float> = ProgressIndicatorDefaults.ProgressAnimationSpec
 
     /** The skeleton's breathing; a loop needs a fixed duration rather than a spring. */
     fun <T> pulse(): InfiniteRepeatableSpec<T> = infiniteRepeatable(tween(900), RepeatMode.Reverse)

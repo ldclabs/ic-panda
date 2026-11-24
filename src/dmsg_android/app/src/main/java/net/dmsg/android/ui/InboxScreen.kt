@@ -22,9 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -131,16 +129,12 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
             }
         } else if (letter != null || outgoing != null) Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val account = letter?.sender ?: outgoing!!.recipient
-            val haptics = LocalHapticFeedback.current
             DetailCard {
                 Text(if (letter != null) str(R.string.text_from_c08793d) else str(R.string.text_to_50fd5b7),
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.weight(1f)) { ParticipantIdentity(client, account, showId = true) }
-                    IconButton(onClick = {
-                        client.clipboard.copy(account)
-                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                    }) { Icon(Icons.Outlined.ContentCopy, str(R.string.text_copy_account_id_faa481e)) }
+                    CopyIconButton(str(R.string.text_copy_account_id_faa481e)) { client.clipboard.copy(account) }
                 }
                 Text(messageTime(letter?.createdAt ?: outgoing?.createdAt),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

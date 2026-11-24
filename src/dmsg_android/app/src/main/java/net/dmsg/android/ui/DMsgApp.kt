@@ -141,7 +141,7 @@ import kotlinx.coroutines.launch
                             val approvals = state.session?.approvalsWaiting
                             val syncError = syncStatus?.error != null
                             IconButton(onClick = { open = true }) {
-                                BadgedBox(badge = { if ((reminders ?: 0uL) > 0uL || (approvals ?: 0u) > 0u || syncError) Badge() }) {
+                                BadgedBox(badge = { DotBadge((reminders ?: 0uL) > 0uL || (approvals ?: 0u) > 0u || syncError) }) {
                                     Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa))
                                 }
                             }
@@ -389,7 +389,9 @@ import kotlinx.coroutines.launch
                                         else AnimatedPage(navigation, !imeVisible && !showEditor, client.navigation::back, itemPages = !wide, content = framedPage)
                                     }
                                     // Work in progress shows over the page instead of reserving a strip on every page.
-                                    if (state.busy) LinearProgressIndicator(Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth())
+                                    // The page sits in a Column further out, so name the scope-free overload.
+                                    androidx.compose.animation.AnimatedVisibility(state.busy, Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth(),
+                                        enter = fadeIn(Motion.effects()), exit = fadeOut(Motion.effectsFast())) { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                                 }
                             }
                         }

@@ -49,7 +49,7 @@ import net.dmsg.android.core.*
                     },
                 )
                 if (current.running) {
-                    if (current.total > 0u) LinearProgressIndicator(progress = { (current.entries.toDouble() / current.total.toDouble()).coerceIn(0.0, 1.0).toFloat() }, modifier = Modifier.fillMaxWidth())
+                    if (current.total > 0u) Progress((current.entries.toDouble() / current.total.toDouble()).coerceIn(0.0, 1.0).toFloat())
                     else LinearProgressIndicator(Modifier.fillMaxWidth())
                     Text(localizedNumber(current.entries) + " / " + localizedNumber(current.total), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

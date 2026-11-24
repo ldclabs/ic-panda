@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -104,7 +105,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             }, enabled = !changing) {
                 // The filled star springs in; clearing it simply fades.
                 AnimatedContent(item.favorite, transitionSpec = {
-                    (if (targetState) scaleIn(Motion.spatial(), initialScale = 0.6f) else fadeIn(Motion.effectsFast())) togetherWith fadeOut(Motion.effectsFast())
+                    (if (targetState) scaleIn(Motion.spatialFast(), initialScale = 0.6f) else fadeIn(Motion.effectsFast())) togetherWith fadeOut(Motion.effectsFast())
                 }, label = "favorite") { favorite ->
                     Icon(if (favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
                 }
@@ -281,6 +282,10 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
         }
     }
     val code = otp?.takeIf { tick < deadline }
+    // The ring sweeps evenly between the once-a-second ticks and fills at once for a new code.
+    val left = if (code != null && period > 0) ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) else 0f
+    val ring = remember { Animatable(left) }
+    LaunchedEffect(left) { if (left > ring.value) ring.snapTo(left) else ring.animateTo(left, Motion.tick()) }
     val shown = if (isOtp) code != null else revealed != null
     val value = if (isOtp) code ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
     val website = if (field.kind == "url" && !field.concealed) {
@@ -297,7 +302,9 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                 Column {
                     Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
-                    Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier,
+                    // A value being revealed, and each new one-time code, develops from a blur; hiding is instant.
+                    Text(value, modifier = (if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier)
+                        .develop(if (isOtp) code else revealed),
                         style = style.copy(textDirection = direction),
                         color = if (website != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                     if (code != null) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0),
@@ -306,7 +313,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             },
             trailingContent = if (readOnly) null else { {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (code != null && period > 0) CircularProgressIndicator(progress = { ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) },
+                    if (code != null && period > 0) CircularProgressIndicator(progress = { ring.value },
                         Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.5.dp)
                     if (field.concealed && (!isOtp || historical)) IconButton(onClick = ::toggleReveal) {
                         Icon(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
@@ -315,10 +322,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
                     if (website != null) IconButton(onClick = { uri.openUri(website.toASCIIString()) }) {
                         Icon(Icons.AutoMirrored.Outlined.OpenInNew, str(R.string.text_open_website_2c9debd) + " · " + label)
                     }
-                    IconButton(onClick = ::copyValue) {
-                        Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.ContentCopy, str(R.string.text_copy_d6e9651) + " · " + label,
-                            tint = if (copiedAt != 0L) MaterialTheme.colorScheme.primary else LocalContentColor.current)
-                    }
+                    IconButton(onClick = ::copyValue) { CopyIcon(copiedAt != 0L, str(R.string.text_copy_d6e9651) + " · " + label) }
                 }
             } },
             modifier = Modifier.clipTo(rowShape()).testTag("vault-field:" + field.id)

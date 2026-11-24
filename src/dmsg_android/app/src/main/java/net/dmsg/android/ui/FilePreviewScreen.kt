@@ -52,9 +52,7 @@ import net.dmsg.android.core.*
                         // Copy decrypted contents through the private clipboard action below.
                         Text(value.text.orEmpty(), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyLarge)
                     }
-                    OutlinedButton(onClick = { client.clipboard.copy(value.text.orEmpty()) }, enabled = !value.text.isNullOrEmpty(), modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Outlined.ContentCopy, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_copy_displayed_text_1254da5))
-                    }
+                    CopyButton(str(R.string.text_copy_displayed_text_1254da5), outlined = true, enabled = !value.text.isNullOrEmpty()) { client.clipboard.copy(value.text.orEmpty()) }
                 }
                 "image" -> value.bitmap?.let { bitmap ->
                     DetailCard {
