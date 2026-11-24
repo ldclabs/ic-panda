@@ -370,9 +370,9 @@
 {/snippet}
 
 {#snippet meta(message: any)}
-  <span class="ms-2 inline-flex items-center gap-1 align-baseline text-caption whitespace-nowrap text-faint">
+  <span class="ms-2 inline-flex items-center gap-1 align-baseline text-caption whitespace-nowrap text-faint select-none">
     <time title={when(message.stored_at)}>{timeFormat.format(message.stored_at)}</time>
-    {#if mine(message) && !message.retracted}{@render ticks(message)}{/if}
+    {#if mine(message)}{@render ticks(message)}{/if}
   </span>
 {/snippet}
 
@@ -484,7 +484,7 @@
             {/if}
             {#if message.unreadable}
               {#if message.reply_to}{@render quote(bySeq.get(message.reply_to.seq), message.reply_to)}{/if}
-              <p class="inline-flex items-center gap-1.5 px-1 text-body text-faint italic" data-testid="message-unreadable"><Icon name="warning" class="size-3.5 text-warn" />{t('unreadableMessage')}</p>
+              <p class="inline-flex flex-wrap items-center gap-x-1.5 px-1 text-body text-faint italic" data-testid="message-unreadable"><Icon name="warning" class="size-3.5 text-warn" />{t('unreadableMessage')}{@render meta(message)}</p>
             {:else if message.retracted}
               <p class="px-1 text-body text-faint italic" data-testid="message-retracted">{t('retracted')}{@render meta(message)}</p>
             {:else}
@@ -495,8 +495,8 @@
                 >
                   {#if message.reply_to}{@render quote(bySeq.get(message.reply_to.seq), message.reply_to)}{/if}
                   {#if message.text}
-                    <p dir="auto" class="text-start text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
-                      <span><LinkedText text={message.text} /></span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
+                    <p dir="auto" class="text-start text-body leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                      <span class="select-text"><LinkedText text={message.text} /></span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
                     </p>
                   {:else}{@render meta(message)}{/if}
                 </div>
@@ -591,7 +591,7 @@
             <span class="inline-flex items-center gap-1 text-caption text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
           {/if}
         </div>
-        {#if item.draft?.text}<p dir="auto" class={cn('bubble-mine max-w-[60ch] rounded-2xl px-3 py-1.5 text-start text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]', item.sending || item.queued ? 'opacity-70' : '')}>{item.draft.text}</p>{/if}
+        {#if item.draft?.text}<p dir="auto" class="bubble-mine max-w-[60ch] rounded-2xl px-3 py-1.5 text-start text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
         {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-callout text-muted"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
         {#if !item.sending && !item.queued}
           <div class="mt-1 flex gap-1.5">

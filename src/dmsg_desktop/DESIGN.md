@@ -392,7 +392,8 @@ restyle a control by hand.
 - **Feedback** — `toast()` notices, above composers, footers and open dialogs:
   a raised Surface card with the `pop` shadow, at most two at once. A
   failure (a text from `errorText`) carries the warning mark; the close
-  shows on hover or focus, and resting the pointer on the notices holds them.
+  shows on hover or focus. A notice stays while the pointer or keyboard focus
+  is inside it.
   A copied secret's notice counts down to the clipboard being cleared and
   never pauses, since the clipboard clears on time. Errors
   that belong to a form stay in the form.
@@ -568,9 +569,10 @@ inline editors alone handle their own cancel shortcut.
   one sentence, and the next action (log in, unlock, continue setup, new
   item, import).
 - **Devices** — each device shows its role, "this device", the ID and when
-  it was added; capabilities are a count on the button that opens the
-  editor. The audit record reads one line per entry (who, what, how it
-  ended) with the recorded fields folded under it.
+  it was added. The capability count opens the recorded permissions. An
+  unlocked account can request changes to an active device's permissions.
+  The audit record reads one line per entry (who, what, how it ended) with
+  the recorded fields folded under it.
 - **Item form** — the fields sit in one Surface card with rules between
   them; inputs keep their Edge border for contrast, and the field's type
   is caption text beside its name, changed from the field's more menu.

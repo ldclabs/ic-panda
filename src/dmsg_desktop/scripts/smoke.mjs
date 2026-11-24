@@ -237,6 +237,7 @@ const grants = []
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
 const claude = 'did:agent:' + 'Q'.repeat(43)
 const audit = [
+  { seq: 3, at: Date.now(), actor: 'owner', via: 'gui', action: 'approval/approve', target: null, detail: null, outcome: 'EXECUTION_UNKNOWN' },
   { seq: 2, at: Date.now(), actor: claude, via: 'mcp', action: 'dmsg_vault_read', target: 'ab'.repeat(16), detail: null, outcome: 'ok' },
   { seq: 1, at: Date.now() - 60_000, actor: 'owner', via: 'gui', action: 'grants/add', target: 'cd'.repeat(8), detail: `${claude} vault.read:work`, outcome: 'ok' }
 ]
@@ -1744,7 +1745,7 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'windows') {
-    const native = await windowLifecycle(app, main, shots)
+    const native = await windowLifecycle(app, main, shots, { checkControls: true })
     assert.deepEqual(pageErrors, [])
     console.log(native ? 'Window lifecycle passed, including native fullscreen' : 'Windowed hide and reopen passed')
     break smoke
@@ -4328,12 +4329,16 @@ smoke: try {
   await choose(main, 'audit-actor', 'owner')
   await waitFor(() => latest('audit/list').params.agent === 'owner')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=grants add')
+  const unknownAudit = main.getByTestId('audit-entry').filter({ hasText: 'approval approve' })
+  await unknownAudit.getByText('Outcome unknown', { exact: true }).waitFor()
+  await unknownAudit.getByRole('button').click()
+  await unknownAudit.getByText('EXECUTION_UNKNOWN', { exact: true }).waitFor()
   await finishOldAudit()
   assert.equal(await main.locator('[data-testid="audit-entries"] >> text=vault read').count(), 0)
   await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=vault read')
   // Each line opens on its recorded fields.
-  await main.getByTestId('audit-entry').first().getByRole('button').click()
+  await main.getByTestId('audit-entry').filter({ hasText: 'vault read' }).getByRole('button').click()
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
   // A grant joins the services ticked at the chosen origin with those

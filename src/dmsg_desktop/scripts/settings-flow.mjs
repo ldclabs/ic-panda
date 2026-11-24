@@ -82,7 +82,17 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
   await close('profile-lookup')
 
   // Capability edits compare sets, keep drafts after failure, and send only once while waiting.
+  const accountView = methods['account/show']
+  methods['account/show'] = () => {
+    const view = accountView()
+    const revoked = { ...view.devices[1], device_id: '13'.repeat(32), revoked_at: Date.now(), capabilities: ['VaultUnlock'] }
+    return { ...view, devices: [...view.devices, revoked] }
+  }
   await go('devices')
+  await main.getByTestId('device-capabilities').nth(2).click()
+  await main.getByTestId('device-capabilities-readonly').getByText('Unlock workspace', { exact: true }).waitFor()
+  assert.equal(await main.getByTestId('capabilities-submit').count(), 0)
+  await close('device-editor')
   await main.getByTestId('device-capabilities').nth(1).click()
   assert.equal(await main.getByTestId('capabilities-submit').isDisabled(), true)
   const deviceEditor = main.getByTestId('device-editor')
@@ -104,7 +114,7 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
   assert.equal(count('device/revoke'), 0)
   for (const request of requests.values()) if (request.type === 'device_capabilities') request.state = 'rejected'
   emit('approval/changed')
-  await waitFor(() => main.getByTestId('device-capabilities').nth(1).isEnabled())
+  await main.getByRole('button', { name: 'View approval', exact: true }).waitFor({ state: 'detached' })
 
   // File preferences are one explicit save. Cancelling the OS mount prompt keeps the draft.
   await go('files')
@@ -216,6 +226,7 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
   methods['account/bind_request'] = () => ({ token: 'fixture-bind-token' })
   await main.getByTestId('bind-account').fill('0123456789abcdefghig')
   await main.getByRole('button', { name: 'Create a binding request', exact: true }).click()
+  await main.getByRole('button', { name: 'Request token', exact: true }).click()
   await main.getByTestId('bind-token').waitFor()
   await main.getByTestId('bind-account').fill('0k0g2081040g2081040g')
   assert.equal(await main.getByTestId('bind-token').count(), 0)

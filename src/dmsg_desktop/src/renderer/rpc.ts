@@ -1,4 +1,4 @@
-import { failureLabel, failureText } from './failure'
+import { failureLabel } from './failure'
 import { locale, t } from './i18n/index.svelte'
 
 export { single } from '../shared/single'
@@ -67,7 +67,7 @@ export const errorText = (error: unknown) => {
   const failure = code(error)
   if (failure === 'CACHE_MISSING') return ''
   const label = failureLabel(failure)
-  return failureText(label ? t(label) : `${t('error')}: ${failure}`)
+  return label ? t(label) : `${t('error')}: ${failure}`
 }
 
 /** A failure toast's options: one at the plan's limits offers the plan page. */

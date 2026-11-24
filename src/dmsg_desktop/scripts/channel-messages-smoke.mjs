@@ -85,8 +85,15 @@ try {
   const plan = { system_id: 'a'.repeat(64), delivery_id: 'b'.repeat(64), account, category: 'message', target: { kind: 'channel', id }, covered: [{ id: 'c'.repeat(64), version: '1', stage: 1 }], count: null, sound: false, in_app: true, update: false, attempted_at: Date.now() }
   emit('notifications/present', plan)
   await main.waitForTimeout(150); assert.equal(await main.getByTestId('notification-toast').count(), 0)
-  emit('notifications/present', { ...plan, count: 1 }); await main.getByTestId('notification-toast').waitFor()
-  await main.getByTestId('notification-toast').getByRole('button').last().click()
+  emit('notifications/present', { ...plan, count: 1 })
+  const notification = main.getByTestId('notification-toast')
+  await notification.waitFor()
+  const dismiss = notification.getByRole('button', { name: 'Dismiss' })
+  await dismiss.focus()
+  await main.waitForTimeout(6100)
+  assert.ok(await notification.isVisible(), 'a focused notice must wait for keyboard interaction')
+  await main.keyboard.press('Enter')
+  await notification.waitFor({ state: 'detached' })
   const menu = async () => { await incoming.getByTestId('message-more').focus(); await main.keyboard.press('Enter') }
   await menu()
   for (const label of ['Reply', 'Copy', 'Hide on this device']) await main.getByRole('menuitem', { name: label, exact: true }).waitFor()
@@ -114,6 +121,9 @@ try {
       await main.keyboard.press('Escape')
     }
   }
+  messages[0].unreadable = true
+  emit('channel/changed')
+  await main.getByTestId('message-unreadable').locator('time').waitFor()
   const beforeNames = calls.filter(call => call.method === 'channel/names').length
   await main.getByTestId('channel-messages').evaluate(el => { el.scrollTop = el.scrollHeight })
   messages.push(...Array.from({ length: 60 }, (_, i) => row(4 + i, `${(i + 1).toString(16).padStart(19, '0')}0`, `Participant ${i + 1}`)))

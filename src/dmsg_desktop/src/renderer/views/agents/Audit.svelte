@@ -78,7 +78,7 @@
   const dots = { ok: 'bg-ok', danger: 'bg-danger', warn: 'bg-warn' }
   /** `dmsg_vault_read` and `grants/add` as words: the tool or method the entry names. */
   const deed = (action: string) => action.replace(/^dmsg_/, '').replace(/[_/.]+/g, ' ').trim()
-  const ending = { ok: 'done', danger: 'rejected', warn: 'failed' } as const
+  const outcomeLabels = new Map([['ok', 'done'], ['PENDING', 'awaiting_user'], ['EXECUTION_UNKNOWN', 'unknown']])
 </script>
 
 <Section title={t('audit')} description={t('auditHint')} icon="audit" testid="agent-audit">
@@ -107,7 +107,9 @@
               {#snippet title()}
                 <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <span class="min-w-0 flex-1 text-body [overflow-wrap:anywhere]"><b class="font-medium">{labelOf(e.actor)}</b> <span class="text-ink-2">{deed(e.action)}</span></span>
-                  <Pill tone={tone}>{stateLabel(ending[tone])}</Pill>
+                  <Pill tone={tone} class="h-auto min-h-5 max-w-full whitespace-normal [overflow-wrap:anywhere]">
+                    {stateLabel(outcomeLabels.get(e.outcome) ?? e.outcome)}
+                  </Pill>
                   <time class="text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
                 </span>
               {/snippet}

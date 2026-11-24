@@ -15,6 +15,8 @@ export interface Toast {
   /** A button beside it, such as undoing what it reports; pressing it dismisses the notice. */
   action?: { label: string; run: () => unknown }
   testid?: string
+  timer?: ReturnType<typeof setTimeout>
+  remaining?: number
 }
 
 export const toasts = $state<Toast[]>([])
@@ -24,41 +26,45 @@ let last = 0
 /** A burst of notices shows its latest two, so they never cover the window. */
 const MAX_SHOWN = 2
 
-/** While the pointer rests on the notices they wait; a countdown keeps running, since the clipboard clears on time. */
-let pausedAt: number | null = null
-
 /** Show a notice for `ms` (4 s by default); with `countdown`, its time left shows beside it. */
 export function toast(text: (seconds: number) => string, options: { ms?: number; countdown?: boolean; action?: Toast['action']; testid?: string } = {}) {
-  if (network.state !== 'idle' && networkFailure(text(0))) return
-  if (temporaryFailure(text(0)) && toasts.some((toast) => toast.text(0) === text(0))) return
-  while (toasts.length >= MAX_SHOWN) toasts.shift()
+  const message = text(0)
+  if (!message || network.state !== 'idle' && networkFailure(message)) return
+  if (temporaryFailure(message) && toasts.some((toast) => toast.text(0) === message)) return
+  while (toasts.length >= MAX_SHOWN) dismiss(toasts[0].id)
   const id = ++last
   const ms = options.ms ?? 4000
-  toasts.push({ id, text, until: Date.now() + ms, ms, countdown: options.countdown ?? false, action: options.action, testid: options.testid })
-  setTimeout(() => expire(id), ms)
+  const item: Toast = { id, text, until: 0, ms, countdown: options.countdown ?? false, action: options.action, testid: options.testid }
+  schedule(item, ms)
+  toasts.push(item)
 }
 
-function expire(id: number) {
-  const item = toasts.find((toast) => toast.id === id)
-  if (!item) return
-  const held = pausedAt !== null && !item.countdown
-  const left = item.until - Date.now()
-  if (held || left > 0) setTimeout(() => expire(id), held ? 250 : left)
-  else dismiss(id)
+function schedule(item: Toast, ms: number) {
+  const id = item.id
+  item.until = Date.now() + ms
+  item.timer = setTimeout(() => dismiss(id), ms)
 }
 
-export function pauseToasts() {
-  pausedAt ??= Date.now()
+/** Clipboard notices keep their real clearing time while hovered or focused. */
+export function pauseToast(item: Toast) {
+  if (item.countdown || item.timer === undefined) return
+  clearTimeout(item.timer)
+  item.timer = undefined
+  item.remaining = Math.max(0, item.until - Date.now())
 }
 
-export function resumeToasts() {
-  if (pausedAt === null) return
-  const held = Date.now() - pausedAt
-  pausedAt = null
-  for (const item of toasts) if (!item.countdown) item.until += held
+export function resumeToast(item: Toast) {
+  if (item.remaining === undefined) return
+  schedule(item, item.remaining)
+  item.remaining = undefined
 }
 
 export function dismiss(id: number) {
   const index = toasts.findIndex((item) => item.id === id)
-  if (index >= 0) toasts.splice(index, 1)
+  if (index < 0) return false
+  const item = toasts[index]
+  clearTimeout(item.timer)
+  item.timer = item.remaining = undefined
+  toasts.splice(index, 1)
+  return true
 }

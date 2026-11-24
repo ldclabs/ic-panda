@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { failureLabel, failureTone, rememberFailures, temporaryFailure } from '../src/renderer/failure.ts'
+import { failureLabel, failureTone, isFailure, rememberFailures, temporaryFailure } from '../src/renderer/failure.ts'
 import en from '../src/renderer/i18n/messages/en.ts'
 import zh from '../src/renderer/i18n/messages/zh.ts'
 
@@ -18,5 +18,9 @@ test('temporary transport errors and uncertain submissions have safe, actionable
     assert.equal(failureTone(catalog.messages.localStorageUnavailable), 'danger')
     assert.equal(temporaryFailure(catalog.messages.networkUnavailable), true)
     assert.equal(failureTone([catalog.messages.networkUnavailable, 'INTEGRITY_FAILED']), 'danger')
+    assert.equal(isFailure(catalog.messages.operationUnknown), true)
+    assert.equal(isFailure(catalog.messages.copyFailed), true)
+    assert.equal(isFailure(`${catalog.messages.error}: INTEGRITY_FAILED`), true)
+    assert.equal(isFailure(catalog.messages.copiedText), false)
   }
 })

@@ -115,7 +115,17 @@ try {
   await main.locator('[data-tooltip-content]').filter({ hasText: fileId }).waitFor()
   await main.keyboard.press('Enter')
   await main.waitForFunction(id => window.testClipboard === id, fileId)
-  await copy(main.getByTestId('files-copy-current-version'), current)
+  const versionId = main.getByTestId('files-copy-current-version')
+  const copyStatus = versionId.locator('..').getByRole('status')
+  await copy(versionId, current)
+  await copyStatus.filter({ hasText: 'Copied' }).waitFor({ state: 'attached' })
+  file.current = older
+  emit('files/changed')
+  await versionId.getByText('2222…2222').waitFor()
+  assert.equal(await copyStatus.textContent(), '', 'the new version was not copied')
+  file.current = current
+  emit('files/changed')
+  await versionId.getByText('3333…3333').waitFor()
   await copy(main.getByTestId('files-copy-reference'), `dmsg-file://${fileId}/${current}`)
   const historical = main.locator(`[data-testid="files-version-identity"][data-version="${older}"]`)
   await copy(historical.getByTestId('files-copy-version'), older)

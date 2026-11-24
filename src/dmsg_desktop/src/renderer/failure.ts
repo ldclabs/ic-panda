@@ -1,38 +1,39 @@
 import type { Catalog, Label } from './i18n/messages/en.ts'
 
 /** User-facing failures use codes, never raw transport URLs or server text. */
-export function failureLabel(code: string): Label | undefined {
-  if (code === 'DAEMON_DISCONNECTED') return 'daemonDisconnected'
-  if (code === 'CACHE_MISSING') return 'loadingCachedDisplay'
-  if (code === 'NETWORK_UNAVAILABLE') return 'networkUnavailable'
-  if (code === 'EXECUTION_UNKNOWN') return 'operationUnknown'
-  if (code === 'UNAVAILABLE') return 'serviceUnavailable'
-  if (code === 'LOCAL_STORAGE_UNAVAILABLE') return 'localStorageUnavailable'
-  if (code === 'PENDING') return 'reasonPending'
-  if (code === 'MEMBERSHIP_STALE') return 'membershipRefreshHint'
-  if (code === 'INSUFFICIENT_FUNDS') return 'reasonInsufficientFunds'
-  if (code === 'LOCKED') return 'locked'
-  if (code === 'SYNC_BUSY') return 'syncBusy'
-  if (['REQUEST_TOO_LARGE', 'RESPONSE_TOO_LARGE'].includes(code)) return 'syncSizeError'
-  if (code === 'UNSUPPORTED_PROTOCOL') return 'syncUnsupported'
-}
+const labels = new Map<string, Label>([
+  ['DAEMON_DISCONNECTED', 'daemonDisconnected'],
+  ['CACHE_MISSING', 'loadingCachedDisplay'],
+  ['NETWORK_UNAVAILABLE', 'networkUnavailable'],
+  ['EXECUTION_UNKNOWN', 'operationUnknown'],
+  ['UNAVAILABLE', 'serviceUnavailable'],
+  ['LOCAL_STORAGE_UNAVAILABLE', 'localStorageUnavailable'],
+  ['PENDING', 'reasonPending'],
+  ['MEMBERSHIP_STALE', 'membershipRefreshHint'],
+  ['INSUFFICIENT_FUNDS', 'reasonInsufficientFunds'],
+  ['LOCKED', 'locked'],
+  ['SYNC_BUSY', 'syncBusy'],
+  ['REQUEST_TOO_LARGE', 'syncSizeError'],
+  ['RESPONSE_TOO_LARGE', 'syncSizeError'],
+  ['UNSUPPORTED_PROTOCOL', 'syncUnsupported']
+])
+
+export const failureLabel = (code: string) => labels.get(code)
 
 const temporary = new Set<string>()
 const network = new Set<string>()
-/** The texts `errorText` has given, so a notice that shows one marks it as a failure. */
 const failures = new Set<string>()
+const errorPrefixes = new Set<string>()
 
-export function failureText(text: string) {
-  if (text) failures.add(text)
-  return text
-}
-
-export const isFailure = (message: string) => failures.has(message)
+export const isFailure = (message: string) => failures.has(message) || [...errorPrefixes].some((prefix) => message.startsWith(prefix))
 
 /** A language this window has shown: what it stored in that language still reads as what it is. */
 export function rememberFailures({ messages }: Catalog) {
   for (const text of [messages.networkUnavailable, messages.operationUnknown, messages.passkeyRegistrationUnconfirmed, messages.serviceUnavailable, messages.networkReconnecting, messages.syncBusy, messages.membershipRefreshHint]) temporary.add(text)
   network.add(messages.networkUnavailable)
+  for (const label of labels.values()) if (label !== 'loadingCachedDisplay') failures.add(messages[label])
+  for (const text of [messages.appearanceFailed, messages.copyFailed, messages.languageFailed, messages.shortcutLockFailed]) failures.add(text)
+  errorPrefixes.add(`${messages.error}: `)
 }
 
 /** Stored messages retain their original language when the UI locale changes. */

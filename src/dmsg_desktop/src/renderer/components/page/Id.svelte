@@ -17,15 +17,17 @@
    * screen reader.
    */
   let { id, full = false, wrap = false, copyLabel, disabled = false, testid, class: className }: { id: string; full?: boolean; wrap?: boolean; copyLabel?: string; disabled?: boolean; testid?: string; class?: string } = $props()
-  let copied = $state(false)
+  let copiedId = $state<string | null>(null)
+  const copied = $derived(copiedId === id)
   let timer: ReturnType<typeof setTimeout> | undefined
 
   async function copy() {
-    if (!copyLabel) return void copyText(id)
-    if (!(await copyText(id, null))) return
-    copied = true
+    const value = id
+    if (!copyLabel) return void copyText(value)
+    if (!(await copyText(value, null))) return
+    copiedId = value
     clearTimeout(timer)
-    timer = setTimeout(() => (copied = false), 1200)
+    timer = setTimeout(() => (copiedId = null), 1200)
   }
 
   $effect(() => () => clearTimeout(timer))

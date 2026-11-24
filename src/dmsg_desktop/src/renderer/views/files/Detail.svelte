@@ -355,7 +355,7 @@
               <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={saveNote} data-testid="files-note-save">{t('save')}</button>
             </div>
           {:else}
-            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-body leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', !file.note && 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
+            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-body leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', file.note ? 'select-text' : 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
               {file.note || (unlocked && !trash ? t('notePlaceholder') : '—')}
             </button>
           {/if}

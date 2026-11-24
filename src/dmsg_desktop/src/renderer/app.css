@@ -317,7 +317,15 @@ html[lang='ur'] {
   --forest: var(--on-select-strong);
   --on-forest: var(--select-strong);
   --muted: color-mix(in srgb, var(--on-select-strong) 82%, transparent);
-  --faint: color-mix(in srgb, var(--on-select-strong) 72%, transparent);
+  --faint: color-mix(in srgb, var(--on-select-strong) 80%, transparent);
+
+  /* Status marks directly on Forest follow the selection's ink. Tinted badges keep their own colors. */
+  & :where(.text-gem, .text-warn, .text-danger, .text-ok):not(:where(.bg-gem-pale, .bg-warn-pale, .bg-danger-pale, .bg-ok-pale)) {
+    color: var(--on-select-strong);
+  }
+  & :where(.bg-gem, .bg-warn) {
+    background-color: var(--on-select-strong);
+  }
 }
 
 /*
@@ -331,7 +339,7 @@ html[lang='ur'] {
   --ink: var(--on-bubble-mine);
   --ink-2: var(--on-bubble-mine);
   --muted: color-mix(in srgb, var(--on-bubble-mine) 82%, transparent);
-  --faint: color-mix(in srgb, var(--on-bubble-mine) 70%, transparent);
+  --faint: color-mix(in srgb, var(--on-bubble-mine) 80%, transparent);
   --edge-soft: color-mix(in srgb, var(--on-bubble-mine) 45%, transparent);
 }
 
