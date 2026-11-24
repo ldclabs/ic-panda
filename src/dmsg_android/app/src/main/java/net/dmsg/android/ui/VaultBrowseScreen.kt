@@ -234,10 +234,8 @@ fun vaultKindName(kind: String): String = when (kind) {
                     add("title" to R.string.text_title_4c18fa6)
                     add("updated" to R.string.text_updated_9306ca8)
                 }
-                // While searching, title order reads as relevance, as VaultCoordinator applies it.
-                val effective = if (query.text.isNotBlank() && query.sort == "title") "relevance" else query.sort
                 sortOptions.forEach { (key, label) ->
-                    RadioChoiceRow(str(label), effective == key) { update(query.copy(sort = key)) }
+                    RadioChoiceRow(str(label), query.effectiveSort == key) { update(query.copy(sort = key)) }
                 }
             }
             val tags = page?.tags.orEmpty()

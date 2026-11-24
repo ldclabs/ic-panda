@@ -19,24 +19,27 @@ import net.dmsg.android.ui.kit.*
 /** Opens a cross-workspace search hit by switching to its workspace and destination route. */
 internal fun openGlobalVaultHit(client: ClientController, id: String) {
     client.navigation.open("vault")
-    client.navigation.select(id)
+    client.navigation.push(Route("vault", id = id))
 }
 
 internal fun openGlobalChannelHit(client: ClientController, channelId: String, sequence: ULong? = null) {
     client.navigation.open("messages")
-    if (sequence != null) client.navigation.push(Route("messages", id = channelId, sequence = sequence))
-    else client.navigation.select(channelId)
+    client.navigation.push(Route("messages", id = channelId, sequence = sequence))
 }
 
 internal fun openGlobalLetterHit(client: ClientController, hit: LetterSearchHit) {
     client.navigation.open("messages")
-    val field = if (hit.boxKind == "sent" || hit.boxKind == "pending") "sent" else null
-    client.navigation.push(Route("inbox", id = if (hit.boxKind == "draft") null else hit.id, field = field))
+    val field = when (hit.boxKind) {
+        "sent", "pending" -> "sent"
+        "draft" -> "draft"
+        else -> null
+    }
+    client.navigation.push(Route("inbox", id = hit.id, field = field))
 }
 
-internal fun openGlobalFileHit(client: ClientController, id: String, isFolder: Boolean) {
+internal fun openGlobalFileHit(client: ClientController, id: String, isFolder: Boolean, parent: String = "root") {
     client.navigation.open("files")
-    if (isFolder) client.navigation.folder(id) else client.navigation.select(id)
+    if (isFolder) client.navigation.folder(id) else client.navigation.push(Route("files", id = id, folder = parent))
 }
 
 /** Shared grouped results for the "All" search scope across all four workspaces. */
@@ -97,9 +100,8 @@ internal fun LazyListScope.globalSearchResults(
     if (result.messages.isNotEmpty()) {
         item(key = "global-h-messages") { SectionTitle(str(R.string.text_messages_3a9ab2d)) }
         items(result.messages, key = { "gm:${it.channelId}:${it.sequence}" }) { hit ->
-            val titleText = hit.text.ifBlank { hit.attachmentName.orEmpty() }
             BrowseRow(
-                buildHighlightedText(titleText, hit.snippetSpans),
+                buildHighlightedText(hit.previewText, hit.previewSpans),
                 Modifier.clickable { openGlobalChannelHit(client, hit.channelId, hit.sequence) },
                 leading = { BrowseIcon(Icons.Outlined.Forum) },
                 supporting = {
@@ -143,7 +145,7 @@ internal fun LazyListScope.globalSearchResults(
         items(result.files, key = { "gf:" + it.id }) { file ->
             BrowseRow(
                 buildHighlightedText(file.name, file.nameSpans),
-                Modifier.clickable { openGlobalFileHit(client, file.id, isFolder = false) },
+                Modifier.clickable { openGlobalFileHit(client, file.id, isFolder = false, parent = file.folder) },
                 leading = { FileThumbnail(client, file) },
                 supporting = {
                     val pathText = (listOf(str(R.string.text_files_c79ddc2)) + file.path).joinToString(" / ")

@@ -82,12 +82,12 @@ struct FileBrowseBar: View {
                             }
                             ForEach(model.fileTags) { entry in
                                 Button {
-                                    model.filesTag = model.filesTag == entry.name ? "" : entry.name
+                                    model.filesTag = model.filesTag == entry.tag ? "" : entry.tag
                                 } label: {
-                                    if model.filesTag == entry.name {
-                                        Label { Text(verbatim: "#" + entry.name) } icon: { Image(systemName: "checkmark") }
+                                    if model.filesTag == entry.tag {
+                                        Label { Text(verbatim: "#" + entry.tag) } icon: { Image(systemName: "checkmark") }
                                     } else {
-                                        Text(verbatim: "#" + entry.name)
+                                        Text(verbatim: "#" + entry.tag)
                                     }
                                 }
                             }
@@ -107,7 +107,10 @@ struct FileBrowseBar: View {
             }
             Menu {
                 Picker("Sort by", selection: $sort) {
-                    ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
+                    ForEach(FileSort.allCases, id: \.self) { order in
+                        let ranked = order == .name && scope == .local && !model.filesSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        Text(ranked ? String(localized: "Best match") : order.title).tag(order)
+                    }
                 }
             } label: {
                 Image(systemName: "arrow.up.arrow.down").font(.body).dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(width: 44, height: 44)

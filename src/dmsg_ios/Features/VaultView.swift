@@ -207,7 +207,9 @@ private struct VaultFiltersView: View {
                 ForEach(vaultKinds(), id: \.self) { Text(vaultKindName($0)).tag($0) }
             }
             Picker("Sort", selection: $model.vaultSort) {
-                Text("Best match").tag("relevance")
+                if !model.search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Best match").tag("relevance")
+                }
                 Text("Recently updated").tag("updated")
                 Text("Name").tag("title")
             }.pickerStyle(.inline)

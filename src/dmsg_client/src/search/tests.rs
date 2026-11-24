@@ -179,6 +179,12 @@ fn snippet_windowing_and_autofill_search_keys() {
     let joined: String = snippet.iter().map(|s| s.text.as_str()).collect();
     assert!(joined.contains('…'));
     assert!(joined.chars().count() < long_msg.chars().count());
+    assert_eq!(snippet_spans("ABCDEFGHIJ", &[], 3)[0].text, "ABC…");
+    assert!(
+        Query::parse("表格")
+            .match_text(mime_aliases("text/csv"))
+            .is_some()
+    );
 
     let keys = search_keys(&["招商銀行", "alice@bank.com"]);
     assert!(keys.iter().any(|k| k == "zhaoshangyinhang"));
@@ -208,6 +214,7 @@ async fn vault_cache_v01_isolation_pinyin_and_sec01_sqlite_encryption() {
                     },
                     FieldChange {
                         id: Some("password".into()),
+                        label: Some("Hardware passphrase".into()),
                         value: Some("超绝密口令SecretPass999".into()),
                         ..Default::default()
                     },
@@ -291,6 +298,21 @@ async fn vault_cache_v01_isolation_pinyin_and_sec01_sqlite_encryption() {
     assert_eq!(note_hit.items.len(), 1);
     assert_eq!(note_hit.items[0].match_field.as_deref(), Some("notes"));
     assert!(note_hit.items[0].match_value.is_none());
+    assert_eq!(
+        global_search(
+            &c.hold(),
+            &GlobalSearchRequest {
+                query: "hardware".into(),
+                scopes: vec!["vault".into()],
+                limit: None,
+            }
+        )
+        .await
+        .unwrap()
+        .vault
+        .len(),
+        1
+    );
     let json = serde_json::to_string(&note_hit).unwrap();
     assert!(!json.contains("报销指引"));
     assert!(!json.contains("超绝密口令"));
@@ -469,19 +491,21 @@ fn files_search_listing_supports_pinyin_paths_folders_tags_and_trash() {
     assert_eq!(trashed.files.len(), 1);
 }
 
-#[test]
-fn channel_encrypted_buckets_bidirectional_window_and_pinyin_search() {
+#[tokio::test]
+async fn channel_encrypted_buckets_bidirectional_window_and_pinyin_search() {
     use crate::channel::{INBOX, Message};
     use crate::testing::{TempDir, unlocked};
 
     let dir = TempDir::new();
-    let c = unlocked(&dir.0, false, None);
+    let mut c = unlocked(&dir.0, false, None);
     let me = c.account().unwrap().id.to_string();
     let channel = "0".repeat(64);
+    crate::testing::joined_channel(&mut c, &channel);
     let keys = c.keys().unwrap();
 
     for seq in 1..=10u64 {
         let text = match seq {
+            1 => "普通".to_string(),
             5 => "请今天下班前核对招商银行的差旅报销单".to_string(),
             _ => format!("普通日常讨论消息 #{seq}"),
         };
@@ -543,6 +567,22 @@ fn channel_encrypted_buckets_bidirectional_window_and_pinyin_search() {
     assert!(!newer.has_more);
 
     // Hiding seq=5 immediately removes it from search results
+    let name = format!("{INBOX}{channel}:{:020}", 5);
+    let rolled_back: dmsg_types::Result<()> = c.workspace.store.atomic(|_| {
+        let mut message = c.workspace.private::<Message>(keys, &name)?.unwrap();
+        message.hidden = true;
+        c.workspace.put_private(keys, &name, &message)?;
+        c.invalidate_indexed_message(&channel, message.seq)?;
+        Err(dmsg_types::Error::VersionConflict)
+    });
+    assert!(rolled_back.is_err());
+    assert_eq!(
+        c.channel_search_rich(&channel, "zsyh", None, 20, false, None)
+            .unwrap()
+            .hits
+            .len(),
+        1
+    );
     c.channel_hide(&channel, 5, true).unwrap();
     let hidden_search = c
         .channel_search_rich(&channel, "zsyh", None, 20, false, None)
@@ -561,5 +601,21 @@ fn channel_encrypted_buckets_bidirectional_window_and_pinyin_search() {
             .snippet_spans
             .iter()
             .any(|s| s.matched && s.text.contains("上海"))
+    );
+
+    let global = global_search(
+        &c.hold(),
+        &GlobalSearchRequest {
+            query: "普通".into(),
+            scopes: vec!["messages".into()],
+            limit: Some(5),
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(global.messages.len(), 5);
+    assert_eq!(
+        global.messages[0].message.seq, 1,
+        "the oldest exact hit outranks newer prefixes"
     );
 }

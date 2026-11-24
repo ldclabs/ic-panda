@@ -5,6 +5,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchModelsTest {
+    @Test fun searchSortRespectsAnExplicitTitleOrder() {
+        val query = VaultQuery(text = "bank")
+        assertEquals("relevance", query.effectiveSort)
+        assertEquals("title", query.copy(sort = "title").effectiveSort)
+        assertEquals("title", query.copy(text = "", sort = "relevance").effectiveSort)
+    }
+
+    @Test fun attachmentPreviewUsesOnlyVisibleMatches() {
+        val hit = parseRichMessageHit(Json.parseToJsonElement("""
+            {"channel":"c","message":{"seq":1,"account":"a","text":"See attached","file":{"name":"清单.pdf"}},
+             "file_spans":[{"text":"清单","matched":true},{"text":".pdf","matched":false}]}
+        """).objectValue())
+        assertEquals("清单.pdf", hit.previewText)
+        assertEquals(hit.fileSpans, hit.previewSpans)
+        assertEquals("See attached", hit.copy(attachmentDeleted = true).previewText)
+    }
+
     @Test fun vaultListingParsesCamelCaseHighlightsAndMatchHint() {
         val raw = """
             {

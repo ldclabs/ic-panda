@@ -2247,6 +2247,44 @@ pub async fn earlier_messages<H: Hold>(
         .await
 }
 
+/// Continue a search window forwards, reading at most one missing relay page when
+/// the end of the verified prefix has been reached.
+///
+/// # Errors
+/// As [`earlier_messages`]. Already cached history stays available when the relay is offline.
+pub async fn newer_messages<H: Hold>(
+    h: &H,
+    channel: &str,
+    after: u64,
+    limit: usize,
+) -> Result<MessagePage> {
+    let (page, gap) = h
+        .with(|c| {
+            let local = c.local(channel)?;
+            let page = c.messages_after_page(channel, after, limit.clamp(1, 500), &local)?;
+            let gap = local
+                .recent
+                .filter(|_| page.items.is_empty() && after <= local.message)
+                .map(|(end, _)| {
+                    (
+                        local.message,
+                        end.min(local.message.saturating_add(MESSAGE_PAGE)),
+                    )
+                });
+            Ok((page, gap))
+        })
+        .await?;
+    let Some(range) = gap else { return Ok(page) };
+    let mut reading = Reading {
+        range: Some(range),
+        recent: true,
+        ..Reading::new(channel)
+    };
+    read(h, &mut reading).await?;
+    h.with(|c| c.channel_messages_after_page(channel, after, limit))
+        .await
+}
+
 /// Refresh attachment removals independently of the conversation's message load.
 /// # Errors
 /// Relay or validation errors; the previous deletion cursor is retained.
@@ -4037,6 +4075,7 @@ impl Client {
                 ensure(!message.unreadable, Error::IntegrityFailed)?;
                 let mut local = self.local(channel)?;
                 self.workspace.put_private(keys, &name, &message)?;
+                self.invalidate_indexed_message(channel, seq)?;
                 self.amend(channel, &mut local, &message)?;
                 if !message.amends() && local.last.as_ref().is_none_or(|last| last.seq < seq) {
                     local.last = Some(preview(&message));
@@ -4618,7 +4657,7 @@ impl Client {
                     extend(&mut local.skipped, message.epoch, message.seq);
                 }
                 self.workspace.put_private(keys, key, message)?;
-                self.index_message_updated(&channel, message);
+                self.invalidate_indexed_message(&channel, message.seq)?;
                 self.amend(&channel, &mut local, message)?;
                 if !message.amends()
                     && local
@@ -4664,7 +4703,7 @@ impl Client {
                         apply(&mut stored, message);
                         self.workspace
                             .put_private(keys, &name(stored.seq), &stored)?;
-                        self.index_message_updated(channel, &stored);
+                        self.invalidate_indexed_message(channel, stored.seq)?;
                         if local.last.as_ref().is_some_and(|l| l.seq == stored.seq) {
                             local.last = Some(preview(&stored));
                         }
@@ -4692,7 +4731,7 @@ impl Client {
             }
             self.workspace
                 .put_private(keys, &name(current.seq), &current)?;
-            self.index_message_updated(channel, &current);
+            self.invalidate_indexed_message(channel, current.seq)?;
         }
         Ok(())
     }
@@ -4766,13 +4805,23 @@ impl Client {
         after: u64,
         limit: usize,
     ) -> Result<Vec<Message>> {
+        self.messages_after(channel, after, limit, u64::MAX)
+    }
+
+    fn messages_after(
+        &self,
+        channel: &str,
+        after: u64,
+        limit: usize,
+        through: u64,
+    ) -> Result<Vec<Message>> {
         base(channel)?;
         // Messages are named by their zero-padded sequence: the page is a
         // range of names, and only its messages are opened.
         let prefix = format!("{INBOX}{channel}:");
         let mut shown = vec![];
         let mut from = after;
-        while shown.len() < limit {
+        while shown.len() < limit && from < through {
             let page: Vec<Message> = self.workspace.private_after(
                 self.keys()?,
                 &prefix,
@@ -4783,7 +4832,11 @@ impl Client {
                 break;
             };
             from = last.seq;
-            shown.extend(page.into_iter().filter(|m| !m.amends()));
+            shown.extend(
+                page.into_iter()
+                    .take_while(|m| m.seq <= through)
+                    .filter(|m| !m.amends()),
+            );
         }
         shown.truncate(limit);
         shown
@@ -4943,11 +4996,7 @@ impl Client {
             .recent
             .filter(|(gap, _)| seq > *gap)
             .map_or(0, |(gap, _)| gap);
-        let earlier = if before > 0 {
-            self.messages_before(channel, seq, before.saturating_add(1), floor)?
-        } else {
-            Vec::new()
-        };
+        let earlier = self.messages_before(channel, seq, before + 1, floor)?;
         let has_earlier_local = earlier.len() > before;
         let earlier = if has_earlier_local {
             earlier[earlier.len() - before..].to_vec()
@@ -4957,43 +5006,28 @@ impl Client {
 
         let anchor_msg = self.channel_message_public(channel, seq)?;
 
-        let newer = if after > 0 {
-            self.channel_messages(channel, seq, after.saturating_add(1))?
-        } else {
-            Vec::new()
-        };
-        let has_after = newer.len() > after;
-        let newer = if has_after {
-            newer[..after].to_vec()
-        } else {
-            newer
-        };
+        let newer = self.messages_after_page(channel, seq, after, &local)?;
 
-        let mut items =
-            Vec::with_capacity(earlier.len() + usize::from(anchor_msg.is_some()) + newer.len());
+        let mut items = Vec::with_capacity(
+            earlier.len() + usize::from(anchor_msg.is_some()) + newer.items.len(),
+        );
         items.extend(earlier);
         if let Some(m) = anchor_msg {
             items.push(m);
         }
-        items.extend(newer);
+        items.extend(newer.items);
 
         let first_seq = items.first().map(|m| m.seq);
-        let last_seq = items.last().map(|m| m.seq);
-        let has_before = has_earlier_local
-            || floor > 0
-            || first_seq.is_some_and(|s| {
-                s > 1 && local.recent.is_none_or(|(after_gap, _)| s > after_gap + 1)
-            });
+        let has_before = has_earlier_local || floor > 0;
         let next_before = has_before.then_some(first_seq.unwrap_or(seq));
-        let next_after = has_after.then_some(last_seq.unwrap_or(seq));
 
         Ok(MessageWindow {
             items,
             anchor: seq,
             has_before,
-            has_after,
+            has_after: newer.has_more,
             next_before,
-            next_after,
+            next_after: newer.next_before,
         })
     }
 
@@ -5007,13 +5041,27 @@ impl Client {
         after: u64,
         limit: usize,
     ) -> Result<MessagePage> {
-        let limit = limit.clamp(1, 500);
-        let mut items = self.channel_messages(channel, after, limit.saturating_add(1))?;
-        let has_more = items.len() > limit;
-        if has_more {
-            items.truncate(limit);
-        }
-        let next_before = has_more.then(|| items.last().map_or(after, |m| m.seq));
+        self.messages_after_page(channel, after, limit.clamp(1, 500), &self.local(channel)?)
+    }
+
+    fn messages_after_page(
+        &self,
+        channel: &str,
+        after: u64,
+        limit: usize,
+        local: &Local,
+    ) -> Result<MessagePage> {
+        let gap = local.recent.is_some() && after <= local.message;
+        let through = if gap { local.message } else { u64::MAX };
+        let mut items = self.messages_after(channel, after, limit + 1, through)?;
+        let more_local = items.len() > limit;
+        items.truncate(limit);
+        let has_more = more_local || gap;
+        let next_before = if more_local {
+            Some(items.last().map_or(after, |m| m.seq))
+        } else {
+            gap.then_some(through)
+        };
         Ok(MessagePage {
             items,
             has_more,
@@ -5129,8 +5177,10 @@ impl Client {
             .private(keys, &name)?
             .ok_or(Error::NotFound)?;
         message.hidden = hidden;
-        self.workspace.put_private(keys, &name, &message)?;
-        self.index_message_updated(channel, &message);
+        self.workspace.store.atomic(|_| {
+            self.workspace.put_private(keys, &name, &message)?;
+            self.invalidate_indexed_message(channel, seq)
+        })?;
         Ok(message.public())
     }
 

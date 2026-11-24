@@ -15,7 +15,7 @@
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
   import HighlightText from '../components/HighlightText.svelte'
-  import type { HighlightSpan } from '../components/highlight'
+  import { messagePreview, type HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Field from '../components/page/Field.svelte'
@@ -167,11 +167,12 @@
   const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
   const currentDeliveries = $derived(deliveries.filter(row => row.channel === channel?.id))
   const shownMessages = $derived.by(() => {
+    if (reading) return messages
     const rows = new Map(messages.map((m: any) => [m.seq, m]))
     for (const row of currentDeliveries) if (row.state === 'confirmed') rows.set(row.message.seq, row.message)
     return [...rows.values()].sort((a, b) => a.seq - b.seq)
   })
-  const shownOutbox = $derived([
+  const shownOutbox = $derived(reading ? [] : [
     ...currentDeliveries.filter(row => row.state !== 'confirmed' && !shownMessages.some((m: any) => m.message_id === row.message_id)),
     ...outbox.filter(row => !currentDeliveries.some(pending => pending.message_id === row.message_id))
   ])
@@ -206,6 +207,7 @@
   // Left sidebar search: match channels by name/member/draft/preview (pinyin-aware) and cross-channel messages.
   $effect(() => {
     const q = trimmedListQuery
+    void channels
     if (!q || !unlocked) {
       listSearchHits = null
       crossMessageGroups = null
@@ -306,7 +308,7 @@
     const sendRevision = messageDeliveries.revision
     legacySelected = null
     const switching = channel?.id !== id
-    if (selected !== id) { channelVisit++; loadingEarlier = false; loadingNewer = false }
+    if (selected !== id || atSeq !== undefined) { channelVisit++; loadingEarlier = false; loadingNewer = false }
     selected = id
     if (atSeq !== undefined && Number.isSafeInteger(atSeq) && atSeq > 0) {
       const [next, win, box] = await Promise.all([
@@ -546,12 +548,13 @@
 
   let marked = 0
   let noticeRead = $state<{ channel: string; seq: number } | null>(null)
-  const reportNotice = noticeVisibility(() => unlocked && channel && noticeRead && noticeRead.channel === channel.id
+  const reportNotice = noticeVisibility(() => unlocked && !reading && channel && noticeRead && noticeRead.channel === channel.id
     ? { account: status.account, session: status.session, target: { kind: 'channel', id: channel.id }, watermark: String(noticeRead!.seq) } : null,
     '[data-testid="channel-messages"]')
-  $effect(() => { void noticeRead; void channel?.id; void status?.session; reportNotice() })
+  $effect(() => { void reading; void noticeRead; void channel?.id; void status?.session; reportNotice() })
   /** The messages shown through `seq` are read; a read receipt goes only when chosen (C04). */
   function markRead(seq: number) {
+    if (reading) return
     seq = Math.min(seq, channel?.message_cursor ?? 0)
     if (channel && Number.isSafeInteger(seq) && seq > 0) noticeRead = { channel: channel.id, seq }
     if (!channel || seq <= Math.max(channel.read ?? 0, marked)) return
@@ -594,7 +597,7 @@
       const changed = new Map([...messages, ...page.items].map((m: any) => [m.seq, m]))
       messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
       moreAfter = page.has_more
-      nextAfter = page.has_more ? page.items.at(-1)?.seq ?? null : null
+      nextAfter = page.next_before
       if (!page.has_more) reading = false
     } catch (error) { if (alive && selected === id && channelVisit === visit) fail(error) }
     finally { if (channelVisit === visit) loadingNewer = false }
@@ -610,24 +613,21 @@
 
   // Live debounced in-channel message search whenever search panel is open and query/filter changes.
   $effect(() => {
-    if (!search.open || !channel?.id) return
-    const id = channel.id
+    const req = ++searchSeq
+    const id = channel?.id
     const asked = search.query.trim()
     const hasFile = search.hasFile
-    if (!asked && !hasFile) {
-      search.results = null
-      search.nextBefore = null
-      search.activeIndex = -1
-      search.error = ''
-      search.busy = false
-      return
-    }
-    const req = ++searchSeq
-    let cancelled = false
+    search.results = null
+    search.nextBefore = null
+    search.activeIndex = -1
+    search.error = ''
+    search.busy = false
+    search.loadingMore = false
+    if (!search.open || !id || (!asked && !hasFile)) return
     const timer = setTimeout(() => {
-      if (!cancelled && alive && selected === id && req === searchSeq) void find(false, req)
+      if (alive && selected === id && req === searchSeq) void find(false, req)
     }, 140)
-    return () => { cancelled = true; clearTimeout(timer) }
+    return () => clearTimeout(timer)
   })
 
   async function find(append = false, explicitSeq?: number) {
@@ -1075,7 +1075,7 @@
                   </span>
                   <span class="truncate text-callout text-muted">
                     <span class="font-medium text-ink-2">{hit.message.account === me ? t('you') : (hit.sender_name || label(hit.message.account, false))}:</span>
-                    <HighlightText text={hit.message.text || hit.message.file?.name || ''} spans={hit.snippet_spans} />
+                    <HighlightText {...messagePreview(hit)} />
                   </span>
                 </button>
               </li>
@@ -1320,7 +1320,7 @@
                         {hit.message.account === me ? t('you') : (hit.sender_name || label(hit.message.account, false))}
                       </span>
                       <span class="min-w-0 flex-1 truncate text-muted">
-                        <HighlightText text={hit.message.text || hit.message.file?.name || ''} spans={hit.snippet_spans} />
+                        <HighlightText {...messagePreview(hit)} />
                       </span>
                       <span class="shrink-0 text-caption text-faint tabular-nums">{shortDay.format(hit.message.stored_at)}</span>
                     </button>

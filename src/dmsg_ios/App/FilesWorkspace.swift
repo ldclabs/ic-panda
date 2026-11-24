@@ -34,6 +34,8 @@ extension SessionModel {
         guard filesFolder == folder else { return }
         filesScope = .local
         filesSearch = ""
+        filesFavoritesOnly = false
+        filesTag = ""
     }
 
     var fileImportNotice: String {
@@ -67,6 +69,7 @@ extension SessionModel {
             library = value; folderSearchMeta = nextFolderMeta; fileSearchMeta = nextFileMeta
             filesLoaded = true; filesQuery = key
             if query.isEmpty && !starred && tag.isEmpty { filesListings[folder] = value }
+            if !quiet { await loadFileTags() }
             await loadFileSummary()
         } catch {
             guard stamp == epoch, key == filesQueryKey, filesRequest == request, !Task.isCancelled else { return }

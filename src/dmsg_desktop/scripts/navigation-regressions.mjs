@@ -28,29 +28,30 @@ async function palette({ main, methods, file, hold, waitFor, capture, profile })
 
   const hit = file('17'.repeat(32), 'Already found.txt', 20)
   let pending = 0, fail = true
-  methods['files/search'] = ({ query }) => {
-    if (query === 'first fixture') return [hit]
+  methods['search/global'] = ({ query }) => {
+    const result = { query, vault: [], channels: [], messages: [], letters: [], files: [] }
+    if (query === 'first fixture') result.files = [hit]
     if (query === 'second fixture') {
       pending++
       if (fail) throw { code: 'UNAVAILABLE' }
-      return [{ ...hit, name: 'Current result.txt' }]
+      result.files = [{ ...hit, name: 'Current result.txt' }]
     }
-    return []
+    return result
   }
   await main.getByTestId('palette-open').click()
   const input = main.getByTestId('palette-input'), dialog = main.getByTestId('palette')
   await input.fill('first fixture')
   await dialog.getByText(hit.name, { exact: true }).waitFor()
-  const release = hold('files/search', p => p.query === 'second fixture')
+  const release = hold('search/global', p => p.query === 'second fixture')
   await input.fill('second fixture')
   await waitFor(() => pending === 1)
   assert.equal(await dialog.getByText(hit.name, { exact: true }).count(), 0, 'an old file cannot be opened for a new search')
   await release()
-  const error = dialog.getByTestId('file-search-error')
-  await error.waitFor()
+  const retry = dialog.getByRole('button', { name: 'Retry', exact: true })
+  await retry.waitFor()
   await capture('palette-file-error', '[data-testid="palette"]')
   fail = false
-  await error.getByRole('button').focus()
+  await retry.focus()
   await main.keyboard.press('Enter')
   await dialog.getByText('Current result.txt', { exact: true }).waitFor()
   await main.keyboard.press('Escape')
@@ -88,8 +89,14 @@ async function channelNavigation({ main, methods, hold, waitFor, channel, peer, 
   methods['channel/show'] = ({ id }) => findChannel(id)
   methods['channel/message_page'] = ({ id }) => ({ items: [row(id, findChannel(id).name + ' timeline')], has_more: false, next_before: null })
   methods['channel/draft'] = p => { drafts.push(p); findChannel(p.id).draft = p.text; return {} }
-  methods['channel/search'] = p => { searches.push(p); return [row(p.id, findChannel(p.id).name + ' match')] }
-  methods['channel/messages'] = p => { jumps.push(p); return [row(p.id, 'Old surrounding messages')] }
+  methods['channel/search_rich'] = p => {
+    searches.push(p)
+    return { hits: [{ channel: p.id, message: row(p.id, findChannel(p.id).name + ' match') }], has_more: false }
+  }
+  methods['channel/messages_around'] = p => {
+    jumps.push(p)
+    return { items: [row(p.id, 'Old surrounding messages')], anchor: p.seq, has_before: false, has_after: false }
+  }
 
   const timeline = main.getByTestId('channel-messages'), query = main.getByTestId('channel-search-query')
   const results = main.getByTestId('channel-search-results')
@@ -100,13 +107,12 @@ async function channelNavigation({ main, methods, hold, waitFor, channel, peer, 
   const search = async () => {
     await main.getByTestId('channel-search-toggle').click()
     await query.fill('same words')
-    await query.press('Enter')
   }
   await open(first)
   await main.getByTestId('channel-text').fill('Keep this draft on its own channel')
   await open(second)
   await waitFor(() => drafts.some(p => p.id === first.id && p.text === 'Keep this draft on its own channel'))
-  const lateSearch = hold('channel/search', p => p.id === second.id)
+  const lateSearch = hold('channel/search_rich', p => p.id === second.id)
   await search()
   await waitFor(() => searches.some(p => p.id === second.id))
   await open(first)
@@ -118,11 +124,11 @@ async function channelNavigation({ main, methods, hold, waitFor, channel, peer, 
   await capture('channel-current-search', '[data-testid="channel-search"]')
   await query.fill('other words')
   assert.equal(await results.count(), 0, 'editing clears the old search before submitting')
+  await results.getByRole('button').waitFor()
   await composingEnter(query)
   await settle(main)
-  assert.equal(searches.some(p => p.query === 'other words'), false)
-  await query.press('Enter')
-  const lateJump = hold('channel/messages', p => p.id === first.id)
+  assert.equal(jumps.length, 0, 'confirming IME input does not jump to the live match')
+  const lateJump = hold('channel/messages_around', p => p.id === first.id)
   await results.getByRole('button').click()
   await waitFor(() => jumps.length === 1)
   await open(second)
@@ -177,10 +183,10 @@ async function libraryForms({ app, main, methods, file, waitFor, capture }) {
   const creations = [], renames = []
   methods['files/tree'] = () => [folder]
   methods['files/list'] = () => ({ folders: [folder], files: [] })
-  methods['files/search'] = p => {
-    if (p.folder !== folder.id) return []
+  methods['files/search_listing'] = p => {
+    if (p.folder !== folder.id) return { folders: [], files: [] }
     if (fail) throw { code: 'UNAVAILABLE' }
-    return [file('61'.repeat(32), 'Counts are available again.txt', 42)]
+    return { folders: [], files: [file('61'.repeat(32), 'Counts are available again.txt', 42)] }
   }
   methods['files/mkdir'] = p => { creations.push(p); return {} }
   methods['files/rename'] = p => { renames.push(p); return {} }

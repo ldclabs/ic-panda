@@ -10,7 +10,7 @@ import { WebSocketServer } from 'ws'
 
 const account = '040g2081040g2081040g', peer = '0123456789abcdefghi0', id = '33'.repeat(32), token = 'channel-ui-fixture'
 const calls = [], sockets = new Set()
-let seq = 0, releaseSend
+let seq = 0, releaseSend, releaseSearch
 const status = () => ({ state: 'unlocked', session: 'fixture', account, device_id: '55'.repeat(32), approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: false, idle_lock_ms: 900000 })
 const channel = { id, name: '频道消息 · Conversation', genesis: '44'.repeat(32), ledger: { channel_id: id, type: 'collaboration', owner: account, epoch: 1, status: 'active', members: Object.fromEntries([account, peer].map((account, index) => [account, { account, role: index ? 'member' : 'owner', joined_epoch: 1, can_rotate: !index, history: [] }])) }, message_cursor: 2, readable_epochs: [1] }
 const row = (seq, account, text) => ({ seq, account, text, message_id: String(seq).padStart(64, '0'), digest: 'dd'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), file: null })
@@ -28,6 +28,13 @@ const methods = {
   'channel/list': () => [channel], 'channel/show': () => channel,
   'channel/message_page': () => ({ items: messages, has_more: false, next_before: null }),
   'channel/messages': p => messages.filter(m => m.seq > (p.after ?? 0)),
+  'channel/search_rich': async p => {
+    if (p.query === 'hold') await new Promise(resolve => { releaseSearch = resolve })
+    return { hits: [{ channel: id, message: messages[0], snippet_spans: [{ text: 'example', matched: true }] }], has_more: false }
+  },
+  'channel/messages_around': p => ({ items: messages, anchor: p.seq, has_before: false, has_after: false }),
+  'search/global': () => ({ vault: [{ id: 'fixture', kind: 'login', title: 'Synthetic login' }], channels: [], messages: [], letters: [], files: [] }),
+  'vault/show': () => ({ id: 'fixture', item: { type: 'login', fields: [{ id: 'username', type: 'text', value: 'test' }] } }),
   'channel/sync': () => ({ through: messages.length, received: 0 }), 'channel/outbox': () => [],
   'channel/receipts': () => ({ latest_seq: messages.length, cursors: {} }),
   'channel/mark': () => channel, 'channel/draft': () => null,
@@ -60,6 +67,25 @@ try {
   const main = await app.firstWindow(); main.setDefaultTimeout(15000)
   const failures = []; main.on('pageerror', error => failures.push(`${main.url()} ${error.stack}`))
   await main.getByTestId('channel-item').first().click()
+  await main.getByTestId('channel-search-toggle').click()
+  const search = main.getByTestId('channel-search-query')
+  await search.fill('hold')
+  await main.waitForFunction(() => document.querySelector('[data-testid="channel-search-submit"]')?.disabled)
+  for (let i = 0; !releaseSearch && i < 100; i++) await new Promise(resolve => setTimeout(resolve, 20))
+  assert.ok(releaseSearch, 'the rich search request reached the daemon')
+  await search.fill('')
+  releaseSearch()
+  await main.waitForTimeout(200)
+  assert.equal(await main.getByTestId('channel-search-results').count(), 0)
+  const previousText = messages[0].text
+  messages[0].text = 'See https://example.test for details'
+  await search.fill('example')
+  await main.getByTestId('channel-search-results').getByRole('button').first().click()
+  const link = main.locator('article[data-seq="1"]').getByTestId('message-link')
+  assert.equal(await link.getAttribute('href'), 'https://example.test')
+  assert.equal(await link.locator('mark').textContent(), 'example')
+  messages[0].text = previousText
+  await search.press('Escape')
   await main.locator('[data-seq="1"] img').waitFor()
   const own = main.locator('article[data-seq="2"]'), incoming = main.locator('article[data-seq="1"]')
   // One's own messages are bubbles at the end, without an avatar; others keep theirs at the start.
@@ -110,6 +136,18 @@ try {
       await main.evaluate(theme => window.dmsg.setAppearance(theme), theme)
       await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(760, 540))
       await main.waitForFunction(dark => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
+      await main.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k')
+      const palette = main.getByTestId('palette')
+      const input = palette.getByTestId('palette-input')
+      await input.fill('#Synthetic')
+      await palette.getByTestId('palette-more').waitFor()
+      await input.press(locale === 'ar' ? 'ArrowLeft' : 'ArrowRight')
+      await palette.getByTestId('palette-back').waitFor()
+      await palette.getByRole('option').nth(1).waitFor()
+      await main.screenshot({ path: join(shots, `palette-${locale}-${theme}.png`) })
+      await input.press('Escape')
+      await input.press('Escape')
+      await palette.waitFor({ state: 'hidden' })
       const members = main.getByTestId('channel-members'); if (await members.isVisible()) await members.getByRole('button').first().click()
       await right(own)
       assert.ok(await main.getByTestId('channel-messages').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'timeline fits the minimum window')
@@ -119,6 +157,7 @@ try {
       assert.equal(await main.getByTestId('message-block').count(), 0)
       await main.screenshot({ path: join(shots, `${locale}-${theme}-menu.png`) })
       await main.keyboard.press('Escape')
+      await main.getByTestId('message-hide').waitFor({ state: 'hidden' })
     }
   }
   messages[0].unreadable = true
@@ -128,7 +167,7 @@ try {
   await main.getByTestId('channel-messages').evaluate(el => { el.scrollTop = el.scrollHeight })
   messages.push(...Array.from({ length: 60 }, (_, i) => row(4 + i, `${(i + 1).toString(16).padStart(19, '0')}0`, `Participant ${i + 1}`)))
   emit('channel/changed')
-  await main.locator('article[data-seq="63"]').waitFor()
+  await main.locator('article[data-seq="63"]').scrollIntoViewIfNeeded()
   await main.waitForTimeout(300)
   const requested = new Set(calls.filter(call => call.method === 'channel/names').slice(beforeNames).flatMap(call => call.params.accounts))
   assert.ok(requested.size > 0 && requested.size < 20, `only visible authors should be fetched, got ${requested.size}/60`)

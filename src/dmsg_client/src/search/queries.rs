@@ -8,7 +8,7 @@ use super::matcher::{
 use crate::{
     Client,
     channel::{ChannelView, Message},
-    channel_log::ChannelType,
+    channel_log::{ChannelType, is_hash},
     hold::Hold,
     library::{
         SearchFilter,
@@ -170,6 +170,7 @@ pub struct GlobalSearchRequest {
     /// User search query.
     pub query: String,
     /// Optional subset of scopes (`"vault"`, `"channels"`, `"messages"`, `"letters"`, `"files"`).
+    /// Use `"received_letters"` for inbox and archive only.
     /// Empty means search all scopes available to the current account.
     #[serde(default)]
     pub scopes: Vec<String>,
@@ -284,8 +285,6 @@ pub async fn browse_vault_cached<H: Hold>(h: &H, query: &BrowseQuery) -> Result<
     )?;
     let session = h.with(|c| Session::start(c)).await?;
     let (docs, conflicts) = sync_vault_cache(h, session).await?;
-    h.with(|c| session.check(c)).await?;
-
     let parsed = query
         .filter
         .query
@@ -323,7 +322,7 @@ pub async fn browse_vault_cached<H: Hold>(h: &H, query: &BrowseQuery) -> Result<
             .is_none_or(|kind| *kind == doc.summary.kind)
             && (!query.favorites || doc.summary.favorite)
         {
-            let mut summary = doc.summary;
+            let mut summary = doc.summary.clone();
             summary.conflict |= conflicts.contains(&summary.id);
             summary.title_spans = hit.title_spans;
             summary.subtitle_spans = hit.subtitle_spans;
@@ -366,6 +365,7 @@ pub async fn browse_vault_cached<H: Hold>(h: &H, query: &BrowseQuery) -> Result<
         .map(|(_, s)| s)
         .collect();
 
+    h.with(|c| session.check(c)).await?;
     Ok(BrowsePage {
         items,
         total,
@@ -386,7 +386,7 @@ pub async fn global_search<H: Hold>(
     ensure_valid(req.query.chars().count() <= 200, "query")?;
     if parsed.is_empty() {
         return Ok(GlobalSearchResponse {
-            query: String::new(),
+            query: parsed.raw().to_string(),
             ..Default::default()
         });
     }
@@ -411,7 +411,7 @@ pub async fn global_search<H: Hold>(
                 continue;
             }
             if let Some(hit) = doc.match_query(&parsed) {
-                let mut summary = doc.summary;
+                let mut summary = doc.summary.clone();
                 summary.conflict |= conflicts.contains(&summary.id);
                 summary.title_spans = hit.title_spans;
                 summary.subtitle_spans = hit.subtitle_spans;
@@ -497,6 +497,7 @@ pub async fn global_search<H: Hold>(
                     let hits = c.channel_list_search(parsed.raw())?;
                     Ok(hits
                         .into_iter()
+                        .filter(|hit| !hit.channel.hidden)
                         .take(limit)
                         .map(|h| GlobalChannelHit {
                             id: h.channel.id,
@@ -518,28 +519,36 @@ pub async fn global_search<H: Hold>(
         }
 
         if want("messages") {
-            response.messages = h
+            let (channels, mut search) = h
                 .with(|c| {
                     session.check(c)?;
-                    let groups = c.channel_search_all(parsed.raw(), 3, 20, false)?;
-                    let mut flat: Vec<MessageSearchHit> =
-                        groups.into_iter().flat_map(|g| g.hits).collect();
-                    flat.sort_by(|a, b| {
-                        b.score
-                            .cmp(&a.score)
-                            .then_with(|| b.message.stored_at.cmp(&a.message.stored_at))
-                    });
-                    flat.truncate(limit);
-                    Ok(flat)
+                    Ok((
+                        c.channel_list()?,
+                        MessageSearch::new(c, parsed.clone(), false, None)?,
+                    ))
                 })
                 .await?;
+            for channel in channels.into_iter().filter(|ch| !ch.hidden) {
+                h.with(|c| {
+                    session.check(c)?;
+                    search.collect(
+                        c,
+                        &channel.id,
+                        MessageOrder::Relevance,
+                        limit,
+                        &mut response.messages,
+                    )
+                })
+                .await?;
+            }
         }
 
-        if want("letters") {
+        if want("letters") || want("received_letters") {
             response.letters = h
                 .with(|c| {
                     session.check(c)?;
-                    let mut hits = c.inbox_search(parsed.raw(), None)?;
+                    let box_kind = (!want("letters")).then_some("received");
+                    let mut hits = c.inbox_search(parsed.raw(), box_kind)?;
                     hits.truncate(limit);
                     Ok(hits)
                 })
@@ -946,115 +955,19 @@ impl Client {
         has_file: bool,
         sender: Option<&str>,
     ) -> Result<ChannelMessageSearchPage> {
+        ensure_valid(is_hash(channel), "channel")?;
         let trimmed = query.trim();
         ensure_valid(
             (!trimmed.is_empty() || has_file || sender.is_some()) && trimmed.chars().count() <= 200,
             "query",
         )?;
-        let limit = limit.clamp(1, 200);
         let parsed = Query::parse(trimmed);
-        let cursor = before.unwrap_or(u64::MAX);
-        let names = self.cached_display_names();
-        let blocked: HashSet<String> = self
-            .blocked_accounts()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        let indexed = self.ensure_channel_search_index(channel)?;
-        let empty = PreparedText::new("");
-        let mut senders: HashMap<String, PreparedText> = HashMap::new();
-
-        let mut hits = Vec::with_capacity(limit + 1);
-        for cached in indexed {
-            if cached.entry.seq >= cursor {
-                continue;
-            }
-            if blocked.contains(&cached.entry.account) {
-                continue;
-            }
-            if has_file && cached.entry.file_name.is_none() {
-                continue;
-            }
-            if let Some(target_sender) = sender
-                && cached.entry.account != target_sender
-            {
-                continue;
-            }
-            let sender_name = names.get(&cached.entry.account).cloned();
-
-            let (score, text_ranges, file_ranges, text_matched) = if parsed.is_empty() {
-                (100, Vec::new(), Vec::new(), true)
-            } else {
-                let prepared_sender = senders
-                    .entry(cached.entry.account.clone())
-                    .or_insert_with(|| PreparedText::new(sender_name.as_deref().unwrap_or("")));
-                let file_ref = cached.prepared_file.as_ref().unwrap_or(&empty);
-                let fields = [
-                    ("text", 100u32, &cached.prepared_text),
-                    ("file", 95u32, file_ref),
-                    ("sender", 75u32, &*prepared_sender),
-                ];
-                let Some(doc_match) = parsed.match_prepared_fields(&fields) else {
-                    continue;
-                };
-                let text_matched =
-                    !doc_match.field_ranges[0].is_empty() || !doc_match.field_ranges[2].is_empty();
-                (
-                    doc_match.score,
-                    doc_match.field_ranges[0].clone(),
-                    doc_match.field_ranges[1].clone(),
-                    text_matched,
-                )
-            };
-
-            let Some(message) = self.channel_message_public(channel, cached.entry.seq)? else {
-                continue;
-            };
-            if message.retracted || message.hidden || message.unreadable {
-                continue;
-            }
-            if !text_matched && message.file_deleted {
-                continue;
-            }
-            if has_file && (message.file.is_none() || message.file_deleted) {
-                continue;
-            }
-
-            let snippet = if !message.text.is_empty() {
-                snippet_spans(&message.text, &text_ranges, 110)
-            } else {
-                Vec::new()
-            };
-            let file_spans = message
-                .file
-                .as_ref()
-                .filter(|_| !message.file_deleted)
-                .map(|f| highlight_spans(&f.name, &file_ranges))
-                .unwrap_or_default();
-
-            hits.push(MessageSearchHit {
-                channel: channel.to_string(),
-                message,
-                sender_name,
-                snippet_spans: snippet,
-                file_spans,
-                score,
-            });
-            if hits.len() > limit {
-                break;
-            }
-        }
-
-        let has_more = hits.len() > limit;
-        if has_more {
-            hits.truncate(limit);
-        }
-        let next_before = has_more.then(|| hits.last().map_or(0, |h| h.message.seq));
-        Ok(ChannelMessageSearchPage {
-            hits,
-            has_more,
-            next_before,
-        })
+        MessageSearch::new(self, parsed, has_file, sender)?.page(
+            self,
+            channel,
+            before.unwrap_or(u64::MAX),
+            limit.clamp(1, 200),
+        )
     }
 
     /// Search messages across all non-hidden channels in a single call using LDK-sealed buckets.
@@ -1079,10 +992,11 @@ impl Client {
         channels.retain(|c| !c.hidden);
         channels.sort_by_key(|a| std::cmp::Reverse(a.active_at));
 
+        let parsed = Query::parse(trimmed);
+        let mut search = MessageSearch::new(self, parsed, has_file, None)?;
         let mut groups = Vec::new();
         for ch in channels {
-            let page =
-                self.channel_search_rich(&ch.id, trimmed, None, limit_per_channel, has_file, None)?;
+            let page = search.page(self, &ch.id, u64::MAX, limit_per_channel)?;
             if page.hits.is_empty() {
                 continue;
             }
@@ -1120,11 +1034,7 @@ impl Client {
     ) -> Result<Vec<LetterSearchHit>> {
         let parsed = Query::parse(query);
         let names = self.cached_display_names();
-        let blocked: HashSet<String> = self
-            .blocked_accounts()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
+        let blocked: HashSet<String> = self.blocked_accounts()?.into_iter().collect();
         let mut hits = Vec::new();
 
         struct LetterMatch {
@@ -1187,14 +1097,17 @@ impl Client {
         };
 
         // Incoming (inbox + archive)
-        if matches!(box_kind, None | Some("all" | "inbox" | "archive")) {
+        if matches!(
+            box_kind,
+            None | Some("all" | "received" | "inbox" | "archive")
+        ) {
             for letter in self.inbox_cached()? {
                 if blocked.contains(&letter.sender) {
                     continue;
                 }
                 let kind = if letter.archived { "archive" } else { "inbox" };
                 if let Some(filter_box) = box_kind
-                    && filter_box != "all"
+                    && !matches!(filter_box, "all" | "received")
                     && filter_box != kind
                 {
                     continue;
@@ -1287,5 +1200,176 @@ impl Client {
             });
         }
         Ok(hits)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MessageOrder {
+    Before(u64),
+    Relevance,
+}
+
+/// Share the account directory and sender projections across the channels of one query.
+struct MessageSearch {
+    query: Query,
+    has_file: bool,
+    sender: Option<String>,
+    names: HashMap<String, (String, Option<PreparedText>)>,
+    blocked: HashSet<String>,
+}
+
+impl MessageSearch {
+    fn new(client: &Client, query: Query, has_file: bool, sender: Option<&str>) -> Result<Self> {
+        Ok(Self {
+            query,
+            has_file,
+            sender: sender.map(str::to_owned),
+            names: client
+                .cached_display_names()
+                .into_iter()
+                .map(|(id, name)| (id, (name, None)))
+                .collect(),
+            blocked: client.blocked_accounts()?.into_iter().collect(),
+        })
+    }
+
+    fn collect(
+        &mut self,
+        client: &Client,
+        channel: &str,
+        order: MessageOrder,
+        limit: usize,
+        hits: &mut Vec<MessageSearchHit>,
+    ) -> Result<()> {
+        let empty = PreparedText::new("");
+        for cached in client.ensure_channel_search_index(channel)? {
+            if matches!(order, MessageOrder::Before(cursor) if cached.entry.seq >= cursor) {
+                continue;
+            }
+            if self.blocked.contains(&cached.entry.account) {
+                continue;
+            }
+            if self.has_file && cached.entry.file_name.is_none() {
+                continue;
+            }
+            if let Some(target_sender) = self.sender.as_deref()
+                && cached.entry.account != target_sender
+            {
+                continue;
+            }
+            let (sender_name, prepared_sender) = match self.names.get_mut(&cached.entry.account) {
+                Some((name, prepared)) => (
+                    Some(&*name),
+                    &*prepared.get_or_insert_with(|| PreparedText::new(name)),
+                ),
+                None => (None, &empty),
+            };
+            let fields = [
+                ("text", 100u32, &cached.prepared_text),
+                ("sender", 75u32, prepared_sender),
+                (
+                    "file",
+                    95u32,
+                    cached.prepared_file.as_ref().unwrap_or(&empty),
+                ),
+            ];
+            let Some(mut matched) = self.query.match_prepared_fields(&fields) else {
+                continue;
+            };
+
+            if matches!(order, MessageOrder::Relevance)
+                && hits.len() == limit
+                && hits.last().is_some_and(|last| {
+                    (matched.score, cached.entry.stored_at) <= (last.score, last.message.stored_at)
+                })
+            {
+                continue;
+            }
+            let Some(message) = client.channel_message_public(channel, cached.entry.seq)? else {
+                continue;
+            };
+            if message.retracted || message.hidden || message.unreadable {
+                continue;
+            }
+            if self.has_file && (message.file.is_none() || message.file_deleted) {
+                continue;
+            }
+            if message.file_deleted && !matched.field_ranges[2].is_empty() {
+                let Some(visible) = self.query.match_prepared_fields(&fields[..2]) else {
+                    continue;
+                };
+                matched = visible;
+            }
+
+            let snippet = if !message.text.is_empty() {
+                snippet_spans(&message.text, &matched.field_ranges[0], 110)
+            } else {
+                Vec::new()
+            };
+            let file_spans = message
+                .file
+                .as_ref()
+                .filter(|_| !message.file_deleted)
+                .map(|f| highlight_spans(&f.name, &matched.field_ranges[2]))
+                .unwrap_or_default();
+
+            let hit = MessageSearchHit {
+                channel: channel.to_string(),
+                message,
+                sender_name: sender_name.cloned(),
+                snippet_spans: snippet,
+                file_spans,
+                score: if self.query.is_empty() {
+                    100
+                } else {
+                    matched.score
+                },
+            };
+            match order {
+                MessageOrder::Before(_) => {
+                    hits.push(hit);
+                    if hits.len() > limit {
+                        break;
+                    }
+                }
+                MessageOrder::Relevance => {
+                    let key = (hit.score, hit.message.stored_at);
+                    let at = hits.partition_point(|h| (h.score, h.message.stored_at) >= key);
+                    if at < limit {
+                        hits.insert(at, hit);
+                        hits.truncate(limit);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn page(
+        &mut self,
+        client: &Client,
+        channel: &str,
+        cursor: u64,
+        limit: usize,
+    ) -> Result<ChannelMessageSearchPage> {
+        let mut hits = Vec::with_capacity(limit + 1);
+        self.collect(
+            client,
+            channel,
+            MessageOrder::Before(cursor),
+            limit,
+            &mut hits,
+        )?;
+        let has_more = hits.len() > limit;
+        if has_more {
+            hits.truncate(limit);
+        }
+        let next_before = has_more.then(|| hits.last().map_or(0, |h| h.message.seq));
+        Ok(ChannelMessageSearchPage {
+            hits,
+            has_more,
+            next_before,
+        })
     }
 }

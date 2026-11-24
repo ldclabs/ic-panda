@@ -229,9 +229,8 @@ struct GlobalSearchResultsContent: View {
                                     onSelect?()
                                 } label: {
                                     let channelName = model.channels.first(where: { $0.id == hit.channel })?.name
-                                    let bodyFallback = hit.text.isEmpty ? (hit.attachmentName ?? "") : hit.text
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(highlightedText(bodyFallback, spans: hit.snippetSpans)).lineLimit(2)
+                                        Text(highlightedText(hit.preview.text, spans: hit.preview.spans)).lineLimit(2)
                                         let meta = [channelName, hit.senderName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
                                         HStack(spacing: 6) {
                                             if !meta.isEmpty { Text(meta).lineLimit(1) }

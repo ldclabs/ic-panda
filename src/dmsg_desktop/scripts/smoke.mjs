@@ -530,6 +530,12 @@ const methods = {
     if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
     return p?.trash ? trash : vault
   },
+  'search/global': ({ query, scopes }) => ({
+    query, channels: [], messages: [], letters: [], files: [],
+    vault: scopes.includes('vault') || !scopes.length
+      ? vault.filter(v => v.item.title.toLowerCase().includes(query.toLowerCase())).map(v => ({ id: v.id, kind: v.item.type, title: v.item.title }))
+      : []
+  }),
   'session/login': () => {
     if (failLogin) {
       failLogin = false
@@ -630,6 +636,18 @@ const methods = {
   'files/tree': () => libraryFolders,
   'files/list': (p) => (p?.trash ? { folder: null, folders: [], files: libraryTrash } : { folder: null, folders: libraryFolders, files: library }),
   'files/search': () => library,
+  'files/search_listing': ({ query, folder, starred, tag, trash }) => {
+    const term = query.trim().toLowerCase()
+    const parent = libraryFolders.find(f => f.id === folder)
+    const prefix = parent ? [...parent.path, parent.name] : []
+    const inScope = entry => prefix.every((name, i) => entry.path[i] === name)
+    const matches = entry => [entry.name, ...entry.path, ...(entry.tags ?? []), entry.note ?? '']
+      .some(value => value.toLowerCase().includes(term))
+    return {
+      folders: trash || starred || tag ? [] : libraryFolders.filter(f => inScope(f) && matches(f)),
+      files: (trash ? libraryTrash : library).filter(f => inScope(f) && matches(f) && (!starred || f.starred) && (!tag || f.tags.includes(tag)))
+    }
+  },
   'files/show': (p) => {
     const file = library.find((f) => f.id === p.id) ?? libraryTrash.find((f) => f.id === p.id)
     return { file, versions: [version(file)] }
@@ -1114,7 +1132,10 @@ const methods = {
     if (p.muted_until !== undefined) { channel.muted = true; channel.muted_until = p.muted_until; channel.notification_pending = true }
     return channel
   },
-  'channel/search': (p) => messages.filter((m) => m.text?.includes(p.query)),
+  'channel/search_rich': (p) => ({
+    hits: messages.filter(m => m.text?.includes(p.query)).map(message => ({ channel: p.id, message })),
+    has_more: false
+  }),
   'channel/hide': (p) => ({ ...messages.find((m) => m.seq === p.seq), hidden: p.hidden }),
   'channel/send_file': (p) => {
     const file = library.find((f) => f.id === p.file)
@@ -4848,6 +4869,7 @@ smoke: try {
   // The palette finds an item by its title.
   await main.keyboard.press(`${mod}+k`)
   await main.fill('[data-testid="palette-input"]', 'Smoke login 2')
+  await main.getByTestId('palette').getByRole('option').filter({ hasText: 'Smoke login 2' }).waitFor()
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
 

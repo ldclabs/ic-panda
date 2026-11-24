@@ -134,7 +134,7 @@ impl MobileEngine {
         })
     }
 
-    /// Load newer local messages strictly after `after` (for scrolling down from a jumped hit).
+    /// Load newer messages after `after`, filling a missing page on demand.
     pub async fn messages_after(
         &self,
         channel: String,
@@ -143,12 +143,13 @@ impl MobileEngine {
     ) -> Result<MessagePage> {
         ensure_valid(limit > 0 && limit <= 200, "page")?;
         let generation = self.host.generation();
+        let turn = self.read_turns.lane(&format!("channel:{channel}"));
         let page = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(
-                    async move { c.channel_messages_after_page(&channel, after, limit as usize) },
-                )
+            .held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::channel::newer_messages(h, &channel, after, limit as usize).await
+                })
             })
             .await?;
         Ok(MessagePage {

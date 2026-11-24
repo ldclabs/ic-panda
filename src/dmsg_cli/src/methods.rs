@@ -292,6 +292,16 @@ impl Daemon {
                 return Ok(to_json(&result?));
             }
             "channel/catch_up" => return crate::channels::catch_up(self, &id()?).await,
+            "channel/messages_after" => {
+                let id = id()?;
+                let after = number(params, "after")?;
+                let limit = params["limit"].as_u64().unwrap_or(100).clamp(1, 500) as usize;
+                let bound = Unlocked::new(&h).await?;
+                let _turn = self.turn(&format!("channel-read:{id}")).await;
+                return Ok(to_json(
+                    &channel::newer_messages(&bound, &id, after, limit).await?,
+                ));
+            }
             "channel/earlier" => {
                 let id = id()?;
                 let bound = Unlocked::new(&h).await?;
@@ -709,11 +719,6 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                 number(params, "seq")?,
                 params["before"].as_u64().unwrap_or(40).min(500) as usize,
                 params["after"].as_u64().unwrap_or(40).min(500) as usize,
-            )?),
-            "channel/messages_after" => to_json(&client.channel_messages_after_page(
-                &id()?,
-                number(params, "after")?,
-                params["limit"].as_u64().unwrap_or(100).min(500) as usize,
             )?),
             "channel/pending" => Value::Array(client.channel_pending(&id()?)?),
             "channel/outbox" => Value::Array(client.channel_outbox(&id()?)?),

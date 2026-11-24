@@ -15,7 +15,7 @@ use crate::{
 use dmsg_types::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 const MSG_INDEX_PREFIX: &str = "search-msg:";
 const MSG_BUCKET_SIZE: u64 = 64;
@@ -29,7 +29,7 @@ pub(crate) struct SearchCache {
 
 #[derive(Default)]
 struct SearchCacheInner {
-    vault: HashMap<String, CachedVaultDoc>,
+    vault: HashMap<String, Arc<CachedVaultDoc>>,
     messages: HashMap<String, ChannelMessageCache>,
 }
 
@@ -41,22 +41,9 @@ impl SearchCache {
             guard.messages.clear();
         }
     }
-
-    /// Update or insert one live message in the in-memory channel cache if already loaded.
-    pub(crate) fn upsert_message(&self, channel: &str, message: &Message) {
-        if let Ok(mut guard) = self.inner.lock()
-            && let Some(cache) = guard.messages.get_mut(channel)
-        {
-            cache.entries.insert(
-                message.seq,
-                CachedMessage::from_entry(MessageIndexEntry::from_message(message)),
-            );
-        }
-    }
 }
 
 /// Safe, V01-compliant cached projection of one Vault item head.
-#[derive(Clone)]
 pub(crate) struct CachedVaultDoc {
     pub(crate) revision: String,
     pub(crate) state: String,
@@ -67,7 +54,7 @@ pub(crate) struct CachedVaultDoc {
     subtitle: PreparedText,
     kind_aliases: PreparedText,
     tags: Vec<(String, PreparedText)>,
-    /// Visible (non-hidden, non-OTP) fields: `(field_id, display_label, prepared_label, prepared_value)`.
+    /// All field labels are searchable. Hidden values are never prepared.
     fields: Vec<(String, String, PreparedText, PreparedText)>,
     /// Notes are indexed solely for matching and are never surfaced as list snippets.
     notes: PreparedText,
@@ -107,11 +94,9 @@ impl CachedVaultDoc {
             .iter()
             .map(|t| (t.clone(), PreparedText::new(t)))
             .collect();
-        // V01: strictly exclude concealed and OTP fields from search indexing.
         let fields = item
             .fields
             .iter()
-            .filter(|f| !f.hidden())
             .map(|f| {
                 let label = if f.label.trim().is_empty() {
                     f.id.clone()
@@ -122,7 +107,7 @@ impl CachedVaultDoc {
                     f.id.clone(),
                     label.clone(),
                     PreparedText::new(&label),
-                    PreparedText::new(&f.value),
+                    PreparedText::new(if f.hidden() { "" } else { &f.value }),
                 )
             })
             .collect();
@@ -250,7 +235,7 @@ impl CachedVaultDoc {
 pub(crate) async fn sync_vault_cache<H: Hold>(
     h: &H,
     session: reading::Session,
-) -> Result<(Vec<CachedVaultDoc>, BTreeSet<String>)> {
+) -> Result<(Vec<Arc<CachedVaultDoc>>, BTreeSet<String>)> {
     let (metas, conflicts, missing_or_stale) = h
         .with(|c| {
             session.check(c)?;
@@ -289,7 +274,7 @@ pub(crate) async fn sync_vault_cache<H: Hold>(
             let entry = c.vault_decode_row(&row)?;
             let doc = CachedVaultDoc::from_entry(entry, row.state, row.conflict);
             if let Ok(mut guard) = c.search_cache.inner.lock() {
-                guard.vault.insert(item_id, doc);
+                guard.vault.insert(item_id, Arc::new(doc));
             }
             Ok(())
         })
@@ -306,7 +291,7 @@ pub(crate) async fn sync_vault_cache<H: Hold>(
             .lock()
             .map_err(|_| Error::Unavailable("search cache".into()))?;
         guard.vault.retain(|id, _| live_ids.contains(id.as_str()));
-        let docs: Vec<CachedVaultDoc> = metas
+        let docs = metas
             .iter()
             .filter_map(|m| guard.vault.get(&m.item).cloned())
             .collect();
@@ -360,7 +345,6 @@ struct MessageBucket {
 }
 
 /// In-memory decoded message projection with lazily-prepared searchable fields.
-#[derive(Clone)]
 pub(crate) struct CachedMessage {
     pub(crate) entry: MessageIndexEntry,
     pub(crate) prepared_text: PreparedText,
@@ -390,7 +374,7 @@ impl CachedMessage {
 #[derive(Default)]
 struct ChannelMessageCache {
     buckets_loaded: bool,
-    entries: BTreeMap<u64, CachedMessage>,
+    entries: BTreeMap<u64, Arc<CachedMessage>>,
 }
 
 fn bucket_id(seq: u64) -> u64 {
@@ -402,16 +386,30 @@ fn bucket_key(channel: &str, bucket: u64) -> String {
 }
 
 impl Client {
-    /// Keep the message search cache and LDK-sealed bucket consistent after writing a message.
-    pub(crate) fn index_message_updated(&self, channel: &str, message: &Message) {
-        self.search_cache.upsert_message(channel, message);
-        let key = bucket_key(channel, bucket_id(message.seq));
-        let _ = self.workspace.store.delete_sealed(&key);
+    /// Invalidate alongside the SQLite write. The next read indexes the committed message,
+    /// including when the surrounding transaction rolls back.
+    pub(crate) fn invalidate_indexed_message(&self, channel: &str, seq: u64) -> Result<()> {
+        if let Some(cache) = self
+            .search_cache
+            .inner
+            .lock()
+            .map_err(|_| Error::Unavailable("search cache".into()))?
+            .messages
+            .get_mut(channel)
+        {
+            cache.entries.remove(&seq);
+        }
+        self.workspace
+            .store
+            .delete_sealed(&bucket_key(channel, bucket_id(seq)))
     }
 
     /// Ensure all locally stored messages of `channel` are loaded into the unlocked search cache,
     /// using LDK-sealed buckets for fast reload and incrementally indexing any uncovered sequences.
-    pub(crate) fn ensure_channel_search_index(&self, channel: &str) -> Result<Vec<CachedMessage>> {
+    pub(crate) fn ensure_channel_search_index(
+        &self,
+        channel: &str,
+    ) -> Result<Vec<Arc<CachedMessage>>> {
         let keys = self.keys()?;
         let msg_prefix = format!("{INBOX}{channel}:");
 
@@ -443,7 +441,7 @@ impl Client {
                         && bucket.version == MSG_BUCKET_VERSION
                     {
                         for (seq, entry) in bucket.entries {
-                            loaded.insert(seq, CachedMessage::from_entry(entry));
+                            loaded.insert(seq, Arc::new(CachedMessage::from_entry(entry)));
                         }
                     }
                 }
@@ -494,7 +492,9 @@ impl Client {
                     dirty_buckets.insert(bucket_id(seq));
                     newly_indexed.push((
                         seq,
-                        CachedMessage::from_entry(MessageIndexEntry::from_message(&message)),
+                        Arc::new(CachedMessage::from_entry(MessageIndexEntry::from_message(
+                            &message,
+                        ))),
                     ));
                 }
             }

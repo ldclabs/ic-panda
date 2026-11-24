@@ -568,6 +568,13 @@ fn attachment_search_pages_preserve_all_matches_and_reply_targets() {
         .unwrap();
     assert_eq!(body_matches[0].seq, 105);
     assert!(body_matches[0].file_deleted);
+    assert!(
+        client
+            .channel_search_rich(&channel, "keyword plan.pdf", None, 5, false, None)
+            .unwrap()
+            .hits
+            .is_empty()
+    );
 }
 
 #[test]
@@ -702,6 +709,13 @@ fn a_window_in_the_recent_island_stops_at_the_unfetched_gap() {
     assert_eq!(seqs(&prefix.items), [2, 3]);
     assert!(prefix.has_before);
     assert_eq!(prefix.next_before, Some(2));
+    assert_eq!(prefix.next_after, Some(3));
+    let prefix = client.channel_messages_around(&channel, 2, 0, 5).unwrap();
+    assert_eq!(seqs(&prefix.items), [2, 3]);
+    assert!(prefix.has_before && prefix.has_after);
+    let page = client.channel_messages_after_page(&channel, 1, 5).unwrap();
+    assert_eq!(seqs(&page.items), [2, 3]);
+    assert_eq!(page.next_before, Some(3));
 }
 
 #[test]
@@ -1822,6 +1836,14 @@ async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claim
             Some((0, 1_000_000))
         );
         if !with_hint {
+            h.replies
+                .lock()
+                .unwrap()
+                .extend([head.clone(), page(0, 20, 1_000_003)]);
+            let forward = newer_messages(&h, &channel, 0, 100).await.unwrap();
+            assert!(forward.items.is_empty());
+            assert_eq!(forward.next_before, Some(20));
+            assert!(h.replies.lock().unwrap().is_empty());
             continue;
         }
 

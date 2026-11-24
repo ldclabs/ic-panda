@@ -31,9 +31,11 @@ struct MessagesView: View {
     @State private var channelHits: [ChannelDirectoryHit] = []
     @State private var richGroups: [RichChannelSearchGroup] = []
     @State private var letterHits: [LetterSearchHit] = []
+    @State private var completedLetterSearch = ""
     @State private var searched: ChannelSearchKey?
     @State private var searchingChannels = false
     @State private var searchingLetters = false
+    @State private var letterSearchFailed = false
     @State private var searchFailed = false
     @State private var searchRetry = 0
     @State private var paging: Set<String> = []
@@ -136,7 +138,10 @@ struct MessagesView: View {
             else { ContentUnavailableView("Select a conversation", image: AppGlyph.channels.assetName) }
         }
         .onChange(of: model.route.message) { _, value in if value != nil { model.activity() } }
-        .onChange(of: mode) { _, _ in model.route.message = nil; query = ""; searchScope = .current; hasFileOnly = false; limit = 50 }
+        .onChange(of: mode) { _, _ in query = ""; searchScope = .current; hasFileOnly = false; limit = 50 }
+        .onChange(of: model.route.letterDraft.flatMap { model.letters.drafts[$0] }, initial: true) { _, draft in
+            if let draft { writing = draft; model.route.letterDraft = nil }
+        }
         .onChange(of: folder) { _, _ in model.route.message = nil; limit = 50; unreadOnly = false }
         .onChange(of: query) { _, value in
             limit = 50
@@ -342,6 +347,7 @@ struct MessagesView: View {
         #endif
         guard let engine = model.engine else { return }
         searchingLetters = true
+        letterSearchFailed = false
         defer { if letterSearchKey == key { searchingLetters = false } }
         do {
             try await Task.sleep(for: .milliseconds(160))
@@ -357,9 +363,10 @@ struct MessagesView: View {
             }()
             let hits: [LetterSearchHit] = try await model.decodeInBackground(try await engine.searchInbox(query: term, boxKind: boxKind))
             guard letterSearchKey == key, !Task.isCancelled else { return }
-            letterHits = hits.filter { !model.blockedAccounts.contains($0.account) }
+            letterHits = hits
+            completedLetterSearch = key
         } catch {
-            if letterSearchKey == key, !Task.isCancelled { letterHits = [] }
+            if letterSearchKey == key, !Task.isCancelled { letterSearchFailed = true; completedLetterSearch = key }
         }
     }
 
@@ -394,12 +401,16 @@ struct MessagesView: View {
 
     @ViewBuilder private var letterRows: some View {
         if !trimmedQuery.isEmpty && !model.uiTesting {
-            if searchingLetters && letterHits.isEmpty {
+            let hits = letterHits.filter { !model.blockedAccounts.contains($0.account) && (folder != .inbox || !unreadOnly || !$0.read) }
+            if completedLetterSearch != letterSearchKey || searchingLetters {
                 ProgressView("Searching…").frame(maxWidth: .infinity)
-            } else if letterHits.isEmpty {
+            } else if letterSearchFailed {
+                NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
+                Button("Retry") { searchRetry += 1 }
+            } else if hits.isEmpty {
                 emptyLetterFolder
             } else {
-                ForEach(letterHits) { hit in
+                ForEach(hits.prefix(limit)) { hit in
                     if hit.boxKind == "draft", let draft = model.letters.drafts[hit.id] {
                         Button { writing = draft } label: {
                             VStack(alignment: .leading, spacing: 4) {
@@ -425,6 +436,7 @@ struct MessagesView: View {
                         }.tag(routeValue).compactObjectRow()
                     }
                 }
+                if hits.count > limit { LoadMoreRow(trigger: limit) { limit += 50 } }
             }
         } else if folder == .inbox || folder == .archived {
             let received = inbox.letters.filter { $0.archived == (folder == .archived) && (!unreadOnly || $0.read == false) && !model.blockedAccounts.contains($0.sender) && matches($0.sender, $0.text) }

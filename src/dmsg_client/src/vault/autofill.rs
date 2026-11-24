@@ -42,19 +42,20 @@ impl Entry {
         if entry.deleted || entry.item.reserved() || entry.item.kind != "login" {
             return None;
         }
-        let field = |id| {
-            entry
-                .item
-                .field(id)
-                .map_or("", |f| f.value.as_str())
-                .to_owned()
-        };
-        let password = field("password");
+        let password = entry.item.value("password").to_owned();
         if password.is_empty() {
             return None;
         }
-        let username = field("username");
-        let url = field("url");
+        let visible = |id| {
+            entry
+                .item
+                .field(id)
+                .filter(|f| !f.hidden())
+                .map_or("", |f| f.value.as_str())
+                .to_owned()
+        };
+        let username = visible("username");
+        let url = visible("url");
         let host = url::Url::parse(&url)
             .ok()
             .and_then(|u| u.host_str().map(str::to_owned))
@@ -112,7 +113,7 @@ impl Client {
         let biometry_only = requires_biometry || self.autofill_biometry_only()?;
         let heads = self.workspace.store.heads(VAULT)?;
         let digest = hex::encode(*dmsg_protocol::digest(
-            "dmsg/autofill-catalog/1",
+            "dmsg/autofill-catalog/2",
             &(&heads, biometry_only),
         ));
         let changed = digest != known;
@@ -174,7 +175,12 @@ mod tests {
             .workspace
             .put_private(client.keys().unwrap(), KEY, &legacy)
             .unwrap();
-        let first = client.autofill_catalog("", false).unwrap();
+        let old_digest = hex::encode(*dmsg_protocol::digest(
+            "dmsg/autofill-catalog/1",
+            &(client.workspace.store.heads(VAULT).unwrap(), true),
+        ));
+        let first = client.autofill_catalog(&old_digest, false).unwrap();
+        assert!(first.changed);
         assert!(first.biometry_only);
         assert_eq!(first.entries.len(), 51);
         assert!(
@@ -204,5 +210,23 @@ mod tests {
                 .changed
         );
         assert!(!client.autofill_catalog(&next.digest, true).unwrap().changed);
+
+        let mut login = client.vault_show(&ids[0]).unwrap();
+        let username = login
+            .item
+            .fields
+            .iter_mut()
+            .find(|f| f.id == "username")
+            .unwrap();
+        username.kind = "concealed".into();
+        username.value = "hidden username".into();
+        let exported = Entry::from_login(login).unwrap();
+        assert!(exported.username.is_empty());
+        assert!(
+            !exported
+                .search_keys
+                .iter()
+                .any(|key| key.contains("hidden"))
+        );
     }
 }

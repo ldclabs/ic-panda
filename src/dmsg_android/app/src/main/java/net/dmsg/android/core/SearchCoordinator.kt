@@ -46,7 +46,13 @@ data class RichMessageHit(
     val attachmentDeleted: Boolean,
     val snippetSpans: List<HighlightSpan>,
     val score: UInt,
-)
+    val fileSpans: List<HighlightSpan> = emptyList(),
+) {
+    private val showFile get() = attachmentName != null && !attachmentDeleted &&
+        (text.isBlank() || (fileSpans.any { it.matched } && snippetSpans.none { it.matched }))
+    val previewText get() = if (showFile) attachmentName.orEmpty() else text
+    val previewSpans get() = if (showFile) fileSpans else snippetSpans
+}
 
 data class RichChannelGroup(
     val channelId: String,
@@ -122,6 +128,7 @@ fun parseRichMessageHit(row: JsonObject, fallbackChannelId: String = "", fallbac
         attachmentName = file?.text("name"),
         attachmentDeleted = msg.flag("file_deleted"),
         snippetSpans = row.spans("snippet_spans"),
+        fileSpans = row.spans("file_spans"),
         score = row.unsigned("score")?.toUInt() ?: 0u,
     )
 }

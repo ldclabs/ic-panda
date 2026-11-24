@@ -39,6 +39,38 @@ final class SearchModelsTests: XCTestCase {
                        String(localized: "Matched in notes"))
     }
 
+    @MainActor func testVaultSearchKeepsAnExplicitDateOrder() {
+        let model = SessionModel()
+        model.search = "bank"
+        XCTAssertEqual(model.vaultSort, "relevance")
+        model.vaultSort = "updated"
+        XCTAssertEqual(model.vaultSort, "updated")
+    }
+
+    @MainActor func testGlobalHitsReplaceThePreviousWorkspaceDestination() {
+        let model = SessionModel()
+        model.route.message = "old-channel"
+        model.openGlobalLetterHit(LetterSearchHit(id: "draft-1", boxKind: "draft", account: "",
+                                                  createdAt: 0, read: true, archived: false, state: "draft"))
+        XCTAssertEqual(model.route.messagesMode, 1)
+        XCTAssertEqual(model.route.letterDraft, "draft-1")
+        XCTAssertNil(model.route.message)
+        model.openGlobalChannelHit("channel-1", sequence: 5)
+        XCTAssertEqual(model.route.message, "hit:channel-1:5")
+        model.route.messagesMode = 1
+        XCTAssertNil(model.route.message)
+
+        model.route.file = "old-file"
+        model.filesTag = "old-tag"
+        model.openGlobalFileHit(GlobalFileHit(id: "folder-1", kind: "folder", folder: "root", name: "Invoices"), compact: false)
+        XCTAssertEqual(model.filesFolder, "folder-1")
+        XCTAssertNil(model.route.file)
+        XCTAssertTrue(model.filesTag.isEmpty)
+        model.route.file = "selected"
+        model.filesScope = .cloud
+        XCTAssertNil(model.route.file)
+    }
+
     func testGlobalSearchResponseDecodesFlatRustWireFormat() throws {
         let json = """
         {

@@ -28,9 +28,9 @@ struct FileSearchMeta: Equatable, Sendable {
 }
 
 struct FileTagCount: Decodable, Identifiable, Equatable, Sendable {
-    let name: String
-    let count: Int
-    var id: String { name }
+    let tag: String
+    let files: UInt64
+    var id: String { tag }
 }
 
 /// Flat `FolderSearchHit` from `dmsg_client::search::queries::FileSearchListing`.
@@ -133,6 +133,12 @@ struct RichMessageSearchHit: Decodable, Identifiable, Sendable {
     var sequence: UInt64 { message.seq }
     var text: String { message.text ?? "" }
     var attachmentName: String? { (message.fileDeleted == true) ? nil : message.file?.name }
+    var preview: (text: String, spans: [HighlightSpan]?) {
+        if let attachmentName, text.isEmpty || (fileSpans?.contains(where: \.matched) == true && snippetSpans?.contains(where: \.matched) != true) {
+            return (attachmentName, fileSpans)
+        }
+        return (text, snippetSpans)
+    }
 }
 
 struct RichChannelMessagePage: Decodable, Sendable {
@@ -263,6 +269,7 @@ extension SessionModel {
     func openGlobalChannelHit(_ channelID: String, sequence: UInt64? = nil) {
         guard !localAccount else { return }
         selectedTab = .messages
+        route.letterDraft = nil
         route.messagesMode = 0
         if let sequence { route.message = "hit:\(channelID):\(sequence)" }
         else { route.message = channelID }
@@ -272,10 +279,13 @@ extension SessionModel {
         guard !localAccount else { return }
         selectedTab = .messages
         route.messagesMode = 1
+        route.letterDraft = hit.boxKind == "draft" ? hit.id : nil
         if hit.boxKind == "sent" || hit.boxKind == "pending" {
             route.message = "sent:" + hit.id
         } else if hit.boxKind == "inbox" || hit.boxKind == "archive" {
             route.message = "received:" + hit.id
+        } else {
+            route.message = nil
         }
     }
 
@@ -283,7 +293,9 @@ extension SessionModel {
         selectedTab = .files
         filesScope = .local
         if hit.isFolder {
+            route.file = nil
             route.filesPath = [.folder(hit.id)]
+            revealLocalFileListing(in: hit.id)
         } else if compact {
             route.filesPath = [.file(hit.id)]
         } else {

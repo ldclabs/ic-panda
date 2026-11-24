@@ -227,6 +227,7 @@
     const q = query.trim()
     const key = searchKey
     const currentBox = box
+    void boxed
     const at = generation
     if (!q || !unlocked) {
       searchHits = null

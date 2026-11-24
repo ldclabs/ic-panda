@@ -179,12 +179,11 @@ import net.dmsg.core.MessageItem
                         val visible = group.hits.filter { it.account !in blocked }
                         if (visible.isNotEmpty()) item(key = "gh:" + group.channelId) { SectionTitle(group.channelName) }
                         items(visible, key = { "hit:${group.channelId}:${it.sequence}" }) { hit ->
-                            val titleText = hit.text.ifBlank { hit.attachmentName.orEmpty() }
-                            BrowseRow(buildHighlightedText(titleText, hit.snippetSpans),
+                            BrowseRow(buildHighlightedText(hit.previewText, hit.previewSpans),
                                 Modifier.clickable { client.navigation.push(Route("messages", id = group.channelId, sequence = hit.sequence)) },
                                 leading = { BrowseIcon(Icons.Outlined.Forum) }) {
                                 Column {
-                                    if (hit.text.isNotBlank() && !hit.attachmentDeleted) hit.attachmentName?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                    if (hit.previewText == hit.text && !hit.attachmentDeleted) hit.attachmentName?.let { Text(buildHighlightedText(it, hit.fileSpans), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                     val meta = listOfNotNull(hit.senderName?.takeIf(String::isNotBlank), messageTime(hit.createdAtMs)).joinToString(" · ")
                                     Text(meta, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
@@ -388,8 +387,7 @@ import net.dmsg.core.MessageItem
                 if (resultsExpanded && searchHits.isNotEmpty()) {
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 220.dp), contentPadding = PaddingValues(horizontal = pageMargin(), vertical = 4.dp)) {
                         itemsIndexed(searchHits, key = { _, h -> "cs:" + h.sequence }) { idx, hit ->
-                            val labelText = hit.text.ifBlank { hit.attachmentName.orEmpty() }
-                            BrowseRow(buildHighlightedText(labelText, hit.snippetSpans), Modifier.clickable { jumpToHit(idx) },
+                            BrowseRow(buildHighlightedText(hit.previewText, hit.previewSpans), Modifier.clickable { jumpToHit(idx) },
                                 leading = { BrowseIcon(Icons.Outlined.Forum) }, emphasized = idx == activeHitIndex) {
                                 Text(listOfNotNull(hit.senderName?.takeIf(String::isNotBlank), messageTime(hit.createdAtMs)).joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }

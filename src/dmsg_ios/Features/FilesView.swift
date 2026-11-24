@@ -75,15 +75,15 @@ struct FilesView: View {
             guard !Task.isCancelled else { return }
             await model.loadFiles(quiet: true)
         }
+        .task(id: model.contentRevision) { await model.loadFileTags() }
         .task {
-            await model.loadFileTags()
             guard !model.localAccount else { return }
             // Coming back to Files often should not reach the network each time.
             let recent = model.cloudBackupsObservedAt.map { Date.now.timeIntervalSince1970 * 1000 - Double($0) < 300_000 } ?? false
             await model.loadCloudBackups(refresh: !recent)
             await model.fileTransfers.load(model)
         }
-        .onChange(of: model.filesScope) { _, _ in model.route.file = nil; model.filesSearch = ""; searchScope = .current; selecting = false; selection = [] }
+        .onChange(of: model.filesScope) { _, _ in model.filesSearch = ""; searchScope = .current; selecting = false; selection = [] }
         .onChange(of: model.filesSearch) { _, value in
             selection = []
             if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { searchScope = .current }

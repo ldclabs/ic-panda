@@ -6,7 +6,7 @@
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import type { Glyph } from '../components/glyphs'
   import HighlightText from '../components/HighlightText.svelte'
-  import type { HighlightSpan } from '../components/highlight'
+  import { messagePreview, type HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
   import Notice from '../components/page/Notice.svelte'
   import { locale, setLocale, t } from '../i18n/index.svelte'
@@ -82,7 +82,7 @@
   let highlighted = $state('')
   let input = $state<HTMLInputElement | null>(null)
   /** The entry whose actions show instead of the groups. */
-  let detail = $state<{ entry: Entry; actions: Entry[]; loading: boolean } | null>(null)
+  let detail = $state.raw<{ entry: Entry; actions: Entry[]; loading: boolean } | null>(null)
   let globalState = $state.raw<GlobalSearchState>({ kind: 'idle' })
   let globalSeq = 0
   let globalRetry = $state(0)
@@ -96,9 +96,9 @@
     const rest = trimmed.slice(1).trim()
     if (first === '>') return { mode: 'commands' as const, query: rest, scopes: [] as string[] }
     if (first === '#' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['vault'] }
-    if (first === '@' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['channels', 'messages', 'letters'] }
+    if (first === '@' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['channels', 'messages', 'received_letters'] }
     if (first === '/' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['files'] }
-    return { mode: 'all' as const, query: trimmed, scopes: [] as string[] }
+    return { mode: 'all' as const, query: trimmed, scopes: ['vault', 'channels', 'messages', 'files', 'received_letters'] }
   })
   const tokens = $derived(tokensOf(parsed.query))
 
@@ -219,9 +219,10 @@
   const messageEntries = $derived(
     (hits?.messages ?? []).map((hit): Entry => {
       const chId = hit.channel ?? hit.channel_id
+      const preview = messagePreview(hit)
       return {
-        label: hit.message.text || hit.message.file?.name || '…',
-        spans: hit.snippet_spans,
+        label: preview.text || '…',
+        spans: preview.spans,
         value: `msg:${chId}:${hit.message.seq}`,
         icon: 'channels',
         sender: hit.message.account,
@@ -233,7 +234,7 @@
 
   // The inbox opens received letters by id; sent, pending and draft letters live elsewhere.
   const letterEntries = $derived(
-    (hits?.letters ?? []).filter((hit) => hit.box_kind === 'inbox' || hit.box_kind === 'archive').map((hit): Entry => ({
+    (hits?.letters ?? []).map((hit): Entry => ({
       label: (hit.snippet_spans?.map((s: HighlightSpan) => s.text).join('') || hit.display_name || shortId(hit.account)),
       spans: hit.snippet_spans?.length ? hit.snippet_spans : hit.name_spans,
       value: `letter:${hit.box_kind}:${hit.id}`,

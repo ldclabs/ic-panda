@@ -62,15 +62,21 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
         else if (!searchAll) client.letters.search(search, boxKind)
     }
     val listState = key(folder, search) { rememberLazyListState() }
-    val selected = route.id.takeUnless { route.field == "sent" }
+    val draftRoute = route.field == "draft"
+    val selected = route.id.takeIf { route.field == null }
     val sent = route.id.takeIf { route.field == "sent" }
     var editing by remember(state.epoch) { mutableStateOf(client.letters.location.editing) }
+    val editor = if (draftRoute) route.id else editing
+    fun closeEditor() {
+        editing = null
+        if (draftRoute && client.navigation.state.value.current == route) client.navigation.back()
+    }
     var reopen by remember { mutableStateOf(false) }
     var discard by remember { mutableStateOf(false) }
     val letter = incoming.valueOrNull()?.find { it.id == selected && blocked.valueOrNull()?.contains(it.sender) == false }
     val outgoing = history.valueOrNull()?.find { it.id == sent }
     val owner = remember(state.epoch) { client.currentStamp() }
-    val location by rememberUpdatedState(LetterLocation(folder.name, search, editing))
+    val location by rememberUpdatedState(LetterLocation(folder.name, search, editing.takeUnless { draftRoute }))
     val active = LocalPageActive.current
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
@@ -78,7 +84,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
         if (active) letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) }
     }
     Column(Modifier.fillMaxSize()) {
-        if (route.id == null) {
+        if (route.id == null || draftRoute) {
             WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),
                 actions = {
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
@@ -274,9 +280,9 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
             }
         }
     }
-    editing?.let { id ->
+    editor?.let { id ->
         val form = drafts[id]
-        if (form != null) ModalBottomSheet(onDismissRequest = { editing = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        if (form != null) ModalBottomSheet(onDismissRequest = ::closeEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(str(R.string.text_write_a_letter_1a8f9c9), style = MaterialTheme.typography.headlineSmall)
                 RecipientField(client, form.recipient, { client.letters.update(form.copy(recipient = it.trim())) }, label = str(R.string.text_recipient_account_id_99c767d))
@@ -284,19 +290,19 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                 OutlinedTextField(form.invitation.orEmpty(), { client.letters.update(form.copy(invitation = it.trim().takeIf(String::isNotEmpty))) }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_contact_invitation_optional_37ca036)) })
                 Notice(str(R.string.text_only_free_delivery_is_attempted_a_payment_quote_never_triggers_pa_145ba4a))
                 Button(onClick = { client.letters.send(id) {
-                    if (editing == id && client.navigation.state.value.current == route) {
-                        editing = null
+                    if ((draftRoute || editing == id) && client.navigation.state.value.current == route) {
+                        closeEditor()
                         client.navigation.push(Route("inbox", id = id, field = "sent"))
                     }
                 } }, enabled = form.valid && !state.working("letter:queue:" + id), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_send_06acd73)) }
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     TextButton(onClick = { discard = true }) { Text(str(R.string.text_discard_draft_6008f2b), color = MaterialTheme.colorScheme.error) }
-                    TextButton(onClick = { editing = null }) { Text(str(R.string.text_keep_draft_89639c8)) }
+                    TextButton(onClick = ::closeEditor) { Text(str(R.string.text_keep_draft_89639c8)) }
                 }
             }
         }
     }
-    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text(str(R.string.text_discard_this_draft_ddde861)) }, confirmButton = { TextButton(onClick = { editing?.let(client.letters::discard); discard = false; editing = null }) { Text(str(R.string.text_discard_475cd3e)) } }, dismissButton = { TextButton(onClick = { discard = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text(str(R.string.text_discard_this_draft_ddde861)) }, confirmButton = { TextButton(onClick = { editor?.let(client.letters::discard); discard = false; closeEditor() }) { Text(str(R.string.text_discard_475cd3e)) } }, dismissButton = { TextButton(onClick = { discard = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
     if (reopen && letter != null) AlertDialog(onDismissRequest = { reopen = false }, title = { Text(str(R.string.text_allow_another_letter_5538009)) }, text = { Text(str(R.string.text_this_sender_can_submit_another_letter_under_your_current_receivin_0910e86)) }, confirmButton = { TextButton(onClick = { client.letters.mark(letter, reopen = true); reopen = false }) { Text(str(R.string.text_allow_ee9ea51)) } }, dismissButton = { TextButton(onClick = { reopen = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 

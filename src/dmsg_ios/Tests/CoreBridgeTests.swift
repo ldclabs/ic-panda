@@ -1,6 +1,7 @@
 import XCTest
 import CryptoKit
 @preconcurrency import DMsgCore
+@testable import dMsg
 
 final class CoreBridgeTests: XCTestCase {
     class NoHardware: Platform, @unchecked Sendable {
@@ -85,6 +86,12 @@ final class CoreBridgeTests: XCTestCase {
         let files = try XCTUnwrap(result["files"] as? [[String: Any]])
         XCTAssertEqual(files.first?["name"] as? String, "sample.txt")
         XCTAssertEqual(files.first?["size"] as? Int, 12)
+        let fileID = try XCTUnwrap(files.first?["id"] as? String)
+        _ = try await engine.updateFileMetadata(id: fileID, before: FileMetadata(tags: [], note: "", starred: false),
+                                                after: FileMetadata(tags: ["财务"], note: "", starred: false))
+        let tags = try await engine.fileTags()
+        XCTAssertEqual(try JSONDecoder().decode([FileTagCount].self, from: Data(tags.json.utf8)),
+                       [FileTagCount(tag: "财务", files: 1)])
     }
 
     func testRealRustBridgeStartsLockedAndRejectsContentAndForeignCallbacks() async throws {

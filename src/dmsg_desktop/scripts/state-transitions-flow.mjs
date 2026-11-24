@@ -12,6 +12,7 @@ async function attachments({ main, methods, channel, file, capture }) {
   const alpha = file('a1'.repeat(32), 'Alpha notes.txt', 32)
   const beta = file('b1'.repeat(32), 'Beta · Rapport de réunion très détaillé.txt', 16)
   methods['files/search'] = ({ query }) => [alpha, beta].filter(f => f.name.includes(query))
+  methods['files/search_listing'] = params => ({ folders: [], files: methods['files/search'](params) })
   await go(main, '/channels?open=' + channel.id)
   const browse = async () => {
     await main.getByTestId('channel-attachment').click()
@@ -162,11 +163,11 @@ async function searchFailures({ main, methods, file, hold, waitFor, emit, captur
   const old = 'superseded query', fresh = 'latest query', failed = 'retry this query'
   for (const picker of [false, true]) {
     let olderReads = 0, latestReads = 0, fail = true
-    methods['files/search'] = ({ query }) => {
+    methods['files/search_listing'] = ({ query }) => {
       if (query === old) { olderReads++; throw { code: 'INVALID_INPUT' } }
       if (query === fresh) latestReads++
       if (query === failed && fail) throw { code: 'UNAVAILABLE' }
-      return [fresh, failed].includes(query) ? [match] : []
+      return { folders: [], files: [fresh, failed].includes(query) ? [match] : [] }
     }
     await go(main, picker ? '/vault' : '/files')
     if (picker) {
@@ -175,7 +176,7 @@ async function searchFailures({ main, methods, file, hold, waitFor, emit, captur
     }
     const input = main.getByTestId(picker ? 'file-picker-search' : 'files-search')
     const row = main.getByText(match.name, { exact: true }).first()
-    const release = hold('files/search', p => p.query === old)
+    const release = hold('files/search_listing', p => p.query === old)
     await input.fill(old)
     await waitFor(() => olderReads === 1)
     await input.fill(fresh)
@@ -185,7 +186,7 @@ async function searchFailures({ main, methods, file, hold, waitFor, emit, captur
     assert.equal(await row.isVisible(), true, 'an old failure cannot discard a newer success')
     if (!picker) {
       const before = latestReads
-      const refresh = hold('files/search', p => p.query === fresh)
+      const refresh = hold('files/search_listing', p => p.query === fresh)
       emit('files/changed')
       await waitFor(() => latestReads > before)
       assert.equal(await row.isVisible(), true, 'the same search stays visible during a metadata refresh')
@@ -204,7 +205,7 @@ async function searchFailures({ main, methods, file, hold, waitFor, emit, captur
     await input.fill('zero matches')
     if (picker) {
       await main.getByText('No files found', { exact: true }).waitFor()
-      const late = hold('files/search', p => p.query === old)
+      const late = hold('files/search_listing', p => p.query === old)
       await input.fill(old)
       await waitFor(() => olderReads === 2)
       await main.getByTestId('file-picker').getByTestId('dialog-close').click()

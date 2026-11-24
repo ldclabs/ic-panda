@@ -45,7 +45,14 @@ final class SessionModel {
     private(set) var profileRevision: UInt64 = 0
     var vaultFilter = "all"
     var vaultTag = ""
-    var vaultSort = "updated"
+    private var preferredVaultSort: String?
+    var vaultSort: String {
+        get {
+            if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return preferredVaultSort ?? "relevance" }
+            return preferredVaultSort == "title" ? "title" : "updated"
+        }
+        set { preferredVaultSort = newValue }
+    }
     private(set) var vaultCounts = VaultCounts()
     private(set) var vaultLoaded = false
     private(set) var vaultFailed = false
@@ -101,7 +108,9 @@ final class SessionModel {
         get { filesSearches[filesFolder] ?? "" }
         set { setFileSearch(newValue, in: filesFolder) }
     }
-    var filesScope = FileScope.local
+    var filesScope = FileScope.local {
+        didSet { if filesScope != oldValue { route.file = nil } }
+    }
     var filesSort = FileSort.name
     var filesFavoritesOnly = false
     var filesTag = ""
@@ -1544,11 +1553,10 @@ final class SessionModel {
             }
             #endif
             guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-            let effectiveSort = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && vaultSort == "updated" ? "relevance" : vaultSort
             let result = try await engine.browseVault(request: VaultBrowseRequest(query: search,
                 kind: ["all", "favorites"].contains(vaultFilter) ? nil : vaultFilter,
                 favorites: vaultFilter == "favorites", tag: vaultTag.isEmpty ? nil : vaultTag,
-                sort: effectiveSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
+                sort: vaultSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
             guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
             let page: VaultBrowsePage = try await decodeInBackground(result)
             guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
@@ -1799,8 +1807,13 @@ enum AppTab: String, CaseIterable, Identifiable {
 /// See `SessionModel.route`.
 struct WorkspaceRoute: Equatable {
     var vaultItem: String?
-    var messagesMode = 0
+    var messagesMode = 0 {
+        didSet {
+            if messagesMode != oldValue { message = nil; letterDraft = nil }
+        }
+    }
     var message: String?
+    var letterDraft: String?
     var filesPath: [FilesRoute] = []
     var file: String?
 }

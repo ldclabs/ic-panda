@@ -31,16 +31,14 @@ internal fun buildBubbleHighlightedText(text: String, spans: List<HighlightSpan>
     if (spans.joinToString("") { it.text } == text) return buildHighlightedText(text, spans)
     val terms = spans.filter { it.matched && it.text.isNotEmpty() }.map { it.text }.distinct()
     if (terms.isEmpty()) return AnnotatedString(text)
-    val lower = text.lowercase()
     val ranges = mutableListOf<IntRange>()
     for (term in terms) {
-        val needle = term.lowercase()
         var from = 0
-        while (from < lower.length) {
-            val at = lower.indexOf(needle, from)
+        while (from < text.length) {
+            val at = text.indexOf(term, from)
             if (at < 0) break
             ranges += at until (at + term.length)
-            from = at + maxOf(1, term.length)
+            from = at + term.length
         }
     }
     if (ranges.isEmpty()) return AnnotatedString(text)

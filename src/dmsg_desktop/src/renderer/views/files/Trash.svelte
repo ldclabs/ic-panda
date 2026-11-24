@@ -55,7 +55,8 @@
 
   const rows = $derived.by(() => {
     if (!listing) return []
-    if (query.trim() && readySearch) {
+    if (query.trim()) {
+      if (!readySearch) return []
       return [
         ...readySearch.folders.map((f) => ({ ...f, kind: 'folder' })),
         ...readySearch.files.map((f) => ({ ...f, kind: 'file' }))

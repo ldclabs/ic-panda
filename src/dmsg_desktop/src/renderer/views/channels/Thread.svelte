@@ -11,7 +11,6 @@
   import { copyText } from '../../components/clipboard'
   import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
-  import HighlightText from '../../components/HighlightText.svelte'
   import type { HighlightSpan } from '../../components/highlight'
   import Icon from '../../components/Icon.svelte'
   import Empty from '../../components/page/Empty.svelte'
@@ -238,15 +237,13 @@
     const terms = [...new Set(highlightSpans.filter((s) => s.matched && s.text).map((s) => s.text))]
     if (!terms.length) return null
     const ranges: [number, number][] = []
-    const lower = text.toLowerCase()
     for (const term of terms) {
-      const needle = term.toLowerCase()
       let from = 0
-      while (from < lower.length) {
-        const at = lower.indexOf(needle, from)
+      while (from < text.length) {
+        const at = text.indexOf(term, from)
         if (at < 0) break
         ranges.push([at, at + term.length])
-        from = at + Math.max(1, term.length)
+        from = at + term.length
       }
     }
     if (!ranges.length) return null
@@ -547,7 +544,7 @@
                   {#if message.text}
                     {@const spans = highlight === message.seq ? bubbleSpans(message.text) : null}
                     <p dir="auto" class="text-start text-body leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
-                      <span class="select-text">{#if spans}<HighlightText text={message.text} {spans} />{:else}<LinkedText text={message.text} />{/if}</span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
+                      <span class="select-text"><LinkedText text={message.text} {spans} /></span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
                     </p>
                   {:else}{@render meta(message)}{/if}
                 </div>

@@ -6,6 +6,7 @@ use super::t2s::fold_traditional;
 use icu_normalizer::DecomposingNormalizerBorrowed;
 use pinyin::{PinyinMulti, ToPinyinMulti};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// A contiguous slice of display text marked as matched or unmatched for UI highlighting.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,7 +161,6 @@ const SCORE_TYPO: u32 = 310;
 
 const MAX_PINYIN_QUERY_BYTES: usize = 64;
 const MAX_SKIP_SEPARATORS: usize = 4;
-const VISITED_WINDOW: usize = MAX_PINYIN_QUERY_BYTES + MAX_SKIP_SEPARATORS + 4;
 
 impl Query {
     /// Parse and normalize a user search string into whitespace-separated tokens.
@@ -485,8 +485,11 @@ pub fn snippet_spans(
     if clean.is_empty() {
         return Vec::new();
     }
+    if ranges.is_empty() {
+        return trim_spans(highlight_spans(&clean, &[]), max_chars);
+    }
     let total_chars = clean.chars().count();
-    if total_chars <= max_chars || ranges.is_empty() {
+    if total_chars <= max_chars {
         if clean == text {
             return highlight_spans(text, ranges);
         }
@@ -683,6 +686,10 @@ pub fn mime_aliases(mime: &str) -> &'static str {
         "video movie 视频 影片"
     } else if mime.starts_with("audio/") {
         "audio music voice 音频 音乐 录音"
+    } else if mime == "text/csv" {
+        "sheet excel csv text code document 表格 文本 代码 文档"
+    } else if mime.contains("spreadsheet") || mime.contains("excel") {
+        "sheet excel csv 表格"
     } else if mime.starts_with("text/")
         || matches!(
             mime,
@@ -697,8 +704,6 @@ pub fn mime_aliases(mime: &str) -> &'static str {
         || mime.contains("7z")
     {
         "archive zip 压缩包 归档"
-    } else if mime.contains("spreadsheet") || mime.contains("excel") || mime == "text/csv" {
-        "sheet excel csv 表格"
     } else {
         ""
     }
@@ -880,8 +885,8 @@ fn match_pinyin(prepared: &PreparedText, query: &str, fuzzy: bool) -> Option<Fie
         if !can_start_pinyin_match(units[start], query, fuzzy) {
             continue;
         }
-        let mut visited = [0u64; VISITED_WINDOW];
-        if let Some(hit) = dfs_pinyin(units, start, start, q, 0, 0, fuzzy, &mut visited) {
+        let mut memo = HashMap::new();
+        if let Some(hit) = dfs_pinyin(units, start, q, 0, 0, fuzzy, &mut memo) {
             let orig_start = units[start].orig_start;
             let orig_end = units[hit.end_unit].orig_end;
             let base = if fuzzy {
@@ -955,16 +960,14 @@ fn can_start_pinyin_match(unit: TextUnit, query: &str, fuzzy: bool) -> bool {
     false
 }
 
-#[allow(clippy::too_many_arguments)]
 fn dfs_pinyin(
     units: &[TextUnit],
-    start: usize,
     idx: usize,
     q: &[u8],
     q_pos: usize,
     skips: usize,
     fuzzy: bool,
-    visited: &mut [u64; VISITED_WINDOW],
+    memo: &mut HashMap<(usize, usize), Option<PinyinHit>>,
 ) -> Option<PinyinHit> {
     if q_pos == q.len() {
         return None;
@@ -972,27 +975,21 @@ fn dfs_pinyin(
     if idx >= units.len() {
         return None;
     }
-    let delta = idx - start;
-    if delta >= VISITED_WINDOW || q_pos >= 64 {
-        return None;
-    }
-    let bit = 1u64 << q_pos;
-    if visited[delta] & bit != 0 {
-        return None;
+    if let Some(hit) = memo.get(&(idx, q_pos)) {
+        return *hit;
     }
 
     let unit = units[idx];
 
     // Allow skipping up to MAX_SKIP_SEPARATORS punctuation/space separators after matching >= 1 char.
     if unit.is_separator {
-        if q_pos > 0 && skips < MAX_SKIP_SEPARATORS {
-            let res = dfs_pinyin(units, start, idx + 1, q, q_pos, skips + 1, fuzzy, visited);
-            if res.is_some() {
-                return res;
-            }
-        }
-        visited[delta] |= bit;
-        return None;
+        let hit = if q_pos > 0 && skips < MAX_SKIP_SEPARATORS {
+            dfs_pinyin(units, idx + 1, q, q_pos, skips + 1, fuzzy, memo)
+        } else {
+            None
+        };
+        memo.insert((idx, q_pos), hit);
+        return hit;
     }
 
     let rem = &q[q_pos..];
@@ -1032,9 +1029,7 @@ fn dfs_pinyin(
                     skips: skips as u16,
                 },
             );
-        } else if let Some(mut tail) =
-            dfs_pinyin(units, start, idx + 1, q, next_q, skips, fuzzy, visited)
-        {
+        } else if let Some(mut tail) = dfs_pinyin(units, idx + 1, q, next_q, skips, fuzzy, memo) {
             tail.full_steps += 1;
             consider(&mut best, tail);
         }
@@ -1059,7 +1054,7 @@ fn dfs_pinyin(
                         },
                     );
                 } else if let Some(mut tail) =
-                    dfs_pinyin(units, start, idx + 1, q, next_q, skips, fuzzy, visited)
+                    dfs_pinyin(units, idx + 1, q, next_q, skips, fuzzy, memo)
                 {
                     if is_full {
                         tail.full_steps += 1;
@@ -1072,9 +1067,7 @@ fn dfs_pinyin(
         }
     }
 
-    if best.is_none() {
-        visited[delta] |= bit;
-    }
+    memo.insert((idx, q_pos), best);
     best
 }
 

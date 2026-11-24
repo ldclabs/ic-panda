@@ -218,7 +218,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
             timeline.accept(request, current.copy(
                 items = merged,
                 hasAfter = page.hasMore,
-                after = if (page.hasMore) merged.lastOrNull()?.sequence else null,
+                after = page.nextBefore,
             ))
         }
     }

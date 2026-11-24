@@ -330,8 +330,7 @@ struct ConversationView: View {
                 jumpToHit(index: idx)
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
-                    let fallback = hit.text.isEmpty ? (hit.attachmentName ?? "") : hit.text
-                    Text(highlightedText(fallback, spans: hit.snippetSpans))
+                    Text(highlightedText(hit.preview.text, spans: hit.preview.spans))
                         .font(.subheadline).foregroundStyle(.primary).lineLimit(2)
                     HStack(spacing: 6) {
                         if let sender = hit.senderName, !sender.isEmpty { Text(sender).lineLimit(1) }
@@ -449,6 +448,7 @@ struct ConversationView: View {
         do {
             let window = try await engine.messagesAround(channel: channel.id, seq: sequence, before: 30, after: 30)
             guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
+            guard window.items.contains(where: { $0.sequence == sequence }) else { return }
             messages = window.items
             hasEarlier = window.hasBefore
             nextBefore = window.nextBefore
@@ -510,6 +510,12 @@ struct ConversationView: View {
         let epoch = model.epoch
         if !messages.contains(where: { $0.sequence == sequence }) {
             await jumpTo(sequence: sequence, spans: [])
+        }
+        while epoch == model.epoch, !Task.isCancelled, !model.concealed,
+              hasEarlier, let before = nextBefore, sequence < before,
+              !messages.contains(where: { $0.sequence == sequence }) {
+            await loadEarlier()
+            if nextBefore == before { break }
         }
         guard !Task.isCancelled, epoch == model.epoch, !model.concealed else { return }
         if let message = messages.first(where: { $0.sequence == sequence }) {
@@ -804,7 +810,7 @@ struct ConversationView: View {
             let merged = Dictionary((messages + page.items).map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
             messages = merged.values.sorted { $0.sequence < $1.sequence }
             hasAfter = page.hasMore
-            nextAfter = page.hasMore ? page.items.last?.sequence : nil
+            nextAfter = page.nextBefore
             if !hasAfter { historyAnchor = nil }
         } catch {
             if epoch == model.epoch, messageRequest == request, !Task.isCancelled { model.report(error) }
