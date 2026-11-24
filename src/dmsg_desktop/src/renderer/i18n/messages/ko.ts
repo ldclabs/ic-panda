@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "관련순",
+  "matchedInNotes": "메모에서 일치",
+  "matchedMember": "멤버: {name}",
+  "matchingMessages": "메시지",
+  "newerMessages": "최신 메시지 더 보기",
+  "searchPrevMatch": "이전 일치",
+  "searchNextMatch": "다음 일치",
+  "loadMore": "더 보기",
   "promoRedeem": "코드 사용",
   "promoCode": "멤버십 코드",
   "promoCheck": "코드 확인",

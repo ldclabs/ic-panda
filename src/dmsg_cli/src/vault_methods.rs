@@ -17,7 +17,7 @@ use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 30] = [
+pub(crate) const METHODS: [&str; 31] = [
     "vault/backup_begin",
     "vault/backup_inventory",
     "vault/backup_request",
@@ -36,6 +36,7 @@ pub(crate) const METHODS: [&str; 30] = [
     "vault/restore",
     "vault/tags",
     "vault/list",
+    "vault/browse",
     "vault/show",
     "vault/reveal",
     "vault/history",
@@ -211,6 +212,27 @@ impl Daemon {
                     query: params["query"].as_str().map(str::to_string),
                 };
                 return Ok(masked_all(reading::list(&h, &filter).await?));
+            }
+            "vault/browse" => {
+                let query_text = params["query"].as_str().map(str::to_string);
+                let default_sort = if query_text.as_deref().is_some_and(|s| !s.trim().is_empty()) {
+                    "relevance"
+                } else {
+                    "updated"
+                };
+                let browse_query = reading::BrowseQuery {
+                    filter: Filter {
+                        trash: params["trash"] == true,
+                        query: query_text,
+                    },
+                    kind: params["kind"].as_str().map(str::to_string),
+                    favorites: params["favorites"] == true,
+                    tag: params["tag"].as_str().map(str::to_string),
+                    sort: params["sort"].as_str().unwrap_or(default_sort).to_string(),
+                    offset: params["offset"].as_u64().unwrap_or(0) as usize,
+                    limit: params["limit"].as_u64().unwrap_or(200).clamp(1, 10_000) as usize,
+                };
+                return Ok(to_json(&reading::browse(&h, &browse_query).await?));
             }
             "vault/health" => return Ok(to_json(&reading::health(&h).await?)),
             "vault/import_preview" | "vault/import" => {

@@ -18,7 +18,8 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 84] = [
+pub(crate) const METHODS: [&str; 91] = [
+    "search/global",
     "feedback/get",
     "feedback/save",
     "feedback/send",
@@ -42,6 +43,8 @@ pub(crate) const METHODS: [&str; 84] = [
     "channel/catch_up",
     "channel/messages",
     "channel/message_page",
+    "channel/messages_around",
+    "channel/messages_after",
     "channel/earlier",
     "channel/download",
     "channel/history",
@@ -60,6 +63,9 @@ pub(crate) const METHODS: [&str; 84] = [
     "channel/draft",
     "channel/settings",
     "channel/search",
+    "channel/search_rich",
+    "channel/search_all",
+    "channel/search_list",
     "channel/hide",
     "channel/preview",
     "channel/sponsor_cancel",
@@ -74,6 +80,7 @@ pub(crate) const METHODS: [&str; 84] = [
     "inbox/escrow",
     "inbox/refund",
     "inbox/list",
+    "inbox/search",
     "inbox/status",
     "inbox/mark",
     "payer/use",
@@ -112,15 +119,22 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "channel/show"
         | "channel/messages"
         | "channel/message_page"
+        | "channel/messages_around"
+        | "channel/messages_after"
         | "channel/pending"
         | "channel/outbox"
         | "channel/search"
+        | "channel/search_rich"
+        | "channel/search_all"
+        | "channel/search_list"
         | "channel/preview"
         | "channel/names"
         | "channel/avatar"
         | "channel/receipts"
         | "channel/catch_up"
-        | "channel/draft" => &[],
+        | "channel/draft"
+        | "inbox/search"
+        | "search/global" => &[],
         // A read position moves only counts, which the views keep themselves.
         "channel/mark" => &["channel/read"],
         m if m.starts_with("channel/") => &["channel/changed"],
@@ -138,6 +152,20 @@ impl Daemon {
         let id = || text(params, "id");
         // These wait on the relay and the IC without the client.
         let h = self.hold();
+        if method == "search/global" {
+            let scopes: Vec<String> = params
+                .get("scopes")
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+            let req = dmsg_client::search::GlobalSearchRequest {
+                query: params["query"].as_str().unwrap_or_default().to_string(),
+                scopes,
+                limit: params["limit"].as_u64().map(|n| n as usize),
+            };
+            return Ok(to_json(
+                &dmsg_client::search::global_search(&h, &req).await?,
+            ));
+        }
         if method.starts_with("feedback/") {
             let h = Unlocked::new(&h).await?;
             let owner = account(params, "account")?;
@@ -676,6 +704,17 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                 params["before"].as_u64().unwrap_or(u64::MAX),
                 params["limit"].as_u64().unwrap_or(100).min(1000) as usize,
             )?),
+            "channel/messages_around" => to_json(&client.channel_messages_around(
+                &id()?,
+                number(params, "seq")?,
+                params["before"].as_u64().unwrap_or(40).min(500) as usize,
+                params["after"].as_u64().unwrap_or(40).min(500) as usize,
+            )?),
+            "channel/messages_after" => to_json(&client.channel_messages_after_page(
+                &id()?,
+                number(params, "after")?,
+                params["limit"].as_u64().unwrap_or(100).min(500) as usize,
+            )?),
             "channel/pending" => Value::Array(client.channel_pending(&id()?)?),
             "channel/outbox" => Value::Array(client.channel_outbox(&id()?)?),
             "channel/discard" => {
@@ -706,7 +745,44 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
             )?),
             "channel/search" => {
                 let limit = params["limit"].as_u64().unwrap_or(50).min(200) as usize;
-                to_json(&client.channel_search(&id()?, &text(params, "query")?, limit)?)
+                let before = params["before"].as_u64().unwrap_or(u64::MAX);
+                to_json(&client.channel_search_before(
+                    &id()?,
+                    &text(params, "query")?,
+                    before,
+                    limit,
+                )?)
+            }
+            "channel/search_rich" => {
+                let limit = params["limit"].as_u64().unwrap_or(50).min(200) as usize;
+                let before = params["before"].as_u64();
+                let has_file = params["has_file"].as_bool().unwrap_or(false);
+                let sender = params["sender"].as_str();
+                let query = params["query"].as_str().unwrap_or_default();
+                to_json(&client.channel_search_rich(
+                    &id()?,
+                    query,
+                    before,
+                    limit,
+                    has_file,
+                    sender,
+                )?)
+            }
+            "channel/search_all" => {
+                let limit = params["limit"].as_u64().unwrap_or(10).min(50) as usize;
+                let max_channels = params["max_channels"].as_u64().unwrap_or(30).min(100) as usize;
+                let has_file = params["has_file"].as_bool().unwrap_or(false);
+                let query = params["query"].as_str().unwrap_or_default();
+                to_json(&client.channel_search_all(query, limit, max_channels, has_file)?)
+            }
+            "channel/search_list" => {
+                let query = params["query"].as_str().unwrap_or_default();
+                to_json(&client.channel_list_search(query)?)
+            }
+            "inbox/search" => {
+                let query = params["query"].as_str().unwrap_or_default();
+                let box_kind = params["box"].as_str();
+                to_json(&client.inbox_search(query, box_kind)?)
             }
             "channel/hide" => to_json(&client.channel_hide(
                 &id()?,

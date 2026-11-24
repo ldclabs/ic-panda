@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "関連度順",
+  "matchedInNotes": "メモに一致",
+  "matchedMember": "メンバー：{name}",
+  "matchingMessages": "メッセージ",
+  "newerMessages": "新しいメッセージ",
+  "searchPrevMatch": "前の一致",
+  "searchNextMatch": "次の一致",
+  "loadMore": "さらに読み込む",
   "promoRedeem": "コードを引き換える",
   "promoCode": "会員コード",
   "promoCheck": "コードを確認",

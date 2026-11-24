@@ -4,10 +4,13 @@ import net.dmsg.core.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
-data class LibraryFolder(val id: String, val name: String, val parent: String, val path: List<String>)
+data class LibraryFolder(val id: String, val name: String, val parent: String, val path: List<String>,
+    val nameSpans: List<HighlightSpan> = emptyList(), val pathSpans: List<HighlightSpan> = emptyList())
 data class LibraryFile(val id: String, val name: String, val size: ULong, val status: String, val sha256: String, val mime: String, val version: String,
     val folder: String, val local: Boolean, val starred: Boolean, val tags: List<String>, val note: String, val updatedAt: ULong,
-    val backup: FileBackup? = null, val trashedAt: ULong? = null, val path: List<String> = emptyList())
+    val backup: FileBackup? = null, val trashedAt: ULong? = null, val path: List<String> = emptyList(),
+    val nameSpans: List<HighlightSpan> = emptyList(), val pathSpans: List<HighlightSpan> = emptyList(),
+    val matchField: String? = null, val matchValue: String? = null)
 data class FileBackup(val upload: String, val generation: ULong, val backedUpAt: ULong, val verified: Boolean)
 data class FileVersion(val id: String, val size: ULong, val sha256: String, val createdAt: ULong, val device: String, val local: Boolean, val current: Boolean, val status: String, val backup: FileBackup?, val mime: String? = null)
 fun LibraryFile.atVersion(v: FileVersion) = copy(version = v.id, mime = v.mime ?: (if (v.current) mime else "application/octet-stream"), size = v.size, sha256 = v.sha256, status = v.status, local = v.local, backup = v.backup)

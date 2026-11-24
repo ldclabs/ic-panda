@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "sortRelevance": "По релевантности",
+  "matchedInNotes": "Совпадение в заметках",
+  "matchedMember": "Участник: {name}",
+  "matchingMessages": "Сообщения",
+  "newerMessages": "Более новые сообщения",
+  "searchPrevMatch": "Предыдущее совпадение",
+  "searchNextMatch": "Следующее совпадение",
+  "loadMore": "Загрузить ещё",
   "promoRedeem": "Активировать код",
   "promoCode": "Код подписки",
   "promoCheck": "Проверить код",

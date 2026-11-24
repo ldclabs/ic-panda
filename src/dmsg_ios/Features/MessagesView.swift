@@ -25,24 +25,45 @@ struct MessagesView: View {
     @State private var folder = LetterFolder.inbox
     @State private var unreadOnly = false
     @State private var query = ""
-    @State private var searchGroups: [ChannelSearchGroup] = []
+    @State private var searchScope: WorkspaceSearchScope = .current
+    @State private var globalSearch = GlobalSearchStore()
+    @State private var hasFileOnly = false
+    @State private var channelHits: [ChannelDirectoryHit] = []
+    @State private var richGroups: [RichChannelSearchGroup] = []
+    @State private var letterHits: [LetterSearchHit] = []
     @State private var searched: ChannelSearchKey?
     @State private var searchingChannels = false
+    @State private var searchingLetters = false
     @State private var searchFailed = false
     @State private var searchRetry = 0
     @State private var paging: Set<String> = []
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var searchingAll: Bool { searchScope == .all && !trimmedQuery.isEmpty }
     private var searchKey: ChannelSearchKey {
-        ChannelSearchKey(query: mode == 0 ? query.trimmingCharacters(in: .whitespacesAndNewlines) : "",
+        ChannelSearchKey(query: mode == 0 && !searchingAll ? trimmedQuery : "",
+                         hasFile: mode == 0 && !searchingAll && hasFileOnly,
                          epoch: model.epoch, revision: model.contentRevision, concealed: model.concealed || !model.unlocked,
                          channels: model.channels.map { ChannelSearchSource(id: $0.id, lastAt: $0.lastAt) },
                          messagesRevision: model.messageSearchRevision, blocked: model.blockedAccounts, retry: searchRetry)
+    }
+    private var letterSearchKey: String {
+        guard mode == 1, !searchingAll, !trimmedQuery.isEmpty, !model.concealed, model.unlocked else { return "" }
+        return "\(model.epoch):\(model.contentRevision):\(folder.rawValue):\(trimmedQuery):\(searchRetry)"
     }
     @State private var limit = 50
     @State private var marking: Set<String> = []
     private var mode: Int { model.route.messagesMode }
     private var channels: [ChannelItem] {
         let term = searchKey.query
-        return term.isEmpty ? model.channels : model.channels.filter { $0.name.localizedCaseInsensitiveContains(term) }
+        if term.isEmpty { return model.channels }
+        if searched == searchKey && !channelHits.isEmpty {
+            let order = Dictionary(uniqueKeysWithValues: channelHits.enumerated().map { ($1.id, $0) })
+            return model.channels.filter { order[$0.id] != nil }.sorted { (order[$0.id] ?? Int.max) < (order[$1.id] ?? Int.max) }
+        }
+        return model.channels.filter { $0.name.localizedCaseInsensitiveContains(term) }
+    }
+    private var channelHitByID: [String: ChannelDirectoryHit] {
+        Dictionary(uniqueKeysWithValues: channelHits.map { ($0.id, $0) })
     }
 
     var body: some View {
@@ -51,6 +72,9 @@ struct MessagesView: View {
             // Large text scrolls the bar away on phones. A selectable list would swallow taps on its menu.
             let barInList = dynamicTypeSize.isAccessibilitySize && listSelection == nil
             List(selection: listSelection) {
+                if searchingAll {
+                    GlobalSearchResultsContent(store: globalSearch, query: query)
+                } else {
                 if barInList {
                     bars.buttonStyle(.borderless)
                         .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -59,13 +83,19 @@ struct MessagesView: View {
                     if mode == 0 { channelRows }
                     else { letterRows }
                 }.plainListRows(selectable: listSelection != nil)
+                }
             }.listStyle(.plain)
+                .globalSearch(store: globalSearch, query: query, active: searchingAll)
                 // New, removed, reordered and newly read conversations animate, except with Reduce Motion.
                 .motion(Motion.move, value: channels.map { "\($0.id):\($0.unread)" })
                 .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
-                .scopeBar { if !barInList { bars } }
+                .scopeBar { if !barInList && !searchingAll { bars } }
                 .privateScreen(.plain).navigationTitle("Messages")
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: mode == 0 ? "Search messages" : "Search letters")
+                .searchScopes($searchScope) {
+                    Text("Current").tag(WorkspaceSearchScope.current)
+                    Text("All").tag(WorkspaceSearchScope.all)
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
                     ToolbarItemGroup(placement: .primaryAction) {
@@ -75,6 +105,7 @@ struct MessagesView: View {
                     }
                 }
                 .task(id: searchKey) { await searchAll(searchKey) }
+                .task(id: letterSearchKey) { await searchLetters() }
                 .task(id: "\(mode):\(model.epoch):\(model.concealed)") {
                     guard !model.concealed else { return }
                     if mode == 0 {
@@ -105,20 +136,34 @@ struct MessagesView: View {
             else { ContentUnavailableView("Select a conversation", image: AppGlyph.channels.assetName) }
         }
         .onChange(of: model.route.message) { _, value in if value != nil { model.activity() } }
-        .onChange(of: mode) { _, _ in model.route.message = nil; query = ""; limit = 50 }
+        .onChange(of: mode) { _, _ in model.route.message = nil; query = ""; searchScope = .current; hasFileOnly = false; limit = 50 }
         .onChange(of: folder) { _, _ in model.route.message = nil; limit = 50; unreadOnly = false }
-        .onChange(of: query) { _, _ in limit = 50 }
+        .onChange(of: query) { _, value in
+            limit = 50
+            if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { searchScope = .current; hasFileOnly = false }
+        }
         .sheet(isPresented: $creating) { NavigationStack { ConversationSetupView { model.route.message = $0 } } }
         .sheet(item: $writing) { draft in NavigationStack { LetterComposerView(draft: draft) } }
     }
 
     @ViewBuilder private var bars: some View {
         @Bindable var model = model
-        BrowseScopes(title: "Messages", selection: $model.route.messagesMode, options: [
-            .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations"),
-            .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters"),
-        ]).font(.subheadline).padding(.bottom, 8)
-        if mode == 1 { letterFilters }
+        VStack(spacing: 0) {
+            BrowseScopes(title: "Messages", selection: $model.route.messagesMode, options: [
+                .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations"),
+                .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters"),
+            ]).font(.subheadline).padding(.bottom, 8)
+            if mode == 0 && (!trimmedQuery.isEmpty || hasFileOnly) {
+                HStack(spacing: 6) {
+                    BrowseTab(selected: hasFileOnly) { hasFileOnly.toggle() } label: {
+                        Image(systemName: "paperclip").accessibilityHidden(true)
+                        Text("Attachments")
+                    }.accessibilityIdentifier("messages.filter.attachments")
+                    Spacer(minLength: 0)
+                }.font(.subheadline).padding(.horizontal, 16).padding(.bottom, 8)
+            }
+            if mode == 1 { letterFilters }
+        }
     }
 
     private var letterFilters: some View {
@@ -137,9 +182,23 @@ struct MessagesView: View {
     }
 
     @ViewBuilder private var channelRows: some View {
+        let hitLookup = channelHitByID
         ForEach(channels, id: \.id) { channel in
             NavigationLink(value: channel.id) {
-                if searchKey.query.isEmpty { ChannelRow(channel: channel) } else { Text(channel.name) }
+                if searchKey.query.isEmpty {
+                    ChannelRow(channel: channel)
+                } else {
+                    let hit = hitLookup[channel.id]
+                    HStack(spacing: 10) {
+                        Avatar(channel.name, seed: channel.id, kind: .conversation)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(highlightedText(channel.name, spans: hit?.nameSpans)).font(.body.weight(.medium)).lineLimit(1)
+                            if hit?.matchField == "member", let member = hit?.matchValue, !member.isEmpty {
+                                Text(String(localized: "Member") + ": " + member).rowSubtitle().lineLimit(1)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
             }
                 .compactObjectRow().accessibilityIdentifier("channel.row.\(channel.id)")
                 .swipeActions {
@@ -151,34 +210,43 @@ struct MessagesView: View {
                     }
                 }
         }
-        if !searchKey.query.isEmpty {
+        if !searchKey.query.isEmpty || searchKey.hasFile {
             Text("Searches messages saved on this device.").font(.footnote).foregroundStyle(.secondary)
             if searchKey.tooLong { Text("Use up to 200 characters to search.") }
             else {
                 if searched == searchKey {
-                    ForEach(searchGroups) { group in
-                        if let channel = model.channels.first(where: { $0.id == group.id }) {
-                            Section(channel.name) {
-                                ForEach(group.items, id: \.id) { message in
-                                    let route = ChannelSearchTarget.route(channel: group.id, sequence: message.sequence)
-                                    NavigationLink(value: route) {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            if !message.text.isEmpty { Text(message.text).lineLimit(2) }
-                                            if !message.attachmentDeleted, let name = message.attachmentName { Label(name, systemImage: "paperclip").lineLimit(2) }
-                                            Text(ConversationTimeline.date(message.createdAtMs), format: .dateTime).font(.footnote).foregroundStyle(.secondary)
+                    ForEach(richGroups) { group in
+                        let title = model.channels.first(where: { $0.id == group.channelId })?.name ?? group.channelName
+                        Section(title) {
+                            ForEach(group.hits) { hit in
+                                let route = ChannelSearchTarget.route(channel: group.channelId, sequence: hit.sequence)
+                                NavigationLink(value: route) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        if !hit.text.isEmpty {
+                                            Text(highlightedText(hit.text, spans: hit.snippetSpans)).lineLimit(2)
                                         }
-                                    }.tag(route).accessibilityIdentifier("messages.hit." + group.id + ".\(message.sequence)")
-                                }
-                                if let before = group.before {
-                                    Button("Load earlier messages") { Task { await moreHits(group.id, before: before, for: searchKey) } }
-                                        .disabled(paging.contains(group.id))
-                                }
+                                        if let name = hit.attachmentName {
+                                            Label { Text(highlightedText(name, spans: hit.fileSpans)).lineLimit(2) } icon: { Image(systemName: "paperclip") }
+                                        }
+                                        HStack(spacing: 6) {
+                                            if let sender = hit.senderName, !sender.isEmpty { Text(sender).lineLimit(1) }
+                                            Spacer(minLength: 4)
+                                            if hit.message.timestampMs > 0 {
+                                                Text(ConversationTimeline.date(hit.message.timestampMs), format: .dateTime)
+                                            }
+                                        }.font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                }.tag(route).accessibilityIdentifier("messages.hit." + group.channelId + ".\(hit.sequence)")
+                            }
+                            if let before = group.nextBefore {
+                                Button("Load earlier messages") { Task { await moreHits(group.channelId, before: before, for: searchKey) } }
+                                    .disabled(paging.contains(group.channelId))
                             }
                         }
                     }
                     if searchFailed { SettingsLoadStatus(loading: false, failed: true) { searchRetry += 1 } }
                     if searchingChannels { ProgressView("Searching…") }
-                    else if !searchFailed && channels.isEmpty && searchGroups.isEmpty { ContentUnavailableView.search(text: query) }
+                    else if !searchFailed && channels.isEmpty && richGroups.isEmpty { ContentUnavailableView.search(text: query) }
                 } else { ProgressView("Searching…") }
             }
         } else if channels.isEmpty {
@@ -191,65 +259,108 @@ struct MessagesView: View {
         }
     }
 
-    private func localMatches(_ channel: String, before: UInt64?, for key: ChannelSearchKey) async throws -> ChannelSearchGroup {
-        var cursor = before
-        repeat {
-            try Task.checkCancellation()
-            guard searchKey == key else { throw CancellationError() }
-            let page: MessagePage
-            #if DEBUG
-            if model.uiTesting { page = model.conversationFixture(channel: channel, before: cursor, query: key.query) }
-            else { page = try await readMatches(channel, query: key.query, before: cursor) }
-            #else
-            page = try await readMatches(channel, query: key.query, before: cursor)
-            #endif
-            let hits = page.items.reversed().filter { item in
-                !item.hidden && !item.retracted && !item.unreadable && !key.blocked.contains(item.account)
-                    && (item.text.localizedCaseInsensitiveContains(key.query) || (!item.attachmentDeleted && item.attachmentName?.localizedCaseInsensitiveContains(key.query) == true))
-            }
-            let next = page.hasMore ? page.nextBefore : nil
-            if !hits.isEmpty || next == nil || next == cursor { return ChannelSearchGroup(id: channel, items: hits, before: next == cursor ? nil : next) }
-            cursor = next
-        } while true
-    }
-
-    private func readMatches(_ channel: String, query: String, before: UInt64?) async throws -> MessagePage {
-        guard let engine = model.engine else { throw CancellationError() }
-        return try await engine.searchMessagesPage(channel: channel, query: query, before: before)
-    }
-
     private func searchAll(_ key: ChannelSearchKey) async {
-        searchGroups = []; paging = []; searchFailed = false; searched = key
-        searchingChannels = !key.query.isEmpty && !key.concealed && !key.tooLong
+        channelHits = []; richGroups = []; paging = []; searchFailed = false; searched = key
+        searchingChannels = (!key.query.isEmpty || key.hasFile) && !key.concealed && !key.tooLong
         guard searchingChannels else { return }
         defer { if searchKey == key && !Task.isCancelled { searchingChannels = false } }
-        do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+        do { try await Task.sleep(for: .milliseconds(160)) } catch { return }
         guard await model.loadBlockedAccounts() else {
             if searchKey == key && !Task.isCancelled { searchFailed = true }
             return
         }
-        for source in key.channels {
-            guard searchKey == key && !Task.isCancelled else { return }
-            do {
-                let group = try await localMatches(source.id, before: nil, for: key)
+        #if DEBUG
+        if model.uiTesting {
+            var groups: [RichChannelSearchGroup] = []
+            for source in key.channels {
                 guard searchKey == key && !Task.isCancelled else { return }
-                if !group.items.isEmpty { searchGroups.append(group) }
-            } catch {
-                guard searchKey == key && !Task.isCancelled else { return }
-                searchFailed = true
+                let page = model.conversationFixture(channel: source.id, before: nil, query: key.query)
+                let hits = page.items.reversed().compactMap { item -> RichMessageSearchHit? in
+                    guard !item.hidden && !item.retracted && !item.unreadable && !key.blocked.contains(item.account) else { return nil }
+                    if key.hasFile && (item.attachmentDeleted || item.attachmentName == nil) { return nil }
+                    if !key.query.isEmpty && !item.text.localizedCaseInsensitiveContains(key.query)
+                        && !(!item.attachmentDeleted && item.attachmentName?.localizedCaseInsensitiveContains(key.query) == true) { return nil }
+                    let file = (!item.attachmentDeleted ? item.attachmentName : nil).map { MessageHitFile(name: $0) }
+                    return RichMessageSearchHit(channel: source.id,
+                                                message: MessageHitBody(seq: item.sequence, messageId: item.id, account: item.account,
+                                                                        text: item.text, createdAt: item.createdAtMs, storedAt: item.createdAtMs,
+                                                                        file: file, fileDeleted: item.attachmentDeleted))
+                }
+                if !hits.isEmpty {
+                    let name = model.channels.first(where: { $0.id == source.id })?.name ?? source.id
+                    groups.append(RichChannelSearchGroup(channelId: source.id, channelName: name, hits: hits, nextBefore: page.hasMore ? page.nextBefore : nil))
+                }
             }
+            if searchKey == key && !Task.isCancelled { richGroups = groups }
+            return
+        }
+        #endif
+        guard let engine = model.engine else { searchFailed = true; return }
+        do {
+            async let listTask: [ChannelDirectoryHit] = key.query.isEmpty ? [] : model.decodeInBackground(try await engine.searchChannels(query: key.query))
+            async let messagesTask: [RichChannelSearchGroup] = model.decodeInBackground(
+                try await engine.searchMessagesAll(query: key.query, limitPerChannel: 5, maxChannels: 20, hasFile: key.hasFile)
+            )
+            let (foundChannels, rawGroups) = try await (listTask, messagesTask)
+            guard searchKey == key && !Task.isCancelled else { return }
+            channelHits = foundChannels
+            richGroups = rawGroups.compactMap { group in
+                let filtered = group.hits.filter { !key.blocked.contains($0.message.account) }
+                guard !filtered.isEmpty else { return nil }
+                return RichChannelSearchGroup(channelId: group.channelId, channelName: group.channelName,
+                                              hits: filtered, nextBefore: group.nextBefore, topScore: group.topScore)
+            }
+        } catch {
+            if searchKey == key && !Task.isCancelled { searchFailed = true }
         }
     }
 
     private func moreHits(_ channel: String, before: UInt64, for key: ChannelSearchKey) async {
         guard searched == key, paging.insert(channel).inserted else { return }
         defer { if searched == key { paging.remove(channel) } }
+        guard let engine = model.engine else { return }
         do {
-            let next = try await localMatches(channel, before: before, for: key)
-            guard searchKey == key, let index = searchGroups.firstIndex(where: { $0.id == channel && $0.before == before }) else { return }
-            searchGroups[index].items += next.items
-            searchGroups[index].before = next.before
+            let page: RichChannelMessagePage = try await model.decodeInBackground(
+                try await engine.searchChannelMessages(channel: channel, query: key.query, before: before, limit: 20, hasFile: key.hasFile, sender: nil)
+            )
+            guard searchKey == key, let index = richGroups.firstIndex(where: { $0.channelId == channel && $0.nextBefore == before }) else { return }
+            let filtered = page.hits.filter { !key.blocked.contains($0.message.account) }
+            richGroups[index].hits += filtered
+            richGroups[index].nextBefore = page.hasMore ? page.nextBefore : nil
         } catch { if searchKey == key && !Task.isCancelled { searchFailed = true } }
+    }
+
+    private func searchLetters() async {
+        let key = letterSearchKey
+        let term = trimmedQuery
+        guard !key.isEmpty, !term.isEmpty else {
+            letterHits = []; searchingLetters = false
+            return
+        }
+        #if DEBUG
+        if model.uiTesting { letterHits = []; searchingLetters = false; return }
+        #endif
+        guard let engine = model.engine else { return }
+        searchingLetters = true
+        defer { if letterSearchKey == key { searchingLetters = false } }
+        do {
+            try await Task.sleep(for: .milliseconds(160))
+            guard letterSearchKey == key, !Task.isCancelled else { return }
+            let boxKind: String = {
+                switch folder {
+                case .inbox: "inbox"
+                case .archived: "archive"
+                case .sent: "sent"
+                case .pending: "pending"
+                case .drafts: "draft"
+                }
+            }()
+            let hits: [LetterSearchHit] = try await model.decodeInBackground(try await engine.searchInbox(query: term, boxKind: boxKind))
+            guard letterSearchKey == key, !Task.isCancelled else { return }
+            letterHits = hits.filter { !model.blockedAccounts.contains($0.account) }
+        } catch {
+            if letterSearchKey == key, !Task.isCancelled { letterHits = [] }
+        }
     }
 
     /// Renaming a conversation stays in its settings; muting only keeps the name it has.
@@ -282,7 +393,40 @@ struct MessagesView: View {
     }
 
     @ViewBuilder private var letterRows: some View {
-        if folder == .inbox || folder == .archived {
+        if !trimmedQuery.isEmpty && !model.uiTesting {
+            if searchingLetters && letterHits.isEmpty {
+                ProgressView("Searching…").frame(maxWidth: .infinity)
+            } else if letterHits.isEmpty {
+                emptyLetterFolder
+            } else {
+                ForEach(letterHits) { hit in
+                    if hit.boxKind == "draft", let draft = model.letters.drafts[hit.id] {
+                        Button { writing = draft } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(highlightedText(hit.displayName ?? hit.account, spans: hit.nameSpans)).font(.body.weight(.medium)).lineLimit(1)
+                                Text(highlightedText(draft.text, spans: hit.snippetSpans)).rowSubtitle().lineLimit(2)
+                            }
+                        }.compactObjectRow().accessibilityIdentifier("letter.draft.\(hit.id)")
+                    } else {
+                        let routeValue = (hit.boxKind == "sent" || hit.boxKind == "pending") ? "sent:" + hit.id : "received:" + hit.id
+                        NavigationLink(value: routeValue) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    Text(highlightedText(hit.displayName ?? hit.account, spans: hit.nameSpans)).font(.body.weight(.medium)).lineLimit(1)
+                                    Spacer(minLength: 4)
+                                    if hit.createdAt > 0 {
+                                        Text(Date(timeIntervalSince1970: Double(hit.createdAt) / 1000), style: .date).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if let spans = hit.snippetSpans, !spans.isEmpty {
+                                    Text(highlightedText("", spans: spans)).rowSubtitle().lineLimit(2)
+                                }
+                            }
+                        }.tag(routeValue).compactObjectRow()
+                    }
+                }
+            }
+        } else if folder == .inbox || folder == .archived {
             let received = inbox.letters.filter { $0.archived == (folder == .archived) && (!unreadOnly || $0.read == false) && !model.blockedAccounts.contains($0.sender) && matches($0.sender, $0.text) }
             ForEach(Array(received.prefix(limit))) { letter in
                 NavigationLink(value: "received:" + letter.id) { InboxRow(letter: letter, selected: horizontalSize == .regular && model.route.message == "received:" + letter.id) }.compactObjectRow().accessibilityIdentifier("inbox.row.\(letter.id)")
@@ -477,6 +621,7 @@ private struct InboxPolicyHint: View {
 
 private struct ChannelSearchKey: Equatable {
     let query: String
+    let hasFile: Bool
     let epoch: UInt64
     let revision: UInt64
     let concealed: Bool
@@ -490,12 +635,6 @@ private struct ChannelSearchKey: Equatable {
 private struct ChannelSearchSource: Equatable {
     let id: String
     let lastAt: UInt64
-}
-
-private struct ChannelSearchGroup: Identifiable {
-    let id: String
-    var items: [MessageItem]
-    var before: UInt64?
 }
 
 private struct ChannelSearchTarget {

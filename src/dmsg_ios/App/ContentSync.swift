@@ -61,6 +61,7 @@ final class HintBridge: HintObserver, Sendable {
 /// A login as the AutoFill snapshot holds it.
 struct AutoFillEntry: Decodable, Sendable {
     let id: String; let title: String; let username: String; let password: String; let url: String
+    var searchKeys: [String]? = nil
 
     static func origin(_ text: String) -> String {
         guard var url = URLComponents(string: text), ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return "" }

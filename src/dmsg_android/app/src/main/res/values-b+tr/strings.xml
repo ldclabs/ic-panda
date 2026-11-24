@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Bağlantı ve parolaya sahip herkes"</string>
     <string name="review_receiving" formatted="false">"Alma"</string>
     <string name="saved_on_device" formatted="false">"Bu cihaza kaydedildi"</string>
+    <string name="search_attachments_only" formatted="false">"Ekler"</string>
+    <string name="search_everything" formatted="false">"Her yerde ara"</string>
+    <string name="search_latest_messages" formatted="false">"Son mesajlar"</string>
     <string name="search_local_messages" formatted="false">"Bu cihazda saklanan mesajları arar."</string>
+    <string name="search_matched_notes" formatted="false">"Notlarda eşleşti"</string>
+    <string name="search_member_label" formatted="false">"Üye"</string>
+    <string name="search_newer_messages" formatted="false">"Daha yeni mesajları yükle"</string>
+    <string name="search_next_match" formatted="false">"Sonraki eşleşme"</string>
+    <string name="search_open_in_conversation" formatted="false">"Sohbette aç"</string>
+    <string name="search_prev_match" formatted="false">"Önceki eşleşme"</string>
     <string name="search_query_limit" formatted="false">"Arama için en fazla 200 karakter kullanın."</string>
+    <string name="search_scope_all" formatted="false">"Hepsi"</string>
+    <string name="search_scope_current" formatted="false">"Mevcut"</string>
+    <string name="search_sort_relevance" formatted="false">"En iyi eşleşme"</string>
     <string name="security_confirm" formatted="false">"dMsg\'de onayla"</string>
     <string name="security_manage_identity" formatted="false">"Kimlik yönet"</string>
     <string name="security_unlock" formatted="false">"dMsg kilidini aç"</string>

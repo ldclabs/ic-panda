@@ -1,10 +1,11 @@
 <script lang="ts">
+  import HighlightText from '../../components/HighlightText.svelte'
   import Icon from '../../components/Icon.svelte'
   import { cn } from '../../components/ui'
   import { pop } from '../../components/motion'
   import { t } from '../../i18n/index.svelte'
   import { ago } from '../../rpc'
-  import { isManaged, line, typeIcon, typeOf } from './vault'
+  import { isManaged, line, typeIcon, typeOf, type VaultSearchMeta } from './vault'
 
   /** One item in the list. The list owns the clicks' meaning and the one right-click menu. */
   let {
@@ -16,6 +17,7 @@
     flagged,
     trash,
     chosen,
+    searchMeta,
     onClick
   }: {
     entry: any
@@ -26,6 +28,7 @@
     flagged: boolean
     trash: boolean
     chosen: boolean
+    searchMeta?: VaultSearchMeta
     onClick: (event: MouseEvent) => void
   } = $props()
 
@@ -33,6 +36,14 @@
   const type = $derived(typeOf(item))
   const managed = $derived(isManaged(item))
   const subtitle = $derived(line(item, t))
+  const matchHint = $derived.by(() => {
+    const field = searchMeta?.matchField
+    if (!field || field === 'title' || field === 'username') return ''
+    if (field === 'notes') return t('matchedInNotes')
+    if (field === 'tag' && searchMeta?.matchValue) return `#${searchMeta.matchValue}`
+    if (searchMeta?.matchValue && searchMeta.matchValue !== subtitle) return searchMeta.matchValue
+    return ''
+  })
 </script>
 
 <li>
@@ -52,8 +63,12 @@
       <Icon name={typeIcon[type]} />
     </span>
     <span class="min-w-0">
-      <span class="block truncate text-body leading-snug font-medium text-ink">{item.title}</span>
-      <span class="block truncate text-callout leading-snug text-muted">{subtitle}</span>
+      <span class="block truncate text-body leading-snug font-medium text-ink">
+        <HighlightText text={item.title} spans={searchMeta?.titleSpans} />
+      </span>
+      <span class="block truncate text-callout leading-snug text-muted">
+        <HighlightText text={subtitle} spans={searchMeta?.subtitleSpans} />{#if matchHint}<span class="text-faint"> · {matchHint}</span>{/if}
+      </span>
     </span>
     <span class="flex flex-col items-end gap-1 text-caption text-faint">
       <span class="whitespace-nowrap">{ago(trash ? entry.at : item.updatedAt)}</span>

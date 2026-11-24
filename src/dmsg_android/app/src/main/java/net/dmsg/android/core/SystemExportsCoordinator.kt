@@ -84,7 +84,7 @@ class SystemExportsCoordinator(private val client: ClientController, private val
             if (header != null && header.digest != digest) store.withdrawCredentials(header)
             val inputs = row.rows("entries").map {
                 ExportCredentialInput(it.required("title"), it.required("username"), it.required("password"),
-                    AutofillTrust.displayOrigin(it.required("url")), it.required("id"))
+                    AutofillTrust.displayOrigin(it.required("url")), it.required("id"), it.optionalStrings("search_keys"))
             }
             val prepared = store.prepareCredentials(inputs, checkNotNull(stamp.account), row.requiredFlag("biometry_only"), digest, ::valid)
             try { store.publish(prepared, ::valid); prepared.opened.header } finally { store.discard(prepared) }

@@ -5,6 +5,14 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "sortRelevance": "Best match",
+  "matchedInNotes": "Matched in notes",
+  "matchedMember": "Member: {name}",
+  "matchingMessages": "Messages",
+  "newerMessages": "Newer messages",
+  "searchPrevMatch": "Previous match",
+  "searchNextMatch": "Next match",
+  "loadMore": "Load more",
   "promoRedeem": "Redeem code",
   "promoCode": "Membership code",
   "promoCheck": "Check code",

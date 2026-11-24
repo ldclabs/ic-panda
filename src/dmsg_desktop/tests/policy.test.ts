@@ -252,3 +252,20 @@ test('snapshot preparation and delivery are never transparently retried', () => 
   for (const method of ['secrets/shares/channel_prepare','secrets/shares/request','secrets/packages/channel_preview','secrets/packages/import_request','secrets/rotation/update']) assert.equal(isRead(method),false)
   for (const method of ['secrets/references','secrets/rotation/dependencies']) assert.equal(isRead(method),true)
 })
+
+test('unified search methods are exposed to windows as read-only queries', () => {
+  for (const method of [
+    'vault/browse',
+    'files/search_listing',
+    'channel/messages_around',
+    'channel/messages_after',
+    'channel/search_rich',
+    'channel/search_all',
+    'channel/search_list',
+    'inbox/search',
+    'search/global'
+  ]) {
+    assert.equal(WINDOW_METHODS.has(method), true, method)
+    assert.equal(isRead(method), true, method)
+  }
+})

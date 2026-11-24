@@ -16,7 +16,7 @@ enum class ExportPurpose { credentials, files }
 data class ExportHeader(val id: String, val installation: String, val purpose: ExportPurpose, val account: String, val created: Long, val expires: Long, val count: Int, val biometryOnly: Boolean, val wrapped: ByteArray, val digest: String? = null) {
     fun binding() = ("$installation:$purpose:$id:$account:$created:$expires:$count:$biometryOnly" + digest?.let { ":$it" }.orEmpty()).toByteArray()
 }
-data class ExportCredential(val id: String, val title: String, val username: String, val origin: String, val itemId: String? = null) {
+data class ExportCredential(val id: String, val title: String, val username: String, val origin: String, val itemId: String? = null, val searchKeys: List<String> = emptyList()) {
     fun afterUnlock(previous: ExportHeader, current: ExportHeader, entries: List<ExportCredential>): ExportCredential? {
         if (previous.installation != current.installation || previous.account != current.account) return null
         return entries.firstOrNull { candidate ->
@@ -25,7 +25,7 @@ data class ExportCredential(val id: String, val title: String, val username: Str
         }
     }
 }
-data class ExportCredentialInput(val title: String, val username: String, val password: String, val origin: String, val itemId: String? = null)
+data class ExportCredentialInput(val title: String, val username: String, val password: String, val origin: String, val itemId: String? = null, val searchKeys: List<String> = emptyList())
 data class ExportFile(val id: String, val name: String, val mime: String, val size: Long, val sha256: String, val parts: Int, val modified: Long)
 data class ExportFileInput(val path: File, val name: String, val mime: String, val size: Long, val sha256: String)
 data class ExportWrappedKey(val key: ByteArray, val wrapped: ByteArray)
@@ -107,7 +107,11 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
                     val id = UUID.randomUUID().toString()
                     val bytes = value.password.toByteArray()
                     try { seal(prepared.opened, id, bytes) } finally { bytes.fill(0) }
-                    add(buildJsonObject { put("id", id); put("title", value.title); put("username", value.username); put("origin", value.origin); value.itemId?.let { put("item", it) } })
+                    add(buildJsonObject {
+                        put("id", id); put("title", value.title); put("username", value.username); put("origin", value.origin)
+                        value.itemId?.let { put("item", it) }
+                        if (value.searchKeys.isNotEmpty()) putJsonArray("search_keys") { value.searchKeys.forEach { add(it) } }
+                    })
                 }
             }
             seal(prepared.opened, "manifest", manifest.toString().toByteArray()); return prepared
@@ -223,7 +227,7 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
     }
     fun credentials(opened: OpenExport): List<ExportCredential> {
         check(purpose == ExportPurpose.credentials)
-        return metadata(opened).map { ExportCredential(it.required("id").also(::uuid), it.required("title"), it.required("username"), it.required("origin"), it.text("item")) }
+        return metadata(opened).map { ExportCredential(it.required("id").also(::uuid), it.required("title"), it.required("username"), it.required("origin"), it.text("item"), it.optionalStrings("search_keys")) }
     }
     fun files(opened: OpenExport): List<ExportFile> {
         check(purpose == ExportPurpose.files)

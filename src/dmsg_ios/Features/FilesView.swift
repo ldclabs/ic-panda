@@ -21,19 +21,33 @@ struct FilesView: View {
     @State private var removing: [LibraryItemTarget] = []
     @State private var working = false
     @State private var importingPhotos = false
+    @State private var searchScope: WorkspaceSearchScope = .current
+    @State private var globalSearch = GlobalSearchStore()
 
     private var compact: Bool { sizeClass == .compact }
+    private var filesFiltered: Bool {
+        !model.filesSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.filesFavoritesOnly || !model.filesTag.isEmpty
+    }
+    private var searchingAll: Bool {
+        searchScope == .all && !model.filesSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
     private var current: LibraryListing { listing(model.filesFolder) ?? .empty }
-    private func files(_ listing: LibraryListing) -> [LibraryFile] { model.filesSort.files(listing.files) }
+    private func files(_ listing: LibraryListing) -> [LibraryFile] {
+        // Preserve relevance order from Rust when searching with the default Name sort.
+        if !model.filesSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && model.filesSort == .name {
+            return listing.files
+        }
+        return model.filesSort.files(listing.files)
+    }
     private func targets(_ listing: LibraryListing) -> [LibraryItemTarget] {
         listing.folders.map { LibraryItemTarget(id: $0.id, name: $0.name, folder: true) }
         + files(listing).map { LibraryItemTarget(id: $0.id, name: $0.name, folder: false) }
     }
     private var chosen: [LibraryItemTarget] { targets(current).filter { selection.contains($0.id) } }
 
-    /// Search results belong to the folder on top; otherwise each folder keeps what it last held.
+    /// Search and filter results belong to the folder on top; otherwise each folder keeps what it last held.
     private func listing(_ folder: String) -> LibraryListing? {
-        if !model.filesSearch.isEmpty { return folder == model.filesFolder && model.filesQueryIsCurrent ? model.library : nil }
+        if filesFiltered { return folder == model.filesFolder && model.filesQueryIsCurrent ? model.library : nil }
         return model.filesListings[folder]
     }
 
@@ -62,14 +76,18 @@ struct FilesView: View {
             await model.loadFiles(quiet: true)
         }
         .task {
+            await model.loadFileTags()
             guard !model.localAccount else { return }
             // Coming back to Files often should not reach the network each time.
             let recent = model.cloudBackupsObservedAt.map { Date.now.timeIntervalSince1970 * 1000 - Double($0) < 300_000 } ?? false
             await model.loadCloudBackups(refresh: !recent)
             await model.fileTransfers.load(model)
         }
-        .onChange(of: model.filesScope) { _, _ in model.route.file = nil; model.filesSearch = ""; selecting = false; selection = [] }
-        .onChange(of: model.filesSearch) { _, _ in selection = [] }
+        .onChange(of: model.filesScope) { _, _ in model.route.file = nil; model.filesSearch = ""; searchScope = .current; selecting = false; selection = [] }
+        .onChange(of: model.filesSearch) { _, value in
+            selection = []
+            if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { searchScope = .current }
+        }
         .onChange(of: model.route.filesPath) { _, _ in model.activity(); selecting = false; selection = [] }
         .onChange(of: targets(current).map(\.id)) { _, ids in selection.formIntersection(ids) }
         .onChange(of: model.route.file) { _, value in if value != nil { model.activity() } }
@@ -131,6 +149,9 @@ struct FilesView: View {
         // Large text scrolls the bar away on phones.
         let barInList = textSize.isAccessibilitySize && compact
         return List {
+            if searchingAll {
+                GlobalSearchResultsContent(store: globalSearch, query: model.filesSearch)
+            } else {
             if barInList {
                 browseBar(root: root).buttonStyle(.borderless)
                     .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -140,13 +161,15 @@ struct FilesView: View {
                 if !root || model.filesScope == .local { localContent(id, listing: shown) }
                 else { CloudBackupSection(query: model.filesSearch, sort: model.filesSort) }
             }.plainListRows(selectable: !compact)
+            }
         }.listStyle(.plain)
+            .globalSearch(store: globalSearch, query: model.filesSearch, active: searchingAll)
             .refreshable {
                 if root && model.filesScope == .cloud { await model.loadCloudBackups(refresh: true) }
                 else { await model.loadFiles(quiet: true) }
                 await model.fileTransfers.load(model)
             }
-            .scopeBar { if !barInList { browseBar(root: root) } }
+            .scopeBar { if !barInList && !searchingAll { browseBar(root: root) } }
             .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
             .dropDestination(for: URL.self) { urls, _ in
                 let files = urls.filter(\.isFileURL)
@@ -157,26 +180,31 @@ struct FilesView: View {
             .privateScreen(.plain).navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
             .searchable(text: Binding(get: { model.filesSearches[id] ?? "" }, set: { model.setFileSearch($0, in: id) }),
                         placement: .navigationBarDrawer(displayMode: .always), prompt: root && model.filesScope == .cloud ? "Search cloud backups" : "Search files")
+            .searchScopes($searchScope) {
+                Text("Current").tag(WorkspaceSearchScope.current)
+                Text("All").tag(WorkspaceSearchScope.all)
+            }
             .toolbar { toolbar(root: root) }
     }
 
     @ViewBuilder private func localContent(_ id: String, listing shown: LibraryListing?) -> some View {
         if let shown {
-            if id == "root" && model.filesSearch.isEmpty && !model.localAccount { backupHint }
+            if id == "root" && !filesFiltered && !model.localAccount { backupHint }
             ForEach(shown.folders) { folder in
                 let target = LibraryItemTarget(id: folder.id, name: folder.name, folder: true)
-                let subtitle = model.filesSearch.isEmpty ? String(localized: "Folder") : fileFolderPath(folder.path)
+                let meta = filesFiltered ? model.folderSearchMeta[folder.id] : nil
+                let subtitle = !filesFiltered ? String(localized: "Folder") : fileFolderPath(folder.path)
                 Group {
                     if selecting {
                         Button { toggle(folder.id) } label: {
                             HStack(spacing: 10) {
                                 selectionIcon(folder.id)
-                                FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle)
+                                FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle, nameSpans: meta?.nameSpans, subtitleSpans: meta?.pathSpans)
                             }.contentShape(Rectangle())
                         }.buttonStyle(.plain).accessibilityAddTraits(selection.contains(folder.id) ? .isSelected : [])
                     } else {
                         NavigationLink(value: FilesRoute.folder(folder.id)) {
-                            FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle)
+                            FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle, nameSpans: meta?.nameSpans, subtitleSpans: meta?.pathSpans)
                         }
                     }
                 }.compactObjectRow().accessibilityIdentifier("folder.item.\(folder.id)")
@@ -203,9 +231,12 @@ struct FilesView: View {
             if model.filesFailed {
                 FileInlineFailure(message: String(localized: "The operation could not be completed. Please try again.")) { Task { await model.loadFiles() } }
             } else if let shown, targets(shown).isEmpty, !model.filesLoading {
-                if !model.filesSearch.isEmpty {
-                    ContentUnavailableView.search(text: model.filesSearch)
-                    Button("Clear search") { model.filesSearch = "" }
+                if filesFiltered {
+                    ContentUnavailableView(model.filesSearch.isEmpty ? "No matching results" : LocalizedStringKey(model.filesSearch), systemImage: "magnifyingglass")
+                    if !model.filesSearch.isEmpty { Button("Clear search") { model.filesSearch = "" } }
+                    if model.filesFavoritesOnly || !model.filesTag.isEmpty {
+                        Button("Clear filters") { model.filesFavoritesOnly = false; model.filesTag = "" }
+                    }
                 } else {
                     ContentUnavailableView("No files in this folder", image: AppGlyph.folder.assetName,
                         description: model.localAccount ? nil : Text("Import a document to encrypt it on this device. Cloud backup is a separate action."))
@@ -248,7 +279,7 @@ struct FilesView: View {
     }
 
     @ViewBuilder private func fileRow(_ file: LibraryFile) -> some View {
-        let row = FileRow(file: file, showsLocation: !model.filesSearch.isEmpty)
+        let row = FileRow(file: file, showsLocation: filesFiltered)
         if selecting {
             Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); row } }
                 .buttonStyle(.plain).accessibilityAddTraits(selection.contains(file.id) ? .isSelected : [])

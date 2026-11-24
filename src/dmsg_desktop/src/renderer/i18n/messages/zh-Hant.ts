@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "最佳符合",
+  "matchedInNotes": "符合備註",
+  "matchedMember": "成員：{name}",
+  "matchingMessages": "訊息紀錄",
+  "newerMessages": "較新訊息",
+  "searchPrevMatch": "上一筆符合",
+  "searchNextMatch": "下一筆符合",
+  "loadMore": "載入更多",
   "promoRedeem": "使用兌換碼",
   "promoCode": "會員兌換碼",
   "promoCheck": "驗證兌換碼",

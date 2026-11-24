@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "Paling cocok",
+  "matchedInNotes": "Cocok di catatan",
+  "matchedMember": "Anggota: {name}",
+  "matchingMessages": "Pesan",
+  "newerMessages": "Pesan lebih baru",
+  "searchPrevMatch": "Kecocokan sebelumnya",
+  "searchNextMatch": "Kecocokan berikutnya",
+  "loadMore": "Muat lainnya",
   "promoRedeem": "Tukarkan kode",
   "promoCode": "Kode keanggotaan",
   "promoCheck": "Periksa kode",

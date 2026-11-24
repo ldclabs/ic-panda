@@ -1,5 +1,6 @@
 package net.dmsg.android.core
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -26,6 +27,9 @@ class LetterCoordinator(private val client: ClientController) {
     val incoming = ReadStore<List<Letter>> { it.isEmpty() }
     val history = ReadStore<List<SentLetter>> { it.isEmpty() }
     val saved = ReadStore<List<LetterDraft>> { it.isEmpty() }
+    data class LetterSearchPage(val boxKind: String, val query: String, val hits: List<LetterSearchHit>)
+    val searchResults = ReadStore<LetterSearchPage> { it.hits.isEmpty() }
+    private var lastSearchKey = ""
     private val mutable = MutableStateFlow<Map<String, LetterDraft>>(emptyMap())
     val drafts = mutable.asStateFlow()
     private val dirty = mutableSetOf<String>()
@@ -99,5 +103,26 @@ class LetterCoordinator(private val client: ClientController) {
         it.id in dirty && !client.isWorking("letter:discard:" + it.id)
     }.map { it.input() }
     fun acknowledge(inputs: List<LetterDraftInput>) { inputs.forEach { input -> if (mutable.value[input.id]?.input() == input) dirty -= input.id } }
-    fun clear(retainDrafts: Boolean = false) { incoming.reset(); saved.reset(); history.reset(); if (!retainDrafts) { location = LetterLocation(); mutable.value = emptyMap(); dirty.clear(); revision++ } }
+    fun search(query: String, boxKind: String) {
+        val term = query.trim()
+        if (term.isEmpty() || term.codePointCount(0, term.length) > 200) {
+            client.cancelOperation("letter:search")
+            searchResults.reset()
+            lastSearchKey = ""
+            return
+        }
+        val key = "$boxKind:$term"
+        val same = key == lastSearchKey
+        lastSearchKey = key
+        val request = searchResults.begin(keep = same)
+        client.perform({ core ->
+            if (!same) delay(150)
+            val snap = core.searchInbox(term, boxKind)
+            LetterSearchPage(boxKind, term, parseLetterSearchHits(snap.decode()))
+        }, key = "letter:search", replace = true, quiet = true, onError = { searchResults.fail(request, it) }) {
+            searchResults.accept(request, it)
+        }
+    }
+
+    fun clear(retainDrafts: Boolean = false) { incoming.reset(); saved.reset(); history.reset(); searchResults.reset(); lastSearchKey = ""; if (!retainDrafts) { location = LetterLocation(); mutable.value = emptyMap(); dirty.clear(); revision++ } }
 }

@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "sortRelevance": "Pertinence",
+  "matchedInNotes": "Trouvé dans les notes",
+  "matchedMember": "Membre : {name}",
+  "matchingMessages": "Messages",
+  "newerMessages": "Messages plus récents",
+  "searchPrevMatch": "Résultat précédent",
+  "searchNextMatch": "Résultat suivant",
+  "loadMore": "Charger plus",
   "promoRedeem": "Utiliser un code",
   "promoCode": "Code d’abonnement",
   "promoCheck": "Vérifier le code",

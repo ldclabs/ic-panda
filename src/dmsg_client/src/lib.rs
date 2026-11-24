@@ -62,6 +62,7 @@ pub mod recovery;
 pub mod recovery_watch;
 pub mod root;
 pub mod safety;
+pub mod search;
 pub mod secrets;
 pub mod secure;
 pub mod security;

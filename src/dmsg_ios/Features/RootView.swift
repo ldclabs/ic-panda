@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showApprovals = false
     @State private var showIncoming = false
+    @State private var showGlobalSearch = false
     private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } }
 
     var body: some View {
@@ -34,6 +35,12 @@ struct RootView: View {
                     }
                     .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refreshSelectedTab() } }
                     .environment(\.openApprovals, { showApprovals = true })
+                    .background {
+                        Button { showGlobalSearch = true } label: { EmptyView() }
+                            .keyboardShortcut("k", modifiers: .command)
+                            .accessibilityHidden(true)
+                    }
+                    .sheet(isPresented: $showGlobalSearch) { GlobalSearchSheet() }
                     .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView(showsDone: true) } }
                     .id(model.viewGeneration)
                 } else if model.session?.state == "moved" { NavigationStack { MovedView() } }
@@ -69,7 +76,7 @@ struct RootView: View {
         .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
         .onChange(of: scenePhase) { _, phase in if phase == .active { model.announceIncomingShares() } }
         .onChange(of: model.incomingSharesArrived) { _, _ in showIncoming = true }
-        .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false }
+        .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false; showGlobalSearch = false }
     }
     private func routeIntent() {
         guard model.unlocked, let destination = IntentNavigation.shared.destination else { return }

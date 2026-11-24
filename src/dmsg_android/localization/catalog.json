@@ -1,6 +1,12 @@
 {
-  "promo_granted": {"en":"Promotional membership","ios":"Promotional membership"},
-  "promo_no_charge": {"en":"No automatic charge at expiry.","ios":"No automatic charge at expiry."},
+  "promo_granted": {
+    "en": "Promotional membership",
+    "ios": "Promotional membership"
+  },
+  "promo_no_charge": {
+    "en": "No automatic charge at expiry.",
+    "ios": "No automatic charge at expiry."
+  },
   "access_existing_account": {
     "en": "Open an existing account",
     "zh-Hans": "打开已有账号",
@@ -9634,5 +9640,65 @@
   "dynamic_color_detail": {
     "en": "Colors follow your wallpaper.",
     "zh-Hans": "颜色跟随壁纸。"
+  },
+  "search_scope_current": {
+    "en": "Current",
+    "zh-Hans": "当前",
+    "ios": "Current"
+  },
+  "search_scope_all": {
+    "en": "All",
+    "zh-Hans": "全部",
+    "ios": "All"
+  },
+  "search_sort_relevance": {
+    "en": "Best match",
+    "zh-Hans": "最佳匹配",
+    "ios": "Best match"
+  },
+  "search_matched_notes": {
+    "en": "Matched in notes",
+    "zh-Hans": "命中备注",
+    "ios": "Matched in notes"
+  },
+  "search_member_label": {
+    "en": "Member",
+    "zh-Hans": "成员",
+    "ios": "Member"
+  },
+  "search_newer_messages": {
+    "en": "Load newer messages",
+    "zh-Hans": "加载较新消息",
+    "ios": "Load newer messages"
+  },
+  "search_latest_messages": {
+    "en": "Latest messages",
+    "zh-Hans": "最新消息",
+    "ios": "Latest messages"
+  },
+  "search_attachments_only": {
+    "en": "Attachments",
+    "zh-Hans": "附件",
+    "ios": "Attachments"
+  },
+  "search_prev_match": {
+    "en": "Previous match",
+    "zh-Hans": "上一条匹配",
+    "ios": "Previous match"
+  },
+  "search_next_match": {
+    "en": "Next match",
+    "zh-Hans": "下一条匹配",
+    "ios": "Next match"
+  },
+  "search_everything": {
+    "en": "Search everything",
+    "zh-Hans": "搜索全部内容",
+    "ios": "Search everything"
+  },
+  "search_open_in_conversation": {
+    "en": "Open in conversation",
+    "zh-Hans": "在会话中查看",
+    "ios": "Open in conversation"
   }
 }

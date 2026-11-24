@@ -12,14 +12,20 @@ data class VaultQuery(val text: String = "", val kind: String? = null, val favor
 }
 data class VaultSummary(val id: String, val revision: String, val kind: String, val title: String, val subtitle: String,
     val favorite: Boolean, val tags: List<String>, val synced: Boolean, val conflict: Boolean, val reserved: Boolean,
-    val deleted: Boolean, val createdAt: ULong, val updatedAt: ULong, val saveState: String? = null)
+    val deleted: Boolean, val createdAt: ULong, val updatedAt: ULong, val saveState: String? = null,
+    val titleSpans: List<HighlightSpan> = emptyList(), val subtitleSpans: List<HighlightSpan> = emptyList(),
+    val matchField: String? = null, val matchValue: String? = null)
 data class VaultListing(val items: List<VaultSummary>, val total: ULong, val all: ULong, val favorites: ULong,
     val kinds: Map<String, ULong>, val tags: List<String>, val hasMore: Boolean)
 
 fun parseVaultListing(value: JsonElement): VaultListing {
     val root = value.objectValue()
     val items = root.rows("items").map { row -> VaultSummary(row.required("id"), row.required("revision"), row.required("kind"), row.required("title"), row.required("subtitle"),
-        row.requiredFlag("favorite"), row.strings("tags"), row.requiredFlag("synced"), row.requiredFlag("conflict"), row.requiredFlag("reserved"), row.requiredFlag("deleted"), row.requiredUnsigned("createdAt"), row.requiredUnsigned("updatedAt"), row.text("saveState")) }
+        row.requiredFlag("favorite"), row.strings("tags"), row.requiredFlag("synced"), row.requiredFlag("conflict"), row.requiredFlag("reserved"), row.requiredFlag("deleted"), row.requiredUnsigned("createdAt"), row.requiredUnsigned("updatedAt"), row.text("saveState"),
+        row.spans("titleSpans").ifEmpty { row.spans("title_spans") },
+        row.spans("subtitleSpans").ifEmpty { row.spans("subtitle_spans") },
+        row.text("matchField") ?: row.text("match_field"),
+        row.text("matchValue") ?: row.text("match_value")) }
     val kinds = root["kinds"]?.objectValue() ?: error("INTEGRITY_FAILED")
     return VaultListing(items, root.requiredUnsigned("total"), root.requiredUnsigned("all"), root.requiredUnsigned("favorites"),
         kinds.keys.associateWith { kinds.requiredUnsigned(it) }, root.strings("tags"), root.requiredFlag("hasMore"))
@@ -40,9 +46,10 @@ class VaultBrowser(private val client: ClientController, private val requestKey:
         criteria.value = next
         val request = listing.begin(keep = !changed)
         val offset = previous?.items?.size?.toUInt() ?: 0u
+        val effectiveSort = if (next.text.isNotBlank() && next.sort == "title") "relevance" else next.sort
         client.perform({ core ->
-            if (typing) delay(180)
-            val snapshot = core.browseVault(VaultBrowseRequest(next.text, next.kind, next.favorites, next.tag, next.sort, offset, 100u, next.trash))
+            if (typing) delay(160)
+            val snapshot = core.browseVault(VaultBrowseRequest(next.text, next.kind, next.favorites, next.tag, effectiveSort, offset, 100u, next.trash))
             check(snapshot.generation == core.controlGeneration()) { "LOCKED" }
             parseVaultListing(snapshot.decode())
         }, key = requestKey, replace = true, quiet = true, onError = { listing.fail(request, it) }) { page ->

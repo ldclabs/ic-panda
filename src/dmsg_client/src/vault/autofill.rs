@@ -30,6 +30,11 @@ pub struct Entry {
     pub password: String,
     /// Login website, if supplied.
     pub url: String,
+    /// Precomputed normalized and pinyin search keys derived strictly from non-secret
+    /// display fields (title, username, url host) so system pickers support pinyin without
+    /// bundling dictionaries.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub search_keys: Vec<String>,
 }
 
 impl Entry {
@@ -48,12 +53,20 @@ impl Entry {
         if password.is_empty() {
             return None;
         }
+        let username = field("username");
+        let url = field("url");
+        let host = url::Url::parse(&url)
+            .ok()
+            .and_then(|u| u.host_str().map(str::to_owned))
+            .unwrap_or_default();
+        let search_keys = crate::search::search_keys(&[&entry.item.title, &username, &host]);
         Some(Self {
             id: entry.id,
-            username: field("username"),
-            url: field("url"),
+            username,
+            url,
             password,
             title: entry.item.title,
+            search_keys,
         })
     }
 }

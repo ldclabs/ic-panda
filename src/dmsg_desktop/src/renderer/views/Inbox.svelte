@@ -10,6 +10,8 @@
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
+  import HighlightText from '../components/HighlightText.svelte'
+  import type { HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import PaneHandle from '../components/PaneHandle.svelte'
@@ -43,6 +45,8 @@
   let box = $state<Box>(remembered('inbox.box') ?? 'inbox')
   let selected = $state<string | null>(remembered('inbox.selected') ?? null)
   let query = $state('')
+  let searchHits = $state<{ key: string; map: Map<string, { rank: number; nameSpans?: HighlightSpan[]; snippetSpans?: HighlightSpan[] }> } | null>(null)
+  let searchSeq = 0
   let openedNotice = $state(''), missingNotice = $state(false)
   let orders = $state<Record<string, any>>({})
   let orderFailed = $state<Record<string, boolean>>({})
@@ -67,7 +71,17 @@
   const sent = $derived([...outgoing].sort((a, b) => (b.sent_at ?? 0) - (a.sent_at ?? 0)))
   const boxed = $derived(box === 'sent' ? sent : box === 'archive' ? archive : inbox)
   const asked = $derived(query.trim().toLowerCase())
-  const list = $derived(asked ? boxed.filter(matches) : boxed)
+  const searchKey = $derived(asked ? `${sessionKey}:${box}:${asked}` : '')
+  const activeSearchHits = $derived(searchHits && searchHits.key === searchKey ? searchHits.map : null)
+  const list = $derived.by(() => {
+    if (!asked) return boxed
+    if (activeSearchHits) {
+      return boxed
+        .filter((item) => activeSearchHits.has(item.order_id))
+        .sort((a, b) => (activeSearchHits.get(a.order_id)?.rank ?? 1e9) - (activeSearchHits.get(b.order_id)?.rank ?? 1e9))
+    }
+    return boxed.filter(matches)
+  })
   const ready = $derived(box === 'sent' ? outgoingLoaded : loaded)
   const boxError = $derived(box === 'sent' ? outgoingError : error)
   const onlyList = $derived(list.length === 0 && !missingNotice)
@@ -208,6 +222,33 @@
     remember('inbox.selected', selected)
   })
 
+  // Daemon-backed pinyin/multi-token inbox search for the current box.
+  $effect(() => {
+    const q = query.trim()
+    const key = searchKey
+    const currentBox = box
+    const at = generation
+    if (!q || !unlocked) {
+      searchHits = null
+      return
+    }
+    const req = ++searchSeq
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const hits = await call<any[]>('inbox/search', { query: q, box: currentBox })
+        if (cancelled || !valid(at) || req !== searchSeq) return
+        const map = new Map<string, { rank: number; nameSpans?: HighlightSpan[]; snippetSpans?: HighlightSpan[] }>()
+        for (let i = 0; i < (hits ?? []).length; i++) {
+          const hit = hits[i]
+          map.set(hit.id, { rank: i, nameSpans: hit.name_spans, snippetSpans: hit.snippet_spans })
+        }
+        searchHits = { key, map }
+      } catch { /* fallback to local filter */ }
+    }, 90)
+    return () => { cancelled = true; clearTimeout(timer) }
+  })
+
   // Read on selection and when the outgoing list changes after a payment.
   $effect(() => {
     const target = order
@@ -262,8 +303,8 @@
     'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-callout text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
 </script>
 
-{#snippet sender(account: string)}
-  <bdi {@attach visibleName(account)} class="truncate text-body" title={account}>{label(account, false)}</bdi>
+{#snippet sender(account: string, spans?: HighlightSpan[])}
+  <bdi {@attach visibleName(account)} class="truncate text-body" title={account}><HighlightText text={label(account, false)} {spans} /></bdi>
 {/snippet}
 
 <div class="@container flex h-full min-h-0 flex-wrap" data-testid="inbox">
@@ -318,6 +359,7 @@
         {/if}
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}
+          {@const hit = activeSearchHits?.get(item.order_id)}
           <li>
             <button
               class={cn(
@@ -331,10 +373,12 @@
               <span class="min-w-0">
                 <span class={cn('flex items-center gap-1.5 truncate text-body leading-snug', box !== 'sent' && !item.read ? 'font-semibold' : 'font-medium')}>
                   {#if box === 'sent'}<span class="text-faint">{t('to')}</span>{/if}
-                  {@render sender(account)}
+                  {@render sender(account, hit?.nameSpans)}
                 </span>
                 <span class="block truncate text-callout leading-snug text-muted">
-                  {#if box === 'sent'}
+                  {#if hit?.snippetSpans && hit.snippetSpans.length > 0}
+                    <HighlightText spans={hit.snippetSpans} />
+                  {:else if box === 'sent'}
                     {item.text ? item.text.split('\n')[0] : item.paid ? t('paidLetter') : t('freeLetter')}
                   {:else if item.state === 'visible'}
                     {item.text.split('\n')[0]}

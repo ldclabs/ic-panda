@@ -63,18 +63,35 @@ import net.dmsg.core.MessageItem
     val listing by client.messages.channels.state.collectAsStateWithLifecycle()
     val drafts by client.messages.composers.collectAsStateWithLifecycle()
     val search by client.messages.directoryQuery.collectAsStateWithLifecycle()
-    val matches by client.messages.matches.state.collectAsStateWithLifecycle()
+    val hasFile by client.messages.directoryHasFile.collectAsStateWithLifecycle()
+    val channelHitsState by client.messages.channelHits.state.collectAsStateWithLifecycle()
+    val richMatchesState by client.messages.richMatches.state.collectAsStateWithLifecycle()
+    val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     val revision by client.messages.directoryRevision.collectAsStateWithLifecycle()
     val blocks by client.safety.blocked.state.collectAsStateWithLifecycle()
+    var searchAll by remember { mutableStateOf(false) }
     val channels = listing.valueOrNull().orEmpty()
+    val channelById = remember(channels) { channels.associateBy { it.id } }
     val ids = remember(channels) { channels.map { it.id } }
     val blocked = blocks.valueOrNull()?.takeIf { blocks is ReadState.Ready || blocks is ReadState.Empty }
     val query = search.trim()
     val tooLong = query.codePointCount(0, query.length) > 200
-    val matchingChannels = channels.filter { query.isEmpty() || it.name.contains(query, true) }
+    val activeHitsById = remember(channelHitsState, query) {
+        if (query.isEmpty()) emptyMap() else channelHitsState.valueOrNull().orEmpty().associateBy { it.id }
+    }
+    val matchingChannels = remember(channels, query, hasFile, channelHitsState, activeHitsById) {
+        when {
+            query.isEmpty() && !hasFile -> channels
+            query.isEmpty() && hasFile -> emptyList()
+            channelHitsState is ReadState.Ready || channelHitsState is ReadState.Empty ->
+                channelHitsState.valueOrNull().orEmpty().mapNotNull { channelById[it.id] }
+            else -> channels.filter { it.name.contains(query, true) }
+        }
+    }
     LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks() }
-    LaunchedEffect(search, ids, blocked, state.epoch, revision) {
-        if (blocked != null) client.messages.searchDirectory(search, ids, blocked)
+    LaunchedEffect(search, hasFile, ids, blocked, state.epoch, revision, searchAll) {
+        if (searchAll && query.isNotEmpty()) client.search.searchAll(search)
+        else if (!searchAll && blocked != null) client.messages.searchDirectory(search, ids, blocked, hasFile)
     }
     val scroll = workspaceListState(client.navigation, "messages:list")
     WorkspaceBrowser(str(R.string.text_messages_3a9ab2d), search, {
@@ -84,6 +101,7 @@ import net.dmsg.core.MessageItem
         str(R.string.text_search_messages_ee3eb59), actions = {
             MessageMoreMenu(client)
         }) { searching ->
+        LaunchedEffect(searching) { if (!searching) searchAll = false }
         if (!searching) ScreenFab {
             val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
             ExtendedFloatingActionButton(onClick = { client.channels.openSetup(false) }, expanded = atTop,
@@ -93,21 +111,40 @@ import net.dmsg.core.MessageItem
             contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
             browseScopesItem(searching) {
                 BrowseScopes {
-                    BrowseChoice(str(R.string.text_conversations_23a085e), true) {}
-                    BrowseChoice(str(R.string.text_letters_cfbff5c), false, onClick = inbox)
+                    if (searching) {
+                        BrowseChoice(str(R.string.search_scope_current), !searchAll) { searchAll = false }
+                        BrowseChoice(str(R.string.search_scope_all), searchAll) { searchAll = true }
+                        if (!searchAll) {
+                            BrowseChoice(str(R.string.search_attachments_only), hasFile, toggle = true) {
+                                client.messages.toggleDirectoryHasFile()
+                            }
+                        }
+                    } else {
+                        BrowseChoice(str(R.string.text_conversations_23a085e), true) {}
+                        BrowseChoice(str(R.string.text_letters_cfbff5c), false, onClick = inbox)
+                    }
                 }
             }
+            if (searching && searchAll) {
+                globalSearchResults(client, search, globalRead) { client.search.searchAll(search) }
+            } else {
             item { ReadFeedback(listing, client.messages::browse) }
             items(matchingChannels, key = { it.id }) { channel ->
                 val draft = drafts[channel.id]?.text ?: channel.draft
                 val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
                 val unread = channel.unread > 0u
-                BrowseRow(channel.name, Modifier.animateItem().clickable { select(channel.id) },
+                val hit = activeHitsById[channel.id]
+                BrowseRow(buildHighlightedText(channel.name, hit?.nameSpans.orEmpty()), Modifier.animateItem().clickable { select(channel.id) },
                     leading = { Avatar(channel.name, channel.id, icon = if (channel.news) rememberVectorPainter(Icons.Outlined.Campaign) else null) },
                     emphasized = unread,
                     supporting = {
                         Column {
-                            if (query.isEmpty()) {
+                            if (hit?.matchedMember != null) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(str(R.string.search_member_label) + ":", maxLines = 1)
+                                    Text(buildHighlightedText(hit.matchedMember, hit.memberSpans), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            } else if (query.isEmpty()) {
                                 val drafted = if (draft.isNotEmpty()) draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else null
                                 // A draft reads quieter than the last message; unread previews read louder.
                                 if (drafted != null) Text(str(R.string.text_draft_4a4143d) + drafted, maxLines = 1, overflow = TextOverflow.Ellipsis, fontStyle = FontStyle.Italic)
@@ -129,46 +166,49 @@ import net.dmsg.core.MessageItem
                         }
                     })
             }
-            if (query.isNotEmpty()) {
+            if (query.isNotEmpty() || hasFile) {
                 item {
                     Text(str(if (tooLong) R.string.search_query_limit else R.string.search_local_messages), style = MaterialTheme.typography.bodySmall)
                     if (!tooLong) {
                         if (blocked == null) ReadFeedback(blocks, client.safety::loadBlocks)
-                        else ReadFeedback(matches, { client.messages.searchDirectory(search, ids, blocked) })
+                        else ReadFeedback(richMatchesState, { client.messages.searchDirectory(search, ids, blocked, hasFile) })
                     }
                 }
                 if (!tooLong && blocked != null) {
-                    matches.valueOrNull().orEmpty().forEach { group ->
-                        val channel = channels.firstOrNull { it.id == group.channel } ?: return@forEach
-                        val visible = group.items.filter { it.account !in blocked }
-                        if (visible.isNotEmpty()) item { SectionTitle(channel.name) }
-                        items(visible, key = { "hit:" + group.channel + ":" + it.id }) { hit ->
-                            BrowseRow(hit.text.ifBlank { hit.attachmentName.orEmpty() },
-                                Modifier.clickable { client.navigation.push(Route("message-reference", channel = group.channel, sequence = hit.sequence)) },
+                    richMatchesState.valueOrNull().orEmpty().forEach { group ->
+                        val visible = group.hits.filter { it.account !in blocked }
+                        if (visible.isNotEmpty()) item(key = "gh:" + group.channelId) { SectionTitle(group.channelName) }
+                        items(visible, key = { "hit:${group.channelId}:${it.sequence}" }) { hit ->
+                            val titleText = hit.text.ifBlank { hit.attachmentName.orEmpty() }
+                            BrowseRow(buildHighlightedText(titleText, hit.snippetSpans),
+                                Modifier.clickable { client.navigation.push(Route("messages", id = group.channelId, sequence = hit.sequence)) },
                                 leading = { BrowseIcon(Icons.Outlined.Forum) }) {
                                 Column {
                                     if (hit.text.isNotBlank() && !hit.attachmentDeleted) hit.attachmentName?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                                    Text(messageTime(hit.createdAtMs))
+                                    val meta = listOfNotNull(hit.senderName?.takeIf(String::isNotBlank), messageTime(hit.createdAtMs)).joinToString(" · ")
+                                    Text(meta, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
-                        if (group.before != null) item {
-                            TextButton(onClick = { client.messages.moreMatches(group, blocked) }, enabled = matches !is ReadState.Loading) { Text(str(R.string.text_load_earlier_messages_1e9b531)) }
+                        if (group.nextBefore != null) item(key = "gm:" + group.channelId) {
+                            TextButton(onClick = { client.messages.moreRichMatches(group, blocked, hasFile) }, enabled = richMatchesState !is ReadState.Loading) { Text(str(R.string.text_load_earlier_messages_1e9b531)) }
                         }
                     }
-                    if (matchingChannels.isEmpty() && matches is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyState(str(R.string.no_matches)) }
+                    if (matchingChannels.isEmpty() && richMatchesState is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyState(str(R.string.no_matches)) }
                 }
             } else if (listing is ReadState.Empty) item { EmptyState(str(R.string.no_conversations_yet), glyph = R.drawable.glyph_channels, detail =
                 str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable internal fun ConversationScreen(client: ClientController, state: UiState, channel: String, searchMode: BrowseSearchMode, setSearchMode: (BrowseSearchMode) -> Unit) {
+@Composable internal fun ConversationScreen(client: ClientController, state: UiState, channel: String, anchorSequence: ULong? = null, searchMode: BrowseSearchMode, setSearchMode: (BrowseSearchMode) -> Unit) {
     val channels by client.messages.channels.state.collectAsStateWithLifecycle()
     val blocked by client.safety.blocked.state.collectAsStateWithLifecycle()
     val timeline by client.messages.timeline.state.collectAsStateWithLifecycle()
+    val convSearchState by client.messages.conversationSearch.state.collectAsStateWithLifecycle()
     val outgoing by client.messages.outbox.state.collectAsStateWithLifecycle()
     val syncFailure by client.messages.channelSyncError.collectAsStateWithLifecycle()
     val composers by client.messages.composers.collectAsStateWithLifecycle()
@@ -180,6 +220,9 @@ import net.dmsg.core.MessageItem
     var attachmentFolder by remember(channel) { mutableStateOf("root") }
     var attachmentParents by remember(channel) { mutableStateOf(listOf("root")) }
     var search by remember(channel) { mutableStateOf("") }
+    var searchHasFile by remember(channel) { mutableStateOf(false) }
+    var activeHitIndex by remember(channel) { mutableIntStateOf(-1) }
+    var resultsExpanded by remember(channel) { mutableStateOf(true) }
     var action by remember(channel) { mutableStateOf<MessageItem?>(null) }
     var editText by remember { mutableStateOf<String?>(null) }
     var retract by remember { mutableStateOf(false) }
@@ -190,27 +233,31 @@ import net.dmsg.core.MessageItem
     var focusReply by remember(channel) { mutableStateOf(false) }
     val positionKey = "conversation:" + channel
     val savedPosition = remember(channel) { client.navigation.savedScrollPosition(positionKey) }
-    var opened by remember(channel) { mutableStateOf(false) }
-    val threadScroll = workspaceListState(client.navigation, positionKey)
-    val scroll = if (search.isBlank()) threadScroll else key(search) { rememberLazyListState() }
+    var opened by remember(channel, anchorSequence) { mutableStateOf(false) }
+    var scrolledAnchor by remember(channel) { mutableStateOf<ULong?>(null) }
+    val scroll = workspaceListState(client.navigation, positionKey)
     val noticeOwner = remember(channel) { java.util.UUID.randomUUID().toString() }
     val noticeView = androidx.compose.ui.platform.LocalView.current
     val noticeFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
     val pageActive by rememberUpdatedState(LocalPageActive.current)
     var noticeActive by remember(channel) { mutableStateOf(true) }
     var visibleThrough by remember(channel) { mutableStateOf<ULong?>(null) }
-    DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner) } }
-    val currentTimeline = timeline.valueOrNull()?.takeIf { it.channel == channel && it.query == search }
+    DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner); client.messages.clearConversationSearch() } }
+    val currentTimeline = timeline.valueOrNull()?.takeIf { it.channel == channel }
     val blockedAccounts = blocked.valueOrNull()
     val rows = remember(currentTimeline, blockedAccounts) { currentTimeline?.items.orEmpty().filter { blockedAccounts?.contains(it.account) == false } }
     val sequences = remember(rows) { rows.associate { "message:" + it.id to it.sequence } }
-    val firstUnread = if (search.isBlank() && info != null && info.unread > 0u) {
+    val firstUnread = if (anchorSequence == null && currentTimeline?.hasAfter != true && info != null && info.unread > 0u) {
         rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
     } else null
     val currentOutbox = outgoing.valueOrNull()?.takeIf { it.channel == channel }
     val rawPending = currentOutbox?.items.orEmpty()
-    val pending = rawPending.filter {
-        search.isBlank() || it.text.contains(search, true) || it.attachmentName?.contains(search, true) == true
+    val pending = if (currentTimeline?.hasAfter == true) emptyList() else rawPending
+    val searchHits = remember(convSearchState, channel, search, searchHasFile, blockedAccounts) {
+        convSearchState.valueOrNull()
+            ?.takeIf { it.channelId == channel && it.query == search.trim() && it.hasFile == searchHasFile }
+            ?.hits.orEmpty()
+            .filter { blockedAccounts?.contains(it.account) != true }
     }
     // A refresh keeps the old outbox visible while retrying. Only a finished read can confirm another failure.
     val outgoingReady = currentOutbox != null && (outgoing is ReadState.Ready || outgoing is ReadState.Empty)
@@ -225,11 +272,37 @@ import net.dmsg.core.MessageItem
     LaunchedEffect(focusReply) {
         if (focusReply) { composerFocus.requestFocus(); keyboard?.show(); focusReply = false }
     }
+    LaunchedEffect(searchMode, search, searchHasFile, channel) {
+        if (searchMode != BrowseSearchMode.Browse) {
+            activeHitIndex = -1
+            resultsExpanded = true
+            client.messages.searchConversation(channel, search, searchHasFile)
+        } else {
+            client.messages.clearConversationSearch()
+        }
+    }
+    fun jumpToHit(index: Int) {
+        val hit = searchHits.getOrNull(index) ?: return
+        activeHitIndex = index
+        resultsExpanded = false
+        scrolledAnchor = null
+        client.messages.loadAround(channel, hit.sequence, hit.snippetSpans)
+    }
     val timelineReady = (timeline is ReadState.Ready || timeline is ReadState.Empty) &&
         (outgoing is ReadState.Ready || outgoing is ReadState.Empty) && blockedAccounts != null && info != null && currentTimeline != null
-    LaunchedEffect(queuedId, rows, pending, search, timelineReady) {
-        if (!timelineReady || search.isNotBlank() || rows.isEmpty() && pending.isEmpty()) return@LaunchedEffect
-        val firstRow = if (currentTimeline?.hasMore == true) 1 else 0
+    LaunchedEffect(queuedId, rows, pending, timelineReady, currentTimeline?.anchor) {
+        if (!timelineReady || rows.isEmpty() && pending.isEmpty()) return@LaunchedEffect
+        val firstRow = if (currentTimeline.hasMore) 1 else 0
+        val targetAnchor = currentTimeline.anchor
+        if (targetAnchor != null && scrolledAnchor != targetAnchor) {
+            val anchorIdx = rows.indexOfFirst { it.sequence == targetAnchor }
+            if (anchorIdx >= 0) {
+                scroll.scrollToItem(firstRow + anchorIdx)
+                scrolledAnchor = targetAnchor
+                opened = true
+                return@LaunchedEffect
+            }
+        }
         val id = queuedId
         if (id == null) {
             if (!opened) {
@@ -250,9 +323,17 @@ import net.dmsg.core.MessageItem
         opened = true
         queuedId = null
     }
-    LaunchedEffect(channel, state.epoch) { client.messages.browse(); client.safety.loadBlocks(); client.messages.load(channel, search = "") }
-    LaunchedEffect(channel, rows, search, pageActive, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
-        if (!pageActive || search.isNotBlank()) {
+    LaunchedEffect(channel, anchorSequence, state.epoch) {
+        client.messages.browse(); client.safety.loadBlocks()
+        if (anchorSequence != null && anchorSequence > 0uL) {
+            scrolledAnchor = null
+            client.messages.loadAround(channel, anchorSequence)
+        } else {
+            client.messages.load(channel, search = "")
+        }
+    }
+    LaunchedEffect(channel, rows, currentTimeline?.hasAfter, pageActive, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
+        if (!pageActive || currentTimeline?.hasAfter == true) {
             visibleThrough = null
             client.notifications.hide(noticeOwner)
             return@LaunchedEffect
@@ -273,13 +354,59 @@ import net.dmsg.core.MessageItem
     var dismissedError by remember(channel) { mutableStateOf<String?>(null) }
     LaunchedEffect(syncError) { if (syncError == null) dismissedError = null }
     ScreenBar(info?.name, subtitle = str(R.string.text_encrypted_conversation_9f9e912), leading = { Avatar(info?.name.orEmpty(), channel, size = 36.dp, icon = if (info?.news == true) rememberVectorPainter(Icons.Outlined.Campaign) else null) }) {
-        IconButton(onClick = { setSearchMode(BrowseSearchMode.Editing) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
+        IconButton(onClick = { setSearchMode(if (searchMode == BrowseSearchMode.Browse) BrowseSearchMode.Editing else BrowseSearchMode.Browse) }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
         IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_conversation_settings_f07a685)) }
     }
     Column(Modifier.fillMaxSize().imePadding()) {
         if (searchMode != BrowseSearchMode.Browse) {
-            BrowseSearchRow(search, { search = it; client.messages.search(it) }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
-                searchMode, setMode = setSearchMode)
+            BrowseSearchRow(search, { search = it }, str(R.string.text_search_messages_and_attachments_ff5cf7f),
+                searchMode, setMode = { next ->
+                    setSearchMode(next)
+                    if (next == BrowseSearchMode.Browse) {
+                        search = ""; searchHasFile = false; activeHitIndex = -1
+                        if (currentTimeline?.hasAfter == true) client.messages.load(channel, false, search = "")
+                    }
+                })
+            Row(Modifier.fillMaxWidth().padding(horizontal = pageMargin()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BrowseChoice(str(R.string.search_attachments_only), searchHasFile, toggle = true) { searchHasFile = !searchHasFile }
+                Spacer(Modifier.weight(1f))
+                if (searchHits.isNotEmpty()) {
+                    val countText = if (activeHitIndex >= 0) "${activeHitIndex + 1} / ${searchHits.size}" else localizedNumber(searchHits.size)
+                    TextButton(onClick = { resultsExpanded = !resultsExpanded }) { Text(countText, style = MaterialTheme.typography.labelMedium.tabular()) }
+                    IconButton(onClick = {
+                        val prev = if (activeHitIndex <= 0) searchHits.lastIndex else activeHitIndex - 1
+                        jumpToHit(prev)
+                    }) { Icon(Icons.Outlined.KeyboardArrowUp, str(R.string.search_prev_match)) }
+                    IconButton(onClick = {
+                        val next = if (activeHitIndex < 0 || activeHitIndex >= searchHits.lastIndex) 0 else activeHitIndex + 1
+                        jumpToHit(next)
+                    }) { Icon(Icons.Outlined.KeyboardArrowDown, str(R.string.search_next_match)) }
+                }
+            }
+            if (search.isNotBlank() || searchHasFile) {
+                ReadFeedback(convSearchState, { client.messages.searchConversation(channel, search, searchHasFile) })
+                if (resultsExpanded && searchHits.isNotEmpty()) {
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 220.dp), contentPadding = PaddingValues(horizontal = pageMargin(), vertical = 4.dp)) {
+                        itemsIndexed(searchHits, key = { _, h -> "cs:" + h.sequence }) { idx, hit ->
+                            val labelText = hit.text.ifBlank { hit.attachmentName.orEmpty() }
+                            BrowseRow(buildHighlightedText(labelText, hit.snippetSpans), Modifier.clickable { jumpToHit(idx) },
+                                leading = { BrowseIcon(Icons.Outlined.Forum) }, emphasized = idx == activeHitIndex) {
+                                Text(listOfNotNull(hit.senderName?.takeIf(String::isNotBlank), messageTime(hit.createdAtMs)).joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        if (convSearchState.valueOrNull()?.nextBefore != null) {
+                            item {
+                                TextButton(onClick = { client.messages.searchConversation(channel, search, searchHasFile, more = true) }, enabled = convSearchState !is ReadState.Loading) {
+                                    Text(str(R.string.text_load_more_4e1d9f8))
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+                } else if (convSearchState is ReadState.Empty) {
+                    Text(str(R.string.no_matches), Modifier.padding(horizontal = pageMargin(), vertical = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         } else {
             val shownError = syncError?.takeIf { it != dismissedError }
             val error = retained(shownError)
@@ -297,6 +424,7 @@ import net.dmsg.core.MessageItem
             if (currentTimeline?.hasMore == true) item { TextButton(onClick = client.messages::older) { Text(str(R.string.text_load_earlier_messages_1e9b531)) } }
             itemsIndexed(rows, key = { _, message -> "message:" + message.id }) { index, message ->
                 val mine = message.account == state.session?.account
+                val isAnchor = currentTimeline?.anchor == message.sequence
                 val previous = rows.getOrNull(index - 1)
                 val next = rows.getOrNull(index + 1)
                 val day = messageDay(message.createdAtMs)
@@ -304,6 +432,11 @@ import net.dmsg.core.MessageItem
                 // Consecutive messages from one sender on one day form a group: 2 dp apart, inner corners tucked in.
                 val joinsPrevious = !newDay && previous?.account == message.account && message.id != firstUnread
                 val joinsNext = next != null && next.account == message.account && messageDay(next.createdAtMs) == day && next.id != firstUnread
+                val bubbleColor = when {
+                    isAnchor -> MaterialTheme.colorScheme.secondaryContainer
+                    mine -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                }
                 // New messages fade in and the rest make room; a queued message fades into its stored copy.
                 Column(Modifier.animateItem().fillMaxWidth().padding(top = if (joinsPrevious) 2.dp else 12.dp), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
                     if (newDay) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -311,7 +444,7 @@ import net.dmsg.core.MessageItem
                     if (!joinsPrevious) ParticipantIdentity(client, message.account)
                     Surface(Modifier.padding(start = if (mine) 48.dp else 0.dp, end = if (mine) 0.dp else 48.dp).widthIn(max = 440.dp)
                         .longPressActions(message, str(R.string.message_actions), haptics) { action = message },
-                        shape = bubbleShape(mine, joinsPrevious, joinsNext), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        shape = bubbleShape(mine, joinsPrevious, joinsNext), color = bubbleColor) {
                         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                             message.replySequence?.let { sequence ->
                                 val original = rows.find { it.sequence == sequence }
@@ -325,7 +458,14 @@ import net.dmsg.core.MessageItem
                                 message.unreadable -> Text(str(R.string.text_this_message_cannot_be_verified_or_opened_0021683))
                                 message.retracted -> Text(str(R.string.text_message_withdrawn_c19a5e2))
                                 else -> {
-                                    if (message.text.isNotEmpty()) Text(message.text)
+                                    if (message.text.isNotEmpty()) {
+                                        val bubbleSpans = currentTimeline?.highlightSpans.orEmpty()
+                                        if (isAnchor && bubbleSpans.isNotEmpty()) {
+                                            Text(buildBubbleHighlightedText(message.text, bubbleSpans))
+                                        } else {
+                                            Text(message.text)
+                                        }
+                                    }
                                     if (message.attachmentName != null) {
                                         if (message.text.isNotEmpty()) Spacer(Modifier.height(8.dp))
                                         MessageAttachmentRow(client, channel, message)
@@ -335,6 +475,18 @@ import net.dmsg.core.MessageItem
                             // Time and state sit at the bubble's tail.
                             Text(listOfNotNull(str(R.string.text_edited_91efa39).takeIf { message.edited && !message.retracted }, messageClock(message.createdAtMs)).joinToString(" · "),
                                 Modifier.align(Alignment.End), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+            if (currentTimeline?.hasAfter == true) {
+                item(key = "newer-controls") {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                        OutlinedButton(onClick = client.messages::newer, enabled = timeline !is ReadState.Loading) {
+                            Text(str(R.string.search_newer_messages))
+                        }
+                        TextButton(onClick = { scrolledAnchor = null; opened = false; client.messages.load(channel, false, search = "") }) {
+                            Text(str(R.string.search_latest_messages))
                         }
                     }
                 }
@@ -512,6 +664,9 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
                             }
                         }
                     }
+                }
+                Button(onClick = { client.navigation.push(Route("messages", id = channel, sequence = sequence)) }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Forum, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.search_open_in_conversation))
                 }
                 CopyButton(str(R.string.text_copy_d6e9651), outlined = true, enabled = shown.text.isNotEmpty(), key = shown.text) { client.clipboard.copy(shown.text) }
             }

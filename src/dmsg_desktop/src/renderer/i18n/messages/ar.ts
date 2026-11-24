@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "sortRelevance": "الأكثر مطابقة",
+  "matchedInNotes": "تطابق في الملاحظات",
+  "matchedMember": "عضو: {name}",
+  "matchingMessages": "الرسائل",
+  "newerMessages": "رسائل أحدث",
+  "searchPrevMatch": "النتيجة السابقة",
+  "searchNextMatch": "النتيجة التالية",
+  "loadMore": "تحميل المزيد",
   "promoRedeem": "استرداد الرمز",
   "promoCode": "رمز العضوية",
   "promoCheck": "التحقق من الرمز",

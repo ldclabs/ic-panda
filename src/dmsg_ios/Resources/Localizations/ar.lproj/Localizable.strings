@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>No automatic charge at expiry.</key>
-	<string>لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة.</string>
-	<key>Promotional membership</key>
-	<string>عضوية ترويجية</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>لا تزال %lld من الأجهزة الملغاة أو التي لم تعد في حسابك مرتبطة بهذه المحفظة.</string>
 	<key>%lld files · %@</key>
@@ -28,6 +26,12 @@
 	<string>يوجد ملف أو مجلد بهذا الاسم بالفعل.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>يرتبط L1 للعنوان الأصلي بمفتاح جهاز واحد، لذا يحصل هذا الجهاز على عنوان خاص به وتُنقل العملات إليه. كل خطوة مقترح يوافق عليه الأعضاء.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>مساحة عمل خاصة لعصر الذكاء الاصطناعي.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>أحد منتجات ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>يمكن لمقترح يعتمده DAO أن يرقّي الشيفرة على السلسلة، لذا فالحوكمة جزء مما تثق به. أما التطبيقات والخدمة السحابية فتُصدر وتُشغّل خارج هذا التصويت.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>تعذر التحقق من سجل أو مفتاح جهاز. لم يتم مسح مساحة عملك.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -44,6 +48,8 @@
 	<string>حول dMsg</string>
 	<key>About files and backups</key>
 	<string>حول الملفات والنسخ الاحتياطية</string>
+	<key>About these benefits</key>
+	<string>حول هذه المزايا</string>
 	<key>Accept approved binding</key>
 	<string>قبول الربط المعتمد</string>
 	<key>Accepted by service</key>
@@ -54,10 +60,14 @@
 	<string>تم منح الوصول</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
 	<string>الوصول إلى النسخ التي صدّرتها صراحةً من dMsg</string>
+	<key>Access unavailable</key>
+	<string>الوصول غير متاح</string>
 	<key>Account</key>
 	<string>الحساب</string>
 	<key>Account ID</key>
 	<string>معرّف الحساب</string>
+	<key>Account information</key>
+	<string>معلومات الحساب</string>
 	<key>Account recovery</key>
 	<string>استرداد الحساب</string>
 	<key>Account recovery is pending</key>
@@ -80,14 +90,24 @@
 	<string>نشط</string>
 	<key>Active conversations</key>
 	<string>المحادثات النشطة</string>
+	<key>Active devices</key>
+	<string>الأجهزة النشطة</string>
+	<key>Active file request links</key>
+	<string>روابط طلب الملفات النشطة</string>
 	<key>Active links</key>
 	<string>الروابط النشطة</string>
 	<key>Activity</key>
 	<string>النشاط</string>
 	<key>Activity on this device</key>
 	<string>النشاط على هذا الجهاز</string>
+	<key>Add a device and keep using this one.</key>
+	<string>أضف جهازًا واستمر في استخدام هذا الجهاز.</string>
+	<key>Add a passkey login</key>
+	<string>إضافة تسجيل دخول بمفتاح مرور</string>
 	<key>Add account</key>
 	<string>إضافة حساب</string>
+	<key>Add as new</key>
+	<string>إضافة عنصر جديد</string>
 	<key>Add device</key>
 	<string>إضافة جهاز</string>
 	<key>Add field</key>
@@ -100,6 +120,8 @@
 	<string>إضافة رابط</string>
 	<key>Add one-time code</key>
 	<string>إضافة رمز لمرة واحدة</string>
+	<key>Add permission</key>
+	<string>إضافة إذن</string>
 	<key>Add protector</key>
 	<string>إضافة مفتاح حماية</string>
 	<key>Add receiving address</key>
@@ -124,8 +146,8 @@
 	<string>متقدم</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>بعد الموافقة على طلبات المحافظ، أنشئ طلب استبدال جديدًا على الجهاز الجديد.</string>
-	<key>Hosted Agent IDs</key>
-	<string>معرّفات الوكلاء المستضافة</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>بعد تسجيل المفتاح، حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
 	<key>Agent ID</key>
 	<string>معرّف الوكيل</string>
 	<key>Agents</key>
@@ -138,10 +160,14 @@
 	<string>هل فقدت جميع الأجهزة؟</string>
 	<key>All files</key>
 	<string>كل الملفات</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>اسمح بالتنبيهات في إعدادات iOS لتلقي إشعارات النظام.</string>
 	<key>Allow another letter</key>
 	<string>السماح برسالة أخرى</string>
 	<key>Allow key rotation</key>
 	<string>السماح بتدوير المفاتيح</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>اسمح بالإشعارات لتلقي تنبيهات النظام.</string>
 	<key>Allow this account to send another letter?</key>
 	<string>هل تريد السماح لهذا الحساب بإرسال رسالة أخرى؟</string>
 	<key>Allowed</key>
@@ -168,8 +194,16 @@
 	<string>سيؤدي البديل الفارغ إلى مسح القيمة المحفوظة.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>يمكن لأي شخص يملك الرابط الكامل وكلمة المرور المطلوبة استرجاع المحتوى ضمن الحدود المحددة.</string>
+	<key>Anyone with the link</key>
+	<string>أي شخص لديه الرابط</string>
+	<key>Anyone with the link and password</key>
+	<string>أي شخص لديه الرابط وكلمة المرور</string>
 	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
 	<string>يمكن لأي شخص لديه الرابط تنزيل هذا الملف حتى تنتهي صلاحيته أو تلغيه. لا يحتاج إلى حساب أو تطبيق dMsg.</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>يمكن لأي شخص لديه هذا الرابط رؤية ملفك العام، حتى قبل إدخال كلمة المرور.</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>يمكن لأي شخص لم تحظره مراسلتك مجانًا.</string>
 	<key>Anyone, free of charge</key>
 	<string>أي شخص، مجانًا</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -182,6 +216,8 @@
 	<string>هل تريد تطبيق قواعد الاستلام هذه؟</string>
 	<key>Apply this conversation change?</key>
 	<string>هل تريد تطبيق هذا التغيير على المحادثة؟</string>
+	<key>Applying your purchase…</key>
+	<string>جارٍ تفعيل مشترياتك…</string>
 	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
 	<string>تستورد الموافقة الحقول والمرفقات المحددة فقط كعناصر مستقلة جديدة. تبقى الملفات محلية وترث أذونات الوصول للمجلد الوجهة.</string>
 	<key>Approval key</key>
@@ -210,6 +246,8 @@
 	<string>الموافقة على هذا الطلب</string>
 	<key>Approved by</key>
 	<string>وافق عليه</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>تمت الموافقة. جارٍ تجهيز الخزنة…</string>
 	<key>Approver</key>
 	<string>مُعتمِد</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
@@ -236,6 +274,8 @@
 	<string>تفاصيل الأصل غير متاحة. أعد المحاولة قبل إدخال المبلغ.</string>
 	<key>Asset identifier</key>
 	<string>معرّف الأصل</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>ستة أحرف على الأقل. احفظ كلمة المرور منفصلة، فلا يستطيع dMsg استعادتها.</string>
 	<key>At most %lld names at a time.</key>
 	<string>%lld أسماء كحد أقصى في المرة الواحدة.</string>
 	<key>Attach</key>
@@ -258,6 +298,8 @@
 	<string>صادِق للوصول إلى نسخ الملفات المصدّرة من dMsg. يستمر الوصول خمس دقائق وتنتهي اللقطة بعد 24 ساعة.</string>
 	<key>Authenticate to continue</key>
 	<string>المصادقة للمتابعة</string>
+	<key>Authorize %@ as %@.</key>
+	<string>التصريح لـ %1$@ بدور %2$@.</string>
 	<key>Authorize a new device</key>
 	<string>تفويض جهاز جديد</string>
 	<key>Authorize another device</key>
@@ -284,6 +326,10 @@
 	<string>متاح بعد</string>
 	<key>Back</key>
 	<string>رجوع</string>
+	<key>Back to reminders</key>
+	<string>العودة إلى التذكيرات</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>انسخ ملفًا احتياطيًا بشكل صريح، ثم نزّل تلك النسخة الاحتياطية المشفّرة على جهاز مصرّح آخر. لا تُرفع مكتبة ملفاتك المحلية بأكملها تلقائيًا.</string>
 	<key>Back up encrypted copy</key>
 	<string>نسخ النسخة المشفّرة احتياطيًا</string>
 	<key>Back up this file?</key>
@@ -304,10 +350,14 @@
 	<string>بدأ النقل في الخلفية. راجع التقدم في «عمليات النقل».</string>
 	<key>Backing up…</key>
 	<string>جارٍ النسخ…</string>
+	<key>Backup and restore</key>
+	<string>النسخ الاحتياطي والاستعادة</string>
 	<key>Backup failed</key>
 	<string>فشل النسخ الاحتياطي</string>
 	<key>Backup list could not be refreshed</key>
 	<string>تعذر تحديث قائمة النسخ الاحتياطية</string>
+	<key>Backup password</key>
+	<string>كلمة مرور النسخة الاحتياطية</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>حُفظ التقدم. تحقّق من حالة الملف لمعرفة اكتمال النسخ.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -316,6 +366,12 @@
 	<string>النسخ الاحتياطية</string>
 	<key>Balance</key>
 	<string>الرصيد</string>
+	<key>Best match</key>
+	<string>الأكثر مطابقة</string>
+	<key>Billing grace period</key>
+	<string>فترة سماح للدفع</string>
+	<key>Billing retry</key>
+	<string>إعادة محاولة الدفع</string>
 	<key>Bind another Internet Identity</key>
 	<string>ربط Internet Identity أخرى</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -374,6 +430,8 @@
 	<string>ينطبق الإلغاء على هذا الطلب الذي لم يُتخذ قرار بشأنه بعد. ولا يعكس تسليمًا مكتملًا.</string>
 	<key>Cancelled</key>
 	<string>ملغى</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا.</string>
 	<key>Capabilities, one per line</key>
 	<string>الصلاحيات، واحدة في كل سطر</string>
 	<key>Cardholder</key>
@@ -392,6 +450,8 @@
 	<string>تغيير سياسة الموافقة العتادية</string>
 	<key>Change identity settings</key>
 	<string>تغيير إعدادات الهوية</string>
+	<key>Change plan</key>
+	<string>تغيير الخطة</string>
 	<key>Change role</key>
 	<string>تغيير الدور</string>
 	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
@@ -406,6 +466,8 @@
 	<string>معرّف القناة</string>
 	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
 	<string>نسخ القناة بلا انتهاء صلاحية أو حد للاسترجاع، ولا يمكن سحبها. يستطيع المستلمون الاحتفاظ بنسخ مستقلة.</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>تسري الحدود على القنوات التي تنشئها أو ترعاها. لا تستهلك توقيعات الأجهزة العادية الحصة الشهرية.</string>
 	<key>Channel snapshot</key>
 	<string>لقطة القناة</string>
 	<key>Channels</key>
@@ -432,6 +494,8 @@
 	<string>التحقق من الطلب</string>
 	<key>Check status</key>
 	<string>التحقق من الحالة</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>تأكد من تطابق الرمزين على الجهازين قبل الموافقة.</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>تحقق من الاسم ومجلد الوجهة ثم أعد المحاولة.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -448,6 +512,10 @@
 	<string>اختر بيانات الدخول لـ:</string>
 	<key>Choose a file</key>
 	<string>اختيار ملف</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>اختر حسابًا عندما يطلب تطبيق أو موقع كلمة مرور.</string>
+	<key>Choose a permission</key>
+	<string>اختيار إذن</string>
 	<key>Choose a secret</key>
 	<string>اختيار سر</string>
 	<key>Choose a version</key>
@@ -462,10 +530,16 @@
 	<string>اختر بدقة محتوى هذه اللقطة المستقلة. تعديل المصدر لن يغيّر النسخ المرسلة سابقًا.</string>
 	<key>Choose folder</key>
 	<string>اختيار مجلد</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>اختر الحساب المرتبط بالتذكير للمتابعة. سيبقى حسابك الحالي محددًا حتى تختار حسابًا آخر.</string>
 	<key>Choose password export</key>
 	<string>اختيار ملف تصدير كلمات المرور</string>
+	<key>Choose screenshots</key>
+	<string>اختيار لقطات الشاشة</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
 	<string>اختر لغة dMsg في إعدادات iOS.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>اختر سعة التخزين وعدد الأجهزة بما يناسب عملك اليومي. رقِّ خطتك لجمع الملفات عبر رابط رفع ولإفساح المجال للمزيد.</string>
 	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
 	<string>اختر النسخة التي تريد الاحتفاظ بها. يبقى السجل محفوظًا، ولا تُستبدل الأسرار دون قرار منك.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
@@ -480,10 +554,14 @@
 	<string>مسح البحث</string>
 	<key>Clear selection</key>
 	<string>إلغاء التحديد</string>
+	<key>Close</key>
+	<string>إغلاق</string>
 	<key>Close invitation</key>
 	<string>إغلاق الدعوة</string>
 	<key>Close link</key>
 	<string>إغلاق الرابط</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>أغلق هذا الطلب، وافتح الحساب الموضّح أدناه في dMsg، ثم أعد فتح الطلب.</string>
 	<key>Closed</key>
 	<string>مغلق</string>
 	<key>Cloud backup</key>
@@ -506,10 +584,14 @@
 	<string>جمع الملفات</string>
 	<key>Collecting files needs a paid plan</key>
 	<string>يتطلب جمع الملفات خطة مدفوعة</string>
+	<key>Compare all plans</key>
+	<string>مقارنة جميع الخطط</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
 	<key>Compare with current</key>
 	<string>المقارنة بالإصدار الحالي</string>
+	<key>Comparison code</key>
+	<string>رمز المطابقة</string>
 	<key>Complete</key>
 	<string>اكتمل</string>
 	<key>Complete recovery after waiting period</key>
@@ -522,12 +604,18 @@
 	<string>إعداد ربط ملفات الحاسوب</string>
 	<key>Configured on this device</key>
 	<string>تم الإعداد على هذا الجهاز</string>
+	<key>Confirm backup password</key>
+	<string>تأكيد كلمة مرور النسخة</string>
 	<key>Confirm change</key>
 	<string>تأكيد التغيير</string>
 	<key>Confirm completed step</key>
 	<string>تأكيد اكتمال الخطوة</string>
 	<key>Confirm it is done</key>
 	<string>تأكيد الإتمام</string>
+	<key>Confirm it is still you</key>
+	<string>التأكيد أنك ما زلت أنت</string>
+	<key>Confirm local password</key>
+	<string>تأكيد كلمة المرور المحلية</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>أكّد فقط العمل الذي أنجزته فعليًا. يسجّل هذا إفادتك ولا ينفّذ الإجراء لدى المزود.</string>
 	<key>Confirm the dMsg request you reviewed</key>
@@ -560,10 +648,16 @@
 	<string>التواصل مع الدعم</string>
 	<key>Content signing</key>
 	<string>توقيع المحتوى</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>المحتوى الذي تسمح لعميل ذكاء اصطناعي خارجي بقراءته يخضع أيضًا لسياسات البيانات لدى ذلك العميل. لا تمنح الوصول إلا لما تحتاجه المهمة.</string>
 	<key>Continue</key>
 	<string>متابعة</string>
+	<key>Continue adding this passkey</key>
+	<string>متابعة إضافة مفتاح المرور هذا</string>
 	<key>Continue import</key>
 	<string>متابعة الاستيراد</string>
+	<key>Continue on another device</key>
+	<string>المتابعة على جهاز آخر</string>
 	<key>Continue password import</key>
 	<string>متابعة استيراد كلمات المرور</string>
 	<key>Continue selected backups</key>
@@ -574,6 +668,8 @@
 	<string>تابع هذا الاستيراد في الحساب الذي اخترته أولًا.</string>
 	<key>Continue with Internet Identity</key>
 	<string>المتابعة باستخدام Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>المتابعة بمفتاح مرور</string>
 	<key>Controller ID</key>
 	<string>معرّف المتحكم</string>
 	<key>Controller name</key>
@@ -618,6 +714,8 @@
 	<string>نسخ معرّف الجهاز</string>
 	<key>Copy enrollment request</key>
 	<string>نسخ طلب التسجيل</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>انسخ الملفات بين جهازين مصرح لهما.</string>
 	<key>Copy link</key>
 	<string>نسخ الرابط</string>
 	<key>Copy pairing request</key>
@@ -634,6 +732,8 @@
 	<string>التوقيع المشترك على هذا الجهاز</string>
 	<key>Cosign packet from another device</key>
 	<string>حزمة توقيع مشترك من جهاز آخر</string>
+	<key>Cosign proposal</key>
+	<string>المشاركة في توقيع المقترح</string>
 	<key>Cosignatures</key>
 	<string>التوقيعات المشتركة</string>
 	<key>Cosigner key</key>
@@ -642,6 +742,8 @@
 	<string>مفاتيح التوقيع المشترك</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>المشاركون في توقيع سياسة العنوان المقترحة</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>تعذّر تحديث التعبئة التلقائية لكلمات المرور.</string>
 	<key>Create</key>
 	<string>إنشاء</string>
 	<key>Create %lld links</key>
@@ -650,8 +752,12 @@
 	<string>إنشاء بيانات اعتماد جديدة لدى مزودها وحفظها في الخزنة</string>
 	<key>Create a new pairing request</key>
 	<string>إنشاء طلب اقتران جديد</string>
+	<key>Create a passkey</key>
+	<string>إنشاء مفتاح مرور</string>
 	<key>Create a revocation request?</key>
 	<string>هل تريد إنشاء طلب إلغاء التفويض؟</string>
+	<key>Create a separate account</key>
+	<string>إنشاء حساب مستقل</string>
 	<key>Create agent</key>
 	<string>إنشاء وكيل</string>
 	<key>Create an administrator enrollment request</key>
@@ -682,6 +788,8 @@
 	<string>هل تريد إنشاء اقتراح المحفظة هذا؟</string>
 	<key>Create transfer proposal</key>
 	<string>إنشاء اقتراح تحويل</string>
+	<key>Create wallet</key>
+	<string>إنشاء محفظة</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>أنشئ مساحة عملك المشفّرة لبدء حفظ كلمات المرور والملاحظات والملفات.</string>
 	<key>Created</key>
@@ -706,6 +814,8 @@
 	<string>الاعتماديات المحلية الحالية</string>
 	<key>Current login</key>
 	<string>هوية تسجيل الدخول الحالية</string>
+	<key>Current plan</key>
+	<string>الخطة الحالية</string>
 	<key>Current plan and limits</key>
 	<string>الخطة والحدود الحالية</string>
 	<key>Current policy requires payment</key>
@@ -714,6 +824,8 @@
 	<string>نهاية الفترة الحالية</string>
 	<key>Current version</key>
 	<string>النسخة الحالية</string>
+	<key>Customize fields</key>
+	<string>تخصيص الحقول</string>
 	<key>Cvv</key>
 	<string>رمز CVV</string>
 	<key>DMSG_NOTIFICATION_ACTION</key>
@@ -746,6 +858,8 @@
 	<string>هل تريد حذف هذه النسخة السحابية؟</string>
 	<key>Deleted</key>
 	<string>تاريخ الحذف</string>
+	<key>Deleted here · save a copy</key>
+	<string>محذوف هنا · حفظ نسخة</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>حذف حساب dMsg لا يلغي اشتراك Apple. ألغِه في إعدادات حساب Apple لإيقاف التجديد.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -758,6 +872,10 @@
 	<string>حالة الحذف</string>
 	<key>Deliver a secret to a local process</key>
 	<string>تسليم سر إلى عملية محلية</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>لم يتأكد التسليم. إعادة المحاولة تستخدم البلاغ الأصلي.</string>
+	<key>Delivery report</key>
+	<string>تقرير التسليم</string>
 	<key>Dependencies on this device</key>
 	<string>الاعتماديات على هذا الجهاز</string>
 	<key>Describe the issue</key>
@@ -802,12 +920,16 @@
 	<string>مساحة عمل مرتبطة بهذا الجهاز</string>
 	<key>Devices</key>
 	<string>الأجهزة</string>
+	<key>Different content · save a copy</key>
+	<string>محتوى مختلف · حفظ نسخة</string>
 	<key>Disabled</key>
 	<string>معطّل</string>
 	<key>Discard</key>
 	<string>تجاهل</string>
 	<key>Discard draft</key>
 	<string>تجاهل</string>
+	<key>Discard feedback draft?</key>
+	<string>تجاهل مسودة البلاغ؟</string>
 	<key>Discard staged copy</key>
 	<string>تجاهل النسخة المؤقتة</string>
 	<key>Discard this draft?</key>
@@ -842,6 +964,8 @@
 	<string>التنزيلات المسموح بها</string>
 	<key>Draft saved</key>
 	<string>تم حفظ المسودة</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>حُفظت المسودة مشفرة على هذا الجهاز.</string>
 	<key>Draft: </key>
 	<string>مسودة: </string>
 	<key>Drafts</key>
@@ -854,6 +978,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>الحد الأقصى لكل حزمة على الهاتف هو 8 MiB، بما في ذلك المرفقات المحددة. تعرض الموافقة النهائية المحتوى الثابت المحدد بدقة ووجهته.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>ينشئ كل مفتاح مرور جديد هوية دخول مستقلة. لإضافته إلى حسابك الحالي، استخدم إضافة تسجيل دخول بمفتاح مرور في أمان الحساب.</string>
 	<key>Edit</key>
 	<string>تعديل</string>
 	<key>Edit draft</key>
@@ -908,6 +1034,8 @@
 	<string>تفاصيل الخطأ</string>
 	<key>Estimated fee</key>
 	<string>الرسوم المقدرة</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>تتضمن جميع الخطط التشفير التام بين الطرفين وإلغاء صلاحية الأجهزة.</string>
 	<key>Execute</key>
 	<string>تنفيذ</string>
 	<key>Execute approved proposal</key>
@@ -918,6 +1046,8 @@
 	<string>التنفيذ بالتوقيعات المجمَّعة</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>تُحفظ قواعد الحظر والدعوات وسعة البريد. اختيار المجاني أو المغلق يستبدل إعداد التواصل المدفوع السابق.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>قد تبقى أذونات تسجيل الدخول الحالية صالحة لمدة تصل إلى 12 ساعة. تحتفظ أجهزة المحتوى بأذوناتها.</string>
 	<key>Expired</key>
 	<string>منتهي الصلاحية</string>
 	<key>Expires</key>
@@ -928,6 +1058,8 @@
 	<string>تاريخ الانتهاء</string>
 	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
 	<string>إذا أردت نسخة سحابية، فاختر صراحةً نسخ إصدار الملف المحدد احتياطيًا.</string>
+	<key>Export encrypted backup</key>
+	<string>تصدير نسخة احتياطية مشفّرة</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>تصدير بيانات الدخول المختارة إلى الملء التلقائي لكلمات المرور</string>
 	<key>Failed</key>
@@ -938,6 +1070,8 @@
 	<string>المفضّلة</string>
 	<key>Fee</key>
 	<string>الرسوم</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>تم تسليم البلاغ. هذا لا يعني أنه قُرئ.</string>
 	<key>Field</key>
 	<string>الحقل</string>
 	<key>Field name</key>
@@ -954,6 +1088,8 @@
 	<string>الملف</string>
 	<key>File details</key>
 	<string>تفاصيل الملف</string>
+	<key>File digest checked</key>
+	<string>تم التحقق من ملخص الملف</string>
 	<key>File name</key>
 	<string>اسم الملف</string>
 	<key>File not available on this device</key>
@@ -978,6 +1114,12 @@
 	<string>ملفات هذا المجلد</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>لا يمكن مشاركة الملفات الأكبر من 100 MiB عبر رابط.</string>
+	<key>Fill and remember</key>
+	<string>تعبئة وتذكّر</string>
+	<key>Fill once</key>
+	<string>تعبئة هذه المرة فقط</string>
+	<key>Fill this login?</key>
+	<string>هل تريد تعبئة بيانات هذا الحساب؟</string>
 	<key>Filters</key>
 	<string>عوامل تصفية الخزنة</string>
 	<key>Fingerprint</key>
@@ -992,8 +1134,16 @@
 	<string>اسم المجلد</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>لمفتاح لا يملكه هذا الجهاز، مثل مفتاح على جهاز مفقود. بعد موافقة الأعضاء يسري المفتاح الجديد بعد 24 ساعة.</string>
+	<key>For everyday file exchange.</key>
+	<string>لتبادل الملفات اليومي.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>للنسخ الاحتياطية الكبيرة والتعاون المتكرر.</string>
+	<key>For more files and devices.</key>
+	<string>لمزيد من الملفات والأجهزة.</string>
 	<key>For this site</key>
 	<string>لهذا الموقع</string>
+	<key>For your everyday essentials.</key>
+	<string>لأساسياتك اليومية.</string>
 	<key>Freeze this wallet?</key>
 	<string>هل تريد تجميد هذه المحفظة؟</string>
 	<key>Freeze wallet</key>
@@ -1006,6 +1156,8 @@
 	<string>ممتلئ</string>
 	<key>Generate password</key>
 	<string>إنشاء كلمة مرور</string>
+	<key>Get started</key>
+	<string>ابدأ الآن</string>
 	<key>Grant delegation</key>
 	<string>منح تفويض</string>
 	<key>Handled on another device</key>
@@ -1034,10 +1186,14 @@
 	<string>إخفاء</string>
 	<key>Hide on this device</key>
 	<string>إخفاء على هذا الجهاز</string>
+	<key>High risk</key>
+	<string>خطورة عالية</string>
 	<key>Historical version</key>
 	<string>نسخة تاريخية</string>
 	<key>Host</key>
 	<string>المضيف</string>
+	<key>Hosted Agent IDs</key>
+	<string>معرّفات الوكلاء المستضافة</string>
 	<key>I completed this step</key>
 	<string>أكملت هذه الخطوة</string>
 	<key>I have secured my wallet access and external credentials</key>
@@ -1068,6 +1224,8 @@
 	<string>اكتمل الاستيراد</string>
 	<key>Import cosign packet</key>
 	<string>استيراد حزمة التوقيع المشترك</string>
+	<key>Import cosignatures</key>
+	<string>استيراد التوقيعات المشتركة</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>ينشئ الاستيراد عناصر مستقلة جديدة. تبقى الملفات على هذا الجهاز وترث أذونات الوصول للمجلد المحدد. لا يتم تحديد أي محتوى تلقائيًا.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1076,8 +1234,12 @@
 	<string>استيراد ملف</string>
 	<key>Import files</key>
 	<string>استيراد ملفات</string>
+	<key>Import from backup</key>
+	<string>الاستيراد من نسخة احتياطية</string>
 	<key>Import from copy</key>
 	<string>استيراد من النسخة</string>
+	<key>Import from local account</key>
+	<string>استيراد من الحساب المحلي</string>
 	<key>Import into dMsg</key>
 	<string>الاستيراد إلى dMsg</string>
 	<key>Import into this account</key>
@@ -1106,10 +1268,14 @@
 	<string>صندوق الوارد</string>
 	<key>Inbox settings</key>
 	<string>إعدادات البريد الوارد</string>
+	<key>Include linked files</key>
+	<string>تضمين الملفات المرتبطة</string>
 	<key>Include notes</key>
 	<string>تضمين الملاحظات</string>
 	<key>Include this message's text</key>
 	<string>إرفاق نص هذه الرسالة</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>يتضمن الأسرار المحفوظة في عناصر المحفظة.</string>
 	<key>Incomplete</key>
 	<string>غير مكتمل</string>
 	<key>Inspect pairing request</key>
@@ -1164,6 +1330,8 @@
 	<string>الاحتفاظ بالمسودة والمغادرة</string>
 	<key>Keep existing value</key>
 	<string>الاحتفاظ بالقيمة الحالية</string>
+	<key>Keep what matters private.</key>
+	<string>حافظ على خصوصية ما يهمك.</string>
 	<key>Key</key>
 	<string>المفتاح</string>
 	<key>Key fingerprint</key>
@@ -1186,6 +1354,8 @@
 	<string>الأكبر أولاً</string>
 	<key>Last known cloud state</key>
 	<string>آخر حالة معروفة في السحابة</string>
+	<key>Last recorded term</key>
+	<string>آخر فترة مسجلة</string>
 	<key>Last refreshed</key>
 	<string>آخر تحديث</string>
 	<key>Last successful sync</key>
@@ -1208,20 +1378,28 @@
 	<string>لم تُنقل</string>
 	<key>Length</key>
 	<string>الطول</string>
+	<key>Let this device approve future requests</key>
+	<string>السماح لهذا الجهاز بالموافقة على الطلبات المستقبلية</string>
 	<key>Letters</key>
 	<string>الرسائل</string>
 	<key>License Key</key>
 	<string>مفتاح الترخيص</string>
 	<key>Licensed To</key>
 	<string>مرخّص لـ</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>الحدود تخص الخطة الأساسية. تُضاف باقات التخزين بشكل منفصل. تُحسب وحدات التنفيذ الشهرية بالتناسب مع المدة ولا تُعاد إلى الصفر عند تغيير الخطة.</string>
 	<key>Link closed</key>
 	<string>مغلق</string>
 	<key>Link limits</key>
 	<string>حدود الرابط</string>
+	<key>Link to an existing account</key>
+	<string>الربط بحساب موجود</string>
 	<key>Links</key>
 	<string>الروابط</string>
 	<key>Links ready. Send each one only to its person.</key>
 	<string>الروابط جاهزة. أرسل كل رابط إلى صاحبه فقط.</string>
+	<key>List items</key>
+	<string>عرض قائمة العناصر</string>
 	<key>Load earlier activity</key>
 	<string>تحميل النشاط الأقدم</string>
 	<key>Load earlier messages</key>
@@ -1230,12 +1408,16 @@
 	<string>تحميل الاقتراحات الأقدم</string>
 	<key>Load more</key>
 	<string>تحميل المزيد</string>
+	<key>Load newer messages</key>
+	<string>تحميل رسائل أحدث</string>
 	<key>Loading the verified request…</key>
 	<string>جارٍ تحميل الطلب المتحقق منه…</string>
 	<key>Loading…</key>
 	<string>جارٍ التحميل…</string>
 	<key>Local</key>
 	<string>محلي</string>
+	<key>Local account</key>
+	<string>حساب محلي</string>
 	<key>Local content</key>
 	<string>المحتوى المحلي</string>
 	<key>Local delivery record</key>
@@ -1252,6 +1434,8 @@
 	<string>تسمية محلية</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>الوصول إلى الشبكة المحلية متوقف لـ dMsg. فعّله في الإعدادات أو أدخل عنوان الجهاز الآخر.</string>
+	<key>Local password</key>
+	<string>كلمة المرور المحلية</string>
 	<key>Local security review</key>
 	<string>مراجعة الأمان المحلية</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
@@ -1270,6 +1454,8 @@
 	<string>هوية تسجيل الدخول</string>
 	<key>Manage Apple subscriptions</key>
 	<string>إدارة اشتراكات Apple</string>
+	<key>Manage event endpoints</key>
+	<string>إدارة نقاط استقبال الأحداث</string>
 	<key>Manage file</key>
 	<string>إدارة الملف</string>
 	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
@@ -1282,6 +1468,10 @@
 	<string>وضع علامة كمقروءة</string>
 	<key>Mark as unread</key>
 	<string>وضع علامة كغير مقروءة</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>وضع علامة مقروء على تذكيرات جميع الحسابات</string>
+	<key>Matched in notes</key>
+	<string>تطابق في الملاحظات</string>
 	<key>Maximum fee</key>
 	<string>الحد الأقصى للرسوم</string>
 	<key>Maximum fee in base units</key>
@@ -1314,6 +1504,8 @@
 	<string>حد التنفيذ الشهري</string>
 	<key>Monthly execution units</key>
 	<string>وحدات التنفيذ الشهرية</string>
+	<key>More</key>
+	<string>المزيد</string>
 	<key>More types</key>
 	<string>الأنواع</string>
 	<key>Move a native address</key>
@@ -1324,6 +1516,8 @@
 	<string>نقل إلى هنا</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>انقل مكتبة الملفات عبر الشبكة المحلية، أو استوردها من مساحة عمل منسوخة، أو اتركها.</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>انقل دور هذا الجهاز إلى الجهاز البديل.</string>
 	<key>Move this local file to Trash?</key>
 	<string>هل تريد نقل هذا الملف المحلي إلى السلة؟</string>
 	<key>Move this secret to Trash?</key>
@@ -1348,6 +1542,8 @@
 	<string>الانتقال إلى جهاز جديد: يطلب الجهاز الجديد أن يحلّ محل جهاز قديم، فيوافق القديم، ثم يتسلّم الجديد خطوة بخطوة.</string>
 	<key>Moving…</key>
 	<string>جارٍ النقل…</string>
+	<key>Multisig wallet slots</key>
+	<string>حصة المحافظ متعددة التوقيعات</string>
 	<key>Multisig wallets</key>
 	<string>محافظ متعددة التوقيعات</string>
 	<key>Mute notifications</key>
@@ -1372,6 +1568,8 @@
 	<string>متحكم جديد</string>
 	<key>New conversation</key>
 	<string>محادثة جديدة</string>
+	<key>New feedback</key>
+	<string>بلاغ جديد</string>
 	<key>New field type</key>
 	<string>نوع الحقل الجديد</string>
 	<key>New files</key>
@@ -1392,6 +1590,8 @@
 	<string>الأحدث أولاً</string>
 	<key>Next</key>
 	<string>التالي</string>
+	<key>Next match</key>
+	<string>النتيجة التالية</string>
 	<key>Next retry</key>
 	<string>المحاولة التالية</string>
 	<key>No</key>
@@ -1406,10 +1606,14 @@
 	<string>لا يوجد وكلاء</string>
 	<key>No archived letters</key>
 	<string>لا توجد رسائل مؤرشفة</string>
+	<key>No automatic charge at expiry.</key>
+	<string>لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة.</string>
 	<key>No background transfer</key>
 	<string>لا يوجد نقل في الخلفية</string>
 	<key>No blocked accounts</key>
 	<string>لا توجد حسابات محظورة</string>
+	<key>No charge</key>
+	<string>مجانًا</string>
 	<key>No cloud backup is available for this version.</key>
 	<string>لا توجد نسخة احتياطية سحابية متاحة لهذا الإصدار.</string>
 	<key>No cloud backups</key>
@@ -1422,6 +1626,8 @@
 	<string>لا توجد بيانات اعتماد</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>لا توجد اعتماديات مسجلة على هذا الجهاز.</string>
+	<key>No eligible administrator device was found.</key>
+	<string>لم يُعثر على جهاز مسؤول مؤهل للموافقة.</string>
 	<key>No favorites</key>
 	<string>لا توجد مفضلات</string>
 	<key>No fields or notes</key>
@@ -1434,6 +1640,8 @@
 	<string>لم تظهر نتائج في فحوص هذا الجهاز.</string>
 	<key>No handovers on this device.</key>
 	<string>لا توجد عمليات تسليم على هذا الجهاز.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا.</string>
 	<key>No interrupted imports</key>
 	<string>لا توجد عمليات استيراد متوقفة</string>
 	<key>No item attachments</key>
@@ -1450,14 +1658,20 @@
 	<string>لا توجد نتائج مطابقة</string>
 	<key>No messages</key>
 	<string>لا توجد رسائل</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا.</string>
 	<key>No pending backups</key>
 	<string>لا توجد نسخ احتياطية معلّقة</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>لم يتم العثور على مشتريات لحساب dMsg هذا.</string>
 	<key>No recent use observed on this device</key>
 	<string>لم يُلاحظ استخدام حديث على هذا الجهاز</string>
 	<key>No recovery request</key>
 	<string>لا يوجد طلب استرداد</string>
 	<key>No registered approval key</key>
 	<string>لا يوجد مفتاح موافقة مسجّل</string>
+	<key>No reminders yet</key>
+	<string>لا توجد تذكيرات بعد</string>
 	<key>No reports</key>
 	<string>لا سجلات بعد</string>
 	<key>No section</key>
@@ -1482,6 +1696,8 @@
 	<string>غير مفعّل</string>
 	<key>Not enough storage on this device.</key>
 	<string>لا توجد مساحة كافية على هذا الجهاز.</string>
+	<key>Not included</key>
+	<string>غير مشمول</string>
 	<key>Not made yet; it is derived when this device registers its key.</key>
 	<string>لم يُنشأ بعد؛ يُشتق حين يسجّل هذا الجهاز مفتاحه.</string>
 	<key>Not registered</key>
@@ -1494,16 +1710,30 @@
 	<string>لا يمكن بعد نقل أي مبلغ أعلى من حد الغبار عبر هذا المسار.</string>
 	<key>Nothing has arrived yet.</key>
 	<string>لم يصل شيء بعد.</string>
+	<key>Nothing needs your attention</key>
+	<string>لا يوجد ما يحتاج إلى انتباهك</string>
+	<key>Notification connection needs attention</key>
+	<string>اتصال الإشعارات يحتاج إلى إصلاح</string>
+	<key>Notification connection restored</key>
+	<string>تمت استعادة اتصال الإشعارات</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>يلزم إعادة تسجيل الإشعارات. تظل المزامنة في الواجهة متاحة.</string>
 	<key>Notifications</key>
 	<string>الإشعارات</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>تصل الإشعارات بهدوء.</string>
 	<key>Notifications are disabled in system settings.</key>
 	<string>الإشعارات معطّلة في إعدادات النظام.</string>
+	<key>Notifications are off for this account.</key>
+	<string>الإشعارات معطلة لهذا الحساب.</string>
+	<key>Notifications are off on this device.</key>
+	<string>الإشعارات معطلة على هذا الجهاز.</string>
 	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
 	<string>لا تحتوي الإشعارات على نص الرسائل أو المرسلين أو أسماء الملفات أو محتوى طلبات الموافقة. يُحدَّث الوضع الفعلي دائمًا عند فتح dMsg.</string>
 	<key>Notifications enabled</key>
 	<string>تم تفعيل الإشعارات</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>قد تتأخر الإشعارات. افتح dMsg لمزامنة محتواك.</string>
 	<key>Notify this account on this device</key>
 	<string>إشعار هذا الحساب على هذا الجهاز</string>
 	<key>Number</key>
@@ -1514,10 +1744,14 @@
 	<string>لوحظ على هذا الجهاز</string>
 	<key>Old address</key>
 	<string>العنوان القديم</string>
+	<key>Omitted attachments</key>
+	<string>المرفقات المستثناة</string>
 	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
 	<string>افتح الموافقات على الجهاز المفوّض، وراجع بصمة هذا الجهاز كاملةً ودوره وأذوناته. المسح لا يمنح الموافقة تلقائيًا.</string>
 	<key>On the device being replaced, open Devices → Replace a device → Review a request, scan or paste this request and enter this device's ID. Then check authorization here.</key>
 	<string>على الجهاز المراد استبداله افتح الأجهزة ← استبدال جهاز ← مراجعة طلب، وامسح هذا الطلب أو الصقه وأدخل معرّف هذا الجهاز. ثم تحقّق من التفويض هنا.</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>اختر فتح حساب موجود على الجهاز الجديد، ثم امسح هذا الرمز.</string>
 	<key>On this device</key>
 	<string>على هذا الجهاز</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
@@ -1530,6 +1764,8 @@
 	<string>كل اسم في سطر ينشئ رابطًا منفصلًا له. الأسماء تظهر لك وحدك.</string>
 	<key>One-time code</key>
 	<string>رمز لمرة واحدة</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>تشمل النسخة العناصر الحالية فقط. يُستثنى السجل والمهملات والمسودات والنسخ المتعارضة والمفاتيح التي يديرها dMsg.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>نفّذ ذلك فقط عندما تكون مستعدًا للاستخدام. تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها بعد 30 ثانية.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1540,14 +1776,28 @@
 	<string>على هذا الجهاز فقط</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>لا تُنقل الآن إلا المخرجات التي مضى عليها %lld كتلة على الأقل؛ وتُظهر المخرجات الأخرى الكتلة التي تصبح قابلة للنقل منها.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>يمكن للحسابات المحددة أو لمن لديهم دعوة صالحة فقط مراسلتك.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
 	<string>تظهر النسخ الثابتة المختارة فقط في تطبيق الملفات. يتطلب الوصول مصادقة النظام وينتهي بقفل dMsg. قد تحتفظ الملفات بنسخ وأسماء لا يستطيع dMsg سحبها.</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>تم تأكيد الملخص فقط؛ لم يُتحقَّق من الملف</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>تُحذف المسودة فقط. تبقى نسخ الصور وروابط المشاركة الموجودة في الملفات.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>يمكن نقل الملف المشفّر المختار فقط أثناء قفل dMsg. يتحكم iOS في الجدولة، ويوقف الإغلاق القسري التسليم حتى إعادة فتح التطبيق. افتح الحساب الأصلي للتحقق والإتمام.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>لا يمكن لهوية دخول مرتبطة تولي الحساب بعد الانتظار إلا إذا كان الاسترداد عبر السلسلة مفعّلًا.</string>
 	<key>Open</key>
 	<string>فتح</string>
 	<key>Open Settings</key>
 	<string>فتح الإعدادات</string>
+	<key>Open an existing account</key>
+	<string>فتح حساب موجود</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>افتح dMsg وألغِ قفله لتحميل حساباتك.</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>افتح dMsg وألغِ قفله لتحديث التعبئة التلقائية، ثم حاول مرة أخرى.</string>
 	<key>Open approval record</key>
 	<string>فتح سجل الموافقة</string>
 	<key>Open approvals</key>
@@ -1556,10 +1806,14 @@
 	<string>فتح dMsg دون إظهار محتوى خاص على الشاشة الرئيسية.</string>
 	<key>Open dMsg workspace</key>
 	<string>فتح مساحة عمل dMsg</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>فتح مساحة عمل dMsg ← الحساب ← تكامل النظام ← الملء التلقائي لكلمات المرور ← اختيار بيانات الدخول</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>فتح dMsg. يظل فتح القفل والموافقات بحاجة إلى تفاعلك داخل التطبيق.</string>
 	<key>Open for</key>
 	<string>مفتوح لمدة</string>
+	<key>Open in conversation</key>
+	<string>فتح في المحادثة</string>
 	<key>Open invitation in browser</key>
 	<string>فتح الدعوة في المتصفح</string>
 	<key>Open local file</key>
@@ -1580,6 +1834,8 @@
 	<string>فتح الموقع</string>
 	<key>Open workspace</key>
 	<string>فتح مساحة العمل</string>
+	<key>Opening reminder…</key>
+	<string>جارٍ فتح التذكير…</string>
 	<key>Optional password</key>
 	<string>كلمة مرور اختيارية</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
@@ -1670,22 +1926,34 @@
 	<string>الخطة</string>
 	<key>Plan and usage</key>
 	<string>الخطة والاستخدام</string>
+	<key>Plan at next renewal</key>
+	<string>الخطة عند التجديد التالي</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>تعذّر تحميل مزايا الخطط. حاول مرة أخرى.</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>لا يمكن تغيير الخطة في هذا الإصدار من التطبيق. تبقى خطتك الحالية واستخدامك متاحين.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>يمكن لخطة Plus وما فوقها طلب الملفات من أي شخص عبر رابط. لا يحتاج الآخرون إلى حساب، ولا يرون سوى ما أرسلوه، ولا يفتح الملفات سواك.</string>
+	<key>Policy ID</key>
+	<string>معرّف السياسة</string>
 	<key>Policy points to an unavailable field</key>
 	<string>السياسة تشير إلى حقل غير متاح</string>
 	<key>Port</key>
 	<string>المنفذ</string>
 	<key>Prepare selected snapshot</key>
 	<string>إعداد اللقطة المحددة</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>استعد ما دام لديك وصول: أضف جهازًا مصرّحًا آخر وراجع إعدادات الاسترداد الاختيارية على السلسلة. الاسترداد على السلسلة معطّل افتراضيًا للحسابات الجديدة، ويجب تفعيله مسبقًا من جهاز مسؤول مصرّح له لا يزال قادرًا على فتح القفل.</string>
 	<key>Prepared on this device</key>
 	<string>تم الإعداد على هذا الجهاز</string>
 	<key>Preparing and copying file…</key>
 	<string>جارٍ تجهيز الملف ونسخه…</string>
 	<key>Preparing backups…</key>
 	<string>جارٍ تجهيز النسخ الاحتياطية…</string>
+	<key>Preparing purchase…</key>
+	<string>جارٍ تجهيز الشراء…</string>
+	<key>Preparing your workspace…</key>
+	<string>جارٍ تجهيز مساحة عملك…</string>
 	<key>Preview</key>
 	<string>معاينة</string>
 	<key>Preview and choose what to import</key>
@@ -1700,8 +1968,14 @@
 	<string>معاينة الحزمة</string>
 	<key>Preview transfer</key>
 	<string>معاينة التحويل</string>
+	<key>Previous match</key>
+	<string>النتيجة السابقة</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>بيانات الاعتماد والنسخ المسلّمة مستقلة. ألغِ التفويضات بصورة منفصلة عند الحاجة.</string>
+	<key>Previously used</key>
+	<string>حسابات استُخدمت سابقًا</string>
+	<key>Price unavailable</key>
+	<string>السعر غير متاح</string>
 	<key>Principal</key>
 	<string>الجهة الأساسية</string>
 	<key>Privacy</key>
@@ -1714,6 +1988,10 @@
 	<string>مساحة العمل الخاصة مخفية</string>
 	<key>Processing</key>
 	<string>جارٍ المعالجة</string>
+	<key>Promotional membership</key>
+	<string>عضوية ترويجية</string>
+	<key>Proposal</key>
+	<string>مقترح</string>
 	<key>Proposal %llu</key>
 	<string>الاقتراح %llu</string>
 	<key>Proposal created</key>
@@ -1742,6 +2020,8 @@
 	<string>اقتراح إلغاء التجميد</string>
 	<key>Proposer</key>
 	<string>مقدّم اقتراح</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>احمِ كلمات المرور والملاحظات والملفات بالتشفير من طرف إلى طرف. زامن خزنتك عبر الأجهزة، وشارك الملفات بأمان، وتحكّم في وصول وكلاء الذكاء الاصطناعي.</string>
 	<key>Protection</key>
 	<string>الحماية</string>
 	<key>Protector %lld</key>
@@ -1782,6 +2062,8 @@
 	<string>فتح سريع باستخدام %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>فتح سريع بمصادقة النظام</string>
+	<key>Read</key>
+	<string>قراءة</string>
 	<key>Read from a desktop file mapping</key>
 	<string>القراءة من ربط ملفات الحاسوب</string>
 	<key>Read the published policy</key>
@@ -1800,6 +2082,8 @@
 	<string>المستلَمة</string>
 	<key>Received for review</key>
 	<string>تم الاستلام للمراجعة</string>
+	<key>Receiver</key>
+	<string>الجهة المستلمة</string>
 	<key>Receiving</key>
 	<string>استلام</string>
 	<key>Receiving addresses</key>
@@ -1848,6 +2132,8 @@
 	<string>تحديث الاعتماديات</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>حدّث المعاينة قبل المتابعة.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
 	<key>Refresh to check cloud backups</key>
 	<string>حدّث للاطلاع على النسخ الاحتياطية السحابية</string>
 	<key>Refreshing backups…</key>
@@ -1876,6 +2162,10 @@
 	<string>إعادة تحميل الملف المحفوظ</string>
 	<key>Remaining</key>
 	<string>متبقية</string>
+	<key>Reminder unavailable</key>
+	<string>التذكير غير متاح</string>
+	<key>Reminders marked as read</key>
+	<string>تم وضع علامة مقروء على التذكيرات</string>
 	<key>Removal date</key>
 	<string>تاريخ الإزالة</string>
 	<key>Remove</key>
@@ -1942,6 +2232,8 @@
 	<string>رد</string>
 	<key>Reply to message %llu</key>
 	<string>الرد على الرسالة %llu</string>
+	<key>Report a problem</key>
+	<string>الإبلاغ عن مشكلة</string>
 	<key>Report content</key>
 	<string>الإبلاغ عن محتوى</string>
 	<key>Report received for review</key>
@@ -1950,10 +2242,14 @@
 	<string>الحساب المُبلّغ عنه</string>
 	<key>Request ID</key>
 	<string>معرّف الطلب</string>
+	<key>Request a signature</key>
+	<string>طلب توقيع</string>
 	<key>Request account deletion</key>
 	<string>طلب حذف الحساب</string>
 	<key>Request account recovery</key>
 	<string>طلب استرداد الحساب</string>
+	<key>Request an action</key>
+	<string>طلب إجراء</string>
 	<key>Request expires</key>
 	<string>انتهاء صلاحية الطلب</string>
 	<key>Request from the new device</key>
@@ -1976,8 +2272,6 @@
 	<string>محجوز للرفع</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>عالج عملية الحساب المعلّقة قبل حذفه.</string>
-	<key>Restored</key>
-	<string>تمت الاستعادة</string>
 	<key>Restore</key>
 	<string>استعادة</string>
 	<key>Restore purchases</key>
@@ -1992,6 +2286,8 @@
 	<string>استعد هذا الإصدار إلى الجهاز قبل نسخه احتياطياً.</string>
 	<key>Restore to this device</key>
 	<string>الاستعادة على هذا الجهاز</string>
+	<key>Restored</key>
+	<string>تمت الاستعادة</string>
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>تُنزّل الاستعادة الإصدار المحدد وتتحقق منه قبل السماح بفتحه.</string>
 	<key>Restoring…</key>
@@ -2156,6 +2452,8 @@
 	<string>يلغي الجهاز القديم حين لا يبقى شيء متروك دون علم.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>إلغاء جهاز يُفقد ما لا يوجد إلا عليه، مثل الملفات التي لم تُزامَن أو تُنسخ احتياطيًا قط.</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>يمنع الإلغاء التنزيلات اللاحقة. تبقى النسخ المحفوظة.</string>
 	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
 	<string>يمنع الإلغاء بدء تنزيلات جديدة عبر هذا الرابط. تبقى الملفات المحلية، ولا يمكن استرجاع التنزيلات التي بدأت أو النسخ التي نُزّلت.</string>
 	<key>Role</key>
@@ -2204,6 +2502,8 @@
 	<string>تغيّرت البيانات المحفوظة. أعد تحميلها ثم راجع مسودتك المحفوظة قبل النشر.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>تم الحفظ لـ dMsg. افتح التطبيق لمراجعة العناصر واستيرادها.</string>
+	<key>Saved locally</key>
+	<string>حُفظ على الجهاز</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
 	<string>يُحفظ محليًا أولًا. تُعرض حالة المزامنة بشكل منفصل.</string>
 	<key>Saved on this device</key>
@@ -2218,6 +2518,8 @@
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
 	<key>Saving draft…</key>
 	<string>جارٍ حفظ المسودة…</string>
+	<key>Saving encrypted draft…</key>
+	<string>جارٍ حفظ المسودة المشفرة…</string>
 	<key>Saving…</key>
 	<string>جارٍ الحفظ…</string>
 	<key>Scan QR code</key>
@@ -2228,22 +2530,36 @@
 	<string>مسح طلب الجهاز</string>
 	<key>Scan invitation</key>
 	<string>مسح الدعوة ضوئيًا</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>امسح الرمز الموجود على جهاز مصرح له لفتح حسابه.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.</string>
 	<key>Scopes, one per line</key>
 	<string>النطاقات، واحد في كل سطر</string>
+	<key>Screenshots</key>
+	<string>لقطات الشاشة</string>
 	<key>Screenshots may contain private information.</key>
 	<string>قد تحتوي لقطات الشاشة على معلومات خاصة.</string>
 	<key>Search</key>
 	<string>بحث</string>
 	<key>Search cloud backups</key>
 	<string>البحث في النسخ الاحتياطية السحابية</string>
+	<key>Search conversations</key>
+	<string>البحث في المحادثات</string>
+	<key>Search everything</key>
+	<string>البحث في الكل</string>
 	<key>Search files</key>
 	<string>البحث في الملفات</string>
+	<key>Search letters</key>
+	<string>البحث في الرسائل</string>
 	<key>Search messages</key>
 	<string>البحث في الرسائل</string>
 	<key>Search your vault</key>
 	<string>البحث في خزنتك</string>
 	<key>Searches messages saved on this device.</key>
 	<string>يبحث في الرسائل المحفوظة على هذا الجهاز.</string>
+	<key>Searching…</key>
+	<string>جارٍ البحث…</string>
 	<key>Secret</key>
 	<string>السر</string>
 	<key>Secret package link</key>
@@ -2256,12 +2572,18 @@
 	<string>Secure Enclave غير متاح على هذا الجهاز.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>تغيّرت متطلبات الأمان. راجع الطلب مجددًا قبل الموافقة عليه.</string>
+	<key>See how dMsg works</key>
+	<string>تعرّف على dMsg</string>
 	<key>See plans</key>
 	<string>عرض الخطط</string>
+	<key>See who controls the rules</key>
+	<string>اعرف من يتحكم في القواعد</string>
 	<key>Select a conversation</key>
 	<string>اختيار محادثة</string>
 	<key>Select a file</key>
 	<string>اختيار ملف</string>
+	<key>Select a letter</key>
+	<string>اختر رسالة</string>
 	<key>Select a secret</key>
 	<string>اختيار سر</string>
 	<key>Select all</key>
@@ -2292,12 +2614,16 @@
 	<string>تتضمن حقول OTP المحددة المفتاح السري القابل لإعادة الاستخدام، وليس الرمز الحالي فقط.</string>
 	<key>Selected accounts</key>
 	<string>الحسابات المختارة</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>يمكن للحسابات المحددة ولمن لديهم دعوة صالحة مراسلتك مجانًا.</string>
 	<key>Selected files</key>
 	<string>الملفات المحددة</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>تستخدم الأجزاء المحددة الإصدار المتعارض. وتحتفظ الأجزاء الأخرى بالإصدار الحالي.</string>
 	<key>Send</key>
 	<string>إرسال</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>أرسل رسالة خاصة مجانية إلى دعم dMsg. راجع الوصف ولقطات الشاشة ومعلومات التطبيق قبل الإرسال.</string>
 	<key>Send device request</key>
 	<string>إرسال طلب الجهاز</string>
 	<key>Send failed</key>
@@ -2318,6 +2644,8 @@
 	<string>حساب المرسل</string>
 	<key>Sending</key>
 	<string>إرسال</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>تغيّرت إعدادات الإرسال أو الاستلام. أعد محاولة إرسال هذه الرسالة. إذا استمر الفشل، فعليك أنت والمستلم فتح قفل dMsg والمزامنة قبل المحاولة مجددًا.</string>
 	<key>Sent</key>
 	<string>تم الإرسال</string>
 	<key>Sent letters</key>
@@ -2328,20 +2656,20 @@
 	<string>قبول الخدمة لا يعني أن المستلم قرأ رسالتك.</string>
 	<key>Session code</key>
 	<string>رمز الجلسة</string>
+	<key>Set up a new workspace</key>
+	<string>إعداد مساحة عمل جديدة</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>أعدّ التوقيع المشترك للأجهزة لحماية أصولك الشخصية، أو ادعُ آخرين لإدارة الأموال معًا.</string>
-	<key>Get started</key>
-	<string>ابدأ الآن</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>إعداد جهاز iPhone هذا كجهاز جديد</string>
-	<key>Preparing your workspace…</key>
-	<string>جارٍ تجهيز مساحة عملك…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>جارٍ إعداد مساحة عملك المشفرة. يُرجى إبقاء dMsg مفتوحًا.</string>
 	<key>Settings</key>
 	<string>الإعدادات</string>
 	<key>Share</key>
 	<string>مشاركة</string>
+	<key>Share %@ with %@.</key>
+	<string>مشاركة %1$@ مع %2$@.</string>
 	<key>Share a copy</key>
 	<string>مشاركة نسخة</string>
 	<key>Share binding request</key>
@@ -2390,6 +2718,8 @@
 	<string>عرض بخط كبير</string>
 	<key>Show in library</key>
 	<string>عرض في المكتبة</string>
+	<key>Show my public profile</key>
+	<string>إظهار ملفي العام</string>
 	<key>Show share link</key>
 	<string>إظهار رابط المشاركة</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2398,6 +2728,8 @@
 	<string>يظهر في الأجهزة على ذلك الجهاز، ويجب أن يكون مسؤولًا.</string>
 	<key>Sign a statement</key>
 	<string>توقيع إفادة</string>
+	<key>Sign in</key>
+	<string>تسجيل الدخول</string>
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
 	<string>سجّل الدخول مجددًا لفتح مساحة عملك المشفّرة على هذا الـ iPhone.</string>
 	<key>Sign in to another account</key>
@@ -2406,8 +2738,12 @@
 	<string>سجّل الدخول إلى الحساب نفسه على الجهاز الجديد، وامسح رمز QR على الكمبيوتر، ثم راجع الطلب ووافق عليه على الكمبيوتر.</string>
 	<key>Sign out</key>
 	<string>تسجيل الخروج</string>
+	<key>Sign out all devices</key>
+	<string>تسجيل الخروج من جميع الأجهزة</string>
 	<key>Sign out of this account?</key>
 	<string>هل تريد تسجيل الخروج من هذا الحساب؟</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>تسجيل خروج أجهزة مفتاح المرور هذا والمتابعة</string>
 	<key>Sign the statement you reviewed</key>
 	<string>توقيع الإفادة التي راجعتها</string>
 	<key>Signatures collected</key>
@@ -2430,6 +2766,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>بعض الملفات موجودة على هذا الـ iPhone فقط، بلا نسخة سحابية أو مزامنة حديثة.</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>بعض الملفات غير متاح. نزّلها أو صدّر العناصر فقط.</string>
 	<key>Some links were not made. The names left are below to try again.</key>
 	<string>لم تُنشأ بعض الروابط. الأسماء المتبقية أدناه لإعادة المحاولة.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
@@ -2460,6 +2798,8 @@
 	<string>جهّز الملفات المختارة ثم اختر حسابًا واستوردها في dMsg.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>ابدأ قائمة من صفحة مرجع الحقل.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>ابدأ محادثة لتبادل الرسائل والملفات مع الأعضاء.</string>
 	<key>Start a rotation checklist</key>
 	<string>بدء قائمة تدوير بيانات الاعتماد</string>
 	<key>Start a rotation checklist?</key>
@@ -2474,6 +2814,8 @@
 	<string>البيان</string>
 	<key>Status</key>
 	<string>الحالة</string>
+	<key>Status needs updating</key>
+	<string>الحالة بحاجة إلى تحديث</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
 	<string>تبقى الخطوات المنجزة كما هي. لإلغاء انضمام الجهاز الجديد، ألغِ ذلك الجهاز.</string>
 	<key>Stop handover</key>
@@ -2494,6 +2836,8 @@
 	<string>معرّف الوكيل المستفيد</string>
 	<key>Submit report</key>
 	<string>إرسال البلاغ</string>
+	<key>Subscribe to %@</key>
+	<string>الاشتراك في %@</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>تتجدد الاشتراكات تلقائيًا ما لم تُلغها في إعدادات حساب Apple. حذف حساب dMsg لا يلغي اشتراك Apple.</string>
 	<key>Suggested fee</key>
@@ -2530,6 +2874,8 @@
 	<string>تمت المزامنة</string>
 	<key>Syncing…</key>
 	<string>جارٍ المزامنة…</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>تتبع تنبيهات النظام التفضيلات أدناه.</string>
 	<key>System authentication</key>
 	<string>مصادقة النظام</string>
 	<key>System integrations</key>
@@ -2556,12 +2902,16 @@
 	<string>اختبار بيانات الاعتماد الجديدة لدى مزودها</string>
 	<key>Text</key>
 	<string>نص</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>ينطبق حد ملفات النسخ الاحتياطي على النسخ الاحتياطية السحابية. ولمشاركة الملفات ومرفقات القنوات حدودها الخاصة.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>تبقى النسخة على جهاز iPhone هذا للقراءة فقط لاستيرادها. ثم ينضم جهاز iPhone هذا إلى حسابك كجهاز جديد: سجّل الدخول، ثم وافق عليه من جهاز آخر أو استعد الحساب. يستمر جهاز iPhone القديم في العمل.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>ستستخدم النسخة المشفّرة مساحة تخزين سحابية. تبقى نسختك المحلية على هذا الجهاز.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>بيانات الدخول المصدّرة غير متاحة أو منتهية. افتح dMsg لإنشاء لقطة جديدة.</string>
+	<key>The file changed or cannot be read</key>
+	<string>تغيّر الملف أو تتعذّر قراءته</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>نسخ الملفات غير متاحة أو منتهية. أنشئ لقطة جديدة في dMsg ثم أعد المحاولة.</string>
 	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
@@ -2620,6 +2970,12 @@
 	<string>لم يُعثر على الجهاز الآخر في الشبكة المحلية. أدخل عنوانه.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>النتيجة غير مؤكدة. تحقّق من المهمة الأصلية قبل أي محاولة أخرى.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>مفتاح المرور محفوظ. أعد المحاولة لإكمال ربطه بهذا الحساب؛ لن يُنشأ مفتاح جديد.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>تعذر بدء الشراء. لم يُرسل أي طلب دفع إلى Apple.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>تحتاج إعدادات الاستلام لدى المستلم إلى تحديث. اطلب منه فتح قفل dMsg والمزامنة، ثم أعد محاولة إرسال هذه الرسالة.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>تغيّر السجل. حدّثه وراجع تعديلاتك قبل الحفظ مجددًا.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2642,6 +2998,8 @@
 	<string>انتهى تفويض النقل. ألغِ المهمة ثم تابع النسخة الأصلية في الواجهة أو ابدأ تنزيلًا جديدًا.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>توقف النقل مؤقتًا. أعد محاولة الكتل المشفّرة الأصلية.</string>
+	<key>The two backup passwords do not match.</key>
+	<string>كلمتا مرور النسخة الاحتياطية غير متطابقتين.</string>
 	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
 	<string>تبقى النسخة السحابية التي تم التحقق منها وسجل الملف محفوظين. أعد تنزيل هذا الإصدار لفتحه على الجهاز.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
@@ -2656,12 +3014,14 @@
 	<string>لا تحتوي هذه التصديرات مطلقًا على مفاتيح جذر الحساب أو مفاتيح توقيع الجهاز. لا تتبع النسخ الموجودة في تطبيق الملفات تغييرات الملفات المصدر؛ وتحتاج إلى لقطة جديدة.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ستظل هذه العناوين الأصلية تحتاج إلى الجهاز القديم في L1. ويمكن للأعضاء نقلها عبر L2 حين يصبح كل مُخرج قديمًا بما يكفي.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>هذا الاشتراك من Apple مرتبط بحساب dMsg آخر. بدّل الحساب لإدارته. استعادة المشتريات لا تنقل الاشتراك.</string>
+	<key>This account no longer has access to the item.</key>
+	<string>لم يعد بإمكان هذا الحساب الوصول إلى العنصر.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>يتطلب هذا الحساب مفتاح موافقة مسجّلًا. أعدّ هذا الجهاز في أمان العتاد، أو اطلب المعالجة من جهاز مخوّل آخر.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>هذا الإجراء غير مدعوم على هذا الجهاز. يجب استخدام مسار الاستيراد المخصص للقطات الأسرار.</string>
-	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
-	<string>أغلق هذا الطلب، وافتح الحساب الموضّح أدناه في dMsg، ثم أعد فتح الطلب.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>لا يمكن التراجع عن ذلك. تسجيل الخروج وحده لا يحذف الحساب.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -2728,6 +3088,8 @@
 	<string>المحتوى طويل جدًا.</string>
 	<key>This letter was withdrawn.</key>
 	<string>تم سحب هذه الرسالة.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى.</string>
 	<key>This message could not be verified.</key>
 	<string>تعذّر التحقق من هذه الرسالة.</string>
 	<key>This message is too long.</key>
@@ -2740,14 +3102,24 @@
 	<string>هذه العملية غير متاحة مؤقتًا. بياناتك المحفوظة باقية.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>سبق استيراد هذه الحزمة على هذا الجهاز. تبقى النسخ الموجودة مستقلة.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>بلغت الأجهزة المسجّلة بهذا المفتاح الحد الأقصى. سجّل خروجها للمتابعة. لن تتأثر مفاتيح المرور الأخرى أو المحتوى المحفوظ.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>مفتاح المرور هذا غير مسجل لدى dMsg. اختر مفتاحًا آخر. إذا فشل إنشاؤه سابقًا، فاحذف ذلك المفتاح غير المستخدم من مدير كلمات المرور قبل إنشاء مفتاح جديد.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>هذا الملف الشخصي عام. لا تضع فيه أسرارًا أو معلومات اتصال خاصة.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
 	<string>يسجّل هذا أنك تحققت من النتيجة يدويًا. ولا يضع علامة نجاح على العملية أو يشغّلها مجددًا.</string>
+	<key>This reminder belongs to another account</key>
+	<string>هذا التذكير يخص حسابًا آخر</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>لم يعد بإمكان هذا التذكير فتح العنصر الأصلي.</string>
 	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
 	<string>يُحذف فقط النسخ السحابي المحدد. تبقى الملفات المحلية على أجهزتها.</string>
 	<key>This request has expired</key>
 	<string>انتهت صلاحية هذا الطلب</string>
+	<key>This request no longer needs a response.</key>
+	<string>لم يعد هذا الطلب يحتاج إلى رد.</string>
 	<key>This request requires a supported desktop client.</key>
 	<string>يتطلب هذا الطلب عميل سطح مكتب يدعمه.</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
@@ -2756,6 +3128,8 @@
 	<string>تحتاج هذه اللقطة إلى انتباهك. تحقّق من حالتها قبل المتابعة.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>يتتبع هذا عملك على هذا الجهاز. ولا ينشئ بيانات اعتماد لدى مزودها أو يختبرها أو يبطلها.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>لا يستطيع هذا التحديث الوصول إلى مفاتيحك المحفوظة. أبقِ dMsg مثبتًا وتواصل مع الدعم من جهاز آخر مُصرّح له. لم يتم مسح مساحة عملك.</string>
 	<key>This version already has a transfer in progress.</key>
 	<string>توجد عملية نقل جارية لهذا الإصدار بالفعل.</string>
 	<key>This version is already backed up.</key>
@@ -2808,6 +3182,12 @@
 	<string>أدخل معرّف هذا الحساب للتأكيد</string>
 	<key>URL</key>
 	<string>الرابط</string>
+	<key>Unable to open reminder</key>
+	<string>تعذر فتح التذكير</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>تعذّر التحقق من الحساب المرتبط بهذا الاشتراك من Apple. أعد المحاولة قبل الشراء.</string>
+	<key>Unavailable</key>
+	<string>غير متاح</string>
 	<key>Unbind</key>
 	<string>إلغاء الربط</string>
 	<key>Unblock</key>
@@ -2816,16 +3196,22 @@
 	<string>غير مؤكد</string>
 	<key>Unconfirmed proposals</key>
 	<string>اقتراحات غير مؤكدة</string>
+	<key>Unidentified app or website</key>
+	<string>تطبيق أو موقع غير معروف</string>
 	<key>Unknown state</key>
 	<string>حالة غير معروفة</string>
 	<key>Unlimited</key>
 	<string>غير محدود</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>افتح قفل dMsg لمراجعة هذا الطلب.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>افتح قفل dMsg لإرسال البلاغ.</string>
 	<key>Unlock policy</key>
 	<string>سياسة فك القفل</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>افتح قفل هذا الـ iPhone لفتح dMsg.</string>
+	<key>Unlock to view reminder</key>
+	<string>افتح القفل لعرض التذكير</string>
 	<key>Unlock with %@</key>
 	<string>فتح القفل باستخدام %@</string>
 	<key>Unlock with system authentication</key>
@@ -2840,8 +3226,12 @@
 	<string>غير مقروءة</string>
 	<key>Unread only</key>
 	<string>غير مقروءة</string>
+	<key>Unread reminder</key>
+	<string>تذكير غير مقروء</string>
 	<key>Unrestricted delegation authority</key>
 	<string>صلاحيات تفويض غير مقيّدة</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>حتى 8 نطاقات و4 جهات مستهدفة. استخدم أصول HTTPS أو معرّفات الوكلاء؛ لا تُسمح أحرف البدل.</string>
 	<key>Update AutoFill</key>
@@ -2852,6 +3242,8 @@
 	<string>تحديث مفاتيح المحادثة</string>
 	<key>Updated</key>
 	<string>آخر تحديث</string>
+	<key>Upgrade to %@</key>
+	<string>الترقية إلى %@</string>
 	<key>Uploading</key>
 	<string>جارٍ الرفع</string>
 	<key>Uploading encrypted backup</key>
@@ -2862,34 +3254,54 @@
 	<string>الرابط</string>
 	<key>Usage</key>
 	<string>الاستخدام</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>استخدم وسيلة دخول مرتبطة بالفعل بالحساب الذي تريد فتحه.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>استخدم اسماً من 1 إلى 255 حرفاً دون شرطات مائلة أو أحرف تحكم.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>استخدم كلمة مرور من اللقطة التي صدّرتها صراحةً في dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>إذا سبق أن أنشأت مفتاح مرور، فاستخدم المفتاح المحفوظ. أنشئ مفتاحًا جديدًا فقط إذا احتجت إلى هوية دخول أخرى.</string>
 	<key>Use a secret through a device policy</key>
 	<string>استخدام سر وفق سياسة الجهاز</string>
 	<key>Use an SSH signing key</key>
 	<string>استخدام مفتاح توقيع SSH</string>
+	<key>Use an existing passkey</key>
+	<string>استخدام مفتاح مرور موجود</string>
+	<key>Use at least 12 characters.</key>
+	<string>استخدم 12 حرفًا على الأقل.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>استخدم 4500 بايت UTF-8 كحد أقصى للوصف.</string>
 	<key>Use conflicting version</key>
 	<string>استخدام النسخة المتعارضة</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>استخدم icp أو icrc:ledger أو btc أو evm:chain أو evm:chain:token أو sol أو sol:mint.</string>
+	<key>Use only on this device</key>
+	<string>الاستخدام على هذا الجهاز فقط</string>
 	<key>Use password</key>
 	<string>استخدام كلمة المرور</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>استخدم مصادقة النظام لفتح مساحة العمل المشفّرة على هذا الـ iPhone.</string>
 	<key>Use this folder</key>
 	<string>استخدام هذا المجلد</string>
+	<key>Use this login for this account and add this device</key>
+	<string>استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز</string>
 	<key>Use this password for:</key>
 	<string>استخدام كلمة المرور هذه لـ:</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>استخدم حتى 200 حرف للبحث.</string>
 	<key>Used</key>
 	<string>المستخدم</string>
 	<key>Username</key>
 	<string>اسم المستخدم</string>
+	<key>Valid until</key>
+	<string>صالحة حتى</string>
 	<key>Value</key>
 	<string>القيمة</string>
 	<key>Vault</key>
 	<string>الخزنة</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.</string>
 	<key>Vault tools</key>
 	<string>أدوات الخزنة</string>
 	<key>Verified</key>
@@ -2914,6 +3326,8 @@
 	<string>سجل الإصدارات</string>
 	<key>Versions</key>
 	<string>الإصدارات</string>
+	<key>Veto proposal</key>
+	<string>استخدام حق النقض ضد المقترح</string>
 	<key>View approval</key>
 	<string>عرض طلب الموافقة</string>
 	<key>Viewer</key>
@@ -2924,6 +3338,8 @@
 	<string>انتظار المقترح</string>
 	<key>Waiting</key>
 	<string>بانتظار</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>في انتظار تأكيد App Store…</string>
 	<key>Waiting for approval</key>
 	<string>بانتظار الموافقة</string>
 	<key>Waiting for browser confirmation</key>
@@ -2932,8 +3348,12 @@
 	<string>في انتظار التأكيد</string>
 	<key>Waiting for confirmation: </key>
 	<string>بانتظار التأكيد: </string>
+	<key>Waiting for device approval</key>
+	<string>بانتظار الموافقة على الجهاز</string>
 	<key>Waiting for first sync</key>
 	<string>بانتظار المزامنة الأولى</string>
+	<key>Waiting for login approval</key>
+	<string>بانتظار الموافقة على تسجيل الدخول</string>
 	<key>Waiting for notification registration…</key>
 	<string>بانتظار تسجيل الإشعارات…</string>
 	<key>Waiting for the other device</key>
@@ -2954,6 +3374,8 @@
 	<string>الوصول إلى المحفظة</string>
 	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
 	<string>تعذّر التحقق من الوصول إلى المحافظ. تحقّق منه بشكل مستقل قبل الحذف.</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>تُفرض رسوم منفصلة لتفعيل المحافظ؛ تحقّق من التوفر في التطبيق.</string>
 	<key>Wallet approvals are waiting in Approvals.</key>
 	<string>موافقات المحفظة بانتظارك في الموافقات.</string>
 	<key>Wallet bindings</key>
@@ -2998,18 +3420,28 @@
 	<string>مساحة عمل منسوخة من جهاز iPhone آخر</string>
 	<key>Workspace destination</key>
 	<string>وجهة مساحة العمل</string>
+	<key>Write</key>
+	<string>كتابة</string>
 	<key>Write a letter</key>
 	<string>كتابة رسالة</string>
 	<key>Write a message</key>
 	<string>كتابة رسالة</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>اكتب مباشرة إلى حساب. يقرر المستلم ما إذا كان سيرد. الإرسال من هنا مجاني.</string>
 	<key>Yes</key>
 	<string>نعم</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>أنت تعرض نسخة تاريخية ثابتة.</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>يمكنك العثور على التذكيرات السابقة في «التذكيرات الأخيرة».</string>
 	<key>You have read-only access to this conversation.</key>
 	<string>لديك صلاحية القراءة فقط في هذه المحادثة.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>تنفّذ تغييرات المزود بنفسك. يسجّل dMsg إفاداتك ويفحص الإصدارات المحلية؛ ولا يستطيع التحقق من الإنشاء أو الاختبار أو الإبطال لدى المزود.</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>ستؤكد الشراء لدى Apple قبل الدفع.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>تعذر التحقق من حالة اشتراكك لدى Apple. أعد المحاولة قبل الشراء.</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>أصولك. قواعد موافقتك.</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3030,16 +3462,34 @@
 	<string>تبقى ملفاتك خاصة</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>تبقى الحقول المخفية مخفية حتى تختار إظهارها.</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>لم تُحفظ تغييراتك الأخيرة.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>يظل محتواك المحلي متاحًا. سجّل الدخول عبر Internet Identity عندما يتطلب إجراء على الحساب ذلك.</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>حالة عضويتك بحاجة إلى تحديث. حدّث صفحة العضوية وحاول مجددًا.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>انتهت عضويتك المدفوعة. أنت الآن على خطة Free.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>حفظ مدير كلمات المرور مفتاح المرور، لكن dMsg لم يتمكن من تأكيد التسجيل. جرّب تسجيل الدخول به قبل إنشاء مفتاح آخر.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>لا تزال رسالتك السابقة قيد الانتظار. اطلب من المستلم أرشفتها على سطح المكتب أو اختيار «السماح برسالة أخرى» من قائمة الرسالة على iOS، ثم أعد محاولة إرسال هذه الرسالة.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>تم تطبيق مشترياتك على حساب dMsg هذا.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>عملية الشراء بانتظار موافقة Apple.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>عملية الشراء بانتظار التأكيد. استعد المشتريات لإعادة المحاولة دون دفع جديد.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
 	<string>تظل قواعد الاستلام سارية. لا يضيف هذا جهة اتصال أو عضوًا إلى القناة.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>تذكيرك محمي. افتح القفل للمتابعة من حيث توقفت.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>سيُرسل البلاغ والنص الذي ترفقه صراحةً إلى فريق المراجعة. لا يُضمّن أي محتوى خاص آخر أو مفاتيح.</string>
 	<key>Your reports</key>
 	<string>بلاغاتك</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>تعذّر تجهيز مفاتيحك المحفوظة. افتح قفل هذا الـ iPhone وحاول مرة أخرى. لم يتم مسح مساحة عملك.</string>
 	<key>Your vault syncs automatically while dMsg is open.</key>
 	<string>تتم مزامنة خزنتك تلقائيًا أثناء فتح dMsg.</string>
 	<key>dMsg</key>
@@ -3086,6 +3536,10 @@
 	<string>تفعيل الإشعارات لحساب آخر؟</string>
 	<key>dmsg.noticeManaged</key>
 	<string>يديرها نظام التشغيل</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>تحديد الكل كمقروء</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>يحدد تذكيرات جميع الحسابات على هذا الجهاز كمقروءة. لا تتغير المهام المعلقة أو إيصالات قراءة الرسائل.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>دمج التنبيهات المكررة عبر الأجهزة</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3106,6 +3560,8 @@
 	<string>تسري إعداداتك هنا فورًا. قد تستخدم التنبيهات البعيدة الإعدادات السابقة حتى تأكيد التحديث.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>ساعات الهدوء اليومية</string>
+	<key>dmsg.noticeRead</key>
+	<string>مقروء</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>عرض التذكيرات لا يُكمل الإجراءات ولا يضع علامة مقروء على الرسائل.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3152,455 +3608,13 @@
 	<string>حتى</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>افتح dMsg للاطلاع على آخر المستجدات.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>حالة الرسائل بحاجة إلى التحقق.</string>
 	<key>dmsg.noticeZone</key>
 	<string>المنطقة الزمنية</string>
 	<key>made</key>
 	<string>مُنشأ</string>
 	<key>not available</key>
 	<string>غير متاح</string>
-	<key>Continue with a passkey</key>
-	<string>المتابعة بمفتاح مرور</string>
-	<key>Create a passkey</key>
-	<string>إنشاء مفتاح مرور</string>
-	<key>Add a passkey login</key>
-	<string>إضافة تسجيل دخول بمفتاح مرور</string>
-	<key>Sign out all devices</key>
-	<string>تسجيل الخروج من جميع الأجهزة</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>قد تبقى أذونات تسجيل الدخول الحالية صالحة لمدة تصل إلى 12 ساعة. تحتفظ أجهزة المحتوى بأذوناتها.</string>
-	<key>Use an existing passkey</key>
-	<string>استخدام مفتاح مرور موجود</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>استخدم وسيلة دخول مرتبطة بالفعل بالحساب الذي تريد فتحه.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>ينشئ كل مفتاح مرور جديد هوية دخول مستقلة. لإضافته إلى حسابك الحالي، استخدم إضافة تسجيل دخول بمفتاح مرور في أمان الحساب.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>مفتاح المرور هذا غير مسجل لدى dMsg. اختر مفتاحًا آخر. إذا فشل إنشاؤه سابقًا، فاحذف ذلك المفتاح غير المستخدم من مدير كلمات المرور قبل إنشاء مفتاح جديد.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>حفظ مدير كلمات المرور مفتاح المرور، لكن dMsg لم يتمكن من تأكيد التسجيل. جرّب تسجيل الدخول به قبل إنشاء مفتاح آخر.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>لا تزال رسالتك السابقة قيد الانتظار. اطلب من المستلم أرشفتها على سطح المكتب أو اختيار «السماح برسالة أخرى» من قائمة الرسالة على iOS، ثم أعد محاولة إرسال هذه الرسالة.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>تحتاج إعدادات الاستلام لدى المستلم إلى تحديث. اطلب منه فتح قفل dMsg والمزامنة، ثم أعد محاولة إرسال هذه الرسالة.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>تغيّرت إعدادات الإرسال أو الاستلام. أعد محاولة إرسال هذه الرسالة. إذا استمر الفشل، فعليك أنت والمستلم فتح قفل dMsg والمزامنة قبل المحاولة مجددًا.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>إذا سبق أن أنشأت مفتاح مرور، فاستخدم المفتاح المحفوظ. أنشئ مفتاحًا جديدًا فقط إذا احتجت إلى هوية دخول أخرى.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>مفتاح المرور محفوظ. أعد المحاولة لإكمال ربطه بهذا الحساب؛ لن يُنشأ مفتاح جديد.</string>
-	<key>Continue adding this passkey</key>
-	<string>متابعة إضافة مفتاح المرور هذا</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>تسجيل خروج أجهزة مفتاح المرور هذا والمتابعة</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>بلغت الأجهزة المسجّلة بهذا المفتاح الحد الأقصى. سجّل خروجها للمتابعة. لن تتأثر مفاتيح المرور الأخرى أو المحتوى المحفوظ.</string>
-	<key>No purchases were found for this dMsg account.</key>
-	<string>لم يتم العثور على مشتريات لحساب dMsg هذا.</string>
-	<key>Plan at next renewal</key>
-	<string>الخطة عند التجديد التالي</string>
-	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
-	<string>هذا الاشتراك من Apple مرتبط بحساب dMsg آخر. بدّل الحساب لإدارته. استعادة المشتريات لا تنقل الاشتراك.</string>
-	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
-	<string>تعذّر التحقق من الحساب المرتبط بهذا الاشتراك من Apple. أعد المحاولة قبل الشراء.</string>
-	<key>Your purchase has been applied to this dMsg account.</key>
-	<string>تم تطبيق مشترياتك على حساب dMsg هذا.</string>
-	<key>dmsg.noticeMarkAllRead</key>
-	<string>تحديد الكل كمقروء</string>
-	<key>dmsg.noticeMarkReadHint</key>
-	<string>يحدد تذكيرات جميع الحسابات على هذا الجهاز كمقروءة. لا تتغير المهام المعلقة أو إيصالات قراءة الرسائل.</string>
-	<key>dmsg.noticeRead</key>
-	<string>مقروء</string>
-	<key>dmsg.noticeVerifyHint</key>
-	<string>حالة الرسائل بحاجة إلى التحقق.</string>
-	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
-	<string>تعذر التحقق من حالة اشتراكك لدى Apple. أعد المحاولة قبل الشراء.</string>
-	<key>Access unavailable</key>
-	<string>الوصول غير متاح</string>
-	<key>Back to reminders</key>
-	<string>العودة إلى التذكيرات</string>
-	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
-	<string>اختر الحساب المرتبط بالتذكير للمتابعة. سيبقى حسابك الحالي محددًا حتى تختار حسابًا آخر.</string>
-	<key>Mark reminders for all accounts as read</key>
-	<string>وضع علامة مقروء على تذكيرات جميع الحسابات</string>
-	<key>More</key>
-	<string>المزيد</string>
-	<key>No reminders yet</key>
-	<string>لا توجد تذكيرات بعد</string>
-	<key>Nothing needs your attention</key>
-	<string>لا يوجد ما يحتاج إلى انتباهك</string>
-	<key>Notification connection needs attention</key>
-	<string>اتصال الإشعارات يحتاج إلى إصلاح</string>
-	<key>Notification connection restored</key>
-	<string>تمت استعادة اتصال الإشعارات</string>
-	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
-	<string>قد تتأخر الإشعارات. افتح dMsg لمزامنة محتواك.</string>
-	<key>Opening reminder…</key>
-	<string>جارٍ فتح التذكير…</string>
-	<key>Reminder unavailable</key>
-	<string>التذكير غير متاح</string>
-	<key>Reminders marked as read</key>
-	<string>تم وضع علامة مقروء على التذكيرات</string>
-	<key>This account no longer has access to the item.</key>
-	<string>لم يعد بإمكان هذا الحساب الوصول إلى العنصر.</string>
-	<key>This reminder belongs to another account</key>
-	<string>هذا التذكير يخص حسابًا آخر</string>
-	<key>This reminder can no longer open its original item.</key>
-	<string>لم يعد بإمكان هذا التذكير فتح العنصر الأصلي.</string>
-	<key>This request no longer needs a response.</key>
-	<string>لم يعد هذا الطلب يحتاج إلى رد.</string>
-	<key>Unable to open reminder</key>
-	<string>تعذر فتح التذكير</string>
-	<key>Unlock to view reminder</key>
-	<string>افتح القفل لعرض التذكير</string>
-	<key>Unread reminder</key>
-	<string>تذكير غير مقروء</string>
-	<key>You can find past reminders in Recent.</key>
-	<string>يمكنك العثور على التذكيرات السابقة في «التذكيرات الأخيرة».</string>
-	<key>Your reminder is protected. Unlock to continue where you left off.</key>
-	<string>تذكيرك محمي. افتح القفل للمتابعة من حيث توقفت.</string>
-	<key>Billing grace period</key>
-	<string>فترة سماح للدفع</string>
-	<key>Billing retry</key>
-	<string>إعادة محاولة الدفع</string>
-	<key>Last recorded term</key>
-	<string>آخر فترة مسجلة</string>
-	<key>Status needs updating</key>
-	<string>الحالة بحاجة إلى تحديث</string>
-	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
-	<string>حالة عضويتك بحاجة إلى تحديث. حدّث صفحة العضوية وحاول مجددًا.</string>
-	<key>Your paid membership has ended. You are now on Free.</key>
-	<string>انتهت عضويتك المدفوعة. أنت الآن على خطة Free.</string>
-	<key>Your purchase is awaiting Apple approval.</key>
-	<string>عملية الشراء بانتظار موافقة Apple.</string>
-	<key>A private workspace for the AI era.</key>
-	<string>مساحة عمل خاصة لعصر الذكاء الاصطناعي.</string>
-	<key>A product of ICPanda DAO.</key>
-	<string>أحد منتجات ICPanda DAO.</string>
-	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
-	<string>يمكن لمقترح يعتمده DAO أن يرقّي الشيفرة على السلسلة، لذا فالحوكمة جزء مما تثق به. أما التطبيقات والخدمة السحابية فتُصدر وتُشغّل خارج هذا التصويت.</string>
-	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
-	<string>انسخ ملفًا احتياطيًا بشكل صريح، ثم نزّل تلك النسخة الاحتياطية المشفّرة على جهاز مصرّح آخر. لا تُرفع مكتبة ملفاتك المحلية بأكملها تلقائيًا.</string>
-	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
-	<string>اختر سعة التخزين وعدد الأجهزة بما يناسب عملك اليومي. رقِّ خطتك لجمع الملفات عبر رابط رفع ولإفساح المجال للمزيد.</string>
-	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
-	<string>المحتوى الذي تسمح لعميل ذكاء اصطناعي خارجي بقراءته يخضع أيضًا لسياسات البيانات لدى ذلك العميل. لا تمنح الوصول إلا لما تحتاجه المهمة.</string>
-	<key>Keep what matters private.</key>
-	<string>حافظ على خصوصية ما يهمك.</string>
-	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
-	<string>لا يمكن لهوية دخول مرتبطة تولي الحساب بعد الانتظار إلا إذا كان الاسترداد عبر السلسلة مفعّلًا.</string>
-	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
-	<string>استعد ما دام لديك وصول: أضف جهازًا مصرّحًا آخر وراجع إعدادات الاسترداد الاختيارية على السلسلة. الاسترداد على السلسلة معطّل افتراضيًا للحسابات الجديدة، ويجب تفعيله مسبقًا من جهاز مسؤول مصرّح له لا يزال قادرًا على فتح القفل.</string>
-	<key>See how dMsg works</key>
-	<string>تعرّف على dMsg</string>
-	<key>See who controls the rules</key>
-	<string>اعرف من يتحكم في القواعد</string>
-	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
-	<string>احمِ كلمات المرور والملاحظات والملفات بالتشفير من طرف إلى طرف. زامن خزنتك عبر الأجهزة، وشارك الملفات بأمان، وتحكّم في وصول وكلاء الذكاء الاصطناعي.</string>
-	<key>Show my public profile</key>
-	<string>إظهار ملفي العام</string>
-	<key>Anyone with this link can see your public profile, even before entering a password.</key>
-	<string>يمكن لأي شخص لديه هذا الرابط رؤية ملفك العام، حتى قبل إدخال كلمة المرور.</string>
-	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
-	<string>فتح مساحة عمل dMsg ← الحساب ← تكامل النظام ← الملء التلقائي لكلمات المرور ← اختيار بيانات الدخول</string>
-	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
-	<string>افتح dMsg وألغِ قفله لتحديث التعبئة التلقائية، ثم حاول مرة أخرى.</string>
-	<key>Choose screenshots</key>
-	<string>اختيار لقطات الشاشة</string>
-	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
-	<string>لم يتأكد التسليم. إعادة المحاولة تستخدم البلاغ الأصلي.</string>
-	<key>Discard feedback draft?</key>
-	<string>تجاهل مسودة البلاغ؟</string>
-	<key>Draft saved encrypted on this device.</key>
-	<string>حُفظت المسودة مشفرة على هذا الجهاز.</string>
-	<key>Feedback delivered. This does not mean it has been read.</key>
-	<string>تم تسليم البلاغ. هذا لا يعني أنه قُرئ.</string>
-	<key>New feedback</key>
-	<string>بلاغ جديد</string>
-	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
-	<string>تُحذف المسودة فقط. تبقى نسخ الصور وروابط المشاركة الموجودة في الملفات.</string>
-	<key>Report a problem</key>
-	<string>الإبلاغ عن مشكلة</string>
-	<key>Your latest changes have not been saved.</key>
-	<string>لم تُحفظ تغييراتك الأخيرة.</string>
-	<key>Saving encrypted draft…</key>
-	<string>جارٍ حفظ المسودة المشفرة…</string>
-	<key>Screenshots</key>
-	<string>لقطات الشاشة</string>
-	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
-	<string>أرسل رسالة خاصة مجانية إلى دعم dMsg. راجع الوصف ولقطات الشاشة ومعلومات التطبيق قبل الإرسال.</string>
-	<key>Unlock dMsg to send feedback.</key>
-	<string>افتح قفل dMsg لإرسال البلاغ.</string>
-	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
-	<string>حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.</string>
-	<key>Use at most 4500 UTF-8 bytes for the description.</key>
-	<string>استخدم 4500 بايت UTF-8 كحد أقصى للوصف.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple.</key>
-	<string>تعذر بدء الشراء. لم يُرسل أي طلب دفع إلى Apple.</string>
-	<key>Preparing purchase…</key>
-	<string>جارٍ تجهيز الشراء…</string>
-	<key>Waiting for App Store confirmation…</key>
-	<string>في انتظار تأكيد App Store…</string>
-	<key>Applying your purchase…</key>
-	<string>جارٍ تفعيل مشترياتك…</string>
-	<key>You'll confirm with Apple before paying.</key>
-	<string>ستؤكد الشراء لدى Apple قبل الدفع.</string>
-	<key>%@ / %@</key>
-	<string>%@ / %@</string>
-	<key>About these benefits</key>
-	<string>حول هذه المزايا</string>
-	<key>Active devices</key>
-	<string>الأجهزة النشطة</string>
-	<key>Active file request links</key>
-	<string>روابط طلب الملفات النشطة</string>
-	<key>Change plan</key>
-	<string>تغيير الخطة</string>
-	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
-	<string>تسري الحدود على القنوات التي تنشئها أو ترعاها. لا تستهلك توقيعات الأجهزة العادية الحصة الشهرية.</string>
-	<key>Compare all plans</key>
-	<string>مقارنة جميع الخطط</string>
-	<key>Current plan</key>
-	<string>الخطة الحالية</string>
-	<key>Every plan includes end-to-end encryption and device revocation.</key>
-	<string>تتضمن جميع الخطط التشفير التام بين الطرفين وإلغاء صلاحية الأجهزة.</string>
-	<key>For everyday file exchange.</key>
-	<string>لتبادل الملفات اليومي.</string>
-	<key>For large backups and frequent collaboration.</key>
-	<string>للنسخ الاحتياطية الكبيرة والتعاون المتكرر.</string>
-	<key>For more files and devices.</key>
-	<string>لمزيد من الملفات والأجهزة.</string>
-	<key>For your everyday essentials.</key>
-	<string>لأساسياتك اليومية.</string>
-	<key>No charge</key>
-	<string>مجانًا</string>
-	<key>Not included</key>
-	<string>غير مشمول</string>
-	<key>Plan benefits could not be loaded. Try again.</key>
-	<string>تعذّر تحميل مزايا الخطط. حاول مرة أخرى.</string>
-	<key>Price unavailable</key>
-	<string>السعر غير متاح</string>
-	<key>Subscribe to %@</key>
-	<string>الاشتراك في %@</string>
-	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
-	<string>ينطبق حد ملفات النسخ الاحتياطي على النسخ الاحتياطية السحابية. ولمشاركة الملفات ومرفقات القنوات حدودها الخاصة.</string>
-	<key>Unavailable</key>
-	<string>غير متاح</string>
-	<key>Upgrade to %@</key>
-	<string>الترقية إلى %@</string>
-	<key>Wallet activation is charged separately; check availability in the app.</key>
-	<string>تُفرض رسوم منفصلة لتفعيل المحافظ؛ تحقّق من التوفر في التطبيق.</string>
-	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
-	<string>الحدود تخص الخطة الأساسية. تُضاف باقات التخزين بشكل منفصل. تُحسب وحدات التنفيذ الشهرية بالتناسب مع المدة ولا تُعاد إلى الصفر عند تغيير الخطة.</string>
-	<key>Multisig wallet slots</key>
-	<string>حصة المحافظ متعددة التوقيعات</string>
-	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
-	<string>تعذّر تجهيز مفاتيحك المحفوظة. افتح قفل هذا الـ iPhone وحاول مرة أخرى. لم يتم مسح مساحة عملك.</string>
-	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
-	<string>لا يستطيع هذا التحديث الوصول إلى مفاتيحك المحفوظة. أبقِ dMsg مثبتًا وتواصل مع الدعم من جهاز آخر مُصرّح له. لم يتم مسح مساحة عملك.</string>
-	<key>Search conversations</key>
-	<string>البحث في المحادثات</string>
-	<key>Search letters</key>
-	<string>البحث في الرسائل</string>
-	<key>Select a letter</key>
-	<string>اختر رسالة</string>
-	<key>Account information</key>
-	<string>معلومات الحساب</string>
-	<key>Add a device and keep using this one.</key>
-	<string>أضف جهازًا واستمر في استخدام هذا الجهاز.</string>
-	<key>Add permission</key>
-	<string>إضافة إذن</string>
-	<key>Allow alerts in iOS Settings to receive system notifications.</key>
-	<string>اسمح بالتنبيهات في إعدادات iOS لتلقي إشعارات النظام.</string>
-	<key>Anyone with the link</key>
-	<string>أي شخص لديه الرابط</string>
-	<key>Anyone with the link and password</key>
-	<string>أي شخص لديه الرابط وكلمة المرور</string>
-	<key>Anyone you haven’t blocked can write for free.</key>
-	<string>يمكن لأي شخص لم تحظره مراسلتك مجانًا.</string>
-	<key>Authorize %@ as %@.</key>
-	<string>التصريح لـ %1$@ بدور %2$@.</string>
-	<key>Choose a permission</key>
-	<string>اختيار إذن</string>
-	<key>Copy files between two authorized devices.</key>
-	<string>انسخ الملفات بين جهازين مصرح لهما.</string>
-	<key>Cosign proposal</key>
-	<string>المشاركة في توقيع المقترح</string>
-	<key>Create wallet</key>
-	<string>إنشاء محفظة</string>
-	<key>Customize fields</key>
-	<string>تخصيص الحقول</string>
-	<key>Import cosignatures</key>
-	<string>استيراد التوقيعات المشتركة</string>
-	<key>List items</key>
-	<string>عرض قائمة العناصر</string>
-	<key>Move this device’s role to its replacement.</key>
-	<string>انقل دور هذا الجهاز إلى الجهاز البديل.</string>
-	<key>No one can send a new letter while receiving is closed.</key>
-	<string>لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا.</string>
-	<key>Notifications are off for this account.</key>
-	<string>الإشعارات معطلة لهذا الحساب.</string>
-	<key>Notifications are off on this device.</key>
-	<string>الإشعارات معطلة على هذا الجهاز.</string>
-	<key>Only selected accounts or people with a valid invitation can write.</key>
-	<string>يمكن للحسابات المحددة أو لمن لديهم دعوة صالحة فقط مراسلتك.</string>
-	<key>Open an existing account</key>
-	<string>فتح حساب موجود</string>
-	<key>Policy ID</key>
-	<string>معرّف السياسة</string>
-	<key>Proposal</key>
-	<string>مقترح</string>
-	<key>Read</key>
-	<string>قراءة</string>
-	<key>Manage event endpoints</key>
-	<string>إدارة نقاط استقبال الأحداث</string>
-	<key>Request a signature</key>
-	<string>طلب توقيع</string>
-	<key>Request an action</key>
-	<string>طلب إجراء</string>
-	<key>Revoking stops future downloads. Saved copies remain.</key>
-	<string>يمنع الإلغاء التنزيلات اللاحقة. تبقى النسخ المحفوظة.</string>
-	<key>Searching…</key>
-	<string>جارٍ البحث…</string>
-	<key>Selected accounts and valid invitations can write for free.</key>
-	<string>يمكن للحسابات المحددة ولمن لديهم دعوة صالحة مراسلتك مجانًا.</string>
-	<key>Set up a new workspace</key>
-	<string>إعداد مساحة عمل جديدة</string>
-	<key>Share %@ with %@.</key>
-	<string>مشاركة %1$@ مع %2$@.</string>
-	<key>Start a conversation to exchange messages and files with members.</key>
-	<string>ابدأ محادثة لتبادل الرسائل والملفات مع الأعضاء.</string>
-	<key>System alerts follow your preferences below.</key>
-	<string>تتبع تنبيهات النظام التفضيلات أدناه.</string>
-	<key>Use up to 200 characters to search.</key>
-	<string>استخدم حتى 200 حرف للبحث.</string>
-	<key>Write</key>
-	<string>كتابة</string>
-	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
-	<string>اكتب مباشرة إلى حساب. يقرر المستلم ما إذا كان سيرد. الإرسال من هنا مجاني.</string>
-	<key>Allow notifications to receive system alerts.</key>
-	<string>اسمح بالإشعارات لتلقي تنبيهات النظام.</string>
-	<key>Notifications are delivered quietly.</key>
-	<string>تصل الإشعارات بهدوء.</string>
-	<key>Veto proposal</key>
-	<string>استخدام حق النقض ضد المقترح</string>
-	<key>Fill once</key>
-	<string>تعبئة هذه المرة فقط</string>
-	<key>Fill and remember</key>
-	<string>تعبئة وتذكّر</string>
-	<key>Previously used</key>
-	<string>حسابات استُخدمت سابقًا</string>
-	<key>Fill this login?</key>
-	<string>هل تريد تعبئة بيانات هذا الحساب؟</string>
-	<key>Unidentified app or website</key>
-	<string>تطبيق أو موقع غير معروف</string>
-	<key>Choose a login when an app or website asks for a password.</key>
-	<string>اختر حسابًا عندما يطلب تطبيق أو موقع كلمة مرور.</string>
-	<key>Open and unlock dMsg to load your logins.</key>
-	<string>افتح dMsg وألغِ قفله لتحميل حساباتك.</string>
-	<key>Could not update Password AutoFill.</key>
-	<string>تعذّر تحديث التعبئة التلقائية لكلمات المرور.</string>
-	<key>Backup and restore</key>
-	<string>النسخ الاحتياطي والاستعادة</string>
-	<key>Export encrypted backup</key>
-	<string>تصدير نسخة احتياطية مشفّرة</string>
-	<key>Import from backup</key>
-	<string>الاستيراد من نسخة احتياطية</string>
-	<key>Backup password</key>
-	<string>كلمة مرور النسخة الاحتياطية</string>
-	<key>The two backup passwords do not match.</key>
-	<string>كلمتا مرور النسخة الاحتياطية غير متطابقتين.</string>
-	<key>Confirm backup password</key>
-	<string>تأكيد كلمة مرور النسخة</string>
-	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
-	<string>ستة أحرف على الأقل. احفظ كلمة المرور منفصلة، فلا يستطيع dMsg استعادتها.</string>
-	<key>Include linked files</key>
-	<string>تضمين الملفات المرتبطة</string>
-	<key>Some linked files are unavailable. Download them or export items only.</key>
-	<string>بعض الملفات غير متاح. نزّلها أو صدّر العناصر فقط.</string>
-	<key>Includes secrets saved in wallet items.</key>
-	<string>يتضمن الأسرار المحفوظة في عناصر المحفظة.</string>
-	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
-	<string>تشمل النسخة العناصر الحالية فقط. يُستثنى السجل والمهملات والمسودات والنسخ المتعارضة والمفاتيح التي يديرها dMsg.</string>
-	<key>Add as new</key>
-	<string>إضافة عنصر جديد</string>
-	<key>Different content · save a copy</key>
-	<string>محتوى مختلف · حفظ نسخة</string>
-	<key>Deleted here · save a copy</key>
-	<string>محذوف هنا · حفظ نسخة</string>
-	<key>Saved locally</key>
-	<string>حُفظ على الجهاز</string>
-	<key>Omitted attachments</key>
-	<string>المرفقات المستثناة</string>
-	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
-	<string>تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا.</string>
-	<key>No import was committed. Choose the backup again.</key>
-	<string>لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا.</string>
-	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
-	<string>تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.</string>
-	<key>Use only on this device</key>
-	<string>الاستخدام على هذا الجهاز فقط</string>
-	<key>Local account</key>
-	<string>حساب محلي</string>
-	<key>Local password</key>
-	<string>كلمة المرور المحلية</string>
-	<key>Import from local account</key>
-	<string>استيراد من الحساب المحلي</string>
-	<key>Use at least 12 characters.</key>
-	<string>استخدم 12 حرفًا على الأقل.</string>
-	<key>Confirm local password</key>
-	<string>تأكيد كلمة المرور المحلية</string>
-	<key>File digest checked</key>
-	<string>تم التحقق من ملخص الملف</string>
-	<key>The file changed or cannot be read</key>
-	<string>تغيّر الملف أو تتعذّر قراءته</string>
-	<key>Only the digest is confirmed; the file was not checked</key>
-	<string>تم تأكيد الملخص فقط؛ لم يُتحقَّق من الملف</string>
-	<key>Delivery report</key>
-	<string>تقرير التسليم</string>
-	<key>Sign in</key>
-	<string>تسجيل الدخول</string>
-	<key>Link to an existing account</key>
-	<string>الربط بحساب موجود</string>
-	<key>Confirm it is still you</key>
-	<string>التأكيد أنك ما زلت أنت</string>
-	<key>Receiver</key>
-	<string>الجهة المستلمة</string>
-	<key>Valid until</key>
-	<string>صالحة حتى</string>
-	<key>High risk</key>
-	<string>خطورة عالية</string>
-	<key>Continue on another device</key>
-	<string>المتابعة على جهاز آخر</string>
-	<key>Let this device approve future requests</key>
-	<string>السماح لهذا الجهاز بالموافقة على الطلبات المستقبلية</string>
-	<key>Approved. Preparing your vault…</key>
-	<string>تمت الموافقة. جارٍ تجهيز الخزنة…</string>
-	<key>No eligible administrator device was found.</key>
-	<string>لم يُعثر على جهاز مسؤول مؤهل للموافقة.</string>
-	<key>Refresh the request on the joining device and scan it again.</key>
-	<string>حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
-	<key>After key registration, refresh the request on the joining device and scan it again.</key>
-	<string>بعد تسجيل المفتاح، حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
-	<key>Scan this code with an administrator device to review the request.</key>
-	<string>امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.</string>
-	<key>Close</key>
-	<string>إغلاق</string>
-	<key>Comparison code</key>
-	<string>رمز المطابقة</string>
-	<key>Create a separate account</key>
-	<string>إنشاء حساب مستقل</string>
-	<key>Scan the code on an authorized device to open its account.</key>
-	<string>امسح الرمز الموجود على جهاز مصرح له لفتح حسابه.</string>
-	<key>This login belongs to another account. Choose a different login.</key>
-	<string>يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى.</string>
-	<key>Use this login for this account and add this device</key>
-	<string>استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز</string>
-	<key>Waiting for device approval</key>
-	<string>بانتظار الموافقة على الجهاز</string>
-	<key>Waiting for login approval</key>
-	<string>بانتظار الموافقة على تسجيل الدخول</string>
-	<key>On the new device, choose Open an existing account and scan this code.</key>
-	<string>اختر فتح حساب موجود على الجهاز الجديد، ثم امسح هذا الرمز.</string>
-	<key>Check that both devices show the same code before approving.</key>
-	<string>تأكد من تطابق الرمزين على الجهازين قبل الموافقة.</string>
 </dict>
 </plist>

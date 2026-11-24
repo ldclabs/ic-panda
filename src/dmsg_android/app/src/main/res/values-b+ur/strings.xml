@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"ہر وہ شخص جس کے پاس لنک اور پاس ورڈ ہے"</string>
     <string name="review_receiving" formatted="false">"وصولی"</string>
     <string name="saved_on_device" formatted="false">"اس ڈیوائس پر محفوظ کیا گیا"</string>
+    <string name="search_attachments_only" formatted="false">"منسلکات"</string>
+    <string name="search_everything" formatted="false">"سب کچھ تلاش کریں"</string>
+    <string name="search_latest_messages" formatted="false">"تازہ ترین پیغامات"</string>
     <string name="search_local_messages" formatted="false">"اس آلے پر محفوظ پیغامات تلاش کرتا ہے۔"</string>
+    <string name="search_matched_notes" formatted="false">"نوٹس میں ملا"</string>
+    <string name="search_member_label" formatted="false">"ممبر"</string>
+    <string name="search_newer_messages" formatted="false">"نئے پیغامات لوڈ کریں"</string>
+    <string name="search_next_match" formatted="false">"اگلا نتیجہ"</string>
+    <string name="search_open_in_conversation" formatted="false">"گفتگو میں کھولیں"</string>
+    <string name="search_prev_match" formatted="false">"پچھلا نتیجہ"</string>
     <string name="search_query_limit" formatted="false">"تلاش کے لیے زیادہ سے زیادہ 200 حروف لکھیں۔"</string>
+    <string name="search_scope_all" formatted="false">"سب"</string>
+    <string name="search_scope_current" formatted="false">"کرنٹ"</string>
+    <string name="search_sort_relevance" formatted="false">"بہترین مطابقت"</string>
     <string name="security_confirm" formatted="false">"dMsg میں تصدیق کریں"</string>
     <string name="security_manage_identity" formatted="false">"شناخت کا انتظام کریں"</string>
     <string name="security_unlock" formatted="false">"dMsg کا تالا کھولیں"</string>

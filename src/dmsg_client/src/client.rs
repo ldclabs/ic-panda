@@ -519,6 +519,8 @@ pub struct Client {
     pub(crate) blobs: Option<Blobs>,
     /// The library's catalog, read on first use while unlocked.
     pub(crate) library: Option<Catalog>,
+    /// Unlocked in-memory search caches (vault summaries and decoded message buckets); cleared on lock.
+    pub(crate) search_cache: crate::search::SearchCache,
     pub(crate) read_only_previews: bool,
     pub(crate) thumbnail_budget: crate::library::import::ThumbnailBudget,
     /// When the library's maintenance last ran.
@@ -911,6 +913,7 @@ impl Client {
             bound_logins: BTreeMap::new(),
             blobs: None,
             library: None,
+            search_cache: crate::search::SearchCache::default(),
             thumbnail_budget: Default::default(),
             read_only_previews: false,
             library_maintained_at: None,
@@ -1115,6 +1118,7 @@ impl Client {
             return Ok(());
         }
         self.library_lock();
+        self.search_cache.clear();
         self.keys = None;
         self.resident = None;
         self.root = None;
@@ -2141,6 +2145,7 @@ impl Client {
         self.secret_scans.clear();
         self.session_generation = self.session_generation.wrapping_add(1);
         self.library_lock();
+        self.search_cache.clear();
         let signing = self.keys.as_ref().map(|k| k.signing.clone());
         if self.config.background_online && !self.is_local() {
             self.resident = signing.or(self.resident.take());

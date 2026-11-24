@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "सर्वश्रेष्ठ मिलान",
+  "matchedInNotes": "नोट्स में मिला",
+  "matchedMember": "सदस्य: {name}",
+  "matchingMessages": "संदेश",
+  "newerMessages": "नए संदेश",
+  "searchPrevMatch": "पिछला मिलान",
+  "searchNextMatch": "अगला मिलान",
+  "loadMore": "और लोड करें",
   "promoRedeem": "कोड भुनाएँ",
   "promoCode": "सदस्यता कोड",
   "promoCheck": "कोड जाँचें",

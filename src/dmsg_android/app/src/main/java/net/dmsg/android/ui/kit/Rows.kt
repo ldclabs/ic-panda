@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -239,6 +240,11 @@ import net.dmsg.android.ui.code
 /** A compact row of a browse list: no chevron and no divider, as in Google's list apps; [emphasized] marks unread rows. */
 @Composable internal fun BrowseRow(
     title: String, modifier: Modifier, leading: @Composable () -> Unit,
+    trailing: @Composable RowScope.() -> Unit = {}, emphasized: Boolean = false, supporting: @Composable () -> Unit = {},
+) = BrowseRow(AnnotatedString(title), modifier, leading, trailing, emphasized, supporting)
+
+@Composable internal fun BrowseRow(
+    title: AnnotatedString, modifier: Modifier, leading: @Composable () -> Unit,
     trailing: @Composable RowScope.() -> Unit = {}, emphasized: Boolean = false, supporting: @Composable () -> Unit = {},
 ) {
     val largeText = LocalDensity.current.fontScale >= 1.5f

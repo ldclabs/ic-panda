@@ -3,11 +3,13 @@ package net.dmsg.android.core
 import net.dmsg.core.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class FileBrowsePreferences(val query: String = "", val sort: String = "name", val favorites: Boolean = false, val limit: Int = 100, val first: Int = 0, val offset: Int = 0)
+data class FileBrowsePreferences(val query: String = "", val sort: String = "name", val favorites: Boolean = false, val tag: String? = null, val limit: Int = 100, val first: Int = 0, val offset: Int = 0)
+data class FileTagCount(val tag: String, val files: ULong)
 data class FileActionTarget(val id: String, val name: String, val folder: Boolean)
 data class FileActionResult(val id: String, val name: String, val action: String, val error: String?)
 data class LibraryUsage(val files: ULong, val trashed: ULong, val versions: ULong, val localVersions: ULong, val bytes: ULong, val openCopies: ULong, val trashDays: ULong)
@@ -15,11 +17,12 @@ data class FileMetadataDraft(val file: LibraryFile, val tags: String = file.tags
 
 /** A folder refresh cannot replace a different folder or a file's verified details. */
 class FileCoordinator(private val client: ClientController) {
-    data class Listing(val folder: String, val query: String, val trash: Boolean, val folders: List<LibraryFolder>, val files: List<LibraryFile>)
+    data class Listing(val folder: String, val query: String, val trash: Boolean, val folders: List<LibraryFolder>, val files: List<LibraryFile>, val favorites: Boolean = false, val tag: String? = null)
     val listing = ReadStore<Listing> { it.folders.isEmpty() && it.files.isEmpty() }
     val detail = ReadStore<FileDetails>()
     val destinations = ReadStore<Listing>()
     val tree = ReadStore<List<LibraryFolder>> { it.isEmpty() }
+    val tags = ReadStore<List<FileTagCount>> { it.isEmpty() }
     val usage = ReadStore<LibraryUsage>()
     private val resultsValue = MutableStateFlow<List<FileActionResult>>(emptyList())
     val results = resultsValue.asStateFlow()
@@ -37,6 +40,10 @@ class FileCoordinator(private val client: ClientController) {
     var query = ""
         private set
     var trash = false
+        private set
+    var favorites = false
+        private set
+    var tag: String? = null
         private set
     private var selected: String? = null
     fun remember(folder: String, trash: Boolean, value: FileBrowsePreferences, owner: SessionStamp?) {
@@ -63,28 +70,29 @@ class FileCoordinator(private val client: ClientController) {
             starred = if (it.starred == it.file.starred) file.starred else it.starred)
         editorFailure.value = null
     } }
-    fun browse(next: String = folder, search: String = query, discarded: Boolean = trash) {
-        val same = next == folder && search == query && discarded == trash
-        val key = "$discarded:$next:$search"
+    fun browse(next: String = folder, search: String = query, discarded: Boolean = trash, starredOnly: Boolean = favorites, tagFilter: String? = tag) {
+        val same = next == folder && search == query && discarded == trash && starredOnly == favorites && tagFilter == tag
+        val typing = search.trim().isNotEmpty() && search != query
+        val key = "$discarded:$next:$starredOnly:${tagFilter.orEmpty()}:$search"
         if (!same) {
             selectionValue.value = emptySet()
             listing.reset()
             cache[key]?.let { listing.accept(listing.begin(false), it) }
         }
         val request = listing.begin()
-        folder = next; query = search; trash = discarded
+        folder = next; query = search; trash = discarded; favorites = starredOnly; tag = tagFilter
         client.perform({ core ->
-            val base = if (discarded) core.fileTrash() else core.files(next)
-            val (folders, files) = parseFiles(base.json)
             val term = search.trim()
-            if (term.isEmpty()) Listing(next, search, discarded, folders, files)
-            else if (discarded) Listing(next, search, true, folders.filter { it.name.contains(term, true) }, files.filter { it.name.contains(term, true) || it.note.contains(term, true) || it.tags.any { tag -> tag.contains(term, true) } })
-            else {
-                val tree = core.fileFolders().decode().arrayRows().map(::parseFolder)
-                val parent = tree.find { it.id == next }
-                val prefix = parent?.let { it.path + it.name }.orEmpty()
-                val matching = tree.filter { it.name.contains(term, true) && (next == "root" || parent != null && it.path.take(prefix.size) == prefix) }
-                Listing(next, search, false, matching, core.searchFiles(term, next.takeIf { it != "root" }).decode().arrayRows().map(::parseFile))
+            if (typing) delay(160)
+            if (term.isEmpty() && !starredOnly && tagFilter == null) {
+                val base = if (discarded) core.fileTrash() else core.files(next)
+                val (folders, files) = parseFiles(base.json)
+                Listing(next, search, discarded, folders, files, starredOnly, tagFilter)
+            } else {
+                val scopedFolder = if (discarded || next == "root") null else next
+                val snap = core.searchFilesListing(term, scopedFolder, starredOnly, tagFilter, discarded)
+                val (folders, files) = parseFilesSearchListing(snap.decode())
+                Listing(next, search, discarded, folders, files, starredOnly, tagFilter)
             }
         }, key = "files:list", replace = true, quiet = true, onError = { listing.fail(request, it) }) {
             listing.accept(request, it)
@@ -93,6 +101,12 @@ class FileCoordinator(private val client: ClientController) {
             while (cache.size > 8) cache.remove(cache.keys.first())
         }
         if (tree.value() == null) loadTree()
+        if (tags.value() == null) loadTags()
+    }
+    fun loadTags() {
+        val request = tags.begin()
+        client.perform({ it.fileTags().decode().arrayRows().map { row -> FileTagCount(row.required("tag"), row.requiredUnsigned("files")) } },
+            key = "files:tags", replace = true, quiet = true, onError = { tags.fail(request, it) }) { tags.accept(request, it) }
     }
     fun select(id: String) {
         val request = detail.begin(keep = selected == id); selected = id
@@ -114,7 +128,7 @@ class FileCoordinator(private val client: ClientController) {
         client.perform({ it.fileLibraryUsage().decode().objectValue().let { row -> LibraryUsage(row.requiredUnsigned("files"), row.requiredUnsigned("trashed"), row.requiredUnsigned("versions"), row.requiredUnsigned("local_versions"), row.requiredUnsigned("blob_bytes"), row.requiredUnsigned("open_copies"), row.requiredUnsigned("trash_days")) } },
             key = "files:usage", replace = true, quiet = true, onError = { usage.fail(request, it) }) { usage.accept(request, it) }
     }
-    fun changed(search: String = query) { cache.clear(); client.messageAttachments.invalidate(); browse(search = search); loadTree(); selected?.let(::select) }
+    fun changed(search: String = query) { cache.clear(); client.messageAttachments.invalidate(); browse(search = search); loadTree(); loadTags(); selected?.let(::select) }
     fun saveName(id: String?, parent: String, name: String, onError: (String) -> Unit, done: () -> Unit) = client.perform({
         if (id == null) it.createFolder(parent, name) else it.renameFile(id, name)
     }, key = id?.let { "files:rename:$it" } ?: "files:create-folder", quiet = true, onError = onError) { changed(); done() }
@@ -161,8 +175,8 @@ class FileCoordinator(private val client: ClientController) {
     }
     fun cancelBatch() { client.cancelOperation("files:batch"); changed(); loadUsage() }
     fun clear(retainForms: Boolean = false) {
-        listing.reset(); detail.reset(); destinations.reset(); tree.reset(); usage.reset(); resultsValue.value = emptyList(); selectionValue.value = emptySet(); cache.clear(); savedPreferences.value = emptyMap()
+        listing.reset(); detail.reset(); destinations.reset(); tree.reset(); tags.reset(); usage.reset(); resultsValue.value = emptyList(); selectionValue.value = emptySet(); cache.clear(); savedPreferences.value = emptyMap()
         if (!retainForms) { editorValue.value = null; editorFailure.value = null }
-        folder = "root"; query = ""; trash = false; selected = null
+        folder = "root"; query = ""; trash = false; favorites = false; tag = null; selected = null
     }
 }

@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"أي شخص لديه الرابط وكلمة المرور"</string>
     <string name="review_receiving" formatted="false">"استلام"</string>
     <string name="saved_on_device" formatted="false">"محفوظ على هذا الجهاز"</string>
+    <string name="search_attachments_only" formatted="false">"المرفقات"</string>
+    <string name="search_everything" formatted="false">"البحث في الكل"</string>
+    <string name="search_latest_messages" formatted="false">"أحدث الرسائل"</string>
     <string name="search_local_messages" formatted="false">"يبحث في الرسائل المحفوظة على هذا الجهاز."</string>
+    <string name="search_matched_notes" formatted="false">"تطابق في الملاحظات"</string>
+    <string name="search_member_label" formatted="false">"العضو"</string>
+    <string name="search_newer_messages" formatted="false">"تحميل رسائل أحدث"</string>
+    <string name="search_next_match" formatted="false">"النتيجة التالية"</string>
+    <string name="search_open_in_conversation" formatted="false">"فتح في المحادثة"</string>
+    <string name="search_prev_match" formatted="false">"النتيجة السابقة"</string>
     <string name="search_query_limit" formatted="false">"استخدم حتى 200 حرف للبحث."</string>
+    <string name="search_scope_all" formatted="false">"الكل"</string>
+    <string name="search_scope_current" formatted="false">"الحالي"</string>
+    <string name="search_sort_relevance" formatted="false">"الأكثر مطابقة"</string>
     <string name="security_confirm" formatted="false">"التأكيد في dMsg"</string>
     <string name="security_manage_identity" formatted="false">"إدارة هوية"</string>
     <string name="security_unlock" formatted="false">"فتح قفل dMsg"</string>

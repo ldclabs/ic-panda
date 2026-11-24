@@ -1,19 +1,21 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { Command, Dialog } from 'bits-ui'
   import { appearances } from '../../shared/appearance'
   import { localeDir, localeNames, locales } from '../../shared/locales'
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import type { Glyph } from '../components/glyphs'
+  import HighlightText from '../components/HighlightText.svelte'
+  import type { HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
+  import Notice from '../components/page/Notice.svelte'
   import { locale, setLocale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
-  import { iconButtonClass } from '../components/ui'
+  import { buttonClass, iconButtonClass } from '../components/ui'
   import { toast } from '../components/toast.svelte'
   import { bridge, call, errorText } from '../rpc'
   import { nameOf, visibleName } from '../views/channels/names.svelte'
   import { focus as fileFocus } from '../views/files/focus.svelte'
-  import { searchLibrary } from '../views/files/search.svelte'
-  import SearchStatus from '../views/files/SearchStatus.svelte'
   import { focus } from '../views/vault/focus.svelte'
   import { workflowText } from '../views/secrets/workflow-text'
   import { isManaged, otpField, typeIcon, typeLabel, typeOf, valueOf, workflowIcon, vaultWorkflows } from '../views/vault/vault'
@@ -24,9 +26,10 @@
   /**
    * The command palette: go to any view or settings page, the session,
    * appearance and language commands, and what the account holds (vault items,
-   * channels, letters, files), found by typing. It matches on its own and shows
-   * a few rows per group, so a large vault costs nothing. → opens a vault
-   * item's copy and open actions.
+   * channels, messages, letters, files and folders), searched via the daemon's
+   * unified pinyin/multi-token `search/global` engine. Prefixes:
+   * `>` commands & navigation, `#` vault, `@` channels & messages, `/` files.
+   * → lazily loads a vault item's copy and open actions.
    */
   let {
     open = $bindable(false),
@@ -48,6 +51,7 @@
 
   interface Entry {
     label: string
+    spans?: HighlightSpan[]
     /** What tells entries apart when the label is not unique. */
     value?: string
     icon: Glyph
@@ -56,43 +60,93 @@
     sender?: string
     keywords?: string[]
     checked?: boolean
-    /** More to do with it, as a second level. */
-    more?: () => Entry[]
+    /** Lazy second-level actions (e.g. vault copy actions). */
+    more?: () => Entry[] | Promise<Entry[]>
+  }
+
+  interface GlobalSearchState {
+    kind: 'idle' | 'loading' | 'ready' | 'failed'
+    query?: string
+    result?: {
+      vault: any[]
+      channels: any[]
+      messages: any[]
+      letters: any[]
+      folders: any[]
+      files: any[]
+    }
+    cause?: unknown
   }
 
   let search = $state('')
   let highlighted = $state('')
   let input = $state<HTMLInputElement | null>(null)
   /** The entry whose actions show instead of the groups. */
-  let detail = $state<Entry | null>(null)
-  /** What the account holds, read when the palette opens on an unlocked device. */
-  let items = $state<any[]>([])
-  let channels = $state<any[]>([])
-  let letters = $state<any[]>([])
+  let detail = $state<{ entry: Entry; actions: Entry[]; loading: boolean } | null>(null)
+  let globalState = $state.raw<GlobalSearchState>({ kind: 'idle' })
+  let globalSeq = 0
+  let globalRetry = $state(0)
   const unlocked = $derived(status?.state === 'unlocked')
-  const tokens = $derived(tokensOf(search))
 
-  // Read again only when the palette opens or the lock changes, not on every status refresh.
+  /** Quick scope prefixes: `>` commands, `#` vault, `@` channels/messages, `/` files. */
+  const parsed = $derived.by(() => {
+    const trimmed = search.trim()
+    if (!trimmed) return { mode: 'all' as const, query: '', scopes: [] as string[] }
+    const first = trimmed[0]
+    const rest = trimmed.slice(1).trim()
+    if (first === '>') return { mode: 'commands' as const, query: rest, scopes: [] as string[] }
+    if (first === '#' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['vault'] }
+    if (first === '@' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['channels', 'messages', 'inbox'] }
+    if (first === '/' && rest) return { mode: 'scoped' as const, query: rest, scopes: ['files'] }
+    return { mode: 'all' as const, query: trimmed, scopes: [] as string[] }
+  })
+  const tokens = $derived(tokensOf(parsed.query))
+
+  // Reset on close or lock change.
   $effect(() => {
-    items = channels = letters = []
-    detail = null
     if (!open) {
       search = ''
-    } else if (unlocked) {
-      let current = true
-      call<any[]>('vault/list').then((list) => current && (items = list)).catch(() => {})
-      call<any[]>('channel/list').then((list) => current && (channels = list)).catch(() => {})
-      call<any[]>('inbox/list', { refresh: false }).then((list) => current && (letters = list)).catch(() => {})
-      return () => { current = false }
+      detail = null
+      globalState = { kind: 'idle' }
+    } else if (!unlocked) {
+      detail = null
+      globalState = { kind: 'idle' }
     }
   })
 
-  // Files are searched in the daemon, a moment after typing stops.
-  const fileSearch = searchLibrary(() => {
-    const query = search.trim()
-    return open && unlocked && !detail && query.length >= 2 ? query : null
+  // Unified daemon global search (supports 1+ chars, including single CJK characters and pinyin).
+  $effect(() => {
+    const active = open && unlocked && !detail && parsed.mode !== 'commands' && parsed.query.length >= 1
+    const q = parsed.query
+    const scopes = parsed.scopes
+    void globalRetry
+    if (!active) {
+      globalState = { kind: 'idle' }
+      return
+    }
+    const req = ++globalSeq
+    let cancelled = false
+    const prev = untrack(() => globalState)
+    if (prev.kind !== 'ready' || prev.query !== `${scopes.join(',')}:${q}`) {
+      globalState = { kind: 'loading' }
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const result = await call<any>('search/global', { query: q, scopes, limit: GROUP_LIMIT })
+        if (!cancelled && req === globalSeq) {
+          globalState = { kind: 'ready', query: `${scopes.join(',')}:${q}`, result }
+        }
+      } catch (cause) {
+        if (!cancelled && req === globalSeq) {
+          globalState = { kind: 'failed', cause }
+        }
+      }
+    }, 90)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   })
-  const files = $derived(fileSearch.result.kind === 'ready' ? fileSearch.result.files : [])
 
   /** Settings › About dMsg shows what the check finds. */
   function checkUpdates() {
@@ -102,7 +156,7 @@
 
   /** What can be done with a vault item; dMsg's own keys only open. */
   function itemActions(entry: any, opened: Entry): Entry[] {
-    const actions: Entry[] = [{ ...opened, more: undefined, label: t('open'), hint: undefined }]
+    const actions: Entry[] = [{ ...opened, more: undefined, label: t('open'), spans: undefined, hint: undefined }]
     if (isManaged(entry.item)) return actions
     const username = valueOf(entry.item, 'username')
     if (username) actions.push({ label: t('copyUsername'), icon: 'user', run: () => copyText(username) })
@@ -115,50 +169,105 @@
     return actions
   }
 
-  const vaultEntries = $derived(items.map((entry): Entry => {
-    const type = typeOf(entry.item)
-    const opened: Entry = {
-      label: entry.item.title,
-      value: `vault:${entry.id}`,
-      icon: typeIcon[type],
-      hint: t(typeLabel[type]),
-      keywords: [...entry.item.tags, valueOf(entry.item, 'username'), valueOf(entry.item, 'url')].filter(Boolean),
-      run: () => {
-        focus.id = entry.id
-        go(views.vault.path)
+  const hits = $derived(globalState.kind === 'ready' ? globalState.result : null)
+
+  const vaultEntries = $derived(
+    (hits?.vault ?? []).map((summary): Entry => {
+      const type = typeOf({ type: summary.kind ?? summary.type })
+      const matchField = summary.matchField ?? summary.match_field
+      const matchValue = summary.matchValue ?? summary.match_value
+      const hint =
+        matchField === 'notes'
+          ? t('matchedInNotes')
+          : matchField === 'tag' && matchValue
+            ? `#${matchValue}`
+            : summary.subtitle || t(typeLabel[type])
+      const opened: Entry = {
+        label: summary.title,
+        spans: summary.titleSpans ?? summary.title_spans,
+        value: `vault:${summary.id}`,
+        icon: typeIcon[type],
+        hint,
+        run: () => {
+          focus.id = summary.id
+          go(views.vault.path)
+        }
       }
-    }
-    opened.more = () => itemActions(entry, opened)
-    return opened
-  }))
-  const channelEntries = $derived(channels.map((channel): Entry => ({
-    label: channel.name,
-    value: `channel:${channel.id}`,
-    icon: 'channels',
-    hint: channel.unread ? String(channel.unread) : undefined,
-    run: () => go(`/channels?open=${channel.id}`)
-  })))
-  const letterEntries = $derived(letters.filter((letter) => letter.state === 'visible').map((letter): Entry => ({
-    label: letter.text.split('\n')[0] || t('letter'),
-    value: `letter:${letter.order_id}`,
-    icon: 'inbox',
-    sender: letter.sender,
-    hint: nameOf(letter.sender, 'search') || shortId(letter.sender),
-    keywords: [nameOf(letter.sender, 'search'), letter.sender, letter.text].filter(Boolean),
-    run: () => go(`/inbox?open=${letter.order_id}`)
-  })))
-  const fileEntries = $derived(files.slice(0, GROUP_LIMIT).map((file): Entry => ({
-    label: file.name,
-    value: `file:${file.id}`,
-    icon: 'file',
-    run: () => {
-      fileFocus.id = file.id
-      go(views.files.path)
-    }
-  })))
+      opened.more = async () => {
+        const shown = await call<any>('vault/show', { id: summary.id })
+        return itemActions(shown, opened)
+      }
+      return opened
+    })
+  )
+
+  const channelEntries = $derived(
+    (hits?.channels ?? []).map((hit): Entry => ({
+      label: hit.name,
+      spans: hit.name_spans,
+      value: `channel:${hit.id}`,
+      icon: 'channels',
+      hint: hit.match_field === 'member' && hit.match_value
+        ? t('matchedMember', { name: hit.match_value })
+        : hit.unread
+          ? String(hit.unread)
+          : undefined,
+      run: () => go(`/channels?open=${hit.id}`)
+    }))
+  )
+
+  const messageEntries = $derived(
+    (hits?.messages ?? []).map((hit): Entry => {
+      const chId = hit.channel ?? hit.channel_id
+      return {
+        label: hit.message.text || hit.message.file?.name || '…',
+        spans: hit.snippet_spans,
+        value: `msg:${chId}:${hit.message.seq}`,
+        icon: 'channels',
+        sender: hit.message.account,
+        hint: hit.sender_name || nameOf(hit.message.account, 'search') || undefined,
+        run: () => go(`/channels?open=${chId}&seq=${hit.message.seq}`)
+      }
+    })
+  )
+
+  const letterEntries = $derived(
+    (hits?.letters ?? []).map((hit): Entry => ({
+      label: (hit.snippet_spans?.map((s: HighlightSpan) => s.text).join('') || hit.display_name || shortId(hit.account)),
+      spans: hit.snippet_spans?.length ? hit.snippet_spans : hit.name_spans,
+      value: `letter:${hit.box_kind}:${hit.id}`,
+      icon: 'inbox',
+      sender: hit.account,
+      hint: hit.display_name || nameOf(hit.account, 'search') || shortId(hit.account),
+      run: () => go(`/inbox?open=${hit.id}`)
+    }))
+  )
+
+  const fileEntries = $derived(
+    (hits?.files ?? []).slice(0, GROUP_LIMIT).map((hit): Entry => {
+      const isFolder = hit.kind === 'folder'
+      return {
+        label: hit.name,
+        spans: hit.name_spans,
+        value: `${isFolder ? 'folder' : 'file'}:${hit.id}`,
+        icon: isFolder ? 'folder' : 'file',
+        hint: hit.match_field === 'tag' && hit.match_value
+          ? `#${hit.match_value}`
+          : (hit.path ?? []).join(' / ') || undefined,
+        run: () => {
+          if (isFolder) fileFocus.folder = hit.id
+          else fileFocus.id = hit.id
+          go(views.files.path)
+        }
+      }
+    })
+  )
 
   const groups = $derived.by(() => {
-    if (detail) return [{ heading: detail.label, entries: tokens.length ? best(detail.more?.() ?? [], tokens) : (detail.more?.() ?? []) }]
+    if (detail) {
+      const actionTokens = tokensOf(search)
+      return [{ heading: detail.entry.label, entries: actionTokens.length ? best(detail.actions, actionTokens) : detail.actions }]
+    }
     const places: Entry[] = [
       ...shortcuts.map((view) => ({ label: t(view.label), icon: view.icon, hint: `${mod}${view.key}`, run: () => go(view.path) })),
       { label: t(views.reminders.label), icon: views.reminders.icon, run: () => go(views.reminders.path) }
@@ -180,7 +289,7 @@
       checked: appearance() === value,
       run: () => setAppearance(value).catch(() => toast(() => t('appearanceFailed')))
     }))
-    if (!tokens.length) return [
+    if (!search.trim()) return [
       { heading: t('goTo'), entries: places },
       { heading: t('commands'), entries: commands },
       { heading: t('appearance'), entries: looks }
@@ -192,16 +301,30 @@
       checked: locale() === code,
       run: () => setLocale(code).catch(() => toast(() => t('languageFailed')))
     }))
-    return [
-      { heading: t('vault'), entries: best(vaultEntries, tokens) },
-      { heading: t('channels'), entries: best(channelEntries, tokens) },
-      { heading: t('inbox'), entries: best(letterEntries, tokens, 8) },
-      { heading: t('files'), entries: fileEntries },
-      { heading: t('goTo'), entries: best([...places, ...secretParts, ...pages], tokens) },
-      { heading: t('commands'), entries: best(commands, tokens) },
-      { heading: t('appearance'), entries: best(looks, tokens) },
-      { heading: t('language'), entries: best(languages, tokens) }
+    if (parsed.mode === 'commands') {
+      return [
+        { heading: t('goTo'), entries: tokens.length ? best([...places, ...secretParts, ...pages], tokens) : [...places, ...secretParts, ...pages] },
+        { heading: t('commands'), entries: tokens.length ? best(commands, tokens) : commands },
+        { heading: t('appearance'), entries: tokens.length ? best(looks, tokens) : looks },
+        { heading: t('language'), entries: tokens.length ? best(languages, tokens) : languages }
+      ]
+    }
+    const list: { heading: string; entries: Entry[] }[] = [
+      { heading: t('vault'), entries: vaultEntries },
+      { heading: t('channels'), entries: channelEntries },
+      { heading: t('matchingMessages'), entries: messageEntries },
+      { heading: t('inbox'), entries: letterEntries },
+      { heading: t('files'), entries: fileEntries }
     ]
+    if (parsed.mode === 'all') {
+      list.push(
+        { heading: t('goTo'), entries: best([...places, ...secretParts, ...pages], tokens) },
+        { heading: t('commands'), entries: best(commands, tokens) },
+        { heading: t('appearance'), entries: best(looks, tokens) },
+        { heading: t('language'), entries: best(languages, tokens) }
+      )
+    }
+    return list
   })
 
   const rows = $derived(groups.flatMap((group) => group.entries))
@@ -222,10 +345,21 @@
     void entry.run()
   }
 
-  function enter(entry: Entry) {
-    detail = entry
+  async function enter(entry: Entry) {
+    if (!entry.more) return
+    const next = { entry, actions: [] as Entry[], loading: true }
+    detail = next
     search = ''
     input?.focus()
+    try {
+      const actions = await entry.more()
+      if (detail === next) detail = { entry, actions, loading: false }
+    } catch (e) {
+      if (detail === next) {
+        detail = null
+        toast(() => errorText(e))
+      }
+    }
   }
 
   function leave() {
@@ -239,7 +373,7 @@
     const atEnd = input?.selectionStart === search.length && input.selectionEnd === search.length
     if (event.key === (rtl ? 'ArrowLeft' : 'ArrowRight') && !detail && current?.more && atEnd) {
       event.preventDefault()
-      enter(current)
+      void enter(current)
     } else if (event.key === (rtl ? 'ArrowRight' : 'ArrowLeft') && detail && !search) {
       event.preventDefault()
       leave()
@@ -275,7 +409,7 @@
             bind:ref={input}
             bind:value={search}
             onkeydown={onInputKey}
-            placeholder={detail ? detail.label : t('searchOrCommand')}
+            placeholder={detail ? detail.entry.label : t('searchOrCommand')}
             class="h-12 border-0 bg-transparent px-0 text-title-3 focus-visible:shadow-none"
             data-testid="palette-input"
           />
@@ -283,8 +417,10 @@
         </div>
         <Command.List class="max-h-[min(400px,60vh)] overflow-y-auto p-1.5">
           <Command.Viewport>
-            {#if fileSearch.result.kind !== 'failed'}
-              <Command.Empty class="py-10 text-center text-body text-faint">{t(fileSearch.result.kind === 'loading' ? 'loading' : 'noResults')}</Command.Empty>
+            {#if globalState.kind !== 'failed'}
+              <Command.Empty class="py-10 text-center text-body text-faint">
+                {t(globalState.kind === 'loading' || detail?.loading ? 'loading' : 'noResults')}
+              </Command.Empty>
             {/if}
             {#each groups as group (group.heading)}
               {#if group.entries.length}
@@ -301,7 +437,9 @@
                         <span class="grid size-6 shrink-0 place-items-center text-faint [&_svg]:size-4.5">
                           <Icon name={entry.icon} class="size-3.5" />
                         </span>
-                        <span {@attach visibleName(entry.sender)} class="min-w-0 flex-1 truncate">{entry.label}</span>
+                        <span {@attach visibleName(entry.sender)} class="min-w-0 flex-1 truncate">
+                          <HighlightText text={entry.label} spans={entry.spans} />
+                        </span>
                         {#if entry.checked}<Icon name="check" class="size-3.5 text-forest" />{/if}
                         {#if entry.hint}<kbd class="max-w-[40%] truncate font-mono text-caption text-faint">{entry.hint}</kbd>{/if}
                         {#if entry.more}
@@ -310,7 +448,7 @@
                             aria-label={`${t('paletteMore')} · ${entry.label}`}
                             onclick={(event) => {
                               event.stopPropagation()
-                              enter(entry)
+                              void enter(entry)
                             }}
                             data-testid="palette-more"><Icon name="chevron-end" /></button>
                         {/if}
@@ -323,8 +461,15 @@
           </Command.Viewport>
         </Command.List>
       </Command.Root>
-      {#if fileSearch.result.kind === 'failed'}
-        <div class="px-3 py-2"><SearchStatus search={fileSearch} empty="" /></div>
+      {#if globalState.kind === 'failed'}
+        <div class="px-3 py-2">
+          <Notice tone="warn" failure={errorText(globalState.cause)}>
+            <div class="flex items-center justify-between gap-2">
+              <span class="min-w-0 flex-1">{errorText(globalState.cause)}</span>
+              <button class={buttonClass('subtle', 'xs')} onclick={() => (globalRetry += 1)}>{t('retry')}</button>
+            </div>
+          </Notice>
+        </div>
       {/if}
       <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-caption text-faint">
         <span class="inline-flex items-center gap-1.5"><Icon name="arrows" class="size-3.5" />{t('paletteMove')}</span>

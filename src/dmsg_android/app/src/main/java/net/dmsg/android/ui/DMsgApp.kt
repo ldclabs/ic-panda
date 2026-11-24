@@ -270,7 +270,7 @@ import kotlinx.coroutines.launch
                                         val list: @Composable () -> Unit = { MessagesScreen(client, state, ::select) { go("inbox") } }
                                         val detail: @Composable () -> Unit = {
                                             if (selected.isEmpty()) EmptyState(str(R.string.text_choose_a_conversation_f1e5111), glyph = R.drawable.glyph_channels)
-                                            else ConversationScreen(client, state, selected, threadSearch) { threadSearch = it }
+                                            else ConversationScreen(client, state, selected, page.sequence, threadSearch) { threadSearch = it }
                                         }
                                         if (wide) WorkspacePanes(fold, list = list, detail = { if (selected.isEmpty()) detail() else DetailPane(detail) })
                                         else if (inConversation) detail() else list()

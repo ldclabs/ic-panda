@@ -2,7 +2,7 @@
 //! rows are snapshotted; keys stay in the client and a lock stops the read.
 
 use super::{Filter, VaultEntry, health};
-use crate::{Client, content::VAULT, hold::Hold};
+use crate::{Client, content::VAULT, hold::Hold, search::HighlightSpan};
 use dmsg_types::{Error, Result, ensure};
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -52,6 +52,18 @@ pub struct Summary {
     pub created_at: u64,
     /// Item modification time in milliseconds.
     pub updated_at: u64,
+    /// Highlighted title segments when produced by a search query.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub title_spans: Vec<HighlightSpan>,
+    /// Highlighted subtitle segments when produced by a search query.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subtitle_spans: Vec<HighlightSpan>,
+    /// Non-primary matched field identifier (e.g. `"tag"`, `"notes"`, `"email"`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub match_field: Option<String>,
+    /// Safe secondary matched value (never populated for notes or hidden fields).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub match_value: Option<String>,
 }
 
 /// Match the desktop list: preview only a username or web host for account-like
@@ -106,6 +118,10 @@ impl From<VaultEntry> for Summary {
             deleted: entry.deleted,
             created_at: entry.item.created_at,
             updated_at: entry.item.updated_at,
+            title_spans: Vec::new(),
+            subtitle_spans: Vec::new(),
+            match_field: None,
+            match_value: None,
         }
     }
 }
@@ -149,100 +165,11 @@ pub struct BrowsePage {
 }
 
 /// Filter and sort before pagination, with counts for the complete query.
-/// Only safe summaries are retained; each decryption releases the client.
+/// Only safe summaries are retained; uses the unlocked incremental search cache
+/// so repeated keystrokes avoid decrypting unchanged items, while every new decryption
+/// releases the client and checks session generation.
 pub async fn browse<H: Hold>(h: &H, query: &BrowseQuery) -> Result<BrowsePage> {
-    dmsg_types::ensure_valid(query.limit > 0 && query.limit <= 10_000, "page")?;
-    dmsg_types::ensure_valid(matches!(query.sort.as_str(), "title" | "updated"), "sort")?;
-    dmsg_types::ensure_valid(
-        query
-            .kind
-            .as_ref()
-            .is_none_or(|k| super::TYPES.contains(&k.as_str())),
-        "kind",
-    )?;
-    let session = h.with(|c| Session::start(c)).await?;
-    let conflicts = h
-        .with(|c| {
-            session.check(c)?;
-            conflict_ids(c)
-        })
-        .await?;
-    let mut after = String::new();
-    let mut items = Vec::new();
-    let mut all = 0;
-    let mut favorites = 0;
-    let mut kinds = BTreeMap::new();
-    let mut tags = std::collections::BTreeSet::new();
-    loop {
-        let rows = h
-            .with(|c| {
-                session.check(c)?;
-                c.workspace.store.head_objects_after(VAULT, &after, 64)
-            })
-            .await?;
-        if rows.is_empty() {
-            break;
-        }
-        for row in rows {
-            after = row.item.clone();
-            let entry = h
-                .with(|c| {
-                    session.check(c)?;
-                    c.vault_list_entry(&row, &query.filter)
-                })
-                .await?;
-            let Some(entry) = entry else {
-                continue;
-            };
-            tags.extend(entry.item.tags.iter().cloned());
-            if query
-                .tag
-                .as_ref()
-                .is_some_and(|tag| !entry.item.tags.contains(tag))
-            {
-                continue;
-            }
-            all += 1;
-            favorites += usize::from(entry.item.favorite);
-            *kinds.entry(entry.item.kind.clone()).or_default() += 1;
-            if query
-                .kind
-                .as_ref()
-                .is_none_or(|kind| *kind == entry.item.kind)
-                && (!query.favorites || entry.item.favorite)
-            {
-                let mut summary = Summary::from(entry);
-                summary.conflict |= conflicts.contains(&summary.id);
-                items.push(summary);
-            }
-        }
-    }
-    h.with(|c| session.check(c)).await?;
-    if query.sort == "title" {
-        items.sort_by_cached_key(|e| (e.title.to_lowercase(), e.id.clone()));
-    } else {
-        items.sort_by(|a, b| {
-            b.updated_at
-                .cmp(&a.updated_at)
-                .then_with(|| a.id.cmp(&b.id))
-        });
-    }
-    let total = items.len();
-    let has_more = query.offset.saturating_add(query.limit) < total;
-    let items = items
-        .into_iter()
-        .skip(query.offset)
-        .take(query.limit)
-        .collect();
-    Ok(BrowsePage {
-        items,
-        total,
-        all,
-        favorites,
-        kinds,
-        tags: tags.into_iter().collect(),
-        has_more,
-    })
+    crate::search::browse_vault_cached(h, query).await
 }
 
 /// The unlocked session and root in which a local vault operation began.

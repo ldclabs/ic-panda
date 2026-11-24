@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Bất kỳ ai có liên kết và mật khẩu"</string>
     <string name="review_receiving" formatted="false">"Đang nhận"</string>
     <string name="saved_on_device" formatted="false">"Đã lưu trên thiết bị này"</string>
+    <string name="search_attachments_only" formatted="false">"Tệp đính kèm"</string>
+    <string name="search_everything" formatted="false">"Tìm trong tất cả"</string>
+    <string name="search_latest_messages" formatted="false">"Tin nhắn mới nhất"</string>
     <string name="search_local_messages" formatted="false">"Tìm trong tin nhắn được lưu trên thiết bị này."</string>
+    <string name="search_matched_notes" formatted="false">"Khớp trong ghi chú"</string>
+    <string name="search_member_label" formatted="false">"Thành viên"</string>
+    <string name="search_newer_messages" formatted="false">"Tải tin nhắn mới hơn"</string>
+    <string name="search_next_match" formatted="false">"Kết quả tiếp theo"</string>
+    <string name="search_open_in_conversation" formatted="false">"Mở trong cuộc trò chuyện"</string>
+    <string name="search_prev_match" formatted="false">"Kết quả trước"</string>
     <string name="search_query_limit" formatted="false">"Nhập tối đa 200 ký tự để tìm kiếm."</string>
+    <string name="search_scope_all" formatted="false">"Tất cả"</string>
+    <string name="search_scope_current" formatted="false">"Hiện tại"</string>
+    <string name="search_sort_relevance" formatted="false">"Phù hợp nhất"</string>
     <string name="security_confirm" formatted="false">"Xác nhận trong dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Quản lý danh tính"</string>
     <string name="security_unlock" formatted="false">"Mở khóa dMsg"</string>

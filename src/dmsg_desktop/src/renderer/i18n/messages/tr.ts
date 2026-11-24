@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "En iyi eşleşme",
+  "matchedInNotes": "Notlarda eşleşti",
+  "matchedMember": "Üye: {name}",
+  "matchingMessages": "Mesajlar",
+  "newerMessages": "Daha yeni mesajlar",
+  "searchPrevMatch": "Önceki eşleşme",
+  "searchNextMatch": "Sonraki eşleşme",
+  "loadMore": "Daha fazla yükle",
   "promoRedeem": "Kodu kullan",
   "promoCode": "Üyelik kodu",
   "promoCheck": "Kodu kontrol et",

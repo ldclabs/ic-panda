@@ -26,10 +26,15 @@ struct ConversationView: View {
     @State private var secretPackage: SecretPackageImportView.ChannelSource?
     @State private var hasEarlier = false
     @State private var nextBefore: UInt64?
+    @State private var hasAfter = false
+    @State private var nextAfter: UInt64?
+    @State private var loadingNewer = false
+    @State private var highlightedSequence: UInt64?
+    @State private var highlightSpans: [HighlightSpan] = []
+    @State private var scrolledAnchor: UInt64?
     @State private var oldestLoaded: UInt64?
     @State private var preserveMessage: String?
     @State private var nearBottom = true
-    @State private var loadedQuery = ""
     @State private var messageRequest: UUID?
     @State private var actionTask: Task<Void, Never>?
     @State private var loadingEarlier = false
@@ -40,6 +45,12 @@ struct ConversationView: View {
     @State private var refreshRequested = false
     @State private var query = ""
     @State private var searching = false
+    @State private var hasFileOnly = false
+    @State private var searchHits: [RichMessageSearchHit] = []
+    @State private var searchNextBefore: UInt64?
+    @State private var searchLoading = false
+    @State private var searchIndex = -1
+    @State private var searchExpanded = true
     @FocusState private var searchFocused: Bool
     @State private var editingMessage: MessageEdit?
     @State private var selectingText: MessageEdit?
@@ -49,20 +60,20 @@ struct ConversationView: View {
     @State private var replyJump: Task<Void, Never>?
     private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
     private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var activeSearchKey: String {
+        guard searching, !searchQuery.isEmpty || hasFileOnly else { return "" }
+        return "\(channel.id):\(model.epoch):\(model.contentRevision):\(hasFileOnly):\(searchQuery)"
+    }
     private static let bottom = "conversation.bottom"
     struct MessageEdit: Identifiable { let message: MessageItem; var id: String { message.id } }
-
-    private func matches(_ text: String, _ attachment: String?) -> Bool {
-        searchQuery.isEmpty || text.localizedCaseInsensitiveContains(searchQuery) || attachment?.localizedCaseInsensitiveContains(searchQuery) == true
-    }
 
     var body: some View {
         let own = model.session?.account
         let merged = model.messageSending.messages(channel: channel.id, stored: messages)
-        let shown = merged.filter { message in (historyAnchor.map { end in message.sequence <= end } ?? true) && !model.blockedAccounts.contains(message.account) && matches(message.text, message.attachmentName) }
+        let shown = merged.filter { !model.blockedAccounts.contains($0.account) }
         // A verified local copy can arrive before the original send's ACK.
         let received = Set(merged.filter { $0.account == own }.map(\.id))
-        let pending = historyAnchor != nil ? [] : model.messageSending.items(channel: channel.id, stored: outbox, received: received).filter { matches($0.text, $0.attachmentName) }
+        let pending = hasAfter ? [] : model.messageSending.items(channel: channel.id, stored: outbox, received: received)
         let rows = ConversationTimeline.rows(shown)
         let references = Dictionary(merged.map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
         let last = shown.last
@@ -78,17 +89,12 @@ struct ConversationView: View {
                         Button("Retry") { actionTask = Task { await refreshMessages() } }
                             .disabled(refreshing).accessibilityIdentifier("conversation.retry")
                     } else if messagesKnown && shown.isEmpty && pending.isEmpty && !hasEarlier && !refreshing {
-                        let title: LocalizedStringKey = searchQuery.isEmpty ? "No messages" : "No matching results"
                         ContentUnavailableView {
-                            Label { Text(title) } icon: { AppGlyph.channels.image }
+                            Label { Text("No messages") } icon: { AppGlyph.channels.image }
                         }.accessibilityIdentifier("conversation.empty")
                     }
-                    if !searchQuery.isEmpty {
-                        Text("Searches messages saved on this device.").font(.footnote).foregroundStyle(.secondary)
-                        LabeledContent("Messages", value: (shown.count + pending.count).formatted() + (hasEarlier ? "+" : "")).font(.footnote).foregroundStyle(.secondary)
-                    }
                     if hasEarlier {
-                        LoadMoreRow(title: searchQuery.isEmpty ? "Load earlier messages" : "Load more", working: loadingEarlier, trigger: shown.count) { await loadEarlier() }
+                        LoadMoreRow(title: "Load earlier messages", working: loadingEarlier, trigger: shown.count) { await loadEarlier() }
                             .accessibilityIdentifier("conversation.earlier")
                     }
                     ForEach(rows) { row in
@@ -97,7 +103,7 @@ struct ConversationView: View {
                                 Text(ConversationTimeline.dayTitle(ConversationTimeline.date(row.message.createdAtMs)))
                                     .font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 8)
                             }
-                            if row.message.sequence == firstUnread && searchQuery.isEmpty {
+                            if row.message.sequence == firstUnread && !hasAfter {
                                 Label("Unread messages", systemImage: "circle.fill").font(.footnote).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
                             bubble(row, own: row.message.account == own, references: references) { sequence in
@@ -111,6 +117,15 @@ struct ConversationView: View {
                             // A message that arrives while the conversation is open rises in; see `load()`.
                             .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
                     }
+                    if hasAfter {
+                        HStack(spacing: 12) {
+                            Button("Load newer messages") { actionTask = Task { await loadNewer() } }
+                                .buttonStyle(.bordered).disabled(loadingNewer)
+                                .accessibilityIdentifier("conversation.newer")
+                            Button("Latest messages") { followLatest() }
+                                .buttonStyle(.borderless)
+                        }.frame(maxWidth: .infinity).padding(.vertical, 8)
+                    }
                     // Pending and confirmed rows need distinct IDs so
                     // LazyVStack replaces the sending UI after an ACK.
                     ForEach(pending, id: \.id) { item in
@@ -120,8 +135,8 @@ struct ConversationView: View {
                     }
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
-                        .reminderVisible(.channel(channel.id), watermark: historyAnchor == nil ? last?.sequence : nil,
-                                         ready: messagesKnown && historyAnchor == nil && query.isEmpty && last?.unreadable == false) {
+                        .reminderVisible(.channel(channel.id), watermark: !hasAfter ? last?.sequence : nil,
+                                         ready: messagesKnown && !hasAfter && last?.unreadable == false) {
                             if let last { await model.channelRead(channel.id, through: last.sequence) }
                         }
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
@@ -131,9 +146,19 @@ struct ConversationView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: shown.count) { previousCount, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
-                    else if let historyAnchor, let target = shown.last, target.sequence == historyAnchor { proxy.scrollTo(target.id, anchor: .center) }
+                    else if let targetSeq = highlightedSequence, scrolledAnchor != targetSeq,
+                            let target = shown.first(where: { $0.sequence == targetSeq }) {
+                        scrolledAnchor = targetSeq
+                        proxy.scrollTo(target.id, anchor: .center)
+                    }
                     // The default anchor positions the first page while the composer lays out.
-                    else if previousCount > 0 && nearBottom { proxy.scrollTo(Self.bottom, anchor: .bottom) }
+                    else if previousCount > 0 && nearBottom && !hasAfter { proxy.scrollTo(Self.bottom, anchor: .bottom) }
+                }
+                .onChange(of: highlightedSequence) { _, targetSeq in
+                    guard let targetSeq, scrolledAnchor != targetSeq,
+                          let target = shown.first(where: { $0.sequence == targetSeq }) else { return }
+                    scrolledAnchor = targetSeq
+                    withAnimation(reduceMotion ? nil : .default) { proxy.scrollTo(target.id, anchor: .center) }
                 }
                 .onChange(of: pending.count) { old, count in
                     if count > old {
@@ -141,19 +166,19 @@ struct ConversationView: View {
                         if let queuedAt { MessageTiming.record(.queueVisible, since: queuedAt); self.queuedAt = nil }
                     }
                 }
-                .onChange(of: last?.sequence) { _, sequence in if nearBottom, let sequence { lastSeen = sequence } }
-                .onChange(of: nearBottom) { _, value in if value, let sequence = last?.sequence { lastSeen = sequence } }
+                .onChange(of: last?.sequence) { _, sequence in if nearBottom && !hasAfter, let sequence { lastSeen = sequence } }
+                .onChange(of: nearBottom) { _, value in if value && !hasAfter, let sequence = last?.sequence { lastSeen = sequence } }
                 // Opening with unread messages starts at the first of them, once.
                 .onChange(of: firstUnread) { _, sequence in
-                    guard let sequence, let id = shown.first(where: { $0.sequence == sequence })?.id else { return }
+                    guard let sequence, !hasAfter, let id = shown.first(where: { $0.sequence == sequence })?.id else { return }
                     lastSeen = sequence - 1; nearBottom = false
                     proxy.scrollTo(id, anchor: .top)
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    let following = (historyAnchor != nil || !nearBottom) && searchQuery.isEmpty
+                    let following = hasAfter || !nearBottom
                     ZStack {
                         if following {
-                            let unseen = shown.filter { $0.sequence > lastSeen && $0.account != own }.count
+                            let unseen = hasAfter ? 0 : shown.filter { $0.sequence > lastSeen && $0.account != own }.count
                             Button {
                                 followLatest()
                                 withAnimation { proxy.scrollTo(Self.bottom, anchor: .bottom) }
@@ -214,10 +239,12 @@ struct ConversationView: View {
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
             .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:]; checkedAttachments = [] }
-            .task(id: "\(channel.id):\(model.contentRevision):\(model.filesRevision):\(model.epoch):\(historyAnchor ?? 0):\(query)") {
+            .task(id: "\(channel.id):\(model.contentRevision):\(model.filesRevision):\(model.epoch):\(historyAnchor ?? 0)") {
                 model.activeChannel = channel.id
-                if !query.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
                 if !Task.isCancelled { await load() }
+            }
+            .task(id: activeSearchKey) {
+                await runInChannelSearch(append: false)
             }
             .task(id: "refresh:\(channel.id):\(model.epoch):\(model.concealed)") {
                 guard !model.concealed else { return }
@@ -248,27 +275,209 @@ struct ConversationView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
-            TextField("Search messages", text: Binding(get: { query }, set: { query = String($0.prefix(200)) }))
-                .focused($searchFocused).submitLabel(.search).autocorrectionDisabled().accessibilityIdentifier("conversation.search")
-            Button("Cancel") { query = ""; searching = false }.frame(minHeight: 44)
-        }.padding(.horizontal, 16).background(.bar)
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+                TextField("Search messages", text: Binding(get: { query }, set: { query = String($0.prefix(200)); searchExpanded = true }))
+                    .focused($searchFocused).submitLabel(.search).autocorrectionDisabled()
+                    .onSubmit {
+                        if !searchHits.isEmpty { stepSearch(1) }
+                    }
+                    .accessibilityIdentifier("conversation.search")
+                Button {
+                    hasFileOnly.toggle()
+                    searchExpanded = true
+                } label: {
+                    Image(systemName: hasFileOnly ? "paperclip.circle.fill" : "paperclip")
+                        .foregroundStyle(hasFileOnly ? Theme.forest : Color.secondary)
+                        .frame(minWidth: 36, minHeight: 44)
+                }.buttonStyle(.plain).accessibilityLabel("Attachments")
+                if !searchHits.isEmpty {
+                    let displayIndex = searchIndex >= 0 ? "\(searchIndex + 1)/\(searchHits.count)" : "\(searchHits.count)"
+                    Text(verbatim: displayIndex).font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+                    Button { stepSearch(-1) } label: {
+                        Image(systemName: "chevron.up").frame(minWidth: 32, minHeight: 44)
+                    }.buttonStyle(.plain).accessibilityLabel("Previous match")
+                    Button { stepSearch(1) } label: {
+                        Image(systemName: "chevron.down").frame(minWidth: 32, minHeight: 44)
+                    }.buttonStyle(.plain).accessibilityLabel("Next match")
+                }
+                Button("Cancel") { closeSearch() }.frame(minHeight: 44)
+            }.padding(.horizontal, 16)
+            if !searchQuery.isEmpty || hasFileOnly {
+                if searchLoading && searchHits.isEmpty {
+                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 8)
+                } else if searchHits.isEmpty {
+                    Text("No matching results").font(.footnote).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.bottom, 8)
+                } else if searchExpanded {
+                    if searchHits.count <= 3 && searchNextBefore == nil {
+                        VStack(alignment: .leading, spacing: 0) { searchHitRows }
+                    } else {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 0) { searchHitRows }
+                        }.frame(height: 200)
+                    }
+                }
+            }
+            Divider()
+        }.background(.bar)
+    }
+
+    @ViewBuilder private var searchHitRows: some View {
+        ForEach(Array(searchHits.enumerated()), id: \.element.id) { idx, hit in
+            Button {
+                jumpToHit(index: idx)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    let fallback = hit.text.isEmpty ? (hit.attachmentName ?? "") : hit.text
+                    Text(highlightedText(fallback, spans: hit.snippetSpans))
+                        .font(.subheadline).foregroundStyle(.primary).lineLimit(2)
+                    HStack(spacing: 6) {
+                        if let sender = hit.senderName, !sender.isEmpty { Text(sender).lineLimit(1) }
+                        Spacer(minLength: 4)
+                        if hit.message.timestampMs > 0 {
+                            Text(ConversationTimeline.date(hit.message.timestampMs), style: .date)
+                        }
+                    }.font(.footnote).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .background(idx == searchIndex ? Theme.fill : Color.clear)
+            }.buttonStyle(.plain)
+            Divider().padding(.leading, 16)
+        }
+        if searchNextBefore != nil {
+            Button("Load more") { actionTask = Task { await runInChannelSearch(append: true) } }
+                .font(.footnote).disabled(searchLoading)
+                .frame(maxWidth: .infinity).padding(.vertical, 8)
+        }
     }
 
     private func openSearch() {
         cancelReplyJump()
-        searching = true; searchFocused = true
+        searching = true; searchExpanded = true; searchFocused = true
+    }
+
+    private func closeSearch() {
+        query = ""; searching = false; hasFileOnly = false
+        searchHits = []; searchNextBefore = nil; searchIndex = -1; searchExpanded = true
+        highlightedSequence = nil; highlightSpans = []
+    }
+
+    private func stepSearch(_ delta: Int) {
+        guard !searchHits.isEmpty else { return }
+        let next: Int
+        if searchIndex < 0 { next = delta > 0 ? 0 : searchHits.count - 1 }
+        else { next = (searchIndex + delta + searchHits.count) % searchHits.count }
+        jumpToHit(index: next)
+    }
+
+    private func jumpToHit(index: Int) {
+        guard searchHits.indices.contains(index) else { return }
+        let hit = searchHits[index]
+        searchIndex = index
+        searchExpanded = false
+        searchFocused = false
+        actionTask = Task { await jumpTo(sequence: hit.sequence, spans: hit.snippetSpans ?? []) }
+    }
+
+    private func runInChannelSearch(append: Bool) async {
+        let term = searchQuery
+        let filesOnly = hasFileOnly
+        guard searching, !term.isEmpty || filesOnly else {
+            searchHits = []; searchNextBefore = nil; searchIndex = -1; searchLoading = false
+            return
+        }
+        let cursor = append ? searchNextBefore : nil
+        if append && cursor == nil { return }
+        let epoch = model.epoch
+        searchLoading = true
+        defer { if epoch == model.epoch { searchLoading = false } }
+        if !append {
+            do { try await Task.sleep(for: .milliseconds(150)) } catch { return }
+        }
+        guard epoch == model.epoch, !Task.isCancelled else { return }
+        #if DEBUG
+        if model.uiTesting {
+            let page = model.conversationFixture(channel: channel.id, before: cursor, query: term)
+            let hits = page.items.reversed().compactMap { item -> RichMessageSearchHit? in
+                guard !item.hidden && !item.retracted && !item.unreadable && !model.blockedAccounts.contains(item.account) else { return nil }
+                if filesOnly && (item.attachmentDeleted || item.attachmentName == nil) { return nil }
+                if !term.isEmpty && !item.text.localizedCaseInsensitiveContains(term)
+                    && !(!item.attachmentDeleted && item.attachmentName?.localizedCaseInsensitiveContains(term) == true) { return nil }
+                let file = (!item.attachmentDeleted ? item.attachmentName : nil).map { MessageHitFile(name: $0) }
+                return RichMessageSearchHit(channel: channel.id,
+                                            message: MessageHitBody(seq: item.sequence, messageId: item.id, account: item.account,
+                                                                    text: item.text, createdAt: item.createdAtMs, storedAt: item.createdAtMs,
+                                                                    file: file, fileDeleted: item.attachmentDeleted))
+            }
+            searchHits = append ? searchHits + hits : hits
+            searchNextBefore = page.hasMore ? page.nextBefore : nil
+            if !append { searchIndex = -1 }
+            return
+        }
+        #endif
+        guard let engine = model.engine else { return }
+        do {
+            let page: RichChannelMessagePage = try await model.decodeInBackground(
+                try await engine.searchChannelMessages(channel: channel.id, query: term, before: cursor, limit: 40, hasFile: filesOnly, sender: nil)
+            )
+            guard epoch == model.epoch, !Task.isCancelled, searchQuery == term, hasFileOnly == filesOnly else { return }
+            let filtered = page.hits.filter { !model.blockedAccounts.contains($0.message.account) }
+            searchHits = append ? searchHits + filtered : filtered
+            searchNextBefore = page.hasMore ? page.nextBefore : nil
+            if !append { searchIndex = -1 }
+        } catch {
+            if epoch == model.epoch, !Task.isCancelled, !append { searchHits = []; searchNextBefore = nil }
+        }
+    }
+
+    private func jumpTo(sequence: UInt64, spans: [HighlightSpan]) async {
+        let epoch = model.epoch, request = UUID()
+        messageRequest = request
+        scrolledAnchor = nil
+        #if DEBUG
+        if model.uiTesting {
+            highlightedSequence = sequence
+            highlightSpans = spans
+            historyAnchor = sequence
+            return
+        }
+        #endif
+        guard let engine = model.engine else { return }
+        do {
+            let window = try await engine.messagesAround(channel: channel.id, seq: sequence, before: 30, after: 30)
+            guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
+            messages = window.items
+            hasEarlier = window.hasBefore
+            nextBefore = window.nextBefore
+            hasAfter = window.hasAfter
+            nextAfter = window.nextAfter
+            oldestLoaded = window.items.first?.sequence
+            historyAnchor = window.anchor
+            highlightedSequence = window.anchor
+            highlightSpans = spans
+            messagesKnown = true
+            loadFailed = false
+        } catch {
+            if epoch == model.epoch, !Task.isCancelled { model.report(error) }
+        }
     }
 
     private func followLatest() {
         cancelReplyJump()
-        guard historyAnchor != nil else { return }
+        let wasAnchored = historyAnchor != nil || hasAfter
         messageRequest = nil
-        messages = []; messagesKnown = false; loadFailed = false
-        oldestLoaded = nil; nextBefore = nil; hasEarlier = false; preserveMessage = nil
-        nearBottom = true
-        historyAnchor = nil
+        highlightedSequence = nil; highlightSpans = []; scrolledAnchor = nil
+        if wasAnchored {
+            messages = []; messagesKnown = false; loadFailed = false
+            oldestLoaded = nil; nextBefore = nil; hasEarlier = false; preserveMessage = nil
+            hasAfter = false; nextAfter = nil
+            nearBottom = true
+            historyAnchor = nil
+            actionTask = Task { await load() }
+        }
     }
 
     private func channelRestriction(_ status: String) -> String {
@@ -298,13 +507,13 @@ struct ConversationView: View {
 
     private func reveal(_ sequence: UInt64, proxy: ScrollViewProxy) async {
         let epoch = model.epoch
-        query = ""; searching = false; await load()
-        while !Task.isCancelled && epoch == model.epoch && !model.concealed && !messages.contains(where: { $0.sequence == sequence }) && hasEarlier {
-            let before = nextBefore; await loadEarlier(); if nextBefore == before { break }
+        if !messages.contains(where: { $0.sequence == sequence }) {
+            await jumpTo(sequence: sequence, spans: [])
         }
         guard !Task.isCancelled, epoch == model.epoch, !model.concealed else { return }
         if let message = messages.first(where: { $0.sequence == sequence }) {
             preserveMessage = nil
+            scrolledAnchor = sequence
             proxy.scrollTo(message.id, anchor: .center)
             // The original lights where it landed, then fades, so the eye finds it.
             pointed = message.id
@@ -315,6 +524,7 @@ struct ConversationView: View {
 
     private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
         let message = row.message
+        let isAnchor = highlightedSequence == message.sequence
         return ConversationMessageRow(own: own, account: message.account, name: model.personName(message.account), avatar: model.people.avatar(message.account),
                                       firstOfGroup: row.firstOfGroup, lastOfGroup: row.lastOfGroup) {
             VStack(alignment: .leading, spacing: 6) {
@@ -326,7 +536,13 @@ struct ConversationView: View {
                     if let reference = message.replySequence { replyPreview(reference, original: references[reference], own: own, reveal: reveal) }
                     if message.retracted { Text("Message withdrawn").italic().foregroundStyle(.secondary) }
                     else if message.unreadable { Text("This message could not be verified.").foregroundStyle(.secondary) }
-                    else if !message.text.isEmpty { Text(message.text) }
+                    else if !message.text.isEmpty {
+                        if isAnchor && !highlightSpans.isEmpty {
+                            Text(bubbleHighlightedText(message.text, spans: highlightSpans, own: own))
+                        } else {
+                            Text(message.text)
+                        }
+                    }
                     if let name = message.attachmentName { attachment(message, name: name, own: own) }
                     if message.edited || row.lastOfGroup {
                         HStack(spacing: 4) {
@@ -341,7 +557,10 @@ struct ConversationView: View {
             }.accessibilityIdentifier("message.content.\(message.sequence)")
         } actions: {
             messageActions(message, own: own)
-        }.accessibilityIdentifier("message.row.\(message.sequence)")
+        }
+            .padding(isAnchor ? 4 : 0)
+            .background(isAnchor ? Theme.fill : Color.clear, in: RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+            .accessibilityIdentifier("message.row.\(message.sequence)")
             .loadMessagePerson(row.firstOfGroup ? message.account : nil, model: model)
     }
 
@@ -480,49 +699,65 @@ struct ConversationView: View {
 
     private func readMessages(before: UInt64? = nil) async throws -> MessagePage {
         #if DEBUG
-        if model.uiTesting { return model.conversationFixture(channel: channel.id, before: before, query: query) }
+        if model.uiTesting { return model.conversationFixture(channel: channel.id, before: before, query: "") }
         #endif
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        return searchQuery.isEmpty ? try await engine.messages(channel: channel.id, before: before, limit: 100)
-            : try await engine.searchMessagesPage(channel: channel.id, query: searchQuery, before: before)
+        return try await engine.messages(channel: channel.id, before: before, limit: 100)
     }
 
     private func load() async {
-        guard !loadingEarlier || !messagesKnown || query != loadedQuery else { return }
+        // Keep an anchored historical window intact during periodic refreshes until user returns to latest.
+        if hasAfter && messagesKnown { return }
+        guard !loadingEarlier || !messagesKnown else { return }
         let started = ContinuousClock.now
-        let epoch = model.epoch, query = query, request = UUID(), sendRevision = model.messageSending.revision
+        let epoch = model.epoch, request = UUID(), sendRevision = model.messageSending.revision
         messageRequest = request
-        if query != loadedQuery { oldestLoaded = nil }
-        let earlier = query == loadedQuery
-            ? oldestLoaded ?? (searchQuery.isEmpty && !nearBottom ? messages.first?.sequence : nil) : nil
+        let earlier = oldestLoaded ?? (!nearBottom ? messages.first?.sequence : nil)
         do {
-            var page = try await readMessages(before: historyAnchor.map { $0 == .max ? $0 : $0 + 1 })
-            var fresh = page.items
-            // Keep explicitly loaded history even after scrolling back down.
-            // An initial sync still follows only the latest bounded page.
-            if let earlier {
-                while page.hasMore, let first = fresh.first, first.sequence > earlier {
-                    guard epoch == model.epoch, !Task.isCancelled else { return }
-                    page = try await readMessages(before: first.sequence)
-                    guard !page.items.isEmpty else { break }
-                    fresh = page.items + fresh
+            var fresh: [MessageItem]
+            var moreBefore: Bool
+            var cursorBefore: UInt64?
+            if let anchor = historyAnchor, !model.uiTesting, let engine = model.engine {
+                let window = try await engine.messagesAround(channel: channel.id, seq: anchor, before: 30, after: 30)
+                guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
+                fresh = window.items
+                moreBefore = window.hasBefore
+                cursorBefore = window.nextBefore
+                hasAfter = window.hasAfter
+                nextAfter = window.nextAfter
+                highlightedSequence = window.anchor
+            } else {
+                var page = try await readMessages(before: historyAnchor.map { $0 == .max ? $0 : $0 + 1 })
+                fresh = page.items
+                // Keep explicitly loaded history even after scrolling back down.
+                // An initial sync still follows only the latest bounded page.
+                if let earlier {
+                    while page.hasMore, let first = fresh.first, first.sequence > earlier {
+                        guard epoch == model.epoch, !Task.isCancelled else { return }
+                        page = try await readMessages(before: first.sequence)
+                        guard !page.items.isEmpty else { break }
+                        fresh = page.items + fresh
+                    }
                 }
+                moreBefore = page.hasMore
+                cursorBefore = page.nextBefore
+                hasAfter = historyAnchor != nil && model.uiTesting
+                nextAfter = nil
             }
-            guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
+            guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
             // This runs every second during a sync; an unchanged page redraws nothing.
             if messages != fresh {
                 // A message that arrives at the end while the conversation is open rises in;
-                // a first page, earlier history and search results show at once.
-                let arrived = query.isEmpty && loadedQuery == query && !reduceMotion && messages.last.map { last in
+                // a first page, earlier history and anchored windows show at once.
+                let arrived = !hasAfter && historyAnchor == nil && !reduceMotion && messages.last.map { last in
                     fresh.contains { $0.id == last.id } && (fresh.last?.sequence ?? 0) > last.sequence } == true
                 if arrived { withAnimation(Motion.move) { messages = fresh } } else { messages = fresh }
             }
-            if hasEarlier != page.hasMore { hasEarlier = page.hasMore }
-            if nextBefore != page.nextBefore { nextBefore = page.nextBefore }
+            if hasEarlier != moreBefore { hasEarlier = moreBefore }
+            if nextBefore != cursorBefore { nextBefore = cursorBefore }
             if historyAnchor == nil && firstUnread == nil && channel.unread > 0 {
                 firstUnread = fresh.first { $0.sequence > channel.readThrough && $0.account != model.session?.account }?.sequence
             }
-            if loadedQuery != query { loadedQuery = query }
             if !messagesKnown { messagesKnown = true }
             if loadFailed { loadFailed = false }
             MessageTiming.record(.localPage, since: started)
@@ -536,7 +771,7 @@ struct ConversationView: View {
                 return
             }
             let pending = try await engine.outbox(channel: channel.id)
-            guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
+            guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
             if outbox != pending.items { outbox = pending.items }
             model.messageSending.loaded(channel: channel.id, items: fresh, since: sendRevision)
             // Each attachment is looked up once until the library changes.
@@ -546,26 +781,44 @@ struct ConversationView: View {
                 if let file = try? model.decode(value) as LibraryFile? { receivedFiles[message.sequence] = file }
             }
         } catch {
-            if epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled {
+            if epoch == model.epoch, messageRequest == request, !Task.isCancelled {
                 loadFailed = true; model.reportBackground(error)
             }
         }
     }
 
+    private func loadNewer() async {
+        guard hasAfter, let after = nextAfter, !loadingNewer, let engine = model.engine else { return }
+        let epoch = model.epoch, request = UUID()
+        messageRequest = request
+        loadingNewer = true; defer { loadingNewer = false }
+        do {
+            let page = try await engine.messagesAfter(channel: channel.id, after: after, limit: 100)
+            guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
+            let merged = Dictionary((messages + page.items).map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
+            messages = merged.values.sorted { $0.sequence < $1.sequence }
+            hasAfter = page.hasMore
+            nextAfter = page.hasMore ? page.items.last?.sequence : nil
+            if !hasAfter { historyAnchor = nil }
+        } catch {
+            if epoch == model.epoch, messageRequest == request, !Task.isCancelled { model.report(error) }
+        }
+    }
+
     private func loadEarlier() async {
         guard hasEarlier, let before = nextBefore, before > 1, !loadingEarlier else { return }
-        let epoch = model.epoch, request = UUID(), first = messages.first, query = query
+        let epoch = model.epoch, request = UUID(), first = messages.first
         messageRequest = request
         loadingEarlier = true; defer { loadingEarlier = false }
         do {
             let page: MessagePage
             #if DEBUG
-            if model.uiTesting { page = model.conversationFixture(channel: channel.id, before: before, query: searchQuery) }
+            if model.uiTesting { page = model.conversationFixture(channel: channel.id, before: before, query: "") }
             else { page = try await readEarlier(before: before) }
             #else
             page = try await readEarlier(before: before)
             #endif
-            guard epoch == model.epoch, query == self.query, messageRequest == request, !Task.isCancelled else { return }
+            guard epoch == model.epoch, messageRequest == request, !Task.isCancelled else { return }
             preserveMessage = first?.id
             let rows = Dictionary((page.items + messages).map { ($0.sequence, $0) }, uniquingKeysWith: { first, _ in first })
             messages = rows.values.sorted { $0.sequence < $1.sequence }
@@ -575,7 +828,6 @@ struct ConversationView: View {
 
     private func readEarlier(before: UInt64) async throws -> MessagePage {
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        if !searchQuery.isEmpty { return try await engine.searchMessagesPage(channel: channel.id, query: searchQuery, before: before) }
         return try await coreOperation { try await engine.earlierMessages(channel: channel.id, before: before, limit: 100, operation: $0) }
     }
 

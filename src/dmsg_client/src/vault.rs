@@ -439,18 +439,53 @@ impl Item {
         ensure(text <= MAX_TEXT, Error::QuotaExceeded)
     }
 
-    /// Whether `query` is in the title, tags, notes, a field's label or a
-    /// shown field's value, ignoring case. Hidden values are never searched.
+    /// Whether `query` matches the title, tags, notes, a field's label, a
+    /// shown field's value, or item type aliases using the unified search matcher.
+    /// Hidden and OTP values are never searched (V01).
     pub fn matches(&self, query: &str) -> bool {
-        let query = query.trim().to_lowercase();
-        let has = |text: &str| text.to_lowercase().contains(&query);
-        has(&self.title)
-            || has(&self.notes)
-            || self.tags.iter().any(|t| has(t))
-            || self
-                .fields
-                .iter()
-                .any(|f| has(&f.label) || (!f.hidden() && has(&f.value)))
+        let parsed = crate::search::Query::parse(query);
+        if parsed.is_empty() {
+            return true;
+        }
+        let kind_alias = crate::search::vault_kind_aliases(&self.kind);
+        let mut fields = Vec::with_capacity(3 + self.tags.len() + self.fields.len() * 2);
+        fields.push(crate::search::WeightedField {
+            name: "title",
+            weight: 100,
+            text: &self.title,
+        });
+        for tag in &self.tags {
+            fields.push(crate::search::WeightedField {
+                name: "tag",
+                weight: 84,
+                text: tag,
+            });
+        }
+        for f in &self.fields {
+            fields.push(crate::search::WeightedField {
+                name: "field_label",
+                weight: 60,
+                text: &f.label,
+            });
+            if !f.hidden() {
+                fields.push(crate::search::WeightedField {
+                    name: "field",
+                    weight: 78,
+                    text: &f.value,
+                });
+            }
+        }
+        fields.push(crate::search::WeightedField {
+            name: "type",
+            weight: 55,
+            text: kind_alias,
+        });
+        fields.push(crate::search::WeightedField {
+            name: "notes",
+            weight: 48,
+            text: &self.notes,
+        });
+        parsed.match_fields(&fields).is_some()
     }
 
     fn resolved(&self) -> BTreeSet<String> {
@@ -1078,6 +1113,13 @@ impl Client {
             }
         }
         Ok(entries)
+    }
+
+    pub(crate) fn vault_decode_row(&self, row: &ObjectRow) -> Result<VaultEntry> {
+        let record = record(row)?;
+        ensure(record.kind == VAULT, Error::NotFound)?;
+        let item = open_item(&record.open(self.environment(), self.roots()?)?)?;
+        Ok(VaultEntry::new(&record, item, &row.state, row.conflict))
     }
 
     fn vault_list_entry(&self, row: &ObjectRow, filter: &Filter) -> Result<Option<VaultEntry>> {

@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"ทุกคนที่มีทั้งลิงก์และรหัสผ่าน"</string>
     <string name="review_receiving" formatted="false">"กำลังรับ"</string>
     <string name="saved_on_device" formatted="false">"บันทึกไว้ในอุปกรณ์นี้"</string>
+    <string name="search_attachments_only" formatted="false">"ไฟล์แนบ"</string>
+    <string name="search_everything" formatted="false">"ค้นหาทั้งหมด"</string>
+    <string name="search_latest_messages" formatted="false">"ข้อความล่าสุด"</string>
     <string name="search_local_messages" formatted="false">"ค้นหาข้อความที่บันทึกไว้ในอุปกรณ์นี้"</string>
+    <string name="search_matched_notes" formatted="false">"ตรงกับบันทึก"</string>
+    <string name="search_member_label" formatted="false">"สมาชิก"</string>
+    <string name="search_newer_messages" formatted="false">"โหลดข้อความที่ใหม่กว่า"</string>
+    <string name="search_next_match" formatted="false">"รายการที่ตรงกันถัดไป"</string>
+    <string name="search_open_in_conversation" formatted="false">"เปิดในบทสนทนา"</string>
+    <string name="search_prev_match" formatted="false">"รายการที่ตรงกันก่อนหน้า"</string>
     <string name="search_query_limit" formatted="false">"ใช้คำค้นหาไม่เกิน 200 ตัวอักษร"</string>
+    <string name="search_scope_all" formatted="false">"ทั้งหมด"</string>
+    <string name="search_scope_current" formatted="false">"ปัจจุบัน"</string>
+    <string name="search_sort_relevance" formatted="false">"ตรงที่สุด"</string>
     <string name="security_confirm" formatted="false">"ยืนยันใน dMsg"</string>
     <string name="security_manage_identity" formatted="false">"จัดการตัวตน"</string>
     <string name="security_unlock" formatted="false">"ปลดล็อก dMsg"</string>

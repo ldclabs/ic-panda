@@ -42,12 +42,17 @@ fun vaultKindName(kind: String): String = when (kind) {
 @Composable fun VaultScreen(client: ClientController, select: (String) -> Unit) {
     val localMode = client.state.collectAsStateWithLifecycle().value.session?.accountKind == "local"
     val read by client.vault.listing.state.collectAsStateWithLifecycle()
+    val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     val page = read.valueOrNull()
     val query by client.vault.filters.collectAsStateWithLifecycle()
+    var searchAll by remember { mutableStateOf(false) }
     val scroll = workspaceListState(client.navigation, "vault:list")
     fun changeQuery(next: VaultQuery) {
         if (next != query) scroll.requestScrollToItem(0)
         client.vault.browse(next)
+    }
+    LaunchedEffect(searchAll, query.text) {
+        if (searchAll && query.text.isNotBlank()) client.search.searchAll(query.text)
     }
     var filters by remember { mutableStateOf(false) }
     var tools by remember { mutableStateOf(false) }
@@ -117,6 +122,7 @@ fun vaultKindName(kind: String): String = when (kind) {
                     }
                 }
             }) { searching ->
+            LaunchedEffect(searching) { if (!searching) searchAll = false }
             if (!searching && !query.trash) ScreenFab {
                 val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
                 ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, expanded = atTop,
@@ -126,49 +132,64 @@ fun vaultKindName(kind: String): String = when (kind) {
                 if (query.trash) item { Text(str(R.string.text_trash_8af1079), style = MaterialTheme.typography.titleMedium) }
                 browseScopesItem(searching) {
                     BrowseScopes(trailing = {
-                        IconButton(onClick = { filters = true }, modifier = Modifier.semantics { query.tag?.let { stateDescription = it } }) {
+                        if (!searching || !searchAll) IconButton(onClick = { filters = true }, modifier = Modifier.semantics { query.tag?.let { stateDescription = it } }) {
                             BadgedBox(badge = { if (query.tag != null) Badge() }) {
                                 Icon(Icons.Outlined.FilterList, str(R.string.browse_filters))
                             }
                         }
                     }) {
-                        BrowseChoice(str(R.string.text_all_eae0ae1), !query.favorites && query.kind == null && query.tag == null) {
-                            changeQuery(VaultQuery(text = query.text, sort = query.sort, trash = query.trash))
+                        if (searching) {
+                            BrowseChoice(str(R.string.search_scope_current), !searchAll) { searchAll = false }
+                            BrowseChoice(str(R.string.search_scope_all), searchAll) { searchAll = true }
                         }
-                        BrowseChoice(str(R.string.text_favorites_960eb5d), query.favorites, toggle = true) { changeQuery(query.copy(favorites = !query.favorites)) }
-                        BrowseChoice(str(R.string.browse_passwords), query.kind == "login") { changeQuery(query.copy(kind = "login")) }
-                        BrowseChoice(vaultKindName("note"), query.kind == "note") { changeQuery(query.copy(kind = "note")) }
-                        val other = query.kind?.takeUnless { it == "login" || it == "note" }
-                        MenuChoice(other?.let(::vaultKindName) ?: str(R.string.text_type_6172196), other != null) { close ->
-                            DropdownMenuItem(
-                                text = { Text(str(R.string.text_all_types_338629e)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.glyph_vault), null) },
-                                trailingIcon = if (query.kind == null) ({ Icon(Icons.Outlined.Check, null) }) else null,
-                                onClick = { close(); changeQuery(query.copy(kind = null)) },
-                            )
-                            HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                            vaultKinds().forEach { kind ->
-                                val count = page?.kinds?.get(kind)
+                        if (!searching || !searchAll) {
+                            BrowseChoice(str(if (searching) R.string.text_all_types_338629e else R.string.text_all_eae0ae1), !query.favorites && query.kind == null && query.tag == null) {
+                                changeQuery(VaultQuery(text = query.text, sort = query.sort, trash = query.trash))
+                            }
+                            BrowseChoice(str(R.string.text_favorites_960eb5d), query.favorites, toggle = true) { changeQuery(query.copy(favorites = !query.favorites)) }
+                            BrowseChoice(str(R.string.browse_passwords), query.kind == "login") { changeQuery(query.copy(kind = "login")) }
+                            BrowseChoice(vaultKindName("note"), query.kind == "note") { changeQuery(query.copy(kind = "note")) }
+                            val other = query.kind?.takeUnless { it == "login" || it == "note" }
+                            MenuChoice(other?.let(::vaultKindName) ?: str(R.string.text_type_6172196), other != null) { close ->
                                 DropdownMenuItem(
-                                    text = { Text(vaultKindName(kind)) },
-                                    leadingIcon = { Icon(painterResource(vaultGlyph(kind)), null) },
-                                    trailingIcon = if (query.kind == kind || count != null) { {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            count?.let { Text(localizedNumber(it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                            if (query.kind == kind) Icon(Icons.Outlined.Check, null)
-                                        }
-                                    } } else null,
-                                    onClick = { close(); changeQuery(query.copy(kind = kind)) },
+                                    text = { Text(str(R.string.text_all_types_338629e)) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.glyph_vault), null) },
+                                    trailingIcon = if (query.kind == null) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                    onClick = { close(); changeQuery(query.copy(kind = null)) },
                                 )
+                                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                                vaultKinds().forEach { kind ->
+                                    val count = page?.kinds?.get(kind)
+                                    DropdownMenuItem(
+                                        text = { Text(vaultKindName(kind)) },
+                                        leadingIcon = { Icon(painterResource(vaultGlyph(kind)), null) },
+                                        trailingIcon = if (query.kind == kind || count != null) { {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                count?.let { Text(localizedNumber(it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                                if (query.kind == kind) Icon(Icons.Outlined.Check, null)
+                                            }
+                                        } } else null,
+                                        onClick = { close(); changeQuery(query.copy(kind = kind)) },
+                                    )
+                                }
                             }
                         }
                     }
                 }
+                if (searching && searchAll) {
+                    globalSearchResults(client, query.text, globalRead) { client.search.searchAll(query.text) }
+                } else {
                 item { ReadFeedback(read) { client.vault.browse(query) } }
                 val rows = page?.items.orEmpty()
                 items(rows, key = { it.id }) { item ->
-                    BrowseRow(item.title, Modifier.animateItem().clickable { select(item.id) }, leading = { SecretIcon(item.kind) },
-                        supporting = { Text(item.subtitle.ifEmpty { vaultKindName(item.kind) }, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                    val hint = vaultSearchHint(item)
+                    BrowseRow(buildHighlightedText(item.title, item.titleSpans), Modifier.animateItem().clickable { select(item.id) }, leading = { SecretIcon(item.kind) },
+                        supporting = {
+                            Column {
+                                Text(buildHighlightedText(item.subtitle.ifEmpty { vaultKindName(item.kind) }, item.subtitleSpans), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                if (hint.isNotEmpty()) Text(hint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        },
                         trailing = {
                             if (item.reserved) Icon(Icons.Outlined.VerifiedUser, str(R.string.text_managed_by_dmsg_35b3681), Modifier.size(18.dp))
                             if (item.conflict) Icon(Icons.Outlined.WarningAmber, str(R.string.text_version_conflict_f71b5e8), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
@@ -189,6 +210,7 @@ fun vaultKindName(kind: String): String = when (kind) {
                     }
                 }
                 if (page?.hasMore == true) item { TextButton(onClick = { client.vault.browse(query, more = true) }, enabled = read !is ReadState.Loading, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                }
             }
         }
     }
@@ -207,8 +229,13 @@ fun vaultKindName(kind: String): String = when (kind) {
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Section(title = str(R.string.sort_by)) {
-                listOf("title" to R.string.text_title_4c18fa6, "updated" to R.string.text_updated_9306ca8).forEach { (key, label) ->
-                    RadioChoiceRow(str(label), query.sort == key) { update(query.copy(sort = key)) }
+                val sortOptions = buildList {
+                    if (query.text.isNotBlank()) add("relevance" to R.string.search_sort_relevance)
+                    add("title" to R.string.text_title_4c18fa6)
+                    add("updated" to R.string.text_updated_9306ca8)
+                }
+                sortOptions.forEach { (key, label) ->
+                    RadioChoiceRow(str(label), query.sort == key || (query.text.isNotBlank() && query.sort == "title" && key == "relevance")) { update(query.copy(sort = key)) }
                 }
             }
             val tags = page?.tags.orEmpty()

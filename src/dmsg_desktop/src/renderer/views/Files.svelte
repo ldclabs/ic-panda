@@ -133,8 +133,24 @@
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
   const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && scope !== 'requests' && !tag)
   // A fresh listing also refreshes the search after a file is changed or imported.
-  const searchResults = searchLibrary(() => unlocked && folderScope && listing ? query.trim() || null : null, 150, () => scope)
-  const found = $derived(searchResults.result.kind === 'ready' && searchResults.result.query === query.trim() && searchResults.result.folder === scope ? searchResults.result.files : null)
+  const searchableScope = $derived(folderScope || scope === 'starred' || !!tag)
+  const searchResults = searchLibrary(
+    () => (unlocked && searchableScope && listing ? query.trim() || null : null),
+    120,
+    undefined,
+    () => ({
+      folder: folderScope ? scope : undefined,
+      starred: scope === 'starred',
+      tag
+    })
+  )
+  const expectedSearchKey = $derived(`${folderScope ? scope : ''}|${scope === 'starred'}|${tag ?? ''}|false`)
+  const readySearch = $derived(
+    searchResults.result.kind === 'ready' && searchResults.result.query === query.trim() && searchResults.result.scopeKey === expectedSearchKey
+      ? searchResults.result
+      : null
+  )
+  const found = $derived(readySearch?.files ?? null)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
@@ -142,6 +158,12 @@
   const folderIndex = $derived(foldersByParent(folders))
   const rows = $derived.by(() => {
     if (!listing) return []
+    if (query.trim() && readySearch) {
+      return [
+        ...readySearch.folders.map((f) => ({ ...f, kind: 'folder' })),
+        ...readySearch.files.map((f) => ({ ...f, kind: 'file' }))
+      ]
+    }
     const files = found ?? listing.files.filter((f) => matchesFile(f, query))
     let subfolders = listing.folders
     if (folderScope && query.trim()) {
@@ -238,8 +260,14 @@
     list?.scrollTo({ top: 0 })
   }
 
-  // A vault item's attachment opens here: its folder, with the file selected.
+  // A vault item's attachment or global search hit opens here: its folder, with the file selected.
   $effect(() => {
+    const targetFolder = focus.folder
+    if (targetFolder && loaded) {
+      focus.folder = null
+      pick(targetFolder)
+      return
+    }
     const id = focus.id
     if (!id || !loaded) return
     focus.id = null

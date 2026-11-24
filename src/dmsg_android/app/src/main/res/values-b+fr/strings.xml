@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Toute personne disposant du lien et du mot de passe"</string>
     <string name="review_receiving" formatted="false">"Réception"</string>
     <string name="saved_on_device" formatted="false">"Enregistré sur cet appareil"</string>
+    <string name="search_attachments_only" formatted="false">"Pièces jointes"</string>
+    <string name="search_everything" formatted="false">"Tout rechercher"</string>
+    <string name="search_latest_messages" formatted="false">"Derniers messages"</string>
     <string name="search_local_messages" formatted="false">"Recherche dans les messages enregistrés sur cet appareil."</string>
+    <string name="search_matched_notes" formatted="false">"Trouvé dans les notes"</string>
+    <string name="search_member_label" formatted="false">"Membre"</string>
+    <string name="search_newer_messages" formatted="false">"Charger des messages plus récents"</string>
+    <string name="search_next_match" formatted="false">"Résultat suivant"</string>
+    <string name="search_open_in_conversation" formatted="false">"Ouvrir dans la conversation"</string>
+    <string name="search_prev_match" formatted="false">"Résultat précédent"</string>
     <string name="search_query_limit" formatted="false">"La recherche est limitée à 200 caractères."</string>
+    <string name="search_scope_all" formatted="false">"Tout"</string>
+    <string name="search_scope_current" formatted="false">"Actuel"</string>
+    <string name="search_sort_relevance" formatted="false">"Pertinence"</string>
     <string name="security_confirm" formatted="false">"Confirmer dans dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Gérer une identité"</string>
     <string name="security_unlock" formatted="false">"Déverrouiller dMsg"</string>

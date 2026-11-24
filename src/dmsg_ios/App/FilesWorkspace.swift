@@ -21,6 +21,7 @@ extension SessionModel {
 
     func resetFilePresentation() {
         filesSearches.removeAll()
+        filesFavoritesOnly = false; filesTag = ""; fileSearchMeta = [:]; folderSearchMeta = [:]
         filesRequest = nil; filesLoading = false; filesLoaded = false; filesFailed = false; filesQuery = ""
         filesLocalOnly = nil; filesPendingImports = 0; filesSharedImports = 0; fileOperations = []
     }
@@ -43,24 +44,29 @@ extension SessionModel {
     /// after a change of its own, a caller has them read everything again.
     func loadFiles(quiet: Bool = false) async {
         guard unlocked else { return }
-        let stamp = epoch, key = filesQueryKey, folder = filesFolder, query = filesSearch, request = UUID()
+        let stamp = epoch, key = filesQueryKey, folder = filesFolder, query = filesSearch, starred = filesFavoritesOnly, tag = filesTag, request = UUID()
         filesRequest = request; filesLoading = true; filesFailed = false
         defer { if filesRequest == request { filesRequest = nil; filesLoading = false } }
         do {
             let value: LibraryListing
+            var nextFolderMeta: [String: FileSearchMeta] = [:]
+            var nextFileMeta: [String: FileSearchMeta] = [:]
             #if DEBUG
             if uiTesting {
                 value = try await fileListingFixture(folder: folder, query: query)
             } else {
-                value = try await readFileListing(folder: folder, query: query)
+                let loaded = try await readRichFileListing(folder: folder, query: query, starred: starred, tag: tag)
+                value = loaded.listing; nextFolderMeta = loaded.folderMeta; nextFileMeta = loaded.fileMeta
             }
             #else
-            value = try await readFileListing(folder: folder, query: query)
+            let loaded = try await readRichFileListing(folder: folder, query: query, starred: starred, tag: tag)
+            value = loaded.listing; nextFolderMeta = loaded.folderMeta; nextFileMeta = loaded.fileMeta
             #endif
             guard stamp == epoch, key == filesQueryKey, filesRequest == request, !Task.isCancelled else { return }
             if !quiet || library != value { filesRevision &+= 1 }
-            library = value; filesLoaded = true; filesQuery = key
-            if query.isEmpty { filesListings[folder] = value }
+            library = value; folderSearchMeta = nextFolderMeta; fileSearchMeta = nextFileMeta
+            filesLoaded = true; filesQuery = key
+            if query.isEmpty && !starred && tag.isEmpty { filesListings[folder] = value }
             await loadFileSummary()
         } catch {
             guard stamp == epoch, key == filesQueryKey, filesRequest == request, !Task.isCancelled else { return }
@@ -69,15 +75,26 @@ extension SessionModel {
     }
 
     func readFileListing(folder: String, query: String) async throws -> LibraryListing {
+        try await readRichFileListing(folder: folder, query: query).listing
+    }
+
+    func readRichFileListing(folder: String, query: String, starred: Bool = false, tag: String = "") async throws -> (listing: LibraryListing, folderMeta: [String: FileSearchMeta], fileMeta: [String: FileSearchMeta]) {
         guard let engine else { throw CancellationError() }
-        let listing: LibraryListing = try await decodeInBackground(try await engine.files(folder: folder))
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if query.isEmpty { return listing }
-        let matches: [LibraryFile] = try await decodeInBackground(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
-        let tree: [FolderItem] = try await decodeInBackground(try await engine.fileFolders())
-        let prefix = listing.folder.map { ($0.path ?? []) + [$0.name] } ?? []
-        let folders = tree.filter { ($0.path ?? []).starts(with: prefix) && $0.name.localizedCaseInsensitiveContains(query) }
-        return LibraryListing(folder: listing.folder, folders: folders, files: matches)
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty && !starred && tag.isEmpty {
+            let listing: LibraryListing = try await decodeInBackground(try await engine.files(folder: folder))
+            return (listing, [:], [:])
+        }
+        let scopeFolder = folder == "root" ? nil : folder
+        let response: FileSearchListingResponse = try await decodeInBackground(
+            try await engine.searchFilesListing(query: trimmed, folder: scopeFolder, starred: starred, tag: tag.isEmpty ? nil : tag, trash: false)
+        )
+        let currentFolder = filesListings[folder]?.folder
+        let folders = response.folders.map(\.folder)
+        let files = response.files.map(\.file)
+        let folderMeta = Dictionary(uniqueKeysWithValues: response.folders.map { ($0.id, $0.meta) })
+        let fileMeta = Dictionary(uniqueKeysWithValues: response.files.map { ($0.id, $0.meta) })
+        return (LibraryListing(folder: currentFolder, folders: folders, files: files), folderMeta, fileMeta)
     }
 
     func loadFileSummary() async {

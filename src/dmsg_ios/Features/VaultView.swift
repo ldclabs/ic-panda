@@ -6,15 +6,24 @@ struct VaultView: View {
     @State private var trash = false
     @State private var filtering = false
     @State private var hasLocalSource = false
+    @State private var searchScope: WorkspaceSearchScope = .current
+    @State private var globalSearch = GlobalSearchStore()
+
+    private var searchingAll: Bool {
+        searchScope == .all && !model.search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         @Bindable var model = model
         WorkspaceNavigation(selection: $model.route.vaultItem, sidebarInitiallyVisible: true) { selection in
             List(selection: selection) {
                 Group {
+                if searchingAll {
+                    GlobalSearchResultsContent(store: globalSearch, query: model.search)
+                } else {
                 if model.vaultQueryIsCurrent {
                     ForEach(model.vault, id: \.id) { item in
-                        NavigationLink(value: item.id) { VaultRow(item: item) }
+                        NavigationLink(value: item.id) { VaultRow(item: item, searchMeta: model.search.isEmpty ? nil : model.vaultSearchMeta[item.id]) }
                             .compactObjectRow().accessibilityIdentifier("vault.item.\(item.id)")
                             .swipeActions { if item.kind == "login" { copyActions(item) } }
                             .contextMenu { if item.kind == "login" { copyActions(item) } }
@@ -34,11 +43,20 @@ struct VaultView: View {
                     LoadMoreRow(working: model.loadingVault, trigger: model.vault.count) { await model.loadVault(more: true) }
                         .accessibilityIdentifier("vault.more")
                 }
+                }
                 }.plainListRows(selectable: selection != nil)
             }.listStyle(.plain).refreshable { await model.synchronize() }
-                .scopeBar { VaultBrowseBar(filtering: $filtering) }
+                .globalSearch(store: globalSearch, query: model.search, active: searchingAll)
+                .scopeBar { if !searchingAll { VaultBrowseBar(filtering: $filtering) } }
                 .privateScreen(.plain).navigationTitle("Vault")
                 .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search your vault")
+                .searchScopes($searchScope) {
+                    Text("Current").tag(WorkspaceSearchScope.current)
+                    Text("All").tag(WorkspaceSearchScope.all)
+                }
+                .onChange(of: model.search) { _, value in
+                    if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { searchScope = .current }
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ActivityButton() }
                     ToolbarItemGroup(placement: .primaryAction) {
@@ -188,7 +206,11 @@ private struct VaultFiltersView: View {
                 Text("All").tag("all"); Text("Favorites").tag("favorites")
                 ForEach(vaultKinds(), id: \.self) { Text(vaultKindName($0)).tag($0) }
             }
-            Picker("Sort", selection: $model.vaultSort) { Text("Recently updated").tag("updated"); Text("Name").tag("title") }.pickerStyle(.inline)
+            Picker("Sort", selection: $model.vaultSort) {
+                Text("Best match").tag("relevance")
+                Text("Recently updated").tag("updated")
+                Text("Name").tag("title")
+            }.pickerStyle(.inline)
             Picker("Tags", selection: $model.vaultTag) {
                 Text("All").tag("")
                 ForEach(model.vaultCounts.tags, id: \.self) { Text($0).tag($0) }
@@ -202,14 +224,29 @@ private struct VaultFiltersView: View {
 
 struct VaultRow: View {
     let item: VaultItem
+    var searchMeta: VaultSearchMeta? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var body: some View {
         HStack(spacing: 10) {
             ObjectIcon(glyph: .vaultItem(item.kind))
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                if item.subtitle.isEmpty { Text(vaultKindName(item.kind)).rowSubtitle() }
-                else { Text(item.subtitle).rowSubtitle().lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1) }
+                Text(highlightedText(item.title, spans: searchMeta?.titleSpans))
+                    .font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                let hint = vaultMatchHint(matchField: searchMeta?.matchField, matchValue: searchMeta?.matchValue, subtitle: item.subtitle)
+                if item.subtitle.isEmpty {
+                    if let hint {
+                        (Text(vaultKindName(item.kind)) + Text(verbatim: " · " + hint))
+                            .rowSubtitle().lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    } else {
+                        Text(vaultKindName(item.kind)).rowSubtitle()
+                    }
+                } else if let hint {
+                    Text(highlightedText(item.subtitle, spans: searchMeta?.subtitleSpans) + AttributedString(" · " + hint))
+                        .rowSubtitle().lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                } else {
+                    Text(highlightedText(item.subtitle, spans: searchMeta?.subtitleSpans))
+                        .rowSubtitle().lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                }
             }.frame(maxWidth: .infinity, alignment: .leading)
             if item.favorite { Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite") }
             if item.conflict { Image(systemName: "arrow.triangle.branch").accessibilityLabel("Sync conflicts") }

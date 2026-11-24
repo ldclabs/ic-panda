@@ -44,9 +44,23 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     val history by client.letters.history.state.collectAsStateWithLifecycle()
     val saved by client.letters.saved.state.collectAsStateWithLifecycle()
     val drafts by client.letters.drafts.collectAsStateWithLifecycle()
+    val letterSearch by client.letters.searchResults.state.collectAsStateWithLifecycle()
+    val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     var folder by remember { mutableStateOf(LetterFolder.entries.find { it.name == client.letters.location.folder } ?: LetterFolder.INBOX) }
     var search by remember { mutableStateOf(client.letters.location.query) }
+    var searchAll by remember { mutableStateOf(false) }
     var limit by remember(folder, search) { mutableIntStateOf(100) }
+    val boxKind = when (folder) {
+        LetterFolder.INBOX -> "inbox"
+        LetterFolder.ARCHIVED -> "archive"
+        LetterFolder.SENT -> "sent"
+        LetterFolder.PENDING -> "pending"
+        LetterFolder.DRAFTS -> "draft"
+    }
+    LaunchedEffect(search, boxKind, searchAll, state.epoch) {
+        if (searchAll && search.isNotBlank()) client.search.searchAll(search)
+        else if (!searchAll) client.letters.search(search, boxKind)
+    }
     val listState = key(folder, search) { rememberLazyListState() }
     val selected = route.id.takeUnless { route.field == "sent" }
     val sent = route.id.takeIf { route.field == "sent" }
@@ -70,6 +84,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                     IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
                     MessageMoreMenu(client)
                 }) { searching ->
+                LaunchedEffect(searching) { if (!searching) searchAll = false }
                 if (!searching) ScreenFab {
                     val atTop by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
                     ExtendedFloatingActionButton(onClick = { editing = client.letters.create() }, expanded = atTop,
@@ -78,7 +93,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                 LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = pagePadding(top = 0.dp, bottom = FabClearance)) {
                     browseScopesItem(searching) {
                         BrowseScopes(trailing = {
-                            MenuChoice(str(folder.label), folder != LetterFolder.INBOX, Modifier.testTag("letter-folders")) { close ->
+                            if (!searching || !searchAll) MenuChoice(str(folder.label), folder != LetterFolder.INBOX, Modifier.testTag("letter-folders")) { close ->
                                 LetterFolder.entries.forEach { entry ->
                                     DropdownMenuItem(
                                         text = { Text(str(entry.label)) },
@@ -89,13 +104,44 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                                 }
                             }
                         }) {
-                            if (showScopes) {
-                                BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
-                                BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
-                            } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
+                            if (searching) {
+                                BrowseChoice(str(R.string.search_scope_current), !searchAll) { searchAll = false }
+                                BrowseChoice(str(R.string.search_scope_all), searchAll) { searchAll = true }
+                            }
+                            if (!searching || !searchAll) {
+                                if (showScopes) {
+                                    BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
+                                    BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
+                                } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                     }
-                    when (folder) {
+                    if (searching && searchAll) {
+                        globalSearchResults(client, search, globalRead) { client.search.searchAll(search) }
+                    } else if (search.isNotBlank()) {
+                        val trimmed = search.trim()
+                        item { ReadFeedback(letterSearch, { client.letters.search(search, boxKind) }) }
+                        val hits = letterSearch.valueOrNull()?.takeIf { it.boxKind == boxKind && it.query == trimmed }?.hits.orEmpty()
+                        items(hits.take(limit), key = { "hit:${it.boxKind}:${it.id}" }) { hit ->
+                            val who = hit.displayName?.takeIf(String::isNotBlank) ?: hit.account.ifBlank { str(R.string.text_no_recipient_4b720be) }
+                            val statusText = when (hit.boxKind) {
+                                "sent", "pending" -> letterState(hit.state) + " · " + messageTime(hit.createdAt)
+                                "draft" -> str(R.string.text_draft_ce89527)
+                                else -> messageTime(hit.createdAt)
+                            }
+                            LetterRow(who, "", statusText, !hit.read && hit.boxKind == "inbox", hit.nameSpans, hit.snippetSpans) {
+                                when (hit.boxKind) {
+                                    "sent", "pending" -> client.navigation.push(Route("inbox", id = hit.id, field = "sent"))
+                                    "draft" -> editing = hit.id
+                                    else -> client.navigation.push(Route("inbox", id = hit.id))
+                                }
+                            }
+                        }
+                        if (hits.isEmpty() && (letterSearch is ReadState.Ready || letterSearch is ReadState.Empty)) {
+                            item { EmptyState(str(R.string.no_matches), icon = Icons.Outlined.Search) }
+                        }
+                        if (hits.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                    } else when (folder) {
                         LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
                             item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
                             val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
@@ -254,10 +300,22 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     if (reopen && letter != null) AlertDialog(onDismissRequest = { reopen = false }, title = { Text(str(R.string.text_allow_another_letter_5538009)) }, text = { Text(str(R.string.text_this_sender_can_submit_another_letter_under_your_current_receivin_0910e86)) }, confirmButton = { TextButton(onClick = { client.letters.mark(letter, reopen = true); reopen = false }) { Text(str(R.string.text_allow_ee9ea51)) } }, dismissButton = { TextButton(onClick = { reopen = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
-@Composable private fun LetterRow(account: String, text: String, status: String, unread: Boolean, open: () -> Unit) {
-    BrowseRow(account, Modifier.clickable(onClick = open), leading = { Avatar(account, account) }, emphasized = unread) {
+@Composable private fun LetterRow(
+    account: String,
+    text: String,
+    status: String,
+    unread: Boolean,
+    nameSpans: List<HighlightSpan> = emptyList(),
+    snippetSpans: List<HighlightSpan> = emptyList(),
+    open: () -> Unit,
+) {
+    BrowseRow(buildHighlightedText(account, nameSpans), Modifier.clickable(onClick = open), leading = { Avatar(account, account) }, emphasized = unread) {
         Column {
-            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (unread) MaterialTheme.colorScheme.onSurface else Color.Unspecified)
+            if (snippetSpans.isNotEmpty()) {
+                Text(buildHighlightedText(text, snippetSpans), maxLines = 2, overflow = TextOverflow.Ellipsis, color = if (unread) MaterialTheme.colorScheme.onSurface else Color.Unspecified)
+            } else {
+                Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (unread) MaterialTheme.colorScheme.onSurface else Color.Unspecified)
+            }
             Text(status, style = MaterialTheme.typography.labelSmall)
         }
     }

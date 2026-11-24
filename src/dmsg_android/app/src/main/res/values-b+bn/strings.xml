@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"লিঙ্ক ও পাসওয়ার্ড আছে এমন যে কেউ"</string>
     <string name="review_receiving" formatted="false">"গ্রহণ"</string>
     <string name="saved_on_device" formatted="false">"এই ডিভাইসে সংরক্ষিত"</string>
+    <string name="search_attachments_only" formatted="false">"সংযুক্তি"</string>
+    <string name="search_everything" formatted="false">"সবকিছু খুঁজুন"</string>
+    <string name="search_latest_messages" formatted="false">"সর্বশেষ বার্তা"</string>
     <string name="search_local_messages" formatted="false">"এই ডিভাইসে সংরক্ষিত বার্তা খোঁজে।"</string>
+    <string name="search_matched_notes" formatted="false">"নোটে মিলেছে"</string>
+    <string name="search_member_label" formatted="false">"সদস্য"</string>
+    <string name="search_newer_messages" formatted="false">"নতুন বার্তা লোড করুন"</string>
+    <string name="search_next_match" formatted="false">"পরবর্তী মিল"</string>
+    <string name="search_open_in_conversation" formatted="false">"কথোপকথনে খুলুন"</string>
+    <string name="search_prev_match" formatted="false">"পূর্ববর্তী মিল"</string>
     <string name="search_query_limit" formatted="false">"খোঁজার জন্য সর্বোচ্চ ২০০টি অক্ষর লিখুন।"</string>
+    <string name="search_scope_all" formatted="false">"সব"</string>
+    <string name="search_scope_current" formatted="false">"কারেন্ট"</string>
+    <string name="search_sort_relevance" formatted="false">"সেরা মিল"</string>
     <string name="security_confirm" formatted="false">"dMsg-এ নিশ্চিত করুন"</string>
     <string name="security_manage_identity" formatted="false">"পরিচয় পরিচালনা করুন"</string>
     <string name="security_unlock" formatted="false">"dMsg আনলক করুন"</string>

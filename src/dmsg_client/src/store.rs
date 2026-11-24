@@ -168,6 +168,19 @@ pub struct Store {
     conn: Mutex<Connection>,
 }
 
+/// Lightweight routing metadata for one current head (without loading the encrypted frame).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HeadMeta {
+    /// Item ID.
+    pub item: String,
+    /// Current revision ID.
+    pub revision: String,
+    /// Sync state (`local`, `local_only`, `synced`, `blocked`, `replaced`).
+    pub state: String,
+    /// Whether this head row is marked conflicting.
+    pub conflict: bool,
+}
+
 /// An encrypted object version with its routing columns.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ObjectRow {
@@ -1437,6 +1450,73 @@ impl Store {
             .query_map([kind], |r| Ok((r.get(0)?, r.get(1)?)))
             .map_err(storage)?;
         rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
+    /// Routing metadata for current heads of one kind, without loading encrypted frames.
+    /// Missing objects remain integrity failures.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a missing object and
+    /// `Error::Unavailable` when SQLite fails.
+    pub fn head_meta(&self, kind: &str) -> Result<Vec<HeadMeta>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT o.item, o.revision, o.state, o.conflict
+                 FROM heads h LEFT JOIN objects o ON o.key = h.item || ':' || h.revision
+                 WHERE h.kind = ?1 ORDER BY h.item",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map([kind], |r| {
+                let Some(item): Option<String> = r.get(0)? else {
+                    return Ok(None);
+                };
+                Ok(Some(HeadMeta {
+                    item,
+                    revision: r.get(1)?,
+                    state: r.get(2)?,
+                    conflict: r.get::<_, i64>(3)? != 0,
+                }))
+            })
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(storage)?
+            .into_iter()
+            .collect::<Option<Vec<_>>>()
+            .ok_or(Error::IntegrityFailed)
+    }
+
+    /// Read a single current head's encrypted object row by item ID.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` if the head's object is missing and
+    /// `Error::Unavailable` when SQLite fails.
+    pub fn head_object(&self, item: &str, kind: &str) -> Result<Option<ObjectRow>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT o.key, o.item, o.revision, o.kind, o.frame, o.state,
+                        o.conflict, o.resolved, o.created_at
+                 FROM heads h LEFT JOIN objects o ON o.key = h.item || ':' || h.revision
+                 WHERE h.item = ?1 AND h.kind = ?2",
+            )
+            .map_err(storage)?;
+        let found = statement
+            .query_row(params![item, kind], |r| {
+                if r.get::<_, Option<String>>(0)?.is_none() {
+                    Ok(None)
+                } else {
+                    row(r).map(Some)
+                }
+            })
+            .optional()
+            .map_err(storage)?;
+        match found {
+            None => Ok(None),
+            Some(Some(obj)) => Ok(Some(obj)),
+            Some(None) => Err(Error::IntegrityFailed),
+        }
     }
 
     /// Current object rows of one kind, by item, in one read. A missing

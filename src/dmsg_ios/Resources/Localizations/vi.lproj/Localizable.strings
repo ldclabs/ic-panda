@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>No automatic charge at expiry.</key>
-	<string>Không tự động tính phí khi hết hạn.</string>
-	<key>Promotional membership</key>
-	<string>Gói thành viên khuyến mãi</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld thiết bị đã bị thu hồi hoặc không còn trong tài khoản của bạn vẫn đang liên kết với ví này.</string>
 	<key>%lld files · %@</key>
@@ -28,6 +26,12 @@
 	<string>Đã có tệp hoặc thư mục mang tên này.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>L1 của địa chỉ native gắn với khóa của một thiết bị, nên thiết bị này nhận địa chỉ riêng và coin được chuyển sang đó. Mỗi bước là một đề xuất do thành viên phê duyệt.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Không gian làm việc riêng tư cho kỷ nguyên AI.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Một sản phẩm của ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Một đề xuất được DAO thông qua có thể nâng cấp mã trên chuỗi, vì vậy quản trị cũng là một phần của những gì bạn tin tưởng. Các ứng dụng và dịch vụ đám mây được phát hành và vận hành bên ngoài cuộc bỏ phiếu đó.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Không thể xác minh bản ghi hoặc khóa thiết bị. Không gian làm việc của bạn chưa bị xóa.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -44,6 +48,8 @@
 	<string>Giới thiệu về dMsg</string>
 	<key>About files and backups</key>
 	<string>Về tệp và bản sao lưu</string>
+	<key>About these benefits</key>
+	<string>Về các quyền lợi này</string>
 	<key>Accept approved binding</key>
 	<string>Chấp nhận ràng buộc đã được phê duyệt</string>
 	<key>Accepted by service</key>
@@ -54,10 +60,14 @@
 	<string>Đã cấp quyền truy cập</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
 	<string>Truy cập các bản sao bạn đã xuất rõ ràng từ dMsg</string>
+	<key>Access unavailable</key>
+	<string>Không thể truy cập</string>
 	<key>Account</key>
 	<string>Tài khoản</string>
 	<key>Account ID</key>
 	<string>ID tài khoản</string>
+	<key>Account information</key>
+	<string>Thông tin tài khoản</string>
 	<key>Account recovery</key>
 	<string>Khôi phục tài khoản</string>
 	<key>Account recovery is pending</key>
@@ -80,16 +90,24 @@
 	<string>Đang hoạt động</string>
 	<key>Active conversations</key>
 	<string>Cuộc trò chuyện hiện hoạt</string>
+	<key>Active devices</key>
+	<string>Thiết bị hoạt động</string>
+	<key>Active file request links</key>
+	<string>Liên kết yêu cầu tệp đang hoạt động</string>
 	<key>Active links</key>
 	<string>Liên kết đang hoạt động</string>
 	<key>Activity</key>
 	<string>Hoạt động</string>
 	<key>Activity on this device</key>
 	<string>Hoạt động trên thiết bị này</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Thêm thiết bị và tiếp tục dùng thiết bị này.</string>
 	<key>Add a passkey login</key>
 	<string>Thêm đăng nhập bằng khóa truy cập</string>
 	<key>Add account</key>
 	<string>Thêm tài khoản</string>
+	<key>Add as new</key>
+	<string>Thêm mục mới</string>
 	<key>Add device</key>
 	<string>Thêm thiết bị</string>
 	<key>Add field</key>
@@ -102,6 +120,8 @@
 	<string>Thêm liên kết</string>
 	<key>Add one-time code</key>
 	<string>Thêm mã một lần</string>
+	<key>Add permission</key>
+	<string>Thêm quyền</string>
 	<key>Add protector</key>
 	<string>Thêm khóa bảo vệ</string>
 	<key>Add receiving address</key>
@@ -126,8 +146,8 @@
 	<string>Nâng cao</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Sau khi phê duyệt các yêu cầu ví, hãy tạo lại yêu cầu thay thế trên thiết bị mới.</string>
-	<key>Hosted Agent IDs</key>
-	<string>ID tác tử được lưu trữ</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
 	<key>Agent ID</key>
 	<string>ID tác tử</string>
 	<key>Agents</key>
@@ -140,10 +160,14 @@
 	<string>Tất cả các thiết bị bị mất?</string>
 	<key>All files</key>
 	<string>Tất cả các tập tin</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Cho phép cảnh báo trong Cài đặt iOS để nhận thông báo hệ thống.</string>
 	<key>Allow another letter</key>
 	<string>Cho phép thư tiếp theo</string>
 	<key>Allow key rotation</key>
 	<string>Cho phép đổi khóa</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Cho phép thông báo để nhận cảnh báo hệ thống.</string>
 	<key>Allow this account to send another letter?</key>
 	<string>Cho phép tài khoản này gửi thư tiếp theo?</string>
 	<key>Allowed</key>
@@ -170,8 +194,16 @@
 	<string>Giá trị thay thế trống sẽ xóa giá trị đã lưu.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Bất kỳ ai có liên kết đầy đủ và mật khẩu được yêu cầu đều có thể truy xuất nó trong giới hạn của nó.</string>
+	<key>Anyone with the link</key>
+	<string>Bất kỳ ai có liên kết</string>
+	<key>Anyone with the link and password</key>
+	<string>Bất kỳ ai có liên kết và mật khẩu</string>
 	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
 	<string>Bất kỳ ai có liên kết đều có thể tải tệp này xuống cho đến khi hết hạn hoặc bạn thu hồi. Họ không cần tài khoản hay ứng dụng dMsg.</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Bất kỳ ai bạn chưa chặn đều có thể gửi thư miễn phí.</string>
 	<key>Anyone, free of charge</key>
 	<string>Bất cứ ai, miễn phí</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -184,6 +216,8 @@
 	<string>Áp dụng các quy tắc nhận này?</string>
 	<key>Apply this conversation change?</key>
 	<string>Áp dụng thay đổi cuộc trò chuyện này?</string>
+	<key>Applying your purchase…</key>
+	<string>Đang kích hoạt giao dịch mua…</string>
 	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
 	<string>Phê duyệt chỉ nhập các trường đã chọn và tệp đính kèm của bạn dưới dạng các mục độc lập mới. Các tệp vẫn cục bộ và kế thừa quyền truy cập của thư mục đích.</string>
 	<key>Approval key</key>
@@ -212,6 +246,8 @@
 	<string>Phê duyệt yêu cầu này</string>
 	<key>Approved by</key>
 	<string>Được phê duyệt bởi</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Đã phê duyệt. Đang chuẩn bị kho bảo mật…</string>
 	<key>Approver</key>
 	<string>Người phê duyệt</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
@@ -238,6 +274,8 @@
 	<string>Không có thông tin tài sản. Hãy thử lại trước khi nhập số tiền.</string>
 	<key>Asset identifier</key>
 	<string>Mã định danh tài sản</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Ít nhất 6 ký tự. Hãy lưu mật khẩu riêng. dMsg không thể khôi phục mật khẩu.</string>
 	<key>At most %lld names at a time.</key>
 	<string>Tối đa %lld tên mỗi lần.</string>
 	<key>Attach</key>
@@ -260,6 +298,8 @@
 	<string>Xác thực để truy cập vào các bản sao tệp bạn đã xuất từ dMsg. Truy cập kéo dài năm phút; ảnh chụp nhanh sẽ hết hạn sau 24 giờ.</string>
 	<key>Authenticate to continue</key>
 	<string>Xác thực để tiếp tục</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Cấp cho %1$@ vai trò %2$@.</string>
 	<key>Authorize a new device</key>
 	<string>Ủy quyền cho một thiết bị mới</string>
 	<key>Authorize another device</key>
@@ -286,6 +326,10 @@
 	<string>Có sẵn sau</string>
 	<key>Back</key>
 	<string>Quay lại</string>
+	<key>Back to reminders</key>
+	<string>Quay lại lời nhắc</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Chủ động sao lưu một tệp, rồi tải bản sao lưu đã mã hóa đó xuống trên một thiết bị được ủy quyền khác. Toàn bộ thư viện tệp cục bộ của bạn không tự động được tải lên.</string>
 	<key>Back up encrypted copy</key>
 	<string>Sao lưu bản sao được mã hóa</string>
 	<key>Back up this file?</key>
@@ -306,10 +350,14 @@
 	<string>Quá trình chuyển nền đã bắt đầu. Xem lại tiến trình của nó trong Chuyển khoản.</string>
 	<key>Backing up…</key>
 	<string>Đang sao lưu…</string>
+	<key>Backup and restore</key>
+	<string>Sao lưu và khôi phục</string>
 	<key>Backup failed</key>
 	<string>Sao lưu thất bại</string>
 	<key>Backup list could not be refreshed</key>
 	<string>Không thể làm mới danh sách bản sao lưu</string>
+	<key>Backup password</key>
+	<string>Mật khẩu bản sao lưu</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Đã lưu tiến trình sao lưu. Kiểm tra trạng thái tập tin để hoàn thành.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -318,6 +366,12 @@
 	<string>Sao lưu</string>
 	<key>Balance</key>
 	<string>Số dư</string>
+	<key>Best match</key>
+	<string>Phù hợp nhất</string>
+	<key>Billing grace period</key>
+	<string>Thời gian gia hạn thanh toán</string>
+	<key>Billing retry</key>
+	<string>Đang thử thanh toán lại</string>
 	<key>Bind another Internet Identity</key>
 	<string>Liên kết một Internet Identity khác</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -376,6 +430,8 @@
 	<string>Việc hủy bỏ áp dụng cho yêu cầu chưa quyết định này. Nó không hoàn tác việc giao hàng đã hoàn thành.</string>
 	<key>Cancelled</key>
 	<string>Đã hủy</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ.</string>
 	<key>Capabilities, one per line</key>
 	<string>Khả năng, một trên mỗi dòng</string>
 	<key>Cardholder</key>
@@ -394,6 +450,8 @@
 	<string>Thay đổi chính sách phê duyệt phần cứng</string>
 	<key>Change identity settings</key>
 	<string>Thay đổi cài đặt nhận dạng</string>
+	<key>Change plan</key>
+	<string>Đổi gói</string>
 	<key>Change role</key>
 	<string>Thay đổi vai trò</string>
 	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
@@ -408,6 +466,8 @@
 	<string>Mã kênh</string>
 	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
 	<string>Bản sao kênh không có thời hạn sử dụng, giới hạn truy xuất hoặc thu hồi. Người nhận có thể giữ các bản sao độc lập.</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Giới hạn áp dụng cho các kênh bạn tạo hoặc tài trợ. Chữ ký thiết bị thông thường không dùng hạn mức hằng tháng.</string>
 	<key>Channel snapshot</key>
 	<string>Ảnh chụp nhanh kênh</string>
 	<key>Channels</key>
@@ -434,6 +494,8 @@
 	<string>Kiểm tra yêu cầu</string>
 	<key>Check status</key>
 	<string>Kiểm tra trạng thái</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không.</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Kiểm tra tên và thư mục đích rồi thử lại.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -450,6 +512,10 @@
 	<string>Chọn thông tin xác thực cho:</string>
 	<key>Choose a file</key>
 	<string>Chọn tệp</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Chọn tài khoản khi ứng dụng hoặc trang web yêu cầu mật khẩu.</string>
+	<key>Choose a permission</key>
+	<string>Chọn quyền</string>
 	<key>Choose a secret</key>
 	<string>Chọn một bí mật</string>
 	<key>Choose a version</key>
@@ -464,10 +530,16 @@
 	<string>Chọn chính xác những gì ảnh chụp nhanh độc lập này chứa. Chỉnh sửa nguồn sẽ không thay đổi các bản sao đã được gửi.</string>
 	<key>Choose folder</key>
 	<string>Chọn thư mục</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Chọn tài khoản tương ứng để tiếp tục. Tài khoản hiện tại vẫn được chọn cho đến khi bạn chọn tài khoản khác.</string>
 	<key>Choose password export</key>
 	<string>Chọn xuất mật khẩu</string>
+	<key>Choose screenshots</key>
+	<string>Chọn ảnh chụp</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
 	<string>Chọn ngôn ngữ cho dMsg trong Cài đặt iOS.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Chọn dung lượng lưu trữ và số thiết bị phù hợp với công việc hằng ngày. Nâng cấp để thu thập tệp bằng liên kết tải lên và có thêm dung lượng.</string>
 	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
 	<string>Chọn phiên bản nào để giữ. Lịch sử hiện tại được giữ lại; bí mật không bao giờ được ghi đè âm thầm.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
@@ -482,10 +554,14 @@
 	<string>Xóa tìm kiếm</string>
 	<key>Clear selection</key>
 	<string>Bỏ chọn</string>
+	<key>Close</key>
+	<string>Đóng</string>
 	<key>Close invitation</key>
 	<string>Đóng lời mời</string>
 	<key>Close link</key>
 	<string>Đóng liên kết</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Đóng yêu cầu này, mở tài khoản hiển thị bên dưới trong dMsg rồi mở lại yêu cầu.</string>
 	<key>Closed</key>
 	<string>Đã đóng</string>
 	<key>Cloud backup</key>
@@ -508,10 +584,14 @@
 	<string>Thu thập tệp</string>
 	<key>Collecting files needs a paid plan</key>
 	<string>Thu thập tệp cần gói trả phí</string>
+	<key>Compare all plans</key>
+	<string>So sánh tất cả các gói</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
 	<key>Compare with current</key>
 	<string>So sánh với phiên bản hiện tại</string>
+	<key>Comparison code</key>
+	<string>Mã đối chiếu</string>
 	<key>Complete</key>
 	<string>Hoàn tất</string>
 	<key>Complete recovery after waiting period</key>
@@ -524,12 +604,18 @@
 	<string>Định cấu hình ánh xạ tệp trên máy tính để bàn</string>
 	<key>Configured on this device</key>
 	<string>Đã định cấu hình trên thiết bị này</string>
+	<key>Confirm backup password</key>
+	<string>Xác nhận mật khẩu</string>
 	<key>Confirm change</key>
 	<string>Xác nhận thay đổi</string>
 	<key>Confirm completed step</key>
 	<string>Xác nhận bước hoàn thành</string>
 	<key>Confirm it is done</key>
 	<string>Xác nhận đã xong</string>
+	<key>Confirm it is still you</key>
+	<string>Xác nhận đó vẫn là bạn</string>
+	<key>Confirm local password</key>
+	<string>Xác nhận mật khẩu cục bộ</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Chỉ xác nhận công việc bạn đã thực sự hoàn thành. Điều này ghi lại tuyên bố của bạn; nó không thực hiện hành động của nhà cung cấp.</string>
 	<key>Confirm the dMsg request you reviewed</key>
@@ -562,12 +648,16 @@
 	<string>Liên hệ hỗ trợ</string>
 	<key>Content signing</key>
 	<string>Ký nội dung</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Nội dung bạn cho phép ứng dụng khách AI bên ngoài đọc cũng được xử lý theo chính sách dữ liệu của ứng dụng khách đó. Chỉ cấp quyền truy cập vào những gì nhiệm vụ cần.</string>
 	<key>Continue</key>
 	<string>Tiếp tục</string>
 	<key>Continue adding this passkey</key>
 	<string>Tiếp tục thêm khóa truy cập này</string>
 	<key>Continue import</key>
 	<string>Tiếp tục nhập</string>
+	<key>Continue on another device</key>
+	<string>Tiếp tục trên thiết bị khác</string>
 	<key>Continue password import</key>
 	<string>Tiếp tục nhập mật khẩu</string>
 	<key>Continue selected backups</key>
@@ -624,6 +714,8 @@
 	<string>Sao chép ID thiết bị</string>
 	<key>Copy enrollment request</key>
 	<string>Sao chép yêu cầu đăng ký</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Sao chép tệp giữa hai thiết bị đã được cấp quyền.</string>
 	<key>Copy link</key>
 	<string>Sao chép liên kết</string>
 	<key>Copy pairing request</key>
@@ -640,6 +732,8 @@
 	<string>Đồng ký trên thiết bị này</string>
 	<key>Cosign packet from another device</key>
 	<string>Gói đồng ký từ thiết bị khác</string>
+	<key>Cosign proposal</key>
+	<string>Đồng ký đề xuất</string>
 	<key>Cosignatures</key>
 	<string>Đồng ký</string>
 	<key>Cosigner key</key>
@@ -648,6 +742,8 @@
 	<string>Khóa đồng ký</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Người đồng ký tên cho chính sách địa chỉ được đề xuất</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Không thể cập nhật tính năng tự động điền mật khẩu.</string>
 	<key>Create</key>
 	<string>Tạo</string>
 	<key>Create %lld links</key>
@@ -660,6 +756,8 @@
 	<string>Tạo khóa truy cập</string>
 	<key>Create a revocation request?</key>
 	<string>Tạo yêu cầu thu hồi?</string>
+	<key>Create a separate account</key>
+	<string>Tạo tài khoản riêng</string>
 	<key>Create agent</key>
 	<string>Tạo tác tử</string>
 	<key>Create an administrator enrollment request</key>
@@ -690,6 +788,8 @@
 	<string>Tạo đề xuất ví này?</string>
 	<key>Create transfer proposal</key>
 	<string>Tạo đề xuất chuyển nhượng</string>
+	<key>Create wallet</key>
+	<string>Tạo ví</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Tạo không gian làm việc được mã hóa của bạn để bắt đầu lưu mật khẩu, ghi chú và tệp.</string>
 	<key>Created</key>
@@ -714,6 +814,8 @@
 	<string>Sự phụ thuộc cục bộ hiện tại</string>
 	<key>Current login</key>
 	<string>Đăng nhập hiện tại</string>
+	<key>Current plan</key>
+	<string>Gói hiện tại</string>
 	<key>Current plan and limits</key>
 	<string>Gói hiện tại và giới hạn</string>
 	<key>Current policy requires payment</key>
@@ -722,6 +824,8 @@
 	<string>Nhiệm kỳ hiện tại kết thúc</string>
 	<key>Current version</key>
 	<string>Phiên bản hiện tại</string>
+	<key>Customize fields</key>
+	<string>Tùy chỉnh trường</string>
 	<key>Cvv</key>
 	<string>CVV</string>
 	<key>DMSG_NOTIFICATION_ACTION</key>
@@ -754,6 +858,8 @@
 	<string>Xóa bản sao lưu đám mây này?</string>
 	<key>Deleted</key>
 	<string>Ngày xóa</string>
+	<key>Deleted here · save a copy</key>
+	<string>Đã xóa tại đây · lưu bản sao</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Việc xóa tài khoản dMsg của bạn sẽ không hủy đăng ký Apple. Hãy hủy nó trong cài đặt tài khoản Apple của bạn để ngừng gia hạn.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -766,6 +872,10 @@
 	<string>Trạng thái xóa</string>
 	<key>Deliver a secret to a local process</key>
 	<string>Cung cấp bí mật cho một quy trình cục bộ</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Chưa xác nhận việc giao thư. Thử lại giữ nguyên báo cáo.</string>
+	<key>Delivery report</key>
+	<string>Báo cáo gửi</string>
 	<key>Dependencies on this device</key>
 	<string>Sự phụ thuộc vào thiết bị này</string>
 	<key>Describe the issue</key>
@@ -810,12 +920,16 @@
 	<string>Không gian làm việc gắn với thiết bị</string>
 	<key>Devices</key>
 	<string>Thiết bị</string>
+	<key>Different content · save a copy</key>
+	<string>Nội dung khác · lưu bản sao</string>
 	<key>Disabled</key>
 	<string>Đã tắt</string>
 	<key>Discard</key>
 	<string>Loại bỏ</string>
 	<key>Discard draft</key>
 	<string>Loại bỏ</string>
+	<key>Discard feedback draft?</key>
+	<string>Bỏ bản nháp báo cáo?</string>
 	<key>Discard staged copy</key>
 	<string>Hủy bản sao tạm</string>
 	<key>Discard this draft?</key>
@@ -850,6 +964,8 @@
 	<string>Số lượt tải được phép</string>
 	<key>Draft saved</key>
 	<string>Đã lưu bản nháp</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Bản nháp đã được lưu mã hóa trên thiết bị này.</string>
 	<key>Draft: </key>
 	<string>Bản nháp: </string>
 	<key>Drafts</key>
@@ -918,6 +1034,8 @@
 	<string>Chi tiết lỗi</string>
 	<key>Estimated fee</key>
 	<string>Phí ước tính</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Mọi gói đều có mã hóa đầu cuối và khả năng thu hồi quyền truy cập thiết bị.</string>
 	<key>Execute</key>
 	<string>Thực thi</string>
 	<key>Execute approved proposal</key>
@@ -940,6 +1058,8 @@
 	<string>Hết hạn</string>
 	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
 	<string>Sao lưu rõ ràng phiên bản tệp đã chọn nếu bạn muốn có bản sao trên đám mây.</string>
+	<key>Export encrypted backup</key>
+	<string>Xuất bản sao lưu mã hóa</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>Xuất các mục đăng nhập đã chọn sang Tự động điền mật khẩu</string>
 	<key>Failed</key>
@@ -950,6 +1070,8 @@
 	<string>Yêu thích</string>
 	<key>Fee</key>
 	<string>Phí</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Báo cáo đã được giao. Điều này không có nghĩa là đã được đọc.</string>
 	<key>Field</key>
 	<string>Trường</string>
 	<key>Field name</key>
@@ -966,6 +1088,8 @@
 	<string>Tệp</string>
 	<key>File details</key>
 	<string>Chi tiết tệp</string>
+	<key>File digest checked</key>
+	<string>Đã kiểm tra hàm băm tệp</string>
 	<key>File name</key>
 	<string>Tên tập tin</string>
 	<key>File not available on this device</key>
@@ -990,6 +1114,12 @@
 	<string>Các tập tin trong thư mục này</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Không thể chia sẻ tệp lớn hơn 100 MiB qua liên kết.</string>
+	<key>Fill and remember</key>
+	<string>Điền và ghi nhớ</string>
+	<key>Fill once</key>
+	<string>Chỉ điền lần này</string>
+	<key>Fill this login?</key>
+	<string>Điền bằng tài khoản này?</string>
 	<key>Filters</key>
 	<string>Bộ lọc vault</string>
 	<key>Fingerprint</key>
@@ -1004,8 +1134,16 @@
 	<string>Tên thư mục</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Dành cho khóa mà thiết bị này không giữ, chẳng hạn khóa trên thiết bị bị mất. Sau khi thành viên phê duyệt, khóa mới có hiệu lực sau 24 giờ.</string>
+	<key>For everyday file exchange.</key>
+	<string>Cho việc trao đổi tệp hằng ngày.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Dành cho bản sao lưu lớn và cộng tác thường xuyên.</string>
+	<key>For more files and devices.</key>
+	<string>Cho nhiều tệp và thiết bị hơn.</string>
 	<key>For this site</key>
 	<string>Cho trang này</string>
+	<key>For your everyday essentials.</key>
+	<string>Cho những thứ thiết yếu hằng ngày.</string>
 	<key>Freeze this wallet?</key>
 	<string>Đóng băng ví này?</string>
 	<key>Freeze wallet</key>
@@ -1018,6 +1156,8 @@
 	<string>Đã đầy</string>
 	<key>Generate password</key>
 	<string>Tạo mật khẩu</string>
+	<key>Get started</key>
+	<string>Bắt đầu</string>
 	<key>Grant delegation</key>
 	<string>Ủy quyền ủy quyền</string>
 	<key>Handled on another device</key>
@@ -1046,10 +1186,14 @@
 	<string>Ẩn</string>
 	<key>Hide on this device</key>
 	<string>Ẩn trên thiết bị này</string>
+	<key>High risk</key>
+	<string>Rủi ro cao</string>
 	<key>Historical version</key>
 	<string>Phiên bản lịch sử</string>
 	<key>Host</key>
 	<string>Máy chủ</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID tác tử được lưu trữ</string>
 	<key>I completed this step</key>
 	<string>Tôi đã hoàn thành bước này</string>
 	<key>I have secured my wallet access and external credentials</key>
@@ -1080,6 +1224,8 @@
 	<string>Đã nhập xong</string>
 	<key>Import cosign packet</key>
 	<string>Nhập gói đồng ký</string>
+	<key>Import cosignatures</key>
+	<string>Nhập chữ ký đồng ký</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Nhập khẩu tạo ra các mặt hàng độc lập mới. Các tệp vẫn ở trên thiết bị này và kế thừa quyền truy cập của thư mục đã chọn. Không có gì được chọn tự động.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1088,8 +1234,12 @@
 	<string>Nhập tập tin</string>
 	<key>Import files</key>
 	<string>Nhập tập tin</string>
+	<key>Import from backup</key>
+	<string>Nhập từ bản sao lưu</string>
 	<key>Import from copy</key>
 	<string>Nhập từ bản sao</string>
+	<key>Import from local account</key>
+	<string>Nhập từ tài khoản cục bộ</string>
 	<key>Import into dMsg</key>
 	<string>Nhập vào dMsg</string>
 	<key>Import into this account</key>
@@ -1118,10 +1268,14 @@
 	<string>Hộp thư đến</string>
 	<key>Inbox settings</key>
 	<string>Cài đặt hộp thư đến</string>
+	<key>Include linked files</key>
+	<string>Kèm tệp liên kết</string>
 	<key>Include notes</key>
 	<string>Bao gồm ghi chú</string>
 	<key>Include this message's text</key>
 	<string>Bao gồm nội dung của tin nhắn này</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Bao gồm bí mật đã lưu trong mục ví.</string>
 	<key>Incomplete</key>
 	<string>Chưa đầy đủ</string>
 	<key>Inspect pairing request</key>
@@ -1176,6 +1330,8 @@
 	<string>Giữ bản nháp và rời đi</string>
 	<key>Keep existing value</key>
 	<string>Giữ giá trị hiện có</string>
+	<key>Keep what matters private.</key>
+	<string>Giữ riêng tư những gì quan trọng.</string>
 	<key>Key</key>
 	<string>Chìa khóa</string>
 	<key>Key fingerprint</key>
@@ -1198,6 +1354,8 @@
 	<string>Lớn nhất trước</string>
 	<key>Last known cloud state</key>
 	<string>Trạng thái đám mây được biết đến lần cuối</string>
+	<key>Last recorded term</key>
+	<string>Thời hạn được ghi nhận gần nhất</string>
 	<key>Last refreshed</key>
 	<string>Lần làm mới gần nhất</string>
 	<key>Last successful sync</key>
@@ -1220,20 +1378,28 @@
 	<string>Bị bỏ qua</string>
 	<key>Length</key>
 	<string>Chiều dài</string>
+	<key>Let this device approve future requests</key>
+	<string>Cho phép thiết bị này phê duyệt các yêu cầu sau này</string>
 	<key>Letters</key>
 	<string>Thư</string>
 	<key>License Key</key>
 	<string>Khóa cấp phép</string>
 	<key>Licensed To</key>
 	<string>Được cấp phép</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Hạn mức áp dụng cho gói cơ bản. Gói dung lượng bổ sung thêm sức chứa. Đơn vị thực thi hằng tháng được tính theo thời gian sử dụng và không đặt lại khi đổi gói.</string>
 	<key>Link closed</key>
 	<string>Đã đóng</string>
 	<key>Link limits</key>
 	<string>Giới hạn liên kết</string>
+	<key>Link to an existing account</key>
+	<string>Liên kết với tài khoản hiện có</string>
 	<key>Links</key>
 	<string>Liên kết</string>
 	<key>Links ready. Send each one only to its person.</key>
 	<string>Liên kết đã sẵn sàng. Chỉ gửi mỗi liên kết cho đúng người.</string>
+	<key>List items</key>
+	<string>Liệt kê mục</string>
 	<key>Load earlier activity</key>
 	<string>Tải hoạt động trước đó</string>
 	<key>Load earlier messages</key>
@@ -1242,12 +1408,16 @@
 	<string>Tải đề xuất trước đó</string>
 	<key>Load more</key>
 	<string>Tải thêm</string>
+	<key>Load newer messages</key>
+	<string>Tải tin nhắn mới hơn</string>
 	<key>Loading the verified request…</key>
 	<string>Đang tải yêu cầu đã được xác minh…</string>
 	<key>Loading…</key>
 	<string>Đang tải…</string>
 	<key>Local</key>
 	<string>Địa phương</string>
+	<key>Local account</key>
+	<string>Tài khoản cục bộ</string>
 	<key>Local content</key>
 	<string>Nội dung cục bộ</string>
 	<key>Local delivery record</key>
@@ -1264,6 +1434,8 @@
 	<string>Nhãn địa phương</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Quyền truy cập mạng cục bộ của dMsg đang tắt. Hãy bật trong Cài đặt hoặc nhập địa chỉ của thiết bị kia.</string>
+	<key>Local password</key>
+	<string>Mật khẩu cục bộ</string>
 	<key>Local security review</key>
 	<string>Đánh giá an ninh địa phương</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
@@ -1282,6 +1454,8 @@
 	<string>Danh tính đăng nhập</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Quản lý đăng ký Apple</string>
+	<key>Manage event endpoints</key>
+	<string>Quản lý điểm cuối nhận sự kiện</string>
 	<key>Manage file</key>
 	<string>Quản lý tập tin</string>
 	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
@@ -1294,6 +1468,10 @@
 	<string>Đánh dấu là đã đọc</string>
 	<key>Mark as unread</key>
 	<string>Đánh dấu chưa đọc</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Đánh dấu lời nhắc của mọi tài khoản là đã đọc</string>
+	<key>Matched in notes</key>
+	<string>Khớp trong ghi chú</string>
 	<key>Maximum fee</key>
 	<string>Phí tối đa</string>
 	<key>Maximum fee in base units</key>
@@ -1326,6 +1504,8 @@
 	<string>Giới hạn thực thi hằng tháng</string>
 	<key>Monthly execution units</key>
 	<string>Đơn vị thực thi hằng tháng</string>
+	<key>More</key>
+	<string>Thêm</string>
 	<key>More types</key>
 	<string>Các loại</string>
 	<key>Move a native address</key>
@@ -1336,6 +1516,8 @@
 	<string>Di chuyển đến đây</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Chuyển thư viện tệp qua mạng cục bộ, nhập từ không gian làm việc đã sao chép, hoặc bỏ lại.</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Chuyển vai trò của thiết bị này sang thiết bị thay thế.</string>
 	<key>Move this local file to Trash?</key>
 	<string>Chuyển tệp cục bộ này vào Thùng rác?</string>
 	<key>Move this secret to Trash?</key>
@@ -1360,6 +1542,8 @@
 	<string>Chuyển sang thiết bị mới: thiết bị mới yêu cầu thay thế thiết bị cũ, thiết bị cũ phê duyệt, rồi cả hai bàn giao từng bước.</string>
 	<key>Moving…</key>
 	<string>Đang di chuyển…</string>
+	<key>Multisig wallet slots</key>
+	<string>Số ví đa chữ ký cho phép</string>
 	<key>Multisig wallets</key>
 	<string>Ví đa chữ ký</string>
 	<key>Mute notifications</key>
@@ -1384,6 +1568,8 @@
 	<string>Controller mới</string>
 	<key>New conversation</key>
 	<string>Cuộc trò chuyện mới</string>
+	<key>New feedback</key>
+	<string>Báo cáo mới</string>
 	<key>New field type</key>
 	<string>Loại trường mới</string>
 	<key>New files</key>
@@ -1404,6 +1590,8 @@
 	<string>Mới nhất trước</string>
 	<key>Next</key>
 	<string>Tiếp theo</string>
+	<key>Next match</key>
+	<string>Kết quả tiếp theo</string>
 	<key>Next retry</key>
 	<string>Lần thử tiếp theo</string>
 	<key>No</key>
@@ -1418,10 +1606,14 @@
 	<string>Không có tác tử</string>
 	<key>No archived letters</key>
 	<string>Không có thư lưu trữ</string>
+	<key>No automatic charge at expiry.</key>
+	<string>Không tự động tính phí khi hết hạn.</string>
 	<key>No background transfer</key>
 	<string>Không chuyển nền</string>
 	<key>No blocked accounts</key>
 	<string>Không có tài khoản bị chặn</string>
+	<key>No charge</key>
+	<string>Miễn phí</string>
 	<key>No cloud backup is available for this version.</key>
 	<string>Không có bản sao lưu đám mây cho phiên bản này.</string>
 	<key>No cloud backups</key>
@@ -1434,6 +1626,8 @@
 	<string>Không có thông tin xác thực</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Không có sự phụ thuộc nào được ghi lại trên thiết bị này.</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Không tìm thấy thiết bị quản trị có quyền phê duyệt.</string>
 	<key>No favorites</key>
 	<string>Chưa có mục yêu thích</string>
 	<key>No fields or notes</key>
@@ -1446,6 +1640,8 @@
 	<string>Không có kết quả nào từ quá trình kiểm tra thiết bị này.</string>
 	<key>No handovers on this device.</key>
 	<string>Không có bàn giao nào trên thiết bị này.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu.</string>
 	<key>No interrupted imports</key>
 	<string>Không bị gián đoạn nhập khẩu</string>
 	<key>No item attachments</key>
@@ -1462,6 +1658,8 @@
 	<string>Không có kết quả phù hợp</string>
 	<key>No messages</key>
 	<string>Không có tin nhắn</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Không ai có thể gửi thư mới khi bạn đóng nhận thư.</string>
 	<key>No pending backups</key>
 	<string>Không có bản sao lưu đang chờ xử lý</string>
 	<key>No purchases were found for this dMsg account.</key>
@@ -1472,6 +1670,8 @@
 	<string>Không có yêu cầu khôi phục</string>
 	<key>No registered approval key</key>
 	<string>Không có khóa phê duyệt đã đăng ký</string>
+	<key>No reminders yet</key>
+	<string>Chưa có lời nhắc</string>
 	<key>No reports</key>
 	<string>Chưa có hồ sơ nào</string>
 	<key>No section</key>
@@ -1496,6 +1696,8 @@
 	<string>Chưa bật</string>
 	<key>Not enough storage on this device.</key>
 	<string>Không đủ bộ nhớ trên thiết bị này.</string>
+	<key>Not included</key>
+	<string>Không bao gồm</string>
 	<key>Not made yet; it is derived when this device registers its key.</key>
 	<string>Chưa tạo; khóa được dẫn xuất khi thiết bị này đăng ký khóa của mình.</string>
 	<key>Not registered</key>
@@ -1508,16 +1710,30 @@
 	<string>Chưa có khoản nào trên ngưỡng dust có thể chuyển qua đường này.</string>
 	<key>Nothing has arrived yet.</key>
 	<string>Chưa có gì được gửi đến.</string>
+	<key>Nothing needs your attention</key>
+	<string>Không có việc cần xử lý</string>
+	<key>Notification connection needs attention</key>
+	<string>Cần khôi phục kết nối thông báo</string>
+	<key>Notification connection restored</key>
+	<string>Đã khôi phục kết nối thông báo</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Đăng ký thông báo cần thử lại. Đồng bộ hóa tiền cảnh vẫn có sẵn.</string>
 	<key>Notifications</key>
 	<string>Thông báo</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Thông báo được gửi ở chế độ yên lặng.</string>
 	<key>Notifications are disabled in system settings.</key>
 	<string>Thông báo bị tắt trong cài đặt hệ thống.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Thông báo đã tắt cho tài khoản này.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Thông báo đã tắt trên thiết bị này.</string>
 	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
 	<string>Thông báo không chứa nội dung tin nhắn, người gửi, tên tệp hoặc tải trọng phê duyệt. Việc mở dMsg luôn làm mới trạng thái thực tế.</string>
 	<key>Notifications enabled</key>
 	<string>Đã bật thông báo</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Thông báo có thể đến chậm. Mở dMsg để đồng bộ nội dung.</string>
 	<key>Notify this account on this device</key>
 	<string>Thông báo tài khoản này trên thiết bị này</string>
 	<key>Number</key>
@@ -1528,10 +1744,14 @@
 	<string>Đã quan sát trên thiết bị này</string>
 	<key>Old address</key>
 	<string>Địa chỉ cũ</string>
+	<key>Omitted attachments</key>
+	<string>Tệp đính kèm đã bỏ qua</string>
 	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
 	<string>Trên thiết bị được ủy quyền, hãy mở Phê duyệt và xem lại toàn bộ dấu vân tay, vai trò và quyền của thiết bị này. Quá trình quét không bao giờ tự động phê duyệt.</string>
 	<key>On the device being replaced, open Devices → Replace a device → Review a request, scan or paste this request and enter this device's ID. Then check authorization here.</key>
 	<string>Trên thiết bị được thay thế, mở Thiết bị → Thay thế thiết bị → Xem xét yêu cầu, quét hoặc dán yêu cầu này và nhập ID của thiết bị này. Sau đó kiểm tra ủy quyền tại đây.</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>Trên thiết bị mới, chọn Mở tài khoản hiện có rồi quét mã này.</string>
 	<key>On this device</key>
 	<string>Trên thiết bị này</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
@@ -1544,6 +1764,8 @@
 	<string>Mỗi dòng một tên sẽ tạo một liên kết riêng cho từng người. Chỉ bạn thấy các tên.</string>
 	<key>One-time code</key>
 	<string>Mã một lần</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Chỉ sao lưu mục hiện tại. Loại trừ lịch sử, thùng rác, bản nháp, bản xung đột và khóa do dMsg quản lý.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Chỉ làm điều này khi bạn đã sẵn sàng sử dụng nó. Bản sao vẫn còn trên thiết bị này và hết hạn sau 30 giây.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1554,14 +1776,28 @@
 	<string>Chỉ trên thiết bị này</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Hiện chỉ các output sâu ít nhất %lld khối mới chuyển được; các output khác hiển thị khối mà từ đó có thể chuyển.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Chỉ tài khoản đã chọn hoặc người có lời mời hợp lệ mới có thể gửi thư.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
 	<string>Chỉ các bản sao bất biến đã chọn mới xuất hiện trong ứng dụng Tệp. Quyền truy cập yêu cầu xác thực hệ thống; khóa dMsg sẽ kết thúc phiên truy cập hiện tại. Ứng dụng Tệp có thể giữ lại các bản sao đã tải xuống và tên tệp mà dMsg không thể thu hồi.</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Chỉ có hàm băm được xác nhận; tập tin chưa được kiểm tra</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Chỉ xóa bản nháp. Bản sao ảnh và liên kết chia sẻ hiện có vẫn ở trong Tệp.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Chỉ tệp được mã hóa đã chọn mới có thể chuyển trong khi dMsg bị khóa. Lập kế hoạch kiểm soát iOS; buộc thoát sẽ dừng phân phối cho đến khi bạn mở lại ứng dụng. Mở tài khoản gốc để xác minh và hoàn tất.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Đăng nhập đã liên kết chỉ có thể tiếp quản sau thời gian chờ nếu đã bật khôi phục trên chuỗi.</string>
 	<key>Open</key>
 	<string>Mở</string>
 	<key>Open Settings</key>
 	<string>Mở Cài đặt</string>
+	<key>Open an existing account</key>
+	<string>Mở tài khoản hiện có</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Mở và mở khóa dMsg để tải các mục đăng nhập.</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Mở và mở khóa dMsg để cập nhật Tự động điền, rồi thử lại.</string>
 	<key>Open approval record</key>
 	<string>Mở hồ sơ phê duyệt</string>
 	<key>Open approvals</key>
@@ -1570,10 +1806,14 @@
 	<string>Mở dMsg mà không để lộ nội dung riêng tư trên Màn hình chính.</string>
 	<key>Open dMsg workspace</key>
 	<string>Mở không gian làm việc dMsg</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Mở không gian làm việc dMsg → Tài khoản → Tích hợp hệ thống → Tự động điền mật khẩu → Chọn mục đăng nhập</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Mở dMsg. Việc mở khóa và phê duyệt vẫn yêu cầu sự tương tác của bạn trong ứng dụng.</string>
 	<key>Open for</key>
 	<string>Mở trong</string>
+	<key>Open in conversation</key>
+	<string>Mở trong cuộc trò chuyện</string>
 	<key>Open invitation in browser</key>
 	<string>Mở lời mời trong trình duyệt</string>
 	<key>Open local file</key>
@@ -1594,6 +1834,8 @@
 	<string>Mở trang web</string>
 	<key>Open workspace</key>
 	<string>Mở không gian làm việc</string>
+	<key>Opening reminder…</key>
+	<string>Đang mở lời nhắc…</string>
 	<key>Optional password</key>
 	<string>Mật khẩu tùy chọn</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
@@ -1686,22 +1928,32 @@
 	<string>Gói và mức sử dụng</string>
 	<key>Plan at next renewal</key>
 	<string>Gói ở lần gia hạn tiếp theo</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Không thể tải quyền lợi của các gói. Hãy thử lại.</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Không thể thay đổi gói trong phiên bản ứng dụng này. Gói hiện tại và mức sử dụng của bạn vẫn xem được.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Từ gói Plus trở lên có thể xin tệp từ bất kỳ ai bằng liên kết. Không cần tài khoản, mỗi người chỉ thấy những gì mình gửi và chỉ bạn mới mở được tệp.</string>
+	<key>Policy ID</key>
+	<string>ID chính sách</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Chính sách trỏ đến một trường không có sẵn</string>
 	<key>Port</key>
 	<string>Cổng</string>
 	<key>Prepare selected snapshot</key>
 	<string>Chuẩn bị ảnh chụp nhanh đã chọn</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Chuẩn bị khi bạn vẫn còn quyền truy cập: thêm một thiết bị được ủy quyền khác và xem lại cài đặt khôi phục trên chuỗi (tùy chọn). Khôi phục trên chuỗi mặc định tắt với tài khoản mới và phải được bật từ trước trên một thiết bị quản trị được ủy quyền vẫn có thể mở khóa.</string>
 	<key>Prepared on this device</key>
 	<string>Được chuẩn bị trên thiết bị này</string>
 	<key>Preparing and copying file…</key>
 	<string>Đang chuẩn bị và sao chép tệp…</string>
 	<key>Preparing backups…</key>
 	<string>Đang chuẩn bị bản sao lưu…</string>
+	<key>Preparing purchase…</key>
+	<string>Đang chuẩn bị mua hàng…</string>
+	<key>Preparing your workspace…</key>
+	<string>Đang chuẩn bị không gian làm việc…</string>
 	<key>Preview</key>
 	<string>Xem trước</string>
 	<key>Preview and choose what to import</key>
@@ -1716,8 +1968,14 @@
 	<string>Gói xem trước</string>
 	<key>Preview transfer</key>
 	<string>Xem trước chuyển khoản</string>
+	<key>Previous match</key>
+	<string>Kết quả trước</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>Thông tin đăng nhập và bản sao được gửi trước đó là độc lập. Thu hồi các ủy quyền riêng biệt nếu cần thiết.</string>
+	<key>Previously used</key>
+	<string>Tài khoản đã dùng</string>
+	<key>Price unavailable</key>
+	<string>Không có thông tin giá</string>
 	<key>Principal</key>
 	<string>Principal</string>
 	<key>Privacy</key>
@@ -1730,6 +1988,10 @@
 	<string>Không gian làm việc riêng tư bị ẩn</string>
 	<key>Processing</key>
 	<string>Đang xử lý</string>
+	<key>Promotional membership</key>
+	<string>Gói thành viên khuyến mãi</string>
+	<key>Proposal</key>
+	<string>Đề xuất</string>
 	<key>Proposal %llu</key>
 	<string>Đề xuất %llu</string>
 	<key>Proposal created</key>
@@ -1758,6 +2020,8 @@
 	<string>Đề xuất giải tỏa</string>
 	<key>Proposer</key>
 	<string>Người đề xuất</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Bảo vệ mật khẩu, ghi chú và tệp bằng mã hóa đầu cuối. Đồng bộ kho bảo mật giữa các thiết bị, chia sẻ tệp an toàn và kiểm soát quyền truy cập của tác tử AI.</string>
 	<key>Protection</key>
 	<string>Bảo vệ</string>
 	<key>Protector %lld</key>
@@ -1798,6 +2062,8 @@
 	<string>Mở khóa nhanh bằng %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Mở khóa nhanh bằng xác thực hệ thống</string>
+	<key>Read</key>
+	<string>Đọc</string>
 	<key>Read from a desktop file mapping</key>
 	<string>Đọc từ ánh xạ tệp trên máy tính để bàn</string>
 	<key>Read the published policy</key>
@@ -1816,6 +2082,8 @@
 	<string>Đã nhận</string>
 	<key>Received for review</key>
 	<string>Đã nhận được để xem xét</string>
+	<key>Receiver</key>
+	<string>Người nhận</string>
 	<key>Receiving</key>
 	<string>Đang nhận</string>
 	<key>Receiving addresses</key>
@@ -1864,6 +2132,8 @@
 	<string>Làm mới phần phụ thuộc</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Làm mới bản xem trước trước khi tiếp tục.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
 	<key>Refresh to check cloud backups</key>
 	<string>Làm mới để kiểm tra bản sao lưu đám mây</string>
 	<key>Refreshing backups…</key>
@@ -1892,6 +2162,10 @@
 	<string>Tải lại hồ sơ đã lưu</string>
 	<key>Remaining</key>
 	<string>Còn lại</string>
+	<key>Reminder unavailable</key>
+	<string>Lời nhắc không khả dụng</string>
+	<key>Reminders marked as read</key>
+	<string>Đã đánh dấu lời nhắc là đã đọc</string>
 	<key>Removal date</key>
 	<string>Ngày xóa vĩnh viễn</string>
 	<key>Remove</key>
@@ -1958,6 +2232,8 @@
 	<string>Trả lời</string>
 	<key>Reply to message %llu</key>
 	<string>Trả lời tin nhắn %llu</string>
+	<key>Report a problem</key>
+	<string>Báo cáo sự cố</string>
 	<key>Report content</key>
 	<string>Báo cáo nội dung</string>
 	<key>Report received for review</key>
@@ -1966,10 +2242,14 @@
 	<string>Tài khoản được báo cáo</string>
 	<key>Request ID</key>
 	<string>ID yêu cầu</string>
+	<key>Request a signature</key>
+	<string>Yêu cầu chữ ký</string>
 	<key>Request account deletion</key>
 	<string>Yêu cầu xóa tài khoản</string>
 	<key>Request account recovery</key>
 	<string>Yêu cầu khôi phục tài khoản</string>
+	<key>Request an action</key>
+	<string>Yêu cầu thao tác</string>
 	<key>Request expires</key>
 	<string>Yêu cầu hết hạn</string>
 	<key>Request from the new device</key>
@@ -1992,8 +2272,6 @@
 	<string>Dành riêng cho tải lên</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Giải quyết thao tác tài khoản đang chờ xử lý trước khi xóa tài khoản này.</string>
-	<key>Restored</key>
-	<string>Đã khôi phục</string>
 	<key>Restore</key>
 	<string>Khôi phục</string>
 	<key>Restore purchases</key>
@@ -2008,6 +2286,8 @@
 	<string>Khôi phục phiên bản này về thiết bị trước khi sao lưu.</string>
 	<key>Restore to this device</key>
 	<string>Khôi phục về thiết bị này</string>
+	<key>Restored</key>
+	<string>Đã khôi phục</string>
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>Quá trình khôi phục tải xuống và xác minh phiên bản đã chọn trước khi cho phép mở.</string>
 	<key>Restoring…</key>
@@ -2172,6 +2452,8 @@
 	<string>Thu hồi thiết bị cũ khi không còn gì bị bỏ lại mà không hay biết.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Thu hồi một thiết bị sẽ làm mất mọi thứ chỉ có trên đó, chẳng hạn tệp chưa từng được đồng bộ hay sao lưu.</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Thu hồi sẽ chặn lượt tải xuống tiếp theo. Bản sao đã lưu vẫn còn.</string>
 	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
 	<string>Việc thu hồi sẽ dừng tải xuống mới thông qua liên kết này. Các tập tin cục bộ vẫn còn; quá trình tải xuống đã bắt đầu và các bản sao đã tải xuống không thể thu hồi được.</string>
 	<key>Role</key>
@@ -2220,6 +2502,8 @@
 	<string>Dữ liệu đã lưu đã thay đổi. Tải lại rồi kiểm tra bản nháp được giữ trước khi công bố.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>Đã lưu cho dMsg. Mở ứng dụng để xem lại và nhập các mục này.</string>
+	<key>Saved locally</key>
+	<string>Đã lưu trên thiết bị</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
 	<string>Được lưu cục bộ trước tiên. Trạng thái đồng bộ hóa được hiển thị riêng.</string>
 	<key>Saved on this device</key>
@@ -2234,6 +2518,8 @@
 	<string>Đã lưu. Đang chờ phát hành.</string>
 	<key>Saving draft…</key>
 	<string>Đang lưu bản nháp…</string>
+	<key>Saving encrypted draft…</key>
+	<string>Đang lưu bản nháp mã hóa…</string>
 	<key>Saving…</key>
 	<string>Đang lưu…</string>
 	<key>Scan QR code</key>
@@ -2244,22 +2530,36 @@
 	<string>Yêu cầu thiết bị quét</string>
 	<key>Scan invitation</key>
 	<string>Quét lời mời</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.</string>
 	<key>Scopes, one per line</key>
 	<string>Phạm vi, một phạm vi trên mỗi dòng</string>
+	<key>Screenshots</key>
+	<string>Ảnh chụp màn hình</string>
 	<key>Screenshots may contain private information.</key>
 	<string>Ảnh chụp màn hình có thể chứa thông tin cá nhân.</string>
 	<key>Search</key>
 	<string>Tìm kiếm</string>
 	<key>Search cloud backups</key>
 	<string>Tìm bản sao lưu đám mây</string>
+	<key>Search conversations</key>
+	<string>Tìm cuộc trò chuyện</string>
+	<key>Search everything</key>
+	<string>Tìm trong tất cả</string>
 	<key>Search files</key>
 	<string>Tìm kiếm tập tin</string>
+	<key>Search letters</key>
+	<string>Tìm thư</string>
 	<key>Search messages</key>
 	<string>Tìm kiếm tin nhắn</string>
 	<key>Search your vault</key>
 	<string>Tìm kiếm kho tiền của bạn</string>
 	<key>Searches messages saved on this device.</key>
 	<string>Tìm trong tin nhắn được lưu trên thiết bị này.</string>
+	<key>Searching…</key>
+	<string>Đang tìm…</string>
 	<key>Secret</key>
 	<string>Thông tin bí mật</string>
 	<key>Secret package link</key>
@@ -2272,12 +2572,18 @@
 	<string>Secure Enclave không khả dụng trên thiết bị này.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Yêu cầu bảo mật đã thay đổi. Xem lại yêu cầu một lần nữa trước khi phê duyệt nó.</string>
+	<key>See how dMsg works</key>
+	<string>Xem cách dMsg hoạt động</string>
 	<key>See plans</key>
 	<string>Xem các gói</string>
+	<key>See who controls the rules</key>
+	<string>Xem ai kiểm soát các quy tắc</string>
 	<key>Select a conversation</key>
 	<string>Chọn một cuộc trò chuyện</string>
 	<key>Select a file</key>
 	<string>Chọn một tập tin</string>
+	<key>Select a letter</key>
+	<string>Chọn một thư</string>
 	<key>Select a secret</key>
 	<string>Chọn một bí mật</string>
 	<key>Select all</key>
@@ -2308,12 +2614,16 @@
 	<string>Các trường OTP đã chọn bao gồm hạt giống có thể tái sử dụng chứ không chỉ là mã hiện tại.</string>
 	<key>Selected accounts</key>
 	<string>Tài khoản đã chọn</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Tài khoản đã chọn và người có lời mời hợp lệ có thể gửi thư miễn phí.</string>
 	<key>Selected files</key>
 	<string>Tệp đã chọn</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Các phần đã chọn dùng phiên bản xung đột. Các phần còn lại giữ phiên bản hiện tại.</string>
 	<key>Send</key>
 	<string>Gửi</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Gửi thư riêng miễn phí đến hỗ trợ dMsg. Kiểm tra mô tả, ảnh chụp và thông tin ứng dụng trước khi gửi.</string>
 	<key>Send device request</key>
 	<string>Gửi yêu cầu thiết bị</string>
 	<key>Send failed</key>
@@ -2346,20 +2656,20 @@
 	<string>Dịch vụ chấp nhận không có nghĩa là người nhận đã đọc thư.</string>
 	<key>Session code</key>
 	<string>Mã phiên</string>
+	<key>Set up a new workspace</key>
+	<string>Thiết lập không gian làm việc mới</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Thiết lập đồng ký trên thiết bị cho tài sản cá nhân, hoặc mời người khác cùng quản lý quỹ.</string>
-	<key>Get started</key>
-	<string>Bắt đầu</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Thiết lập iPhone này làm thiết bị mới</string>
-	<key>Preparing your workspace…</key>
-	<string>Đang chuẩn bị không gian làm việc…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Đang thiết lập không gian làm việc được mã hóa của bạn. Vui lòng giữ dMsg mở.</string>
 	<key>Settings</key>
 	<string>Cài đặt</string>
 	<key>Share</key>
 	<string>Chia sẻ</string>
+	<key>Share %@ with %@.</key>
+	<string>Chia sẻ %1$@ với %2$@.</string>
 	<key>Share a copy</key>
 	<string>Chia sẻ một bản sao</string>
 	<key>Share binding request</key>
@@ -2408,6 +2718,8 @@
 	<string>Hiển thị chữ lớn</string>
 	<key>Show in library</key>
 	<string>Hiển thị trong thư viện</string>
+	<key>Show my public profile</key>
+	<string>Hiển thị hồ sơ công khai của tôi</string>
 	<key>Show share link</key>
 	<string>Hiển thị liên kết chia sẻ</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2416,6 +2728,8 @@
 	<string>Hiển thị trong Thiết bị trên thiết bị đó; thiết bị đó phải là quản trị viên.</string>
 	<key>Sign a statement</key>
 	<string>Ký tuyên bố</string>
+	<key>Sign in</key>
+	<string>Đăng nhập</string>
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
 	<string>Đăng nhập lại để mở khóa không gian làm việc được mã hóa của bạn trên iPhone này.</string>
 	<key>Sign in to another account</key>
@@ -2452,6 +2766,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Một số tệp chỉ có trên iPhone này, không có bản sao lưu đám mây hay lần đồng bộ gần đây.</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Một số tệp chưa có. Hãy tải xuống hoặc chỉ xuất các mục.</string>
 	<key>Some links were not made. The names left are below to try again.</key>
 	<string>Một số liên kết chưa được tạo. Các tên còn lại ở bên dưới để thử lại.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
@@ -2482,6 +2798,8 @@
 	<string>Chuẩn bị các tệp đã chọn, sau đó chọn tài khoản và nhập vào dMsg.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>Bắt đầu danh sách kiểm tra từ trang tham khảo của trường.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Bắt đầu cuộc trò chuyện để trao đổi tin nhắn và tệp với các thành viên.</string>
 	<key>Start a rotation checklist</key>
 	<string>Bắt đầu danh sách kiểm tra luân chuyển</string>
 	<key>Start a rotation checklist?</key>
@@ -2496,6 +2814,8 @@
 	<string>Tuyên bố</string>
 	<key>Status</key>
 	<string>Trạng thái</string>
+	<key>Status needs updating</key>
+	<string>Cần cập nhật trạng thái</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
 	<string>Các bước đã thực hiện vẫn giữ nguyên. Để hủy việc đăng ký thiết bị mới, hãy thu hồi nó.</string>
 	<key>Stop handover</key>
@@ -2516,6 +2836,8 @@
 	<string>ID tác tử chủ đề</string>
 	<key>Submit report</key>
 	<string>Gửi báo cáo</string>
+	<key>Subscribe to %@</key>
+	<string>Đăng ký %@</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Đăng ký tự động gia hạn trừ khi bị hủy trong cài đặt tài khoản Apple của bạn. Việc xóa tài khoản dMsg của bạn sẽ không hủy đăng ký Apple.</string>
 	<key>Suggested fee</key>
@@ -2552,6 +2874,8 @@
 	<string>Đã đồng bộ hóa</string>
 	<key>Syncing…</key>
 	<string>Đang đồng bộ hóa…</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Cảnh báo hệ thống tuân theo các tùy chọn bên dưới.</string>
 	<key>System authentication</key>
 	<string>Xác thực hệ thống</string>
 	<key>System integrations</key>
@@ -2578,12 +2902,16 @@
 	<string>Kiểm tra thông tin xác thực mới tại nhà cung cấp của nó</string>
 	<key>Text</key>
 	<string>Văn bản</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Giới hạn tệp sao lưu áp dụng cho bản sao lưu đám mây. Chia sẻ tệp và tệp đính kèm trong kênh có giới hạn riêng.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Bản sao được giữ trên iPhone này ở chế độ chỉ đọc để nhập. Sau đó iPhone này tham gia tài khoản như thiết bị mới: đăng nhập, rồi phê duyệt từ thiết bị khác hoặc khôi phục tài khoản. iPhone cũ vẫn hoạt động.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Phiên bản được mã hóa sẽ sử dụng bộ nhớ đám mây. Bản sao cục bộ của bạn vẫn còn trên thiết bị này.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>Thông tin đăng nhập đã xuất không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới.</string>
+	<key>The file changed or cannot be read</key>
+	<string>Tệp đã thay đổi hoặc không thể đọc được</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Các bản sao tập tin không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới, sau đó thử lại.</string>
 	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
@@ -2644,6 +2972,8 @@
 	<string>Kết quả là không chắc chắn. Kiểm tra công việc ban đầu trước khi thử lại bất cứ điều gì.</string>
 	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
 	<string>Khóa truy cập đã được lưu. Thử lại để hoàn tất liên kết với tài khoản này; sẽ không tạo khóa mới.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Không thể bắt đầu mua hàng. Chưa gửi yêu cầu thanh toán nào tới Apple.</string>
 	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
 	<string>Cài đặt nhận thư của người nhận cần được cập nhật. Hãy nhờ họ mở khóa dMsg và đồng bộ, rồi thử gửi lại thư này.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
@@ -2668,6 +2998,8 @@
 	<string>Ủy quyền chuyển nhượng đã hết hạn. Hãy hủy tác vụ này, sau đó tiếp tục sao lưu ban đầu ở nền trước hoặc bắt đầu tải xuống mới.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Quá trình chuyển đã tạm dừng. Thử lại các khối được mã hóa ban đầu.</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Hai mật khẩu sao lưu không khớp.</string>
 	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
 	<string>Bản sao lưu đám mây đã xác minh và bản ghi tệp được giữ lại. Tải lại phiên bản này để mở trên thiết bị.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
@@ -2684,12 +3016,12 @@
 	<string>Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Thành viên vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.</string>
 	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
 	<string>Gói đăng ký Apple này thuộc tài khoản dMsg khác. Hãy chuyển tài khoản để quản lý. Khôi phục giao dịch mua không chuyển gói đăng ký.</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Tài khoản này không còn quyền truy cập mục này.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Tài khoản này yêu cầu khóa phê duyệt đã đăng ký. Thiết lập thiết bị này trong Bảo mật phần cứng hoặc yêu cầu một thiết bị được ủy quyền khác.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Hành động này không được hỗ trợ trên thiết bị này. Ảnh chụp nhanh bí mật phải sử dụng luồng nhập chuyên dụng của chúng.</string>
-	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
-	<string>Đóng yêu cầu này, mở tài khoản hiển thị bên dưới trong dMsg rồi mở lại yêu cầu.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Điều này không thể hoàn tác được. Việc đăng xuất một mình sẽ không xóa tài khoản.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -2756,6 +3088,8 @@
 	<string>Nội dung quá dài.</string>
 	<key>This letter was withdrawn.</key>
 	<string>Bức thư này đã được rút lại.</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác.</string>
 	<key>This message could not be verified.</key>
 	<string>Không thể xác minh tin nhắn này.</string>
 	<key>This message is too long.</key>
@@ -2776,10 +3110,16 @@
 	<string>Hồ sơ này là công khai. Không bao gồm bí mật hoặc thông tin liên hệ riêng tư.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
 	<string>Điều này ghi lại rằng bạn đã kiểm tra kết quả theo cách thủ công. Nó không đánh dấu hoạt động thành công hoặc chạy lại.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Lời nhắc này thuộc tài khoản khác</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Lời nhắc này không còn mở được mục gốc.</string>
 	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
 	<string>Thao tác này chỉ xóa bản sao đám mây đã chọn. Các tập tin cục bộ vẫn còn trên thiết bị của họ.</string>
 	<key>This request has expired</key>
 	<string>Yêu cầu này đã hết hạn</string>
+	<key>This request no longer needs a response.</key>
+	<string>Yêu cầu này không còn cần phản hồi.</string>
 	<key>This request requires a supported desktop client.</key>
 	<string>Yêu cầu này yêu cầu một máy khách để bàn được hỗ trợ.</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
@@ -2788,6 +3128,8 @@
 	<string>Ảnh chụp nhanh này cần được chú ý. Kiểm tra trạng thái của nó trước khi tiếp tục.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Điều này theo dõi công việc của bạn trên thiết bị này. Nó không tạo, kiểm tra hoặc thu hồi thông tin đăng nhập từ nhà cung cấp của họ.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Bản cập nhật này không thể truy cập các khóa đã lưu. Hãy giữ dMsg trên máy và liên hệ bộ phận hỗ trợ từ một thiết bị được ủy quyền khác. Không gian làm việc của bạn chưa bị xóa.</string>
 	<key>This version already has a transfer in progress.</key>
 	<string>Phiên bản này đã có lượt truyền đang diễn ra.</string>
 	<key>This version is already backed up.</key>
@@ -2840,8 +3182,12 @@
 	<string>Nhập ID tài khoản này để xác nhận</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to open reminder</key>
+	<string>Không thể mở lời nhắc</string>
 	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
 	<string>Không thể xác minh tài khoản liên kết với gói đăng ký Apple này. Hãy thử lại trước khi mua.</string>
+	<key>Unavailable</key>
+	<string>Không khả dụng</string>
 	<key>Unbind</key>
 	<string>Hủy liên kết</string>
 	<key>Unblock</key>
@@ -2850,16 +3196,22 @@
 	<string>Chưa xác nhận</string>
 	<key>Unconfirmed proposals</key>
 	<string>Đề xuất chưa được xác nhận</string>
+	<key>Unidentified app or website</key>
+	<string>Ứng dụng hoặc trang web chưa xác định</string>
 	<key>Unknown state</key>
 	<string>Trạng thái không xác định</string>
 	<key>Unlimited</key>
 	<string>Không giới hạn</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Mở khóa dMsg để xem xét yêu cầu này.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Mở khóa dMsg để gửi báo cáo.</string>
 	<key>Unlock policy</key>
 	<string>Chính sách mở khóa</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>Mở khóa iPhone này để mở dMsg.</string>
+	<key>Unlock to view reminder</key>
+	<string>Mở khóa để xem lời nhắc</string>
 	<key>Unlock with %@</key>
 	<string>Mở khóa bằng %@</string>
 	<key>Unlock with system authentication</key>
@@ -2874,8 +3226,12 @@
 	<string>Chưa đọc</string>
 	<key>Unread only</key>
 	<string>Chưa đọc</string>
+	<key>Unread reminder</key>
+	<string>Lời nhắc chưa đọc</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Quyền ủy quyền không hạn chế</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>Tối đa 8 phạm vi và 4 bên nhận. Dùng origin HTTPS hoặc Agent ID; không cho phép ký tự đại diện.</string>
 	<key>Update AutoFill</key>
@@ -2886,6 +3242,8 @@
 	<string>Cập nhật khóa cuộc trò chuyện</string>
 	<key>Updated</key>
 	<string>Đã cập nhật</string>
+	<key>Upgrade to %@</key>
+	<string>Nâng cấp lên %@</string>
 	<key>Uploading</key>
 	<string>Đang tải lên</string>
 	<key>Uploading encrypted backup</key>
@@ -2910,26 +3268,40 @@
 	<string>Sử dụng khóa ký SSH</string>
 	<key>Use an existing passkey</key>
 	<string>Dùng khóa truy cập hiện có</string>
+	<key>Use at least 12 characters.</key>
+	<string>Dùng ít nhất 12 ký tự.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Mô tả tối đa 4500 byte UTF-8.</string>
 	<key>Use conflicting version</key>
 	<string>Sử dụng phiên bản xung đột</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Sử dụng icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol hoặc sol:mint.</string>
+	<key>Use only on this device</key>
+	<string>Chỉ dùng trên thiết bị này</string>
 	<key>Use password</key>
 	<string>Dùng mật khẩu</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Sử dụng xác thực hệ thống để mở khóa không gian làm việc được mã hóa trên iPhone này.</string>
 	<key>Use this folder</key>
 	<string>Sử dụng thư mục này</string>
+	<key>Use this login for this account and add this device</key>
+	<string>Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này</string>
 	<key>Use this password for:</key>
 	<string>Sử dụng mật khẩu này cho:</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Nhập tối đa 200 ký tự để tìm kiếm.</string>
 	<key>Used</key>
 	<string>Đã dùng</string>
 	<key>Username</key>
 	<string>Tên người dùng</string>
+	<key>Valid until</key>
+	<string>Có hiệu lực cho đến khi</string>
 	<key>Value</key>
 	<string>Giá trị</string>
 	<key>Vault</key>
 	<string>Kho bảo mật</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này.</string>
 	<key>Vault tools</key>
 	<string>Công cụ Vault</string>
 	<key>Verified</key>
@@ -2954,6 +3326,8 @@
 	<string>Lịch sử phiên bản</string>
 	<key>Versions</key>
 	<string>Phiên bản</string>
+	<key>Veto proposal</key>
+	<string>Phủ quyết đề xuất</string>
 	<key>View approval</key>
 	<string>Xem phê duyệt</string>
 	<key>Viewer</key>
@@ -2964,6 +3338,8 @@
 	<string>Chờ đề xuất</string>
 	<key>Waiting</key>
 	<string>Đang chờ</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>Đang chờ App Store xác nhận…</string>
 	<key>Waiting for approval</key>
 	<string>Đang chờ phê duyệt</string>
 	<key>Waiting for browser confirmation</key>
@@ -2972,8 +3348,12 @@
 	<string>Đang chờ xác nhận</string>
 	<key>Waiting for confirmation: </key>
 	<string>Đang chờ xác nhận: </string>
+	<key>Waiting for device approval</key>
+	<string>Đang chờ duyệt thiết bị</string>
 	<key>Waiting for first sync</key>
 	<string>Đang chờ đồng bộ lần đầu</string>
+	<key>Waiting for login approval</key>
+	<string>Đang chờ duyệt cách đăng nhập</string>
 	<key>Waiting for notification registration…</key>
 	<string>Đang chờ đăng ký thông báo…</string>
 	<key>Waiting for the other device</key>
@@ -2994,6 +3374,8 @@
 	<string>Truy cập ví</string>
 	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
 	<string>Không thể kiểm tra quyền truy cập ví. Xác minh nó một cách độc lập trước khi xóa.</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Phí kích hoạt ví được tính riêng; kiểm tra khả năng sử dụng trong ứng dụng.</string>
 	<key>Wallet approvals are waiting in Approvals.</key>
 	<string>Các phê duyệt ví đang chờ trong Phê duyệt.</string>
 	<key>Wallet bindings</key>
@@ -3038,18 +3420,28 @@
 	<string>Không gian làm việc sao chép từ iPhone khác</string>
 	<key>Workspace destination</key>
 	<string>Đích đến của không gian làm việc</string>
+	<key>Write</key>
+	<string>Ghi</string>
 	<key>Write a letter</key>
 	<string>Viết một lá thư</string>
 	<key>Write a message</key>
 	<string>Viết tin nhắn</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Viết trực tiếp cho một tài khoản. Người nhận quyết định có trả lời hay không. Gửi từ đây là miễn phí.</string>
 	<key>Yes</key>
 	<string>Có</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>Bạn đang xem một phiên bản lịch sử bất biến.</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Bạn có thể tìm lời nhắc trước đây trong mục Gần đây.</string>
 	<key>You have read-only access to this conversation.</key>
 	<string>Bạn chỉ có quyền đọc cuộc trò chuyện này.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Bạn tự thực hiện thay đổi nhà cung cấp. dMsg ghi lại các tuyên bố của bạn và kiểm tra các sửa đổi cục bộ; nó không thể xác minh việc tạo, kiểm tra hoặc thu hồi ngược dòng.</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>Bạn sẽ xác nhận giao dịch mua với Apple trước khi thanh toán.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Không thể kiểm tra trạng thái gói đăng ký Apple của bạn. Hãy thử lại trước khi mua.</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>Tài sản của bạn. Quy tắc phê duyệt của bạn.</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3070,22 +3462,34 @@
 	<string>Các tập tin của bạn luôn ở chế độ riêng tư</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Các trường ẩn của bạn sẽ được ẩn cho đến khi bạn chọn tiết lộ chúng.</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Các thay đổi mới nhất của bạn chưa được lưu.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Nội dung cục bộ của bạn vẫn khả dụng. Đăng nhập bằng Internet Identity khi thao tác tài khoản yêu cầu.</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Trạng thái thành viên cần được cập nhật. Hãy tải lại trang thành viên và thử lại.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Gói thành viên trả phí đã kết thúc. Hiện bạn đang dùng Free.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Trình quản lý mật khẩu đã lưu khóa truy cập nhưng dMsg chưa xác nhận được đăng ký. Hãy thử đăng nhập bằng khóa đó trước khi tạo khóa khác.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Giao dịch mua đã được áp dụng cho tài khoản dMsg này.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Giao dịch mua đang chờ Apple phê duyệt.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Việc mua hàng của bạn đang chờ xác nhận. Khôi phục mua hàng để thử lại mà không phải trả tiền lại.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
 	<string>Quy tắc nhận thư vẫn áp dụng. Thao tác này không thêm liên hệ hay thành viên kênh.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Lời nhắc được bảo vệ. Mở khóa để tiếp tục.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>Báo cáo của bạn và bất kỳ văn bản nào bạn đưa vào một cách rõ ràng sẽ được gửi đến nhóm kiểm duyệt. Nội dung và khóa riêng tư khác không được bao gồm.</string>
 	<key>Your reports</key>
 	<string>Báo cáo của bạn</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Không thể chuẩn bị các khóa đã lưu. Hãy mở khóa iPhone này rồi thử lại. Không gian làm việc của bạn chưa bị xóa.</string>
 	<key>Your vault syncs automatically while dMsg is open.</key>
 	<string>Kho của bạn tự động đồng bộ khi dMsg đang mở.</string>
 	<key>dMsg</key>
@@ -3212,395 +3616,5 @@
 	<string>đã tạo</string>
 	<key>not available</key>
 	<string>không khả dụng</string>
-	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
-	<string>Không thể kiểm tra trạng thái gói đăng ký Apple của bạn. Hãy thử lại trước khi mua.</string>
-	<key>Access unavailable</key>
-	<string>Không thể truy cập</string>
-	<key>Back to reminders</key>
-	<string>Quay lại lời nhắc</string>
-	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
-	<string>Chọn tài khoản tương ứng để tiếp tục. Tài khoản hiện tại vẫn được chọn cho đến khi bạn chọn tài khoản khác.</string>
-	<key>Mark reminders for all accounts as read</key>
-	<string>Đánh dấu lời nhắc của mọi tài khoản là đã đọc</string>
-	<key>More</key>
-	<string>Thêm</string>
-	<key>No reminders yet</key>
-	<string>Chưa có lời nhắc</string>
-	<key>Nothing needs your attention</key>
-	<string>Không có việc cần xử lý</string>
-	<key>Notification connection needs attention</key>
-	<string>Cần khôi phục kết nối thông báo</string>
-	<key>Notification connection restored</key>
-	<string>Đã khôi phục kết nối thông báo</string>
-	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
-	<string>Thông báo có thể đến chậm. Mở dMsg để đồng bộ nội dung.</string>
-	<key>Opening reminder…</key>
-	<string>Đang mở lời nhắc…</string>
-	<key>Reminder unavailable</key>
-	<string>Lời nhắc không khả dụng</string>
-	<key>Reminders marked as read</key>
-	<string>Đã đánh dấu lời nhắc là đã đọc</string>
-	<key>This account no longer has access to the item.</key>
-	<string>Tài khoản này không còn quyền truy cập mục này.</string>
-	<key>This reminder belongs to another account</key>
-	<string>Lời nhắc này thuộc tài khoản khác</string>
-	<key>This reminder can no longer open its original item.</key>
-	<string>Lời nhắc này không còn mở được mục gốc.</string>
-	<key>This request no longer needs a response.</key>
-	<string>Yêu cầu này không còn cần phản hồi.</string>
-	<key>Unable to open reminder</key>
-	<string>Không thể mở lời nhắc</string>
-	<key>Unlock to view reminder</key>
-	<string>Mở khóa để xem lời nhắc</string>
-	<key>Unread reminder</key>
-	<string>Lời nhắc chưa đọc</string>
-	<key>You can find past reminders in Recent.</key>
-	<string>Bạn có thể tìm lời nhắc trước đây trong mục Gần đây.</string>
-	<key>Your reminder is protected. Unlock to continue where you left off.</key>
-	<string>Lời nhắc được bảo vệ. Mở khóa để tiếp tục.</string>
-	<key>Billing grace period</key>
-	<string>Thời gian gia hạn thanh toán</string>
-	<key>Billing retry</key>
-	<string>Đang thử thanh toán lại</string>
-	<key>Last recorded term</key>
-	<string>Thời hạn được ghi nhận gần nhất</string>
-	<key>Status needs updating</key>
-	<string>Cần cập nhật trạng thái</string>
-	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
-	<string>Trạng thái thành viên cần được cập nhật. Hãy tải lại trang thành viên và thử lại.</string>
-	<key>Your paid membership has ended. You are now on Free.</key>
-	<string>Gói thành viên trả phí đã kết thúc. Hiện bạn đang dùng Free.</string>
-	<key>Your purchase is awaiting Apple approval.</key>
-	<string>Giao dịch mua đang chờ Apple phê duyệt.</string>
-	<key>A private workspace for the AI era.</key>
-	<string>Không gian làm việc riêng tư cho kỷ nguyên AI.</string>
-	<key>A product of ICPanda DAO.</key>
-	<string>Một sản phẩm của ICPanda DAO.</string>
-	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
-	<string>Một đề xuất được DAO thông qua có thể nâng cấp mã trên chuỗi, vì vậy quản trị cũng là một phần của những gì bạn tin tưởng. Các ứng dụng và dịch vụ đám mây được phát hành và vận hành bên ngoài cuộc bỏ phiếu đó.</string>
-	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
-	<string>Chủ động sao lưu một tệp, rồi tải bản sao lưu đã mã hóa đó xuống trên một thiết bị được ủy quyền khác. Toàn bộ thư viện tệp cục bộ của bạn không tự động được tải lên.</string>
-	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
-	<string>Chọn dung lượng lưu trữ và số thiết bị phù hợp với công việc hằng ngày. Nâng cấp để thu thập tệp bằng liên kết tải lên và có thêm dung lượng.</string>
-	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
-	<string>Nội dung bạn cho phép ứng dụng khách AI bên ngoài đọc cũng được xử lý theo chính sách dữ liệu của ứng dụng khách đó. Chỉ cấp quyền truy cập vào những gì nhiệm vụ cần.</string>
-	<key>Keep what matters private.</key>
-	<string>Giữ riêng tư những gì quan trọng.</string>
-	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
-	<string>Đăng nhập đã liên kết chỉ có thể tiếp quản sau thời gian chờ nếu đã bật khôi phục trên chuỗi.</string>
-	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
-	<string>Chuẩn bị khi bạn vẫn còn quyền truy cập: thêm một thiết bị được ủy quyền khác và xem lại cài đặt khôi phục trên chuỗi (tùy chọn). Khôi phục trên chuỗi mặc định tắt với tài khoản mới và phải được bật từ trước trên một thiết bị quản trị được ủy quyền vẫn có thể mở khóa.</string>
-	<key>See how dMsg works</key>
-	<string>Xem cách dMsg hoạt động</string>
-	<key>See who controls the rules</key>
-	<string>Xem ai kiểm soát các quy tắc</string>
-	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
-	<string>Bảo vệ mật khẩu, ghi chú và tệp bằng mã hóa đầu cuối. Đồng bộ kho bảo mật giữa các thiết bị, chia sẻ tệp an toàn và kiểm soát quyền truy cập của tác tử AI.</string>
-	<key>Show my public profile</key>
-	<string>Hiển thị hồ sơ công khai của tôi</string>
-	<key>Anyone with this link can see your public profile, even before entering a password.</key>
-	<string>Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.</string>
-	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
-	<string>Mở không gian làm việc dMsg → Tài khoản → Tích hợp hệ thống → Tự động điền mật khẩu → Chọn mục đăng nhập</string>
-	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
-	<string>Mở và mở khóa dMsg để cập nhật Tự động điền, rồi thử lại.</string>
-	<key>Choose screenshots</key>
-	<string>Chọn ảnh chụp</string>
-	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
-	<string>Chưa xác nhận việc giao thư. Thử lại giữ nguyên báo cáo.</string>
-	<key>Discard feedback draft?</key>
-	<string>Bỏ bản nháp báo cáo?</string>
-	<key>Draft saved encrypted on this device.</key>
-	<string>Bản nháp đã được lưu mã hóa trên thiết bị này.</string>
-	<key>Feedback delivered. This does not mean it has been read.</key>
-	<string>Báo cáo đã được giao. Điều này không có nghĩa là đã được đọc.</string>
-	<key>New feedback</key>
-	<string>Báo cáo mới</string>
-	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
-	<string>Chỉ xóa bản nháp. Bản sao ảnh và liên kết chia sẻ hiện có vẫn ở trong Tệp.</string>
-	<key>Report a problem</key>
-	<string>Báo cáo sự cố</string>
-	<key>Your latest changes have not been saved.</key>
-	<string>Các thay đổi mới nhất của bạn chưa được lưu.</string>
-	<key>Saving encrypted draft…</key>
-	<string>Đang lưu bản nháp mã hóa…</string>
-	<key>Screenshots</key>
-	<string>Ảnh chụp màn hình</string>
-	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
-	<string>Gửi thư riêng miễn phí đến hỗ trợ dMsg. Kiểm tra mô tả, ảnh chụp và thông tin ứng dụng trước khi gửi.</string>
-	<key>Unlock dMsg to send feedback.</key>
-	<string>Mở khóa dMsg để gửi báo cáo.</string>
-	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
-	<string>Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.</string>
-	<key>Use at most 4500 UTF-8 bytes for the description.</key>
-	<string>Mô tả tối đa 4500 byte UTF-8.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple.</key>
-	<string>Không thể bắt đầu mua hàng. Chưa gửi yêu cầu thanh toán nào tới Apple.</string>
-	<key>Preparing purchase…</key>
-	<string>Đang chuẩn bị mua hàng…</string>
-	<key>Waiting for App Store confirmation…</key>
-	<string>Đang chờ App Store xác nhận…</string>
-	<key>Applying your purchase…</key>
-	<string>Đang kích hoạt giao dịch mua…</string>
-	<key>You'll confirm with Apple before paying.</key>
-	<string>Bạn sẽ xác nhận giao dịch mua với Apple trước khi thanh toán.</string>
-	<key>%@ / %@</key>
-	<string>%@ / %@</string>
-	<key>About these benefits</key>
-	<string>Về các quyền lợi này</string>
-	<key>Active devices</key>
-	<string>Thiết bị hoạt động</string>
-	<key>Active file request links</key>
-	<string>Liên kết yêu cầu tệp đang hoạt động</string>
-	<key>Change plan</key>
-	<string>Đổi gói</string>
-	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
-	<string>Giới hạn áp dụng cho các kênh bạn tạo hoặc tài trợ. Chữ ký thiết bị thông thường không dùng hạn mức hằng tháng.</string>
-	<key>Compare all plans</key>
-	<string>So sánh tất cả các gói</string>
-	<key>Current plan</key>
-	<string>Gói hiện tại</string>
-	<key>Every plan includes end-to-end encryption and device revocation.</key>
-	<string>Mọi gói đều có mã hóa đầu cuối và khả năng thu hồi quyền truy cập thiết bị.</string>
-	<key>For everyday file exchange.</key>
-	<string>Cho việc trao đổi tệp hằng ngày.</string>
-	<key>For large backups and frequent collaboration.</key>
-	<string>Dành cho bản sao lưu lớn và cộng tác thường xuyên.</string>
-	<key>For more files and devices.</key>
-	<string>Cho nhiều tệp và thiết bị hơn.</string>
-	<key>For your everyday essentials.</key>
-	<string>Cho những thứ thiết yếu hằng ngày.</string>
-	<key>No charge</key>
-	<string>Miễn phí</string>
-	<key>Not included</key>
-	<string>Không bao gồm</string>
-	<key>Plan benefits could not be loaded. Try again.</key>
-	<string>Không thể tải quyền lợi của các gói. Hãy thử lại.</string>
-	<key>Price unavailable</key>
-	<string>Không có thông tin giá</string>
-	<key>Subscribe to %@</key>
-	<string>Đăng ký %@</string>
-	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
-	<string>Giới hạn tệp sao lưu áp dụng cho bản sao lưu đám mây. Chia sẻ tệp và tệp đính kèm trong kênh có giới hạn riêng.</string>
-	<key>Unavailable</key>
-	<string>Không khả dụng</string>
-	<key>Upgrade to %@</key>
-	<string>Nâng cấp lên %@</string>
-	<key>Wallet activation is charged separately; check availability in the app.</key>
-	<string>Phí kích hoạt ví được tính riêng; kiểm tra khả năng sử dụng trong ứng dụng.</string>
-	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
-	<string>Hạn mức áp dụng cho gói cơ bản. Gói dung lượng bổ sung thêm sức chứa. Đơn vị thực thi hằng tháng được tính theo thời gian sử dụng và không đặt lại khi đổi gói.</string>
-	<key>Multisig wallet slots</key>
-	<string>Số ví đa chữ ký cho phép</string>
-	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
-	<string>Không thể chuẩn bị các khóa đã lưu. Hãy mở khóa iPhone này rồi thử lại. Không gian làm việc của bạn chưa bị xóa.</string>
-	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
-	<string>Bản cập nhật này không thể truy cập các khóa đã lưu. Hãy giữ dMsg trên máy và liên hệ bộ phận hỗ trợ từ một thiết bị được ủy quyền khác. Không gian làm việc của bạn chưa bị xóa.</string>
-	<key>Search conversations</key>
-	<string>Tìm cuộc trò chuyện</string>
-	<key>Search letters</key>
-	<string>Tìm thư</string>
-	<key>Select a letter</key>
-	<string>Chọn một thư</string>
-	<key>Account information</key>
-	<string>Thông tin tài khoản</string>
-	<key>Add a device and keep using this one.</key>
-	<string>Thêm thiết bị và tiếp tục dùng thiết bị này.</string>
-	<key>Add permission</key>
-	<string>Thêm quyền</string>
-	<key>Allow alerts in iOS Settings to receive system notifications.</key>
-	<string>Cho phép cảnh báo trong Cài đặt iOS để nhận thông báo hệ thống.</string>
-	<key>Anyone with the link</key>
-	<string>Bất kỳ ai có liên kết</string>
-	<key>Anyone with the link and password</key>
-	<string>Bất kỳ ai có liên kết và mật khẩu</string>
-	<key>Anyone you haven’t blocked can write for free.</key>
-	<string>Bất kỳ ai bạn chưa chặn đều có thể gửi thư miễn phí.</string>
-	<key>Authorize %@ as %@.</key>
-	<string>Cấp cho %1$@ vai trò %2$@.</string>
-	<key>Choose a permission</key>
-	<string>Chọn quyền</string>
-	<key>Copy files between two authorized devices.</key>
-	<string>Sao chép tệp giữa hai thiết bị đã được cấp quyền.</string>
-	<key>Cosign proposal</key>
-	<string>Đồng ký đề xuất</string>
-	<key>Create wallet</key>
-	<string>Tạo ví</string>
-	<key>Customize fields</key>
-	<string>Tùy chỉnh trường</string>
-	<key>Import cosignatures</key>
-	<string>Nhập chữ ký đồng ký</string>
-	<key>List items</key>
-	<string>Liệt kê mục</string>
-	<key>Move this device’s role to its replacement.</key>
-	<string>Chuyển vai trò của thiết bị này sang thiết bị thay thế.</string>
-	<key>No one can send a new letter while receiving is closed.</key>
-	<string>Không ai có thể gửi thư mới khi bạn đóng nhận thư.</string>
-	<key>Notifications are off for this account.</key>
-	<string>Thông báo đã tắt cho tài khoản này.</string>
-	<key>Notifications are off on this device.</key>
-	<string>Thông báo đã tắt trên thiết bị này.</string>
-	<key>Only selected accounts or people with a valid invitation can write.</key>
-	<string>Chỉ tài khoản đã chọn hoặc người có lời mời hợp lệ mới có thể gửi thư.</string>
-	<key>Open an existing account</key>
-	<string>Mở tài khoản hiện có</string>
-	<key>Policy ID</key>
-	<string>ID chính sách</string>
-	<key>Proposal</key>
-	<string>Đề xuất</string>
-	<key>Read</key>
-	<string>Đọc</string>
-	<key>Manage event endpoints</key>
-	<string>Quản lý điểm cuối nhận sự kiện</string>
-	<key>Request a signature</key>
-	<string>Yêu cầu chữ ký</string>
-	<key>Request an action</key>
-	<string>Yêu cầu thao tác</string>
-	<key>Revoking stops future downloads. Saved copies remain.</key>
-	<string>Thu hồi sẽ chặn lượt tải xuống tiếp theo. Bản sao đã lưu vẫn còn.</string>
-	<key>Searching…</key>
-	<string>Đang tìm…</string>
-	<key>Selected accounts and valid invitations can write for free.</key>
-	<string>Tài khoản đã chọn và người có lời mời hợp lệ có thể gửi thư miễn phí.</string>
-	<key>Set up a new workspace</key>
-	<string>Thiết lập không gian làm việc mới</string>
-	<key>Share %@ with %@.</key>
-	<string>Chia sẻ %1$@ với %2$@.</string>
-	<key>Start a conversation to exchange messages and files with members.</key>
-	<string>Bắt đầu cuộc trò chuyện để trao đổi tin nhắn và tệp với các thành viên.</string>
-	<key>System alerts follow your preferences below.</key>
-	<string>Cảnh báo hệ thống tuân theo các tùy chọn bên dưới.</string>
-	<key>Use up to 200 characters to search.</key>
-	<string>Nhập tối đa 200 ký tự để tìm kiếm.</string>
-	<key>Write</key>
-	<string>Ghi</string>
-	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
-	<string>Viết trực tiếp cho một tài khoản. Người nhận quyết định có trả lời hay không. Gửi từ đây là miễn phí.</string>
-	<key>Allow notifications to receive system alerts.</key>
-	<string>Cho phép thông báo để nhận cảnh báo hệ thống.</string>
-	<key>Notifications are delivered quietly.</key>
-	<string>Thông báo được gửi ở chế độ yên lặng.</string>
-	<key>Veto proposal</key>
-	<string>Phủ quyết đề xuất</string>
-	<key>Fill once</key>
-	<string>Chỉ điền lần này</string>
-	<key>Fill and remember</key>
-	<string>Điền và ghi nhớ</string>
-	<key>Previously used</key>
-	<string>Tài khoản đã dùng</string>
-	<key>Fill this login?</key>
-	<string>Điền bằng tài khoản này?</string>
-	<key>Unidentified app or website</key>
-	<string>Ứng dụng hoặc trang web chưa xác định</string>
-	<key>Choose a login when an app or website asks for a password.</key>
-	<string>Chọn tài khoản khi ứng dụng hoặc trang web yêu cầu mật khẩu.</string>
-	<key>Open and unlock dMsg to load your logins.</key>
-	<string>Mở và mở khóa dMsg để tải các mục đăng nhập.</string>
-	<key>Could not update Password AutoFill.</key>
-	<string>Không thể cập nhật tính năng tự động điền mật khẩu.</string>
-	<key>Backup and restore</key>
-	<string>Sao lưu và khôi phục</string>
-	<key>Export encrypted backup</key>
-	<string>Xuất bản sao lưu mã hóa</string>
-	<key>Import from backup</key>
-	<string>Nhập từ bản sao lưu</string>
-	<key>Backup password</key>
-	<string>Mật khẩu bản sao lưu</string>
-	<key>The two backup passwords do not match.</key>
-	<string>Hai mật khẩu sao lưu không khớp.</string>
-	<key>Confirm backup password</key>
-	<string>Xác nhận mật khẩu</string>
-	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
-	<string>Ít nhất 6 ký tự. Hãy lưu mật khẩu riêng. dMsg không thể khôi phục mật khẩu.</string>
-	<key>Include linked files</key>
-	<string>Kèm tệp liên kết</string>
-	<key>Some linked files are unavailable. Download them or export items only.</key>
-	<string>Một số tệp chưa có. Hãy tải xuống hoặc chỉ xuất các mục.</string>
-	<key>Includes secrets saved in wallet items.</key>
-	<string>Bao gồm bí mật đã lưu trong mục ví.</string>
-	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
-	<string>Chỉ sao lưu mục hiện tại. Loại trừ lịch sử, thùng rác, bản nháp, bản xung đột và khóa do dMsg quản lý.</string>
-	<key>Add as new</key>
-	<string>Thêm mục mới</string>
-	<key>Different content · save a copy</key>
-	<string>Nội dung khác · lưu bản sao</string>
-	<key>Deleted here · save a copy</key>
-	<string>Đã xóa tại đây · lưu bản sao</string>
-	<key>Saved locally</key>
-	<string>Đã lưu trên thiết bị</string>
-	<key>Omitted attachments</key>
-	<string>Tệp đính kèm đã bỏ qua</string>
-	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
-	<string>Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ.</string>
-	<key>No import was committed. Choose the backup again.</key>
-	<string>Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu.</string>
-	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
-	<string>Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này.</string>
-	<key>Use only on this device</key>
-	<string>Chỉ dùng trên thiết bị này</string>
-	<key>Local account</key>
-	<string>Tài khoản cục bộ</string>
-	<key>Local password</key>
-	<string>Mật khẩu cục bộ</string>
-	<key>Import from local account</key>
-	<string>Nhập từ tài khoản cục bộ</string>
-	<key>Use at least 12 characters.</key>
-	<string>Dùng ít nhất 12 ký tự.</string>
-	<key>Confirm local password</key>
-	<string>Xác nhận mật khẩu cục bộ</string>
-	<key>File digest checked</key>
-	<string>Đã kiểm tra hàm băm tệp</string>
-	<key>The file changed or cannot be read</key>
-	<string>Tệp đã thay đổi hoặc không thể đọc được</string>
-	<key>Only the digest is confirmed; the file was not checked</key>
-	<string>Chỉ có hàm băm được xác nhận; tập tin chưa được kiểm tra</string>
-	<key>Delivery report</key>
-	<string>Báo cáo gửi</string>
-	<key>Sign in</key>
-	<string>Đăng nhập</string>
-	<key>Link to an existing account</key>
-	<string>Liên kết với tài khoản hiện có</string>
-	<key>Confirm it is still you</key>
-	<string>Xác nhận đó vẫn là bạn</string>
-	<key>Receiver</key>
-	<string>Người nhận</string>
-	<key>Valid until</key>
-	<string>Có hiệu lực cho đến khi</string>
-	<key>High risk</key>
-	<string>Rủi ro cao</string>
-	<key>Continue on another device</key>
-	<string>Tiếp tục trên thiết bị khác</string>
-	<key>Let this device approve future requests</key>
-	<string>Cho phép thiết bị này phê duyệt các yêu cầu sau này</string>
-	<key>Approved. Preparing your vault…</key>
-	<string>Đã phê duyệt. Đang chuẩn bị kho bảo mật…</string>
-	<key>No eligible administrator device was found.</key>
-	<string>Không tìm thấy thiết bị quản trị có quyền phê duyệt.</string>
-	<key>Refresh the request on the joining device and scan it again.</key>
-	<string>Làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
-	<key>After key registration, refresh the request on the joining device and scan it again.</key>
-	<string>Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
-	<key>Scan this code with an administrator device to review the request.</key>
-	<string>Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.</string>
-	<key>Close</key>
-	<string>Đóng</string>
-	<key>Comparison code</key>
-	<string>Mã đối chiếu</string>
-	<key>Create a separate account</key>
-	<string>Tạo tài khoản riêng</string>
-	<key>Scan the code on an authorized device to open its account.</key>
-	<string>Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó.</string>
-	<key>This login belongs to another account. Choose a different login.</key>
-	<string>Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác.</string>
-	<key>Use this login for this account and add this device</key>
-	<string>Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này</string>
-	<key>Waiting for device approval</key>
-	<string>Đang chờ duyệt thiết bị</string>
-	<key>Waiting for login approval</key>
-	<string>Đang chờ duyệt cách đăng nhập</string>
-	<key>On the new device, choose Open an existing account and scan this code.</key>
-	<string>Trên thiết bị mới, chọn Mở tài khoản hiện có rồi quét mã này.</string>
-	<key>Check that both devices show the same code before approving.</key>
-	<string>Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không.</string>
 </dict>
 </plist>

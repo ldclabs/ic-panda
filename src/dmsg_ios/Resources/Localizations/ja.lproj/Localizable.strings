@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>No automatic charge at expiry.</key>
-	<string>期間終了時の自動課金はありません。</string>
-	<key>Promotional membership</key>
-	<string>特典による会員資格</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>取り消された、またはアカウントにもう存在しない %lld 台のデバイスが、まだこのウォレットにバインドされています。</string>
 	<key>%lld files · %@</key>
@@ -28,6 +26,12 @@
 	<string>同じ名前のファイルまたはフォルダがすでに存在します。</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>ネイティブアドレスの L1 は 1 台のデバイスのキーに結び付いているため、このデバイス用の新しいアドレスを作り、そこへコインを移します。各手順はメンバーが承認する提案です。</string>
+	<key>A private workspace for the AI era.</key>
+	<string>AI 時代のプライベートワークスペース。</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>ICPanda DAO のプロダクト。</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>DAO が採択した提案はオンチェーンのコードをアップグレードできるため、ガバナンスも信頼の対象に含まれます。アプリとクラウドサービスは、その投票の外でリリース・運用されています。</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>レコードまたはデバイス キーを検証できませんでした。ワークスペースは消去されていません。</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -44,6 +48,8 @@
 	<string>dMsgについて</string>
 	<key>About files and backups</key>
 	<string>ファイルとバックアップについて</string>
+	<key>About these benefits</key>
+	<string>特典について</string>
 	<key>Accept approved binding</key>
 	<string>承認されたバインディングを受け入れる</string>
 	<key>Accepted by service</key>
@@ -54,10 +60,14 @@
 	<string>アクセスが許可されました</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
 	<string>dMsg から明示的にエクスポートしたコピーにアクセスします</string>
+	<key>Access unavailable</key>
+	<string>アクセスできません</string>
 	<key>Account</key>
 	<string>アカウント</string>
 	<key>Account ID</key>
 	<string>アカウントID</string>
+	<key>Account information</key>
+	<string>アカウント情報</string>
 	<key>Account recovery</key>
 	<string>アカウントの回復</string>
 	<key>Account recovery is pending</key>
@@ -80,16 +90,24 @@
 	<string>アクティブ</string>
 	<key>Active conversations</key>
 	<string>活発な会話</string>
+	<key>Active devices</key>
+	<string>有効なデバイス</string>
+	<key>Active file request links</key>
+	<string>有効なファイル収集リンク</string>
 	<key>Active links</key>
 	<string>有効なリンク</string>
 	<key>Activity</key>
 	<string>アクティビティ</string>
 	<key>Activity on this device</key>
 	<string>このデバイスでのアクティビティ</string>
+	<key>Add a device and keep using this one.</key>
+	<string>このデバイスを使い続けながら、別のデバイスを追加します。</string>
 	<key>Add a passkey login</key>
 	<string>パスキーによるログインを追加</string>
 	<key>Add account</key>
 	<string>アカウントを追加</string>
+	<key>Add as new</key>
+	<string>新規追加</string>
 	<key>Add device</key>
 	<string>デバイスの追加</string>
 	<key>Add field</key>
@@ -102,6 +120,8 @@
 	<string>リンクを追加</string>
 	<key>Add one-time code</key>
 	<string>ワンタイムコードを追加する</string>
+	<key>Add permission</key>
+	<string>権限を追加</string>
 	<key>Add protector</key>
 	<string>保護キーを追加</string>
 	<key>Add receiving address</key>
@@ -126,8 +146,8 @@
 	<string>上級者向け</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>ウォレットのリクエストを承認した後、新しいデバイスで置き換えリクエストを再作成してください。</string>
-	<key>Hosted Agent IDs</key>
-	<string>ホストするエージェント ID</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
 	<key>Agent ID</key>
 	<string>エージェントID</string>
 	<key>Agents</key>
@@ -140,10 +160,14 @@
 	<string>すべてのデバイスを紛失しましたか?</string>
 	<key>All files</key>
 	<string>すべてのファイル</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>システム通知を受け取るには、iOSの設定で通知を許可してください。</string>
 	<key>Allow another letter</key>
 	<string>次の手紙を許可</string>
 	<key>Allow key rotation</key>
 	<string>キーのローテーションを許可する</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>システムの通知を受け取るには、通知を許可してください。</string>
 	<key>Allow this account to send another letter?</key>
 	<string>このアカウントから次の手紙を受け取りますか？</string>
 	<key>Allowed</key>
@@ -170,8 +194,16 @@
 	<string>空の値で置き換えると、保存済みの値が消去されます。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>完全なリンクと必要なパスワードを持っている人は誰でも、制限内でそれを取得できます。</string>
+	<key>Anyone with the link</key>
+	<string>リンクを知っている人</string>
+	<key>Anyone with the link and password</key>
+	<string>リンクとパスワードを知っている人</string>
 	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
 	<string>リンクを知っている人は、期限が切れるか取り消されるまでこのファイルをダウンロードできます。dMsg のアカウントやアプリは不要です。</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>このリンクを持つ人は、パスワードを入力する前でもあなたの公開プロフィールを閲覧できます。</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>ブロックしていない人は誰でも無料で手紙を送れます。</string>
 	<key>Anyone, free of charge</key>
 	<string>どなたでも無料</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -184,6 +216,8 @@
 	<string>これらの受信ルールを適用しますか?</string>
 	<key>Apply this conversation change?</key>
 	<string>この会話の変更を適用しますか?</string>
+	<key>Applying your purchase…</key>
+	<string>購入内容を適用中…</string>
 	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
 	<string>承認では、選択したフィールドと添付ファイルのみが新しい独立したアイテムとしてインポートされます。ファイルはローカルに残り、宛先フォルダーのアクセス許可を継承します。</string>
 	<key>Approval key</key>
@@ -212,6 +246,8 @@
 	<string>このリクエストを承認する</string>
 	<key>Approved by</key>
 	<string>承認者</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>承認されました。保管庫を準備中…</string>
 	<key>Approver</key>
 	<string>承認者</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
@@ -238,6 +274,8 @@
 	<string>資産情報を取得できません。再試行してから金額を入力してください。</string>
 	<key>Asset identifier</key>
 	<string>資産識別子</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>6 文字以上。パスワードは別に保管してください。dMsg では復元できません。</string>
 	<key>At most %lld names at a time.</key>
 	<string>一度に %lld 名までです。</string>
 	<key>Attach</key>
@@ -260,6 +298,8 @@
 	<string>dMsg からエクスポートしたファイル コピーにアクセスするための認証を行います。アクセスは 5 分間続きます。スナップショットは 24 時間後に期限切れになります。</string>
 	<key>Authenticate to continue</key>
 	<string>続行するには認証してください</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@ を %2$@ として承認します。</string>
 	<key>Authorize a new device</key>
 	<string>新しいデバイスを認証する</string>
 	<key>Authorize another device</key>
@@ -286,6 +326,10 @@
 	<string>以降利用可能</string>
 	<key>Back</key>
 	<string>戻る</string>
+	<key>Back to reminders</key>
+	<string>リマインダーに戻る</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>ファイルを明示的にバックアップすると、その暗号化バックアップを別の承認済みデバイスでダウンロードできます。ローカルのファイルライブラリ全体が自動でアップロードされることはありません。</string>
 	<key>Back up encrypted copy</key>
 	<string>暗号化されたコピーをバックアップする</string>
 	<key>Back up this file?</key>
@@ -306,10 +350,14 @@
 	<string>バックグラウンド転送が開始されました。転送で進捗状況を確認します。</string>
 	<key>Backing up…</key>
 	<string>バックアップ中…</string>
+	<key>Backup and restore</key>
+	<string>バックアップと復元</string>
 	<key>Backup failed</key>
 	<string>バックアップ失敗</string>
 	<key>Backup list could not be refreshed</key>
 	<string>バックアップ一覧を更新できませんでした</string>
+	<key>Backup password</key>
+	<string>バックアップのパスワード</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>バックアップの進行状況が保存されました。完了したかどうかファイルのステータスを確認します。</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -318,6 +366,12 @@
 	<string>バックアップ</string>
 	<key>Balance</key>
 	<string>残高</string>
+	<key>Best match</key>
+	<string>関連度順</string>
+	<key>Billing grace period</key>
+	<string>支払い猶予期間</string>
+	<key>Billing retry</key>
+	<string>支払い再試行中</string>
 	<key>Bind another Internet Identity</key>
 	<string>別の Internet Identity をバインドします</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -376,6 +430,8 @@
 	<string>この未定のリクエストはキャンセルが適用されます。完了した配信は取り消されません。</string>
 	<key>Cancelled</key>
 	<string>キャンセルされました</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>バックアップを開けません。パスワードを確認するか、完全なファイルを選んでください。</string>
 	<key>Capabilities, one per line</key>
 	<string>機能 (1 行に 1 つ)</string>
 	<key>Cardholder</key>
@@ -394,6 +450,8 @@
 	<string>ハードウェア承認ポリシーの変更</string>
 	<key>Change identity settings</key>
 	<string>ID 設定を変更する</string>
+	<key>Change plan</key>
+	<string>プランを変更</string>
 	<key>Change role</key>
 	<string>役割を変更する</string>
 	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
@@ -408,6 +466,8 @@
 	<string>チャンネルID</string>
 	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
 	<string>チャネルのコピーには、有効期限、取得制限、またはリコールはありません。受信者は独立したコピーを保持できます。</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>チャンネルの上限は、自分が作成または費用を負担するものが対象です。通常のデバイス署名は月間枠を消費しません。</string>
 	<key>Channel snapshot</key>
 	<string>チャンネルのスナップショット</string>
 	<key>Channels</key>
@@ -434,6 +494,8 @@
 	<string>依頼を確認する</string>
 	<key>Check status</key>
 	<string>状態を確認</string>
+	<key>Check that both devices show the same code before approving.</key>
+	<string>承認する前に、両方の端末に同じコードが表示されていることを確認してください。</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>名前と保存先フォルダを確認して、もう一度お試しください。</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -450,6 +512,10 @@
 	<string>次の資格情報を選択します。</string>
 	<key>Choose a file</key>
 	<string>ファイルを選択</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>アプリやサイトでパスワードを求められたら、使用するアカウントを選択します。</string>
+	<key>Choose a permission</key>
+	<string>権限を選択</string>
 	<key>Choose a secret</key>
 	<string>秘密を選択してください</string>
 	<key>Choose a version</key>
@@ -464,10 +530,16 @@
 	<string>この独立したスナップショットに含まれる内容を正確に選択してください。ソースを編集しても、すでに送信されたコピーは変更されません。</string>
 	<key>Choose folder</key>
 	<string>フォルダを選択</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>続行するには対象のアカウントを選択してください。別のアカウントを選ぶまで、現在のアカウントは変更されません。</string>
 	<key>Choose password export</key>
 	<string>パスワードのエクスポートを選択</string>
+	<key>Choose screenshots</key>
+	<string>スクリーンショットを選択</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
 	<string>iOS 設定で dMsg の言語を選択します。</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>日々の作業に合ったストレージ容量とデバイス数を選べます。アップグレードすると、アップロードリンクでファイルを受け取れるようになり、容量も増えます。</string>
 	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
 	<string>保持するバージョンを選択します。既存の履歴は保持されます。シークレットがサイレントに上書きされることはありません。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
@@ -482,10 +554,14 @@
 	<string>検索をクリア</string>
 	<key>Clear selection</key>
 	<string>選択をクリアします</string>
+	<key>Close</key>
+	<string>閉じる</string>
 	<key>Close invitation</key>
 	<string>招待を終了</string>
 	<key>Close link</key>
 	<string>リンクを閉じる</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>このリクエストを閉じ、dMsg で以下のアカウントを開いてから、リクエストをもう一度開いてください。</string>
 	<key>Closed</key>
 	<string>閉店</string>
 	<key>Cloud backup</key>
@@ -508,10 +584,14 @@
 	<string>ファイルの収集</string>
 	<key>Collecting files needs a paid plan</key>
 	<string>ファイルの収集には有料プランが必要です</string>
+	<key>Compare all plans</key>
+	<string>すべてのプランを比較</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>両方の画面でデバイスIDを照合し、パソコンで承認してください。</string>
 	<key>Compare with current</key>
 	<string>現在のバージョンと比較</string>
+	<key>Comparison code</key>
+	<string>照合コード</string>
 	<key>Complete</key>
 	<string>完了</string>
 	<key>Complete recovery after waiting period</key>
@@ -524,12 +604,18 @@
 	<string>デスクトップファイルマッピングを構成する</string>
 	<key>Configured on this device</key>
 	<string>このデバイスで構成されています</string>
+	<key>Confirm backup password</key>
+	<string>パスワードを再入力</string>
 	<key>Confirm change</key>
 	<string>変更の確認</string>
 	<key>Confirm completed step</key>
 	<string>完了したステップを確認する</string>
 	<key>Confirm it is done</key>
 	<string>完了を確認</string>
+	<key>Confirm it is still you</key>
+	<string>まだあなたであることを確認してください</string>
+	<key>Confirm local password</key>
+	<string>ローカルパスワードを確認</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>実際に完了した作業のみを確認してください。これはあなたの発言を記録します。プロバイダーのアクションは実行されません。</string>
 	<key>Confirm the dMsg request you reviewed</key>
@@ -562,12 +648,16 @@
 	<string>サポートに連絡する</string>
 	<key>Content signing</key>
 	<string>コンテンツの署名</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>外部の AI クライアントに読み取りを許可した内容は、そのクライアントのデータポリシーにも従って扱われます。タスクに必要なものだけにアクセスを許可してください。</string>
 	<key>Continue</key>
 	<string>続ける</string>
 	<key>Continue adding this passkey</key>
 	<string>このパスキーの追加を続ける</string>
 	<key>Continue import</key>
 	<string>インポートを続行する</string>
+	<key>Continue on another device</key>
+	<string>別のデバイスで続ける</string>
 	<key>Continue password import</key>
 	<string>パスワードのインポートを続行する</string>
 	<key>Continue selected backups</key>
@@ -624,6 +714,8 @@
 	<string>デバイスIDをコピー</string>
 	<key>Copy enrollment request</key>
 	<string>登録リクエストのコピー</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>承認済みの2台のデバイス間でファイルをコピーします。</string>
 	<key>Copy link</key>
 	<string>リンクをコピー</string>
 	<key>Copy pairing request</key>
@@ -640,6 +732,8 @@
 	<string>このデバイスで共同署名</string>
 	<key>Cosign packet from another device</key>
 	<string>ほかのデバイスからの共同署名パケット</string>
+	<key>Cosign proposal</key>
+	<string>提案に共同署名</string>
 	<key>Cosignatures</key>
 	<string>共同署名</string>
 	<key>Cosigner key</key>
@@ -648,6 +742,8 @@
 	<string>連署キー</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>提案されたアドレスポリシーの連帯保証人</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>パスワードの自動入力を更新できませんでした。</string>
 	<key>Create</key>
 	<string>作成</string>
 	<key>Create %lld links</key>
@@ -660,6 +756,8 @@
 	<string>パスキーを作成</string>
 	<key>Create a revocation request?</key>
 	<string>取り消しリクエストを作成しますか?</string>
+	<key>Create a separate account</key>
+	<string>別のアカウントを作成</string>
 	<key>Create agent</key>
 	<string>エージェントの作成</string>
 	<key>Create an administrator enrollment request</key>
@@ -690,6 +788,8 @@
 	<string>このウォレットの提案を作成しますか?</string>
 	<key>Create transfer proposal</key>
 	<string>移転提案書を作成する</string>
+	<key>Create wallet</key>
+	<string>ウォレットを作成</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>暗号化されたワークスペースを作成して、パスワード、メモ、ファイルの保存を開始します。</string>
 	<key>Created</key>
@@ -714,6 +814,8 @@
 	<string>現在のローカル依存関係</string>
 	<key>Current login</key>
 	<string>現在のログイン</string>
+	<key>Current plan</key>
+	<string>現在のプラン</string>
 	<key>Current plan and limits</key>
 	<string>現在のプランと制限</string>
 	<key>Current policy requires payment</key>
@@ -722,6 +824,8 @@
 	<string>今期終了</string>
 	<key>Current version</key>
 	<string>現在のバージョン</string>
+	<key>Customize fields</key>
+	<string>フィールドをカスタマイズ</string>
 	<key>Cvv</key>
 	<string>履歴書</string>
 	<key>DMSG_NOTIFICATION_ACTION</key>
@@ -754,6 +858,8 @@
 	<string>このクラウドバックアップを削除しますか?</string>
 	<key>Deleted</key>
 	<string>削除日時</string>
+	<key>Deleted here · save a copy</key>
+	<string>この端末で削除済み・コピーを保存</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>dMsg アカウントを削除しても、Apple サブスクリプションはキャンセルされません。更新を停止するには、Apple アカウント設定でキャンセルしてください。</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -766,6 +872,10 @@
 	<string>削除状況</string>
 	<key>Deliver a secret to a local process</key>
 	<string>シークレットをローカルプロセスに配信する</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>配信は未確認です。再試行は元の報告を使用します。</string>
+	<key>Delivery report</key>
+	<string>配信レポート</string>
 	<key>Dependencies on this device</key>
 	<string>このデバイスの依存関係</string>
 	<key>Describe the issue</key>
@@ -810,12 +920,16 @@
 	<string>デバイスバインドされたワークスペース</string>
 	<key>Devices</key>
 	<string>デバイス</string>
+	<key>Different content · save a copy</key>
+	<string>内容が異なります・コピーを保存</string>
 	<key>Disabled</key>
 	<string>無効</string>
 	<key>Discard</key>
 	<string>廃棄する</string>
 	<key>Discard draft</key>
 	<string>廃棄する</string>
+	<key>Discard feedback draft?</key>
+	<string>報告の下書きを破棄しますか？</string>
 	<key>Discard staged copy</key>
 	<string>ステージングされたコピーを破棄する</string>
 	<key>Discard this draft?</key>
@@ -850,6 +964,8 @@
 	<string>許可するダウンロード回数</string>
 	<key>Draft saved</key>
 	<string>下書きを保存済み</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>下書きをこの端末に暗号化して保存しました。</string>
 	<key>Draft: </key>
 	<string>草案: </string>
 	<key>Drafts</key>
@@ -918,6 +1034,8 @@
 	<string>エラーの詳細</string>
 	<key>Estimated fee</key>
 	<string>料金の目安</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>すべてのプランにエンドツーエンド暗号化とデバイスのアクセス取り消しが含まれます。</string>
 	<key>Execute</key>
 	<string>実行する</string>
 	<key>Execute approved proposal</key>
@@ -940,6 +1058,8 @@
 	<string>有効期限</string>
 	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
 	<string>クラウド コピーが必要な場合は、選択したファイル バージョンを明示的にバックアップします。</string>
+	<key>Export encrypted backup</key>
+	<string>暗号化バックアップを書き出す</string>
 	<key>Export the selected login items to Password AutoFill</key>
 	<string>選択したログイン項目をパスワード自動入力にエクスポートします</string>
 	<key>Failed</key>
@@ -950,6 +1070,8 @@
 	<string>お気に入り</string>
 	<key>Fee</key>
 	<string>手数料</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>報告を配信しました。既読を意味するものではありません。</string>
 	<key>Field</key>
 	<string>フィールド</string>
 	<key>Field name</key>
@@ -966,6 +1088,8 @@
 	<string>ファイル</string>
 	<key>File details</key>
 	<string>ファイルの詳細</string>
+	<key>File digest checked</key>
+	<string>ファイルダイジェストチェック済み</string>
 	<key>File name</key>
 	<string>ファイル名</string>
 	<key>File not available on this device</key>
@@ -990,6 +1114,12 @@
 	<string>このフォルダー内のファイル</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>100 MiB を超えるファイルはリンクで共有できません。</string>
+	<key>Fill and remember</key>
+	<string>入力して記憶</string>
+	<key>Fill once</key>
+	<string>今回のみ入力</string>
+	<key>Fill this login?</key>
+	<string>このアカウントで入力しますか？</string>
 	<key>Filters</key>
 	<string>ボールトフィルター</string>
 	<key>Fingerprint</key>
@@ -1004,8 +1134,16 @@
 	<string>フォルダ名</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>紛失したデバイスのキーなど、このデバイスが持っていないキー向けです。メンバーが承認すると、新しいキーは 24 時間後に有効になります。</string>
+	<key>For everyday file exchange.</key>
+	<string>日常的なファイルのやり取りに。</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>大容量のバックアップと頻繁な共同作業に。</string>
+	<key>For more files and devices.</key>
+	<string>より多くのファイルとデバイスに。</string>
 	<key>For this site</key>
 	<string>このサイト用</string>
+	<key>For your everyday essentials.</key>
+	<string>毎日の大切なものに。</string>
 	<key>Freeze this wallet?</key>
 	<string>このウォレットを凍結しますか?</string>
 	<key>Freeze wallet</key>
@@ -1018,6 +1156,8 @@
 	<string>満杯</string>
 	<key>Generate password</key>
 	<string>パスワードを生成</string>
+	<key>Get started</key>
+	<string>はじめる</string>
 	<key>Grant delegation</key>
 	<string>補助金代表団</string>
 	<key>Handled on another device</key>
@@ -1046,10 +1186,14 @@
 	<string>隠す</string>
 	<key>Hide on this device</key>
 	<string>このデバイス上で非表示にする</string>
+	<key>High risk</key>
+	<string>高リスク</string>
 	<key>Historical version</key>
 	<string>歴史的バージョン</string>
 	<key>Host</key>
 	<string>ホスト</string>
+	<key>Hosted Agent IDs</key>
+	<string>ホストするエージェント ID</string>
 	<key>I completed this step</key>
 	<string>このステップを完了しました</string>
 	<key>I have secured my wallet access and external credentials</key>
@@ -1080,6 +1224,8 @@
 	<string>インポートが完了しました</string>
 	<key>Import cosign packet</key>
 	<string>共同署名パケットを読み込む</string>
+	<key>Import cosignatures</key>
+	<string>共同署名を読み込む</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>インポートすると、新しい独立した項目が作成されます。ファイルはこのデバイス上に残り、選択したフォルダーのアクセス許可を継承します。自動的には何も選択されません。</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1088,8 +1234,12 @@
 	<string>インポートファイル</string>
 	<key>Import files</key>
 	<string>ファイルをインポートする</string>
+	<key>Import from backup</key>
+	<string>バックアップから読み込む</string>
 	<key>Import from copy</key>
 	<string>コピーから取り込む</string>
+	<key>Import from local account</key>
+	<string>ローカルアカウントから読み込む</string>
 	<key>Import into dMsg</key>
 	<string>dMsg にインポート</string>
 	<key>Import into this account</key>
@@ -1118,10 +1268,14 @@
 	<string>受信箱</string>
 	<key>Inbox settings</key>
 	<string>受信トレイの設定</string>
+	<key>Include linked files</key>
+	<string>関連ファイルを含める</string>
 	<key>Include notes</key>
 	<string>メモを含める</string>
 	<key>Include this message's text</key>
 	<string>このメッセージのテキストを含める</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>ウォレット項目に保存した秘密情報が含まれます。</string>
 	<key>Incomplete</key>
 	<string>不完全</string>
 	<key>Inspect pairing request</key>
@@ -1176,6 +1330,8 @@
 	<string>下書きを保持して戻る</string>
 	<key>Keep existing value</key>
 	<string>既存の値を保持</string>
+	<key>Keep what matters private.</key>
+	<string>大切なものは、プライベートに。</string>
 	<key>Key</key>
 	<string>キー</string>
 	<key>Key fingerprint</key>
@@ -1198,6 +1354,8 @@
 	<string>サイズが大きい順</string>
 	<key>Last known cloud state</key>
 	<string>最後に知られているクラウドの状態</string>
+	<key>Last recorded term</key>
+	<string>最後に記録された期間</string>
 	<key>Last refreshed</key>
 	<string>最終更新</string>
 	<key>Last successful sync</key>
@@ -1220,20 +1378,28 @@
 	<string>除外</string>
 	<key>Length</key>
 	<string>長さ</string>
+	<key>Let this device approve future requests</key>
+	<string>このデバイスで今後のリクエストを承認できるようにする</string>
 	<key>Letters</key>
 	<string>手紙</string>
 	<key>License Key</key>
 	<string>ライセンスキー</string>
 	<key>Licensed To</key>
 	<string>ライセンス供与先</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>上限は基本プランのものです。ストレージパックは容量を追加します。月間実行枠は有効期間に応じて按分され、プランを変更しても使用済み枠はリセットされません。</string>
 	<key>Link closed</key>
 	<string>終了</string>
 	<key>Link limits</key>
 	<string>リンク制限</string>
+	<key>Link to an existing account</key>
+	<string>既存のアカウントにリンクする</string>
 	<key>Links</key>
 	<string>リンク</string>
 	<key>Links ready. Send each one only to its person.</key>
 	<string>リンクの準備ができました。それぞれ該当する人だけに送ってください。</string>
+	<key>List items</key>
+	<string>項目を一覧表示</string>
 	<key>Load earlier activity</key>
 	<string>以前のアクティビティをロードする</string>
 	<key>Load earlier messages</key>
@@ -1242,12 +1408,16 @@
 	<string>以前の提案をロードする</string>
 	<key>Load more</key>
 	<string>さらにロードする</string>
+	<key>Load newer messages</key>
+	<string>新しいメッセージを読み込む</string>
 	<key>Loading the verified request…</key>
 	<string>検証されたリクエストをロードしています…</string>
 	<key>Loading…</key>
 	<string>読み込み中…</string>
 	<key>Local</key>
 	<string>ローカル</string>
+	<key>Local account</key>
+	<string>ローカルアカウント</string>
 	<key>Local content</key>
 	<string>ローカルの内容</string>
 	<key>Local delivery record</key>
@@ -1264,6 +1434,8 @@
 	<string>ローカルラベル</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg のローカルネットワークへのアクセスがオフです。設定でオンにするか、もう一方のデバイスのアドレスを入力してください。</string>
+	<key>Local password</key>
+	<string>ローカルパスワード</string>
 	<key>Local security review</key>
 	<string>ローカルセキュリティレビュー</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
@@ -1282,6 +1454,8 @@
 	<string>ログインID</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple のサブスクリプションを管理する</string>
+	<key>Manage event endpoints</key>
+	<string>イベントの受信エンドポイントを管理</string>
 	<key>Manage file</key>
 	<string>ファイルの管理</string>
 	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
@@ -1294,6 +1468,10 @@
 	<string>既読としてマークする</string>
 	<key>Mark as unread</key>
 	<string>未読にする</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>すべてのアカウントのリマインダーを既読にする</string>
+	<key>Matched in notes</key>
+	<string>メモに一致</string>
 	<key>Maximum fee</key>
 	<string>手数料の上限</string>
 	<key>Maximum fee in base units</key>
@@ -1326,6 +1504,8 @@
 	<string>月間実行枠の上限</string>
 	<key>Monthly execution units</key>
 	<string>月次実行単位</string>
+	<key>More</key>
+	<string>その他</string>
 	<key>More types</key>
 	<string>種類</string>
 	<key>Move a native address</key>
@@ -1336,6 +1516,8 @@
 	<string>ここに移動</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>ファイルライブラリをローカルネットワークで送るか、コピーされたワークスペースから取り込むか、残しておきます。</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>このデバイスの役割を交換先のデバイスに移します。</string>
 	<key>Move this local file to Trash?</key>
 	<string>このローカル ファイルをゴミ箱に移動しますか?</string>
 	<key>Move this secret to Trash?</key>
@@ -1360,6 +1542,8 @@
 	<string>新しいデバイスへの移行：新しいデバイスが古いデバイスの置き換えを依頼し、古いデバイスが承認したあと、両方で順に引き継ぎます。</string>
 	<key>Moving…</key>
 	<string>移動中…</string>
+	<key>Multisig wallet slots</key>
+	<string>マルチシグウォレット枠</string>
 	<key>Multisig wallets</key>
 	<string>マルチシグウォレット</string>
 	<key>Mute notifications</key>
@@ -1384,6 +1568,8 @@
 	<string>新しいコントローラー</string>
 	<key>New conversation</key>
 	<string>新しい会話</string>
+	<key>New feedback</key>
+	<string>新しい報告</string>
 	<key>New field type</key>
 	<string>新しいフィールドタイプ</string>
 	<key>New files</key>
@@ -1404,6 +1590,8 @@
 	<string>新しい順</string>
 	<key>Next</key>
 	<string>次の手順</string>
+	<key>Next match</key>
+	<string>次の一致</string>
 	<key>Next retry</key>
 	<string>次の再試行</string>
 	<key>No</key>
@@ -1418,10 +1606,14 @@
 	<string>エージェントがありません</string>
 	<key>No archived letters</key>
 	<string>アーカイブ済みの手紙はありません</string>
+	<key>No automatic charge at expiry.</key>
+	<string>期間終了時の自動課金はありません。</string>
 	<key>No background transfer</key>
 	<string>バックグラウンド転送なし</string>
 	<key>No blocked accounts</key>
 	<string>ブロックされたアカウントはありません</string>
+	<key>No charge</key>
+	<string>無料</string>
 	<key>No cloud backup is available for this version.</key>
 	<string>このバージョンのクラウドバックアップはありません。</string>
 	<key>No cloud backups</key>
@@ -1434,6 +1626,8 @@
 	<string>資格情報がありません</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>このデバイスには依存関係が記録されていません。</string>
+	<key>No eligible administrator device was found.</key>
+	<string>承認できる管理者デバイスが見つかりません。</string>
 	<key>No favorites</key>
 	<string>お気に入りはありません</string>
 	<key>No fields or notes</key>
@@ -1446,6 +1640,8 @@
 	<string>このデバイスのチェックでは検出結果はありませんでした。</string>
 	<key>No handovers on this device.</key>
 	<string>このデバイスに引き継ぎはありません。</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>読み込みは確定していません。バックアップを選び直してください。</string>
 	<key>No interrupted imports</key>
 	<string>輸入の中断なし</string>
 	<key>No item attachments</key>
@@ -1462,6 +1658,8 @@
 	<string>一致する結果がありません</string>
 	<key>No messages</key>
 	<string>メッセージはありません</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>受信を閉じている間は、誰からも新しい手紙を受け取りません。</string>
 	<key>No pending backups</key>
 	<string>保留中のバックアップはありません</string>
 	<key>No purchases were found for this dMsg account.</key>
@@ -1472,6 +1670,8 @@
 	<string>復元リクエストはありません</string>
 	<key>No registered approval key</key>
 	<string>承認キーが登録されていません</string>
+	<key>No reminders yet</key>
+	<string>リマインダーはまだありません</string>
 	<key>No reports</key>
 	<string>まだ記録がありません</string>
 	<key>No section</key>
@@ -1496,6 +1696,8 @@
 	<string>有効になっていません</string>
 	<key>Not enough storage on this device.</key>
 	<string>このデバイスには十分なストレージがありません。</string>
+	<key>Not included</key>
+	<string>含まれません</string>
 	<key>Not made yet; it is derived when this device registers its key.</key>
 	<string>まだありません。このデバイスがキーを登録するときに導出されます。</string>
 	<key>Not registered</key>
@@ -1508,16 +1710,30 @@
 	<string>この経路では、まだダスト上限を超える金額を移せません。</string>
 	<key>Nothing has arrived yet.</key>
 	<string>まだ何も届いていません。</string>
+	<key>Nothing needs your attention</key>
+	<string>対応が必要な項目はありません</string>
+	<key>Notification connection needs attention</key>
+	<string>通知の接続を復旧する必要があります</string>
+	<key>Notification connection restored</key>
+	<string>通知の接続が復旧しました</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>通知の登録を再試行する必要があります。フォアグラウンド同期は引き続き利用可能です。</string>
 	<key>Notifications</key>
 	<string>通知</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>通知は目立たない方法で配信されます。</string>
 	<key>Notifications are disabled in system settings.</key>
 	<string>システム設定で通知が無効になっています。</string>
+	<key>Notifications are off for this account.</key>
+	<string>このアカウントでは通知がオフです。</string>
+	<key>Notifications are off on this device.</key>
+	<string>このデバイスでは通知がオフです。</string>
 	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
 	<string>通知には、メッセージ テキスト、送信者、ファイル名、承認ペイロードは含まれません。 dMsg を開くと、常に実際の状態が更新されます。</string>
 	<key>Notifications enabled</key>
 	<string>通知が有効になっています</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>通知が遅れる場合があります。dMsgを開くと内容を同期できます。</string>
 	<key>Notify this account on this device</key>
 	<string>このデバイス上のこのアカウントに通知する</string>
 	<key>Number</key>
@@ -1528,10 +1744,14 @@
 	<string>このデバイスで観察された</string>
 	<key>Old address</key>
 	<string>古いアドレス</string>
+	<key>Omitted attachments</key>
+	<string>除外した添付ファイル</string>
 	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
 	<string>認証されたデバイスで「承認」を開き、このデバイスの完全なフィンガープリント、役割、権限を確認します。スキャンが自動的に承認されることはありません。</string>
 	<key>On the device being replaced, open Devices → Replace a device → Review a request, scan or paste this request and enter this device's ID. Then check authorization here.</key>
 	<string>置き換えられるデバイスで「デバイス → デバイスを置き換える → 依頼を確認」を開き、この依頼をスキャンまたは貼り付けて、このデバイスの ID を入力します。その後、ここで権限を確認してください。</string>
+	<key>On the new device, choose Open an existing account and scan this code.</key>
+	<string>新しい端末で「既存のアカウントを開く」を選び、このコードをスキャンしてください。</string>
 	<key>On this device</key>
 	<string>このデバイス上で</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
@@ -1544,6 +1764,8 @@
 	<string>1 行に 1 名で、それぞれ別のリンクを作成します。名前はあなたにだけ表示されます。</string>
 	<key>One-time code</key>
 	<string>ワンタイムコード</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>現在の項目のみが対象です。履歴、ゴミ箱、下書き、競合コピー、dMsg 管理の鍵は含まれません。</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>これは、使用する準備ができた場合にのみ行ってください。コピーはこのデバイスに保存され、30 秒後に期限切れになります。</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1554,14 +1776,28 @@
 	<string>このデバイスのみ</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>今移せるのは %lld ブロック以上前の出力だけです。その他の出力には、移せるようになるブロックが表示されます。</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>選択したアカウントと、有効な招待を持つ人だけが手紙を送れます。</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
 	<string>「ファイル」Appには選択した変更不可のコピーのみが表示されます。アクセスにはシステム認証が必要で、dMsgをロックすると現在のアクセスセッションは終了します。「ファイル」Appにダウンロード済みのコピーやファイル名が残る場合があり、dMsgから取り消すことはできません。</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>ダイジェストのみが確認されます。ファイルはチェックされていませんでした</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>下書きのみ削除します。画像のコピーと既存の共有リンクはファイルに残ります。</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg がロックされている間は、選択した暗号化ファイルのみを転送できます。 iOS はスケジュールを制御します。強制終了すると、アプリを再度開くまで配信が停止します。元のアカウントを開いて確認し、完了します。</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>オンチェーン復元が有効な場合のみ、紐付けたログインで待機期間後にアカウントを引き継げます。</string>
 	<key>Open</key>
 	<string>開く</string>
 	<key>Open Settings</key>
 	<string>設定を開く</string>
+	<key>Open an existing account</key>
+	<string>既存のアカウントを開く</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>dMsg を開いてロックを解除し、ログイン項目を読み込んでください。</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>dMsg を開いてロックを解除し、自動入力を更新してから、もう一度お試しください。</string>
 	<key>Open approval record</key>
 	<string>承認レコードを開く</string>
 	<key>Open approvals</key>
@@ -1570,10 +1806,14 @@
 	<string>ホーム画面にプライベート コンテンツを公開せずに、dMsg を開きます。</string>
 	<key>Open dMsg workspace</key>
 	<string>dMsg ワークスペースを開く</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>dMsg ワークスペースを開く → アカウント → システム統合 → パスワードの自動入力 → ログイン項目を選択する</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg を開きます。ロック解除と承認には、引き続きアプリ内での操作が必要です。</string>
 	<key>Open for</key>
 	<string>受付期間</string>
+	<key>Open in conversation</key>
+	<string>会話で開く</string>
 	<key>Open invitation in browser</key>
 	<string>ブラウザで招待状を開く</string>
 	<key>Open local file</key>
@@ -1594,6 +1834,8 @@
 	<string>Webサイトを開く</string>
 	<key>Open workspace</key>
 	<string>オープンなワークスペース</string>
+	<key>Opening reminder…</key>
+	<string>リマインダーを開いています…</string>
 	<key>Optional password</key>
 	<string>オプションのパスワード</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
@@ -1686,22 +1928,32 @@
 	<string>プランと使い方</string>
 	<key>Plan at next renewal</key>
 	<string>次回更新時のプラン</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>プランの特典を読み込めませんでした。もう一度お試しください。</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>このバージョンのアプリではプランを変更できません。現在のプランと使用状況は引き続き確認できます。</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus 以上のプランなら、リンクで誰からでもファイルを集められます。相手にアカウントは不要で、自分が送ったものだけが見え、ファイルを開けるのはあなただけです。</string>
+	<key>Policy ID</key>
+	<string>ポリシーID</string>
 	<key>Policy points to an unavailable field</key>
 	<string>ポリシーが使用できないフィールドを指しています</string>
 	<key>Port</key>
 	<string>ポート</string>
 	<key>Prepare selected snapshot</key>
 	<string>選択したスナップショットを準備します</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>アクセスできるうちに準備してください。承認済みデバイスをもう 1 台追加し、任意のオンチェーン復旧設定を確認します。オンチェーン復旧は新しいアカウントでは既定でオフになっており、ロックを解除できる承認済みの管理者デバイスから事前に有効にする必要があります。</string>
 	<key>Prepared on this device</key>
 	<string>この端末で準備されている</string>
 	<key>Preparing and copying file…</key>
 	<string>ファイルを準備してコピー中…</string>
 	<key>Preparing backups…</key>
 	<string>バックアップを準備中…</string>
+	<key>Preparing purchase…</key>
+	<string>購入を準備中…</string>
+	<key>Preparing your workspace…</key>
+	<string>ワークスペースを準備中…</string>
 	<key>Preview</key>
 	<string>プレビュー</string>
 	<key>Preview and choose what to import</key>
@@ -1716,8 +1968,14 @@
 	<string>プレビューパッケージ</string>
 	<key>Preview transfer</key>
 	<string>送金をプレビュー</string>
+	<key>Previous match</key>
+	<string>前の一致</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>以前に配信された認証情報とコピーは独立しています。必要に応じて、委任を個別に取り消します。</string>
+	<key>Previously used</key>
+	<string>以前使用したアカウント</string>
+	<key>Price unavailable</key>
+	<string>価格を取得できません</string>
 	<key>Principal</key>
 	<string>Principal</string>
 	<key>Privacy</key>
@@ -1730,6 +1988,10 @@
 	<string>非表示のプライベートワークスペース</string>
 	<key>Processing</key>
 	<string>処理中</string>
+	<key>Promotional membership</key>
+	<string>特典による会員資格</string>
+	<key>Proposal</key>
+	<string>提案</string>
 	<key>Proposal %llu</key>
 	<string>提案 %llu</string>
 	<key>Proposal created</key>
@@ -1758,6 +2020,8 @@
 	<string>解凍を提案する</string>
 	<key>Proposer</key>
 	<string>提案者</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>パスワード、メモ、ファイルをエンドツーエンド暗号化で保護。保管庫をデバイス間で同期し、ファイルを安全に共有し、AI エージェントのアクセスを管理できます。</string>
 	<key>Protection</key>
 	<string>保護</string>
 	<key>Protector %lld</key>
@@ -1798,6 +2062,8 @@
 	<string>%@ でクイックロック解除</string>
 	<key>Quick unlock with system authentication</key>
 	<string>システム認証によるクイックロック解除</string>
+	<key>Read</key>
+	<string>読み取り</string>
 	<key>Read from a desktop file mapping</key>
 	<string>デスクトップファイルマッピングから読み取る</string>
 	<key>Read the published policy</key>
@@ -1816,6 +2082,8 @@
 	<string>受信した資料</string>
 	<key>Received for review</key>
 	<string>レビューのために受け取りました</string>
+	<key>Receiver</key>
+	<string>受信機</string>
 	<key>Receiving</key>
 	<string>受信</string>
 	<key>Receiving addresses</key>
@@ -1864,6 +2132,8 @@
 	<string>依存関係を更新する</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>プレビューを更新してから続行してください。</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
 	<key>Refresh to check cloud backups</key>
 	<string>更新してクラウドバックアップを確認</string>
 	<key>Refreshing backups…</key>
@@ -1892,6 +2162,10 @@
 	<string>保存済みプロフィールを再読み込み</string>
 	<key>Remaining</key>
 	<string>残り</string>
+	<key>Reminder unavailable</key>
+	<string>リマインダーを利用できません</string>
+	<key>Reminders marked as read</key>
+	<string>リマインダーを既読にしました</string>
 	<key>Removal date</key>
 	<string>削除予定日</string>
 	<key>Remove</key>
@@ -1958,6 +2232,8 @@
 	<string>返信</string>
 	<key>Reply to message %llu</key>
 	<string>メッセージ %llu に返信</string>
+	<key>Report a problem</key>
+	<string>問題を報告</string>
 	<key>Report content</key>
 	<string>報告内容</string>
 	<key>Report received for review</key>
@@ -1966,10 +2242,14 @@
 	<string>報告されたアカウント</string>
 	<key>Request ID</key>
 	<string>リクエストID</string>
+	<key>Request a signature</key>
+	<string>署名をリクエスト</string>
 	<key>Request account deletion</key>
 	<string>アカウント削除のリクエスト</string>
 	<key>Request account recovery</key>
 	<string>アカウントの回復をリクエストする</string>
+	<key>Request an action</key>
+	<string>操作をリクエスト</string>
 	<key>Request expires</key>
 	<string>依頼の有効期限</string>
 	<key>Request from the new device</key>
@@ -1992,8 +2272,6 @@
 	<string>アップロード予約分</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>このアカウントを削除する前に、保留中のアカウント操作を解決してください。</string>
-	<key>Restored</key>
-	<string>復元されました</string>
 	<key>Restore</key>
 	<string>復元</string>
 	<key>Restore purchases</key>
@@ -2008,6 +2286,8 @@
 	<string>バックアップする前に、このバージョンを本機に復元してください。</string>
 	<key>Restore to this device</key>
 	<string>このデバイスに復元する</string>
+	<key>Restored</key>
+	<string>復元されました</string>
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>復元では選択したバージョンをダウンロードし、検証が完了してから開けるようになります。</string>
 	<key>Restoring…</key>
@@ -2172,6 +2452,8 @@
 	<string>見落としがないことを確かめてから、古いデバイスを取り消します。</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>デバイスを取り消すと、同期もバックアップもされていないファイルなど、そのデバイスにしかない内容は失われます。</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>取り消すと以後のダウンロードを停止します。保存済みのコピーは残ります。</string>
 	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
 	<string>取り消すと、このリンクからの新しいダウンロードが停止されます。ローカルファイルはそのまま残ります。ダウンロードはすでに開始されており、ダウンロードしたコピーを取り消すことはできません。</string>
 	<key>Role</key>
@@ -2220,6 +2502,8 @@
 	<string>保存済みデータが変更されました。再読み込みし、保持された下書きを確認してから公開してください。</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>dMsg に保存されました。アプリを開いてこれらの項目を確認し、インポートします。</string>
+	<key>Saved locally</key>
+	<string>この端末に保存済み</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
 	<string>まずはローカルに保存。同期ステータスは別途表示されます。</string>
 	<key>Saved on this device</key>
@@ -2234,6 +2518,8 @@
 	<string>保存しました。公開は保留中です。</string>
 	<key>Saving draft…</key>
 	<string>下書きを保存中…</string>
+	<key>Saving encrypted draft…</key>
+	<string>暗号化した下書きを保存中…</string>
 	<key>Saving…</key>
 	<string>保存中…</string>
 	<key>Scan QR code</key>
@@ -2244,22 +2530,36 @@
 	<string>デバイスのスキャン要求</string>
 	<key>Scan invitation</key>
 	<string>招待をスキャン</string>
+	<key>Scan the code on an authorized device to open its account.</key>
+	<string>承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>管理者デバイスでこのコードをスキャンして、リクエストを確認してください。</string>
 	<key>Scopes, one per line</key>
 	<string>スコープ、1 行に 1 つ</string>
+	<key>Screenshots</key>
+	<string>スクリーンショット</string>
 	<key>Screenshots may contain private information.</key>
 	<string>スクリーンショットには個人情報が含まれる場合があります。</string>
 	<key>Search</key>
 	<string>検索</string>
 	<key>Search cloud backups</key>
 	<string>クラウドバックアップを検索</string>
+	<key>Search conversations</key>
+	<string>会話を検索</string>
+	<key>Search everything</key>
+	<string>すべて検索</string>
 	<key>Search files</key>
 	<string>ファイルの検索</string>
+	<key>Search letters</key>
+	<string>手紙を検索</string>
 	<key>Search messages</key>
 	<string>メッセージを検索する</string>
 	<key>Search your vault</key>
 	<string>金庫を検索する</string>
 	<key>Searches messages saved on this device.</key>
 	<string>このデバイスに保存されたメッセージを検索します。</string>
+	<key>Searching…</key>
+	<string>検索中…</string>
 	<key>Secret</key>
 	<string>秘密</string>
 	<key>Secret package link</key>
@@ -2272,12 +2572,18 @@
 	<string>Secure Enclave はこのデバイスでは使用できません。</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>セキュリティ要件が変更されました。リクエストを承認する前にもう一度確認してください。</string>
+	<key>See how dMsg works</key>
+	<string>dMsg の仕組みを見る</string>
 	<key>See plans</key>
 	<string>プランを見る</string>
+	<key>See who controls the rules</key>
+	<string>誰がルールを管理しているかを見る</string>
 	<key>Select a conversation</key>
 	<string>会話を選択してください</string>
 	<key>Select a file</key>
 	<string>ファイルを選択してください</string>
+	<key>Select a letter</key>
+	<string>手紙を選択</string>
 	<key>Select a secret</key>
 	<string>シークレットを選択してください</string>
 	<key>Select all</key>
@@ -2308,12 +2614,16 @@
 	<string>選択した OTP フィールドには、現在のコードだけでなく、再利用可能なシードが含まれます。</string>
 	<key>Selected accounts</key>
 	<string>選択したアカウント</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>選択したアカウントと、有効な招待を持つ人は無料で手紙を送れます。</string>
 	<key>Selected files</key>
 	<string>選択したファイル</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>選択した部分には競合バージョンを使用し、それ以外は現在のバージョンを保持します。</string>
 	<key>Send</key>
 	<string>送信</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg サポートへ無料のプライベートな手紙を送ります。送信前に説明、スクリーンショット、アプリ情報を確認してください。</string>
 	<key>Send device request</key>
 	<string>デバイスのリクエストを送信</string>
 	<key>Send failed</key>
@@ -2346,20 +2656,20 @@
 	<string>サービスによる受理は、受信者が手紙を読んだことを意味しません。</string>
 	<key>Session code</key>
 	<string>セッションコード</string>
+	<key>Set up a new workspace</key>
+	<string>新しいワークスペースを設定</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>個人資産のためにデバイスの共同署名を設定したり、他の人を招待して資金を共同管理したりできます。</string>
-	<key>Get started</key>
-	<string>はじめる</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>この iPhone を新しいデバイスとして設定</string>
-	<key>Preparing your workspace…</key>
-	<string>ワークスペースを準備中…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>暗号化されたワークスペースを設定しています。dMsgを開いたままにしてください。</string>
 	<key>Settings</key>
 	<string>設定</string>
 	<key>Share</key>
 	<string>シェアする</string>
+	<key>Share %@ with %@.</key>
+	<string>「%1$@」を %2$@ と共有します。</string>
 	<key>Share a copy</key>
 	<string>コピーを共有する</string>
 	<key>Share binding request</key>
@@ -2408,6 +2718,8 @@
 	<string>大きな文字で表示</string>
 	<key>Show in library</key>
 	<string>ライブラリで表示</string>
+	<key>Show my public profile</key>
+	<string>公開プロフィールを表示</string>
 	<key>Show share link</key>
 	<string>共有リンクを表示</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2416,6 +2728,8 @@
 	<string>そのデバイスの「デバイス」に表示されます。管理者のデバイスである必要があります。</string>
 	<key>Sign a statement</key>
 	<string>声明に署名する</string>
+	<key>Sign in</key>
+	<string>サインイン</string>
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
 	<string>この iPhone で暗号化されたワークスペースのロックを解除するには、もう一度サインインしてください。</string>
 	<key>Sign in to another account</key>
@@ -2452,6 +2766,8 @@
 	<string>ソラナ</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>一部のファイルはこの iPhone にしかなく、クラウドバックアップも最近の同期もありません。</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>利用できないファイルがあります。ダウンロードするか、項目のみ書き出してください。</string>
 	<key>Some links were not made. The names left are below to try again.</key>
 	<string>作成できなかったリンクがあります。残りの名前は下に残っているので、再試行できます。</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
@@ -2482,6 +2798,8 @@
 	<string>選択したファイルをステージングし、アカウントを選択して dMsg にインポートします。</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>フィールドのリファレンス ページからチェックリストを開始します。</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>会話を開始して、メンバーとメッセージやファイルをやり取りできます。</string>
 	<key>Start a rotation checklist</key>
 	<string>ローテーションチェックリストを開始する</string>
 	<key>Start a rotation checklist?</key>
@@ -2496,6 +2814,8 @@
 	<string>ステートメント</string>
 	<key>Status</key>
 	<string>ステータス</string>
+	<key>Status needs updating</key>
+	<string>状態の更新が必要</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
 	<string>完了した手順はそのまま残ります。新しいデバイスの参加を取り消すには、そのデバイスを取り消してください。</string>
 	<key>Stop handover</key>
@@ -2516,6 +2836,8 @@
 	<string>サブジェクトエージェントID</string>
 	<key>Submit report</key>
 	<string>レポートの提出</string>
+	<key>Subscribe to %@</key>
+	<string>%@ を契約</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Apple アカウント設定でキャンセルしない限り、サブスクリプションは自動的に更新されます。 dMsg アカウントを削除しても、Apple サブスクリプションはキャンセルされません。</string>
 	<key>Suggested fee</key>
@@ -2552,6 +2874,8 @@
 	<string>同期済み</string>
 	<key>Syncing…</key>
 	<string>同期中…</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>システム通知には以下の設定が適用されます。</string>
 	<key>System authentication</key>
 	<string>システム認証</string>
 	<key>System integrations</key>
@@ -2578,12 +2902,16 @@
 	<string>プロバイダーで新しい認証情報をテストする</string>
 	<key>Text</key>
 	<string>テキスト</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>バックアップファイルの上限は、クラウドバックアップに適用されます。ファイル共有とチャンネルの添付ファイルには、それぞれ別の上限があります。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>コピーは読み取り専用のままこの iPhone に残り、読み込みに使えます。その後、この iPhone は新しいデバイスとしてアカウントに参加します。サインインしてから、別のデバイスで承認するか、アカウントを復旧してください。古い iPhone はそのまま使えます。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>暗号化されたバージョンではクラウド ストレージが使用されます。ローカル コピーはこのデバイス上に残ります。</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>エクスポートされた認証情報は利用できないか、期限切れです。 dMsg を開いて新しいスナップショットを作成します。</string>
+	<key>The file changed or cannot be read</key>
+	<string>ファイルが変更されたか、読み取れません</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>ファイルのコピーは利用できないか、期限切れです。 dMsg を開いて新しいスナップショットを作成し、再試行してください。</string>
 	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
@@ -2644,6 +2972,8 @@
 	<string>結果は不確実です。再度実行する前に、元のジョブを確認してください。</string>
 	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
 	<string>パスキーは保存されています。再試行すると、このアカウントへの連携を続けます。新しいパスキーは作成しません。</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>購入を開始できませんでした。Appleへの支払いリクエストは送信されていません。</string>
 	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
 	<string>受信者の受信設定を更新する必要があります。相手に dMsg のロックを解除して同期してもらい、この手紙を再試行してください。</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
@@ -2668,6 +2998,8 @@
 	<string>転送認証の有効期限が切れました。このタスクをキャンセルして、元のバックアップをフォアグラウンドで続行するか、新しいダウンロードを開始してください。</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>転送は一時停止されました。元の暗号化ブロックを再試行します。</string>
+	<key>The two backup passwords do not match.</key>
+	<string>入力したバックアップ用パスワードが一致しません。</string>
 	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
 	<string>検証済みのクラウドバックアップとファイル記録は保持されます。本機で開くにはこのバージョンを再度ダウンロードしてください。</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
@@ -2684,12 +3016,12 @@
 	<string>これらのネイティブアドレスの L1 には引き続き古いデバイスが必要です。各出力が十分に古くなれば、メンバーは L2 経由で移せます。</string>
 	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
 	<string>この Apple サブスクリプションは別の dMsg アカウントに属しています。管理するにはアカウントを切り替えてください。購入の復元では移行されません。</string>
+	<key>This account no longer has access to the item.</key>
+	<string>このアカウントではこの項目にアクセスできなくなりました。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>このアカウントには登録済みの承認キーが必要です。このデバイスをハードウェア セキュリティで設定するか、別の承認されたデバイスに問い合わせてください。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>このアクションはこのデバイスではサポートされていません。シークレット スナップショットは、専用のインポート フローを使用する必要があります。</string>
-	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
-	<string>このリクエストを閉じ、dMsg で以下のアカウントを開いてから、リクエストをもう一度開いてください。</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>これを元に戻すことはできません。サインアウトだけではアカウントは削除されません。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -2756,6 +3088,8 @@
 	<string>内容が長すぎます。</string>
 	<key>This letter was withdrawn.</key>
 	<string>この手紙は取り下げられた。</string>
+	<key>This login belongs to another account. Choose a different login.</key>
+	<string>このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。</string>
 	<key>This message could not be verified.</key>
 	<string>このメッセージは確認できませんでした。</string>
 	<key>This message is too long.</key>
@@ -2776,10 +3110,16 @@
 	<string>このプロフィールは公開されています。秘密や個人的な連絡先情報は含めないでください。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
 	<string>これは、結果を手動で確認したことを記録します。操作が成功したことをマークしたり、操作を再実行したりすることはありません。</string>
+	<key>This reminder belongs to another account</key>
+	<string>このリマインダーは別のアカウントのものです</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>このリマインダーから元の項目を開くことはできなくなりました。</string>
 	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
 	<string>これにより、選択したクラウド コピーのみが削除されます。ローカル ファイルはデバイス上に残ります。</string>
 	<key>This request has expired</key>
 	<string>このリクエストは期限切れです</string>
+	<key>This request no longer needs a response.</key>
+	<string>このリクエストへの応答は不要になりました。</string>
 	<key>This request requires a supported desktop client.</key>
 	<string>このリクエストには、サポートされているデスクトップ クライアントが必要です。</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
@@ -2788,6 +3128,8 @@
 	<string>このスナップショットには注意が必要です。続行する前にステータスを確認してください。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>これにより、このデバイスでの作業が追跡されます。プロバイダーで資格情報を作成、テスト、または取り消すことはありません。</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>このアップデートでは保存済みの鍵にアクセスできません。dMsgを削除せず、別の承認済みデバイスからサポートにお問い合わせください。ワークスペースは消去されていません。</string>
 	<key>This version already has a transfer in progress.</key>
 	<string>このバージョンはすでに転送中です。</string>
 	<key>This version is already backed up.</key>
@@ -2840,8 +3182,12 @@
 	<string>確認のためにこのアカウント ID を入力してください</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to open reminder</key>
+	<string>リマインダーを開けません</string>
 	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
 	<string>この Apple サブスクリプションに紐づくアカウントを確認できません。購入前にもう一度お試しください。</string>
+	<key>Unavailable</key>
+	<string>利用できません</string>
 	<key>Unbind</key>
 	<string>バインドを解除</string>
 	<key>Unblock</key>
@@ -2850,16 +3196,22 @@
 	<string>未承認</string>
 	<key>Unconfirmed proposals</key>
 	<string>未確認の提案</string>
+	<key>Unidentified app or website</key>
+	<string>識別できないアプリまたはウェブサイト</string>
 	<key>Unknown state</key>
 	<string>不明な状態</string>
 	<key>Unlimited</key>
 	<string>無制限</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>このリクエストを確認するには、dMsg のロックを解除してください。</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>dMsg のロックを解除して報告を送信してください。</string>
 	<key>Unlock policy</key>
 	<string>ロック解除ポリシー</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>この iPhone のロックを解除して、dMsg を開きます。</string>
+	<key>Unlock to view reminder</key>
+	<string>ロックを解除してリマインダーを表示</string>
 	<key>Unlock with %@</key>
 	<string>%@でロック解除</string>
 	<key>Unlock with system authentication</key>
@@ -2874,8 +3226,12 @@
 	<string>未読</string>
 	<key>Unread only</key>
 	<string>未読</string>
+	<key>Unread reminder</key>
+	<string>未読のリマインダー</string>
 	<key>Unrestricted delegation authority</key>
 	<string>無制限の委任権限</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>PNG、JPEG、WebP、GIF を最大 3 枚、各 10 MiB まで。秘密情報は先に削除してください。コピーはファイルに残ります。送信時に 30 日間有効な暗号化リンクを作成し、保存容量を使用します。完全なリンクを持つ人は閲覧できます。</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>スコープは8個、対象は4個まで。HTTPSオリジンまたはAgent IDを使用してください。ワイルドカードは使用できません。</string>
 	<key>Update AutoFill</key>
@@ -2886,6 +3242,8 @@
 	<string>会話の鍵を更新</string>
 	<key>Updated</key>
 	<string>更新されました</string>
+	<key>Upgrade to %@</key>
+	<string>%@ にアップグレード</string>
 	<key>Uploading</key>
 	<string>アップロード中</string>
 	<key>Uploading encrypted backup</key>
@@ -2910,26 +3268,40 @@
 	<string>SSH 署名キーを使用する</string>
 	<key>Use an existing passkey</key>
 	<string>既存のパスキーを使う</string>
+	<key>Use at least 12 characters.</key>
+	<string>12 文字以上入力してください。</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>説明は UTF-8 で 4500 バイト以内にしてください。</string>
 	<key>Use conflicting version</key>
 	<string>競合するバージョンを使用する</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol または sol:mint を使用します。</string>
+	<key>Use only on this device</key>
+	<string>この端末のみで使う</string>
 	<key>Use password</key>
 	<string>このパスワードを使用</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>システム認証を使用して、この iPhone 上の暗号化されたワークスペースのロックを解除します。</string>
 	<key>Use this folder</key>
 	<string>このフォルダーを使用します</string>
+	<key>Use this login for this account and add this device</key>
+	<string>このログイン方法をアカウントに登録し、この端末を追加</string>
 	<key>Use this password for:</key>
 	<string>このパスワードは次の目的で使用します。</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>検索語は200文字以内で入力してください。</string>
 	<key>Used</key>
 	<string>使用済み</string>
 	<key>Username</key>
 	<string>ユーザー名</string>
+	<key>Valid until</key>
+	<string>まで有効</string>
 	<key>Value</key>
 	<string>値</string>
 	<key>Vault</key>
 	<string>保管庫</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。</string>
 	<key>Vault tools</key>
 	<string>ボールトツール</string>
 	<key>Verified</key>
@@ -2954,6 +3326,8 @@
 	<string>バージョン履歴</string>
 	<key>Versions</key>
 	<string>バージョン</string>
+	<key>Veto proposal</key>
+	<string>提案に拒否権を行使</string>
 	<key>View approval</key>
 	<string>承認の表示</string>
 	<key>Viewer</key>
@@ -2964,6 +3338,8 @@
 	<string>提案を待つ</string>
 	<key>Waiting</key>
 	<string>待機中</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>App Storeの確認を待っています…</string>
 	<key>Waiting for approval</key>
 	<string>承認待ち</string>
 	<key>Waiting for browser confirmation</key>
@@ -2972,8 +3348,12 @@
 	<string>確認を待っています</string>
 	<key>Waiting for confirmation: </key>
 	<string>確認を待っています: </string>
+	<key>Waiting for device approval</key>
+	<string>端末の承認待ち</string>
 	<key>Waiting for first sync</key>
 	<string>初回同期を待機中</string>
+	<key>Waiting for login approval</key>
+	<string>ログイン方法の承認待ち</string>
 	<key>Waiting for notification registration…</key>
 	<string>通知登録を待っています…</string>
 	<key>Waiting for the other device</key>
@@ -2994,6 +3374,8 @@
 	<string>ウォレットへのアクセス</string>
 	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
 	<string>ウォレットへのアクセスを確認できませんでした。削除する前に個別に確認してください。</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>ウォレットの開設には別途料金がかかります。利用可否はアプリでご確認ください。</string>
 	<key>Wallet approvals are waiting in Approvals.</key>
 	<string>ウォレットの承認が「承認」で待っています。</string>
 	<key>Wallet bindings</key>
@@ -3038,18 +3420,28 @@
 	<string>別の iPhone からコピーされたワークスペース</string>
 	<key>Workspace destination</key>
 	<string>ワークスペースの宛先</string>
+	<key>Write</key>
+	<string>書き込み</string>
 	<key>Write a letter</key>
 	<string>手紙を書く</string>
 	<key>Write a message</key>
 	<string>メッセージを書く</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>アカウントに直接手紙を送ります。返信するかは受信者が決めます。ここからの送信は無料です。</string>
 	<key>Yes</key>
 	<string>はい</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>あなたは不変の履歴バージョンを表示しています。</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>過去のリマインダーは「最近のリマインダー」で確認できます。</string>
 	<key>You have read-only access to this conversation.</key>
 	<string>この会話では閲覧のみが許可されています。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>プロバイダーの変更は自分で行います。 dMsg はステートメントを記録し、ローカル リビジョンをチェックします。アップストリームの作成、テスト、または取り消しを検証することはできません。</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>お支払い前にAppleの画面で購入を確認します。</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Appleのサブスクリプション状況を確認できませんでした。購入前に再試行してください。</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>あなたの資産に、あなたの承認ルールを。</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3070,22 +3462,34 @@
 	<string>ファイルは非公開のままです</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>非表示フィールドは、公開することを選択するまで非表示のままです。</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>最新の変更は保存されていません。</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>ローカルの内容は引き続き利用できます。アカウント操作で必要になったときに Internet Identity でログインしてください。</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>メンバーシップの状態を更新する必要があります。メンバーシップページを更新して再試行してください。</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>有料メンバーシップは終了しました。現在は Free プランです。</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>パスワードマネージャーにパスキーは保存されましたが、dMsgで登録を確認できませんでした。別のパスキーを作る前に、このパスキーでログインを試してください。</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>購入内容がこの dMsg アカウントに適用されました。</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>購入は Apple の承認待ちです。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>購入は確認を待っています。購入を復元して、再度支払いを行わずに再試行します。</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
 	<string>受信ルールは引き続き適用されます。連絡先やチャンネルメンバーは追加されません。</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>リマインダーは保護されています。ロックを解除すると続行します。</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>レポートと明示的に含めたテキストはモデレーション チームに送信されます。他のプライベート コンテンツやキーは含まれません。</string>
 	<key>Your reports</key>
 	<string>あなたのレポート</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>保存済みの鍵を準備できませんでした。このiPhoneのロックを解除して、もう一度お試しください。ワークスペースは消去されていません。</string>
 	<key>Your vault syncs automatically while dMsg is open.</key>
 	<string>dMsg を開いている間、保管庫は自動的に同期されます。</string>
 	<key>dMsg</key>
@@ -3212,395 +3616,5 @@
 	<string>作成済み</string>
 	<key>not available</key>
 	<string>利用不可</string>
-	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
-	<string>Appleのサブスクリプション状況を確認できませんでした。購入前に再試行してください。</string>
-	<key>Access unavailable</key>
-	<string>アクセスできません</string>
-	<key>Back to reminders</key>
-	<string>リマインダーに戻る</string>
-	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
-	<string>続行するには対象のアカウントを選択してください。別のアカウントを選ぶまで、現在のアカウントは変更されません。</string>
-	<key>Mark reminders for all accounts as read</key>
-	<string>すべてのアカウントのリマインダーを既読にする</string>
-	<key>More</key>
-	<string>その他</string>
-	<key>No reminders yet</key>
-	<string>リマインダーはまだありません</string>
-	<key>Nothing needs your attention</key>
-	<string>対応が必要な項目はありません</string>
-	<key>Notification connection needs attention</key>
-	<string>通知の接続を復旧する必要があります</string>
-	<key>Notification connection restored</key>
-	<string>通知の接続が復旧しました</string>
-	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
-	<string>通知が遅れる場合があります。dMsgを開くと内容を同期できます。</string>
-	<key>Opening reminder…</key>
-	<string>リマインダーを開いています…</string>
-	<key>Reminder unavailable</key>
-	<string>リマインダーを利用できません</string>
-	<key>Reminders marked as read</key>
-	<string>リマインダーを既読にしました</string>
-	<key>This account no longer has access to the item.</key>
-	<string>このアカウントではこの項目にアクセスできなくなりました。</string>
-	<key>This reminder belongs to another account</key>
-	<string>このリマインダーは別のアカウントのものです</string>
-	<key>This reminder can no longer open its original item.</key>
-	<string>このリマインダーから元の項目を開くことはできなくなりました。</string>
-	<key>This request no longer needs a response.</key>
-	<string>このリクエストへの応答は不要になりました。</string>
-	<key>Unable to open reminder</key>
-	<string>リマインダーを開けません</string>
-	<key>Unlock to view reminder</key>
-	<string>ロックを解除してリマインダーを表示</string>
-	<key>Unread reminder</key>
-	<string>未読のリマインダー</string>
-	<key>You can find past reminders in Recent.</key>
-	<string>過去のリマインダーは「最近のリマインダー」で確認できます。</string>
-	<key>Your reminder is protected. Unlock to continue where you left off.</key>
-	<string>リマインダーは保護されています。ロックを解除すると続行します。</string>
-	<key>Billing grace period</key>
-	<string>支払い猶予期間</string>
-	<key>Billing retry</key>
-	<string>支払い再試行中</string>
-	<key>Last recorded term</key>
-	<string>最後に記録された期間</string>
-	<key>Status needs updating</key>
-	<string>状態の更新が必要</string>
-	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
-	<string>メンバーシップの状態を更新する必要があります。メンバーシップページを更新して再試行してください。</string>
-	<key>Your paid membership has ended. You are now on Free.</key>
-	<string>有料メンバーシップは終了しました。現在は Free プランです。</string>
-	<key>Your purchase is awaiting Apple approval.</key>
-	<string>購入は Apple の承認待ちです。</string>
-	<key>A private workspace for the AI era.</key>
-	<string>AI 時代のプライベートワークスペース。</string>
-	<key>A product of ICPanda DAO.</key>
-	<string>ICPanda DAO のプロダクト。</string>
-	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
-	<string>DAO が採択した提案はオンチェーンのコードをアップグレードできるため、ガバナンスも信頼の対象に含まれます。アプリとクラウドサービスは、その投票の外でリリース・運用されています。</string>
-	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
-	<string>ファイルを明示的にバックアップすると、その暗号化バックアップを別の承認済みデバイスでダウンロードできます。ローカルのファイルライブラリ全体が自動でアップロードされることはありません。</string>
-	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
-	<string>日々の作業に合ったストレージ容量とデバイス数を選べます。アップグレードすると、アップロードリンクでファイルを受け取れるようになり、容量も増えます。</string>
-	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
-	<string>外部の AI クライアントに読み取りを許可した内容は、そのクライアントのデータポリシーにも従って扱われます。タスクに必要なものだけにアクセスを許可してください。</string>
-	<key>Keep what matters private.</key>
-	<string>大切なものは、プライベートに。</string>
-	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
-	<string>オンチェーン復元が有効な場合のみ、紐付けたログインで待機期間後にアカウントを引き継げます。</string>
-	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
-	<string>アクセスできるうちに準備してください。承認済みデバイスをもう 1 台追加し、任意のオンチェーン復旧設定を確認します。オンチェーン復旧は新しいアカウントでは既定でオフになっており、ロックを解除できる承認済みの管理者デバイスから事前に有効にする必要があります。</string>
-	<key>See how dMsg works</key>
-	<string>dMsg の仕組みを見る</string>
-	<key>See who controls the rules</key>
-	<string>誰がルールを管理しているかを見る</string>
-	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
-	<string>パスワード、メモ、ファイルをエンドツーエンド暗号化で保護。保管庫をデバイス間で同期し、ファイルを安全に共有し、AI エージェントのアクセスを管理できます。</string>
-	<key>Show my public profile</key>
-	<string>公開プロフィールを表示</string>
-	<key>Anyone with this link can see your public profile, even before entering a password.</key>
-	<string>このリンクを持つ人は、パスワードを入力する前でもあなたの公開プロフィールを閲覧できます。</string>
-	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
-	<string>dMsg ワークスペースを開く → アカウント → システム統合 → パスワードの自動入力 → ログイン項目を選択する</string>
-	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
-	<string>dMsg を開いてロックを解除し、自動入力を更新してから、もう一度お試しください。</string>
-	<key>Choose screenshots</key>
-	<string>スクリーンショットを選択</string>
-	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
-	<string>配信は未確認です。再試行は元の報告を使用します。</string>
-	<key>Discard feedback draft?</key>
-	<string>報告の下書きを破棄しますか？</string>
-	<key>Draft saved encrypted on this device.</key>
-	<string>下書きをこの端末に暗号化して保存しました。</string>
-	<key>Feedback delivered. This does not mean it has been read.</key>
-	<string>報告を配信しました。既読を意味するものではありません。</string>
-	<key>New feedback</key>
-	<string>新しい報告</string>
-	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
-	<string>下書きのみ削除します。画像のコピーと既存の共有リンクはファイルに残ります。</string>
-	<key>Report a problem</key>
-	<string>問題を報告</string>
-	<key>Your latest changes have not been saved.</key>
-	<string>最新の変更は保存されていません。</string>
-	<key>Saving encrypted draft…</key>
-	<string>暗号化した下書きを保存中…</string>
-	<key>Screenshots</key>
-	<string>スクリーンショット</string>
-	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
-	<string>dMsg サポートへ無料のプライベートな手紙を送ります。送信前に説明、スクリーンショット、アプリ情報を確認してください。</string>
-	<key>Unlock dMsg to send feedback.</key>
-	<string>dMsg のロックを解除して報告を送信してください。</string>
-	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
-	<string>PNG、JPEG、WebP、GIF を最大 3 枚、各 10 MiB まで。秘密情報は先に削除してください。コピーはファイルに残ります。送信時に 30 日間有効な暗号化リンクを作成し、保存容量を使用します。完全なリンクを持つ人は閲覧できます。</string>
-	<key>Use at most 4500 UTF-8 bytes for the description.</key>
-	<string>説明は UTF-8 で 4500 バイト以内にしてください。</string>
-	<key>The purchase could not be started. No payment request was sent to Apple.</key>
-	<string>購入を開始できませんでした。Appleへの支払いリクエストは送信されていません。</string>
-	<key>Preparing purchase…</key>
-	<string>購入を準備中…</string>
-	<key>Waiting for App Store confirmation…</key>
-	<string>App Storeの確認を待っています…</string>
-	<key>Applying your purchase…</key>
-	<string>購入内容を適用中…</string>
-	<key>You'll confirm with Apple before paying.</key>
-	<string>お支払い前にAppleの画面で購入を確認します。</string>
-	<key>%@ / %@</key>
-	<string>%@ / %@</string>
-	<key>About these benefits</key>
-	<string>特典について</string>
-	<key>Active devices</key>
-	<string>有効なデバイス</string>
-	<key>Active file request links</key>
-	<string>有効なファイル収集リンク</string>
-	<key>Change plan</key>
-	<string>プランを変更</string>
-	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
-	<string>チャンネルの上限は、自分が作成または費用を負担するものが対象です。通常のデバイス署名は月間枠を消費しません。</string>
-	<key>Compare all plans</key>
-	<string>すべてのプランを比較</string>
-	<key>Current plan</key>
-	<string>現在のプラン</string>
-	<key>Every plan includes end-to-end encryption and device revocation.</key>
-	<string>すべてのプランにエンドツーエンド暗号化とデバイスのアクセス取り消しが含まれます。</string>
-	<key>For everyday file exchange.</key>
-	<string>日常的なファイルのやり取りに。</string>
-	<key>For large backups and frequent collaboration.</key>
-	<string>大容量のバックアップと頻繁な共同作業に。</string>
-	<key>For more files and devices.</key>
-	<string>より多くのファイルとデバイスに。</string>
-	<key>For your everyday essentials.</key>
-	<string>毎日の大切なものに。</string>
-	<key>No charge</key>
-	<string>無料</string>
-	<key>Not included</key>
-	<string>含まれません</string>
-	<key>Plan benefits could not be loaded. Try again.</key>
-	<string>プランの特典を読み込めませんでした。もう一度お試しください。</string>
-	<key>Price unavailable</key>
-	<string>価格を取得できません</string>
-	<key>Subscribe to %@</key>
-	<string>%@ を契約</string>
-	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
-	<string>バックアップファイルの上限は、クラウドバックアップに適用されます。ファイル共有とチャンネルの添付ファイルには、それぞれ別の上限があります。</string>
-	<key>Unavailable</key>
-	<string>利用できません</string>
-	<key>Upgrade to %@</key>
-	<string>%@ にアップグレード</string>
-	<key>Wallet activation is charged separately; check availability in the app.</key>
-	<string>ウォレットの開設には別途料金がかかります。利用可否はアプリでご確認ください。</string>
-	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
-	<string>上限は基本プランのものです。ストレージパックは容量を追加します。月間実行枠は有効期間に応じて按分され、プランを変更しても使用済み枠はリセットされません。</string>
-	<key>Multisig wallet slots</key>
-	<string>マルチシグウォレット枠</string>
-	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
-	<string>保存済みの鍵を準備できませんでした。このiPhoneのロックを解除して、もう一度お試しください。ワークスペースは消去されていません。</string>
-	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
-	<string>このアップデートでは保存済みの鍵にアクセスできません。dMsgを削除せず、別の承認済みデバイスからサポートにお問い合わせください。ワークスペースは消去されていません。</string>
-	<key>Search conversations</key>
-	<string>会話を検索</string>
-	<key>Search letters</key>
-	<string>手紙を検索</string>
-	<key>Select a letter</key>
-	<string>手紙を選択</string>
-	<key>Account information</key>
-	<string>アカウント情報</string>
-	<key>Add a device and keep using this one.</key>
-	<string>このデバイスを使い続けながら、別のデバイスを追加します。</string>
-	<key>Add permission</key>
-	<string>権限を追加</string>
-	<key>Allow alerts in iOS Settings to receive system notifications.</key>
-	<string>システム通知を受け取るには、iOSの設定で通知を許可してください。</string>
-	<key>Anyone with the link</key>
-	<string>リンクを知っている人</string>
-	<key>Anyone with the link and password</key>
-	<string>リンクとパスワードを知っている人</string>
-	<key>Anyone you haven’t blocked can write for free.</key>
-	<string>ブロックしていない人は誰でも無料で手紙を送れます。</string>
-	<key>Authorize %@ as %@.</key>
-	<string>%1$@ を %2$@ として承認します。</string>
-	<key>Choose a permission</key>
-	<string>権限を選択</string>
-	<key>Copy files between two authorized devices.</key>
-	<string>承認済みの2台のデバイス間でファイルをコピーします。</string>
-	<key>Cosign proposal</key>
-	<string>提案に共同署名</string>
-	<key>Create wallet</key>
-	<string>ウォレットを作成</string>
-	<key>Customize fields</key>
-	<string>フィールドをカスタマイズ</string>
-	<key>Import cosignatures</key>
-	<string>共同署名を読み込む</string>
-	<key>List items</key>
-	<string>項目を一覧表示</string>
-	<key>Move this device’s role to its replacement.</key>
-	<string>このデバイスの役割を交換先のデバイスに移します。</string>
-	<key>No one can send a new letter while receiving is closed.</key>
-	<string>受信を閉じている間は、誰からも新しい手紙を受け取りません。</string>
-	<key>Notifications are off for this account.</key>
-	<string>このアカウントでは通知がオフです。</string>
-	<key>Notifications are off on this device.</key>
-	<string>このデバイスでは通知がオフです。</string>
-	<key>Only selected accounts or people with a valid invitation can write.</key>
-	<string>選択したアカウントと、有効な招待を持つ人だけが手紙を送れます。</string>
-	<key>Open an existing account</key>
-	<string>既存のアカウントを開く</string>
-	<key>Policy ID</key>
-	<string>ポリシーID</string>
-	<key>Proposal</key>
-	<string>提案</string>
-	<key>Read</key>
-	<string>読み取り</string>
-	<key>Manage event endpoints</key>
-	<string>イベントの受信エンドポイントを管理</string>
-	<key>Request a signature</key>
-	<string>署名をリクエスト</string>
-	<key>Request an action</key>
-	<string>操作をリクエスト</string>
-	<key>Revoking stops future downloads. Saved copies remain.</key>
-	<string>取り消すと以後のダウンロードを停止します。保存済みのコピーは残ります。</string>
-	<key>Searching…</key>
-	<string>検索中…</string>
-	<key>Selected accounts and valid invitations can write for free.</key>
-	<string>選択したアカウントと、有効な招待を持つ人は無料で手紙を送れます。</string>
-	<key>Set up a new workspace</key>
-	<string>新しいワークスペースを設定</string>
-	<key>Share %@ with %@.</key>
-	<string>「%1$@」を %2$@ と共有します。</string>
-	<key>Start a conversation to exchange messages and files with members.</key>
-	<string>会話を開始して、メンバーとメッセージやファイルをやり取りできます。</string>
-	<key>System alerts follow your preferences below.</key>
-	<string>システム通知には以下の設定が適用されます。</string>
-	<key>Use up to 200 characters to search.</key>
-	<string>検索語は200文字以内で入力してください。</string>
-	<key>Write</key>
-	<string>書き込み</string>
-	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
-	<string>アカウントに直接手紙を送ります。返信するかは受信者が決めます。ここからの送信は無料です。</string>
-	<key>Allow notifications to receive system alerts.</key>
-	<string>システムの通知を受け取るには、通知を許可してください。</string>
-	<key>Notifications are delivered quietly.</key>
-	<string>通知は目立たない方法で配信されます。</string>
-	<key>Veto proposal</key>
-	<string>提案に拒否権を行使</string>
-	<key>Fill once</key>
-	<string>今回のみ入力</string>
-	<key>Fill and remember</key>
-	<string>入力して記憶</string>
-	<key>Previously used</key>
-	<string>以前使用したアカウント</string>
-	<key>Fill this login?</key>
-	<string>このアカウントで入力しますか？</string>
-	<key>Unidentified app or website</key>
-	<string>識別できないアプリまたはウェブサイト</string>
-	<key>Choose a login when an app or website asks for a password.</key>
-	<string>アプリやサイトでパスワードを求められたら、使用するアカウントを選択します。</string>
-	<key>Open and unlock dMsg to load your logins.</key>
-	<string>dMsg を開いてロックを解除し、ログイン項目を読み込んでください。</string>
-	<key>Could not update Password AutoFill.</key>
-	<string>パスワードの自動入力を更新できませんでした。</string>
-	<key>Backup and restore</key>
-	<string>バックアップと復元</string>
-	<key>Export encrypted backup</key>
-	<string>暗号化バックアップを書き出す</string>
-	<key>Import from backup</key>
-	<string>バックアップから読み込む</string>
-	<key>Backup password</key>
-	<string>バックアップのパスワード</string>
-	<key>The two backup passwords do not match.</key>
-	<string>入力したバックアップ用パスワードが一致しません。</string>
-	<key>Confirm backup password</key>
-	<string>パスワードを再入力</string>
-	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
-	<string>6 文字以上。パスワードは別に保管してください。dMsg では復元できません。</string>
-	<key>Include linked files</key>
-	<string>関連ファイルを含める</string>
-	<key>Some linked files are unavailable. Download them or export items only.</key>
-	<string>利用できないファイルがあります。ダウンロードするか、項目のみ書き出してください。</string>
-	<key>Includes secrets saved in wallet items.</key>
-	<string>ウォレット項目に保存した秘密情報が含まれます。</string>
-	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
-	<string>現在の項目のみが対象です。履歴、ゴミ箱、下書き、競合コピー、dMsg 管理の鍵は含まれません。</string>
-	<key>Add as new</key>
-	<string>新規追加</string>
-	<key>Different content · save a copy</key>
-	<string>内容が異なります・コピーを保存</string>
-	<key>Deleted here · save a copy</key>
-	<string>この端末で削除済み・コピーを保存</string>
-	<key>Saved locally</key>
-	<string>この端末に保存済み</string>
-	<key>Omitted attachments</key>
-	<string>除外した添付ファイル</string>
-	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
-	<string>バックアップを開けません。パスワードを確認するか、完全なファイルを選んでください。</string>
-	<key>No import was committed. Choose the backup again.</key>
-	<string>読み込みは確定していません。バックアップを選び直してください。</string>
-	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
-	<string>項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。</string>
-	<key>Use only on this device</key>
-	<string>この端末のみで使う</string>
-	<key>Local account</key>
-	<string>ローカルアカウント</string>
-	<key>Local password</key>
-	<string>ローカルパスワード</string>
-	<key>Import from local account</key>
-	<string>ローカルアカウントから読み込む</string>
-	<key>Use at least 12 characters.</key>
-	<string>12 文字以上入力してください。</string>
-	<key>Confirm local password</key>
-	<string>ローカルパスワードを確認</string>
-	<key>File digest checked</key>
-	<string>ファイルダイジェストチェック済み</string>
-	<key>The file changed or cannot be read</key>
-	<string>ファイルが変更されたか、読み取れません</string>
-	<key>Only the digest is confirmed; the file was not checked</key>
-	<string>ダイジェストのみが確認されます。ファイルはチェックされていませんでした</string>
-	<key>Delivery report</key>
-	<string>配信レポート</string>
-	<key>Sign in</key>
-	<string>サインイン</string>
-	<key>Link to an existing account</key>
-	<string>既存のアカウントにリンクする</string>
-	<key>Confirm it is still you</key>
-	<string>まだあなたであることを確認してください</string>
-	<key>Receiver</key>
-	<string>受信機</string>
-	<key>Valid until</key>
-	<string>まで有効</string>
-	<key>High risk</key>
-	<string>高リスク</string>
-	<key>Continue on another device</key>
-	<string>別のデバイスで続ける</string>
-	<key>Let this device approve future requests</key>
-	<string>このデバイスで今後のリクエストを承認できるようにする</string>
-	<key>Approved. Preparing your vault…</key>
-	<string>承認されました。保管庫を準備中…</string>
-	<key>No eligible administrator device was found.</key>
-	<string>承認できる管理者デバイスが見つかりません。</string>
-	<key>Refresh the request on the joining device and scan it again.</key>
-	<string>追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
-	<key>After key registration, refresh the request on the joining device and scan it again.</key>
-	<string>鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
-	<key>Scan this code with an administrator device to review the request.</key>
-	<string>管理者デバイスでこのコードをスキャンして、リクエストを確認してください。</string>
-	<key>Close</key>
-	<string>閉じる</string>
-	<key>Comparison code</key>
-	<string>照合コード</string>
-	<key>Create a separate account</key>
-	<string>別のアカウントを作成</string>
-	<key>Scan the code on an authorized device to open its account.</key>
-	<string>承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。</string>
-	<key>This login belongs to another account. Choose a different login.</key>
-	<string>このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。</string>
-	<key>Use this login for this account and add this device</key>
-	<string>このログイン方法をアカウントに登録し、この端末を追加</string>
-	<key>Waiting for device approval</key>
-	<string>端末の承認待ち</string>
-	<key>Waiting for login approval</key>
-	<string>ログイン方法の承認待ち</string>
-	<key>On the new device, choose Open an existing account and scan this code.</key>
-	<string>新しい端末で「既存のアカウントを開く」を選び、このコードをスキャンしてください。</string>
-	<key>Check that both devices show the same code before approving.</key>
-	<string>承認する前に、両方の端末に同じコードが表示されていることを確認してください。</string>
 </dict>
 </plist>

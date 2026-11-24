@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ContextMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
+  import HighlightText from '../../components/HighlightText.svelte'
   import Icon from '../../components/Icon.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { cn, menuContentClass, menuItemClass } from '../../components/ui'
@@ -125,9 +126,12 @@
             <Icon name={folder ? 'folder' : fileIcon(entry.mime)} />
           </span>
           <span class="min-w-0">
-            <span class="block truncate text-body leading-snug font-medium text-ink">{entry.name}</span>
+            <span class="block truncate text-body leading-snug font-medium text-ink">
+              <HighlightText text={entry.name} spans={entry._nameSpans} />
+            </span>
             <span class="block truncate text-callout leading-snug text-muted">
-              {#if showPath}<bdi title={where}>{where}</bdi> ·{/if}
+              {#if showPath}<bdi title={where}><HighlightText text={where} spans={entry._pathSpans} /></bdi> ·{/if}
+              {#if entry._matchField === 'tag' && entry._matchValue}#{entry._matchValue} · {/if}
               {#if folder}
                 {ago(entry.updated_at)}
               {:else}

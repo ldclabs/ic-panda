@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Siapa pun yang memiliki tautan dan kata sandi"</string>
     <string name="review_receiving" formatted="false">"Menerima"</string>
     <string name="saved_on_device" formatted="false">"Disimpan di perangkat ini"</string>
+    <string name="search_attachments_only" formatted="false">"Lampiran"</string>
+    <string name="search_everything" formatted="false">"Cari di semua"</string>
+    <string name="search_latest_messages" formatted="false">"Pesan terbaru"</string>
     <string name="search_local_messages" formatted="false">"Mencari pesan yang tersimpan di perangkat ini."</string>
+    <string name="search_matched_notes" formatted="false">"Cocok di catatan"</string>
+    <string name="search_member_label" formatted="false">"Anggota"</string>
+    <string name="search_newer_messages" formatted="false">"Muat pesan lebih baru"</string>
+    <string name="search_next_match" formatted="false">"Kecocokan berikutnya"</string>
+    <string name="search_open_in_conversation" formatted="false">"Buka di percakapan"</string>
+    <string name="search_prev_match" formatted="false">"Kecocokan sebelumnya"</string>
     <string name="search_query_limit" formatted="false">"Gunakan hingga 200 karakter untuk mencari."</string>
+    <string name="search_scope_all" formatted="false">"Semua"</string>
+    <string name="search_scope_current" formatted="false">"Saat ini"</string>
+    <string name="search_sort_relevance" formatted="false">"Paling cocok"</string>
     <string name="security_confirm" formatted="false">"Konfirmasi di dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Kelola identitas"</string>
     <string name="security_unlock" formatted="false">"Buka kunci dMsg"</string>

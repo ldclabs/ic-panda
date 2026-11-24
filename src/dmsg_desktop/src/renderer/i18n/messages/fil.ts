@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "Pinakamalapit na tugma",
+  "matchedInNotes": "Tumugma sa mga tala",
+  "matchedMember": "Miyembro: {name}",
+  "matchingMessages": "Mga mensahe",
+  "newerMessages": "Mas bagong mga mensahe",
+  "searchPrevMatch": "Nakaraang tugma",
+  "searchNextMatch": "Susunod na tugma",
+  "loadMore": "Mag-load pa",
   "promoRedeem": "Gamitin ang code",
   "promoCode": "Code ng membership",
   "promoCheck": "Suriin ang code",

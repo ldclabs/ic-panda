@@ -28,11 +28,12 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 56] = [
+pub(crate) const METHODS: [&str; 57] = [
     "files/list",
     "files/tree",
     "files/show",
     "files/search",
+    "files/search_listing",
     "files/tags",
     "files/mkdir",
     "files/rename",
@@ -95,6 +96,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/tree"
         | "files/show"
         | "files/search"
+        | "files/search_listing"
         | "files/tags"
         | "files/import_cancel"
         | "files/export"
@@ -225,6 +227,21 @@ impl Daemon {
                 };
                 let query = params["query"].as_str().unwrap_or_default();
                 Ok(to_json(&client.files_search(query, &filter)?))
+            }
+            "files/search_listing" => {
+                let trash = params["trash"].as_bool().unwrap_or(false);
+                let filter = SearchFilter {
+                    folder: match trash || params["folder"].is_null() {
+                        true => None,
+                        false => Some(folder(&mut client, &params["folder"], false)?),
+                    },
+                    starred: params["starred"].as_bool().unwrap_or(false),
+                    tag: params["tag"].as_str().map(str::to_string),
+                };
+                let query = params["query"].as_str().unwrap_or_default();
+                Ok(to_json(
+                    &client.files_search_listing(query, &filter, trash)?,
+                ))
             }
             "files/tags" => Ok(to_json(&client.files_tags()?)),
             "files/mkdir" => match params["path"].as_str() {

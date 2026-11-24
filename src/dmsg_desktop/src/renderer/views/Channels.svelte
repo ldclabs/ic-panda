@@ -14,6 +14,8 @@
   import { localeDir } from '../../shared/locales'
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
+  import HighlightText from '../components/HighlightText.svelte'
+  import type { HighlightSpan } from '../components/highlight'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Field from '../components/page/Field.svelte'
@@ -70,8 +72,15 @@
   let more = $state(false)
   let nextBefore = $state<number | null>(null)
   let loadingEarlier = $state(false)
+  /** Newer messages exist below the last one shown when viewing search context. */
+  let moreAfter = $state(false)
+  let nextAfter = $state<number | null>(null)
+  let loadingNewer = $state(false)
   let files = $state<any[]>([])
   let query = $state('')
+  let listSearchHits = $state<{ key: string; map: Map<string, any> } | null>(null)
+  let crossMessageGroups = $state<{ key: string; groups: any[] } | null>(null)
+  let listSearchSeq = 0
   let busy = $state(false)
   let error = $state('')
   /** Unsent text and attachments per channel; the text is kept by the daemon too. */
@@ -91,8 +100,20 @@
   let outbox = $state<Outgoing[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
-  let search = $state<{ open: boolean; query: string; results: any[] | null; busy?: boolean; error?: string }>({ open: false, query: '', results: null })
+  let search = $state<{
+    open: boolean
+    query: string
+    hasFile: boolean
+    results: any[] | null
+    nextBefore: number | null
+    activeIndex: number
+    busy?: boolean
+    loadingMore?: boolean
+    error?: string
+  }>({ open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 })
+  let searchSeq = 0
   let highlight = $state<number | null>(null)
+  let highlightSpans = $state<HighlightSpan[] | null>(null)
   let membersOpen = $state(stored('dmsg.members') === 'open')
   let showOther = $state(stored('dmsg.channels-other') === 'open')
   let showLegacy = $state(false)
@@ -129,7 +150,19 @@
   const me = $derived<string | undefined>(status?.account)
   const ledger = $derived(channel?.ledger)
   const can = $derived(powers(ledger, me))
-  const listed = $derived(arrange(channels.filter((c) => (!query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())) && (!onlyUnread || c.unread || c.news || c.id === selected)), me, pins))
+  const trimmedListQuery = $derived(query.trim())
+  const activeChannelHits = $derived(listSearchHits && listSearchHits.key === trimmedListQuery ? listSearchHits.map : null)
+  const activeCrossMessages = $derived(crossMessageGroups && crossMessageGroups.key === trimmedListQuery ? crossMessageGroups.groups : [])
+  const listed = $derived.by(() => {
+    const q = trimmedListQuery
+    const filtered = channels.filter((c) => {
+      if (onlyUnread && !(c.unread || c.news || c.id === selected)) return false
+      if (!q) return true
+      if (activeChannelHits) return activeChannelHits.has(c.id)
+      return c.name.toLowerCase().includes(q.toLowerCase())
+    })
+    return arrange(filtered, me, pins)
+  })
   const anyUnread = $derived(channels.some((c) => c.unread || c.news))
   const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
   const currentDeliveries = $derived(deliveries.filter(row => row.channel === channel?.id))
@@ -169,6 +202,30 @@
   })
   $effect(() => remember('channels.selected', selected))
   $effect(() => remember('channels.unread', onlyUnread || null))
+
+  // Left sidebar search: match channels by name/member/draft/preview (pinyin-aware) and cross-channel messages.
+  $effect(() => {
+    const q = trimmedListQuery
+    if (!q || !unlocked) {
+      listSearchHits = null
+      crossMessageGroups = null
+      return
+    }
+    const req = ++listSearchSeq
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const [channelHits, msgGroups] = await Promise.all([
+          call<any[]>('channel/search_list', { query: q }).catch(() => null),
+          call<any[]>('channel/search_all', { query: q, limit_per_channel: 3, max_channels: 15, has_file: false }).catch(() => null)
+        ])
+        if (cancelled || !alive || req !== listSearchSeq) return
+        if (channelHits) listSearchHits = { key: q, map: new Map(channelHits.map((h) => [h.id, h])) }
+        if (msgGroups) crossMessageGroups = { key: q, groups: msgGroups }
+      } catch { /* fallback to local name filter */ }
+    }, 110)
+    return () => { cancelled = true; clearTimeout(timer) }
+  })
 
   const fail = (e: unknown) => toast(() => errorText(e), planAction(e))
 
@@ -244,13 +301,41 @@
    * its last page again with the messages after it, as edits, withdrawals
    * and hides change messages already shown.
    */
-  async function open(id: string) {
+  async function open(id: string, atSeq?: number, spans?: HighlightSpan[] | null) {
     const request = ++openRequest
     const sendRevision = messageDeliveries.revision
     legacySelected = null
     const switching = channel?.id !== id
-    if (selected !== id) { channelVisit++; loadingEarlier = false }
+    if (selected !== id) { channelVisit++; loadingEarlier = false; loadingNewer = false }
     selected = id
+    if (atSeq !== undefined && Number.isSafeInteger(atSeq) && atSeq > 0) {
+      const [next, win, box] = await Promise.all([
+        call<any>('channel/show', { id }),
+        call<{ items: any[]; anchor: number; has_before: boolean; has_after: boolean; next_before: number | null; next_after: number | null }>('channel/messages_around', { id, seq: atSeq, before: 30, after: 30 }),
+        call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
+      ])
+      if (!alive || selected !== id || openRequest !== request) return
+      if (switching) {
+        flushDraft()
+        editing = null
+        images = {}
+        search = { open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 }
+        drafts[id] ??= next.draft ?? ''
+        marked = 0
+        void loadReceipts(id)
+      }
+      messages = win.items
+      more = win.has_before
+      nextBefore = win.next_before
+      moreAfter = win.has_after
+      nextAfter = win.next_after
+      highlight = win.anchor
+      highlightSpans = spans ?? null
+      reading = win.has_after
+      channel = next
+      outbox = box
+      return
+    }
     // Edits and withdrawals update their original rows; reread the opening
     // page rather than assuming only the last few messages can change.
     const [next, page, box] = await Promise.all([
@@ -265,11 +350,14 @@
       messages = list
       more = page.has_more
       nextBefore = page.next_before
+      moreAfter = false
+      nextAfter = null
       editing = null
       reading = false
       images = {}
       highlight = null
-      search = { open: false, query: '', results: null }
+      highlightSpans = null
+      search = { open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 }
       drafts[id] ??= next.draft ?? ''
       marked = 0
       void loadReceipts(id)
@@ -304,7 +392,7 @@
     if (selected === id) receipts = loaded
   }
 
-  const pick = (id: string) => attempt(() => open(id))
+  const pick = (id: string, atSeq?: number, spans?: HighlightSpan[] | null) => attempt(() => open(id, atSeq, spans))
 
   /** The library's latest files, read when the attachment menu opens. */
   async function attachments() {
@@ -493,55 +581,130 @@
     finally { if (channelVisit === visit) loadingEarlier = false }
   }
 
+  async function loadNewer() {
+    if (!channel || selected !== channel.id || !moreAfter || !nextAfter || loadingNewer) return
+    const id = channel.id, after = nextAfter, visit = channelVisit
+    loadingNewer = true
+    try {
+      const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/messages_after', { id, after, limit: PAGE })
+      if (!alive || selected !== id || channelVisit !== visit) return
+      const changed = new Map([...messages, ...page.items].map((m: any) => [m.seq, m]))
+      messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
+      moreAfter = page.has_more
+      nextAfter = page.has_more ? page.items.at(-1)?.seq ?? null : null
+      if (!page.has_more) reading = false
+    } catch (error) { if (alive && selected === id && channelVisit === visit) fail(error) }
+    finally { if (channelVisit === visit) loadingNewer = false }
+  }
+
   function showSearch(open: boolean) {
-    if (open !== search.open) search = { ...search, open, busy: false }
+    if (open !== search.open) {
+      search = { ...search, open, busy: false }
+      if (!open) { highlight = null; highlightSpans = null }
+    }
     if (open) void tick().then(() => searchInput?.focus())
   }
 
-  async function find() {
-    const form = search, id = channel?.id
+  // Live debounced in-channel message search whenever search panel is open and query/filter changes.
+  $effect(() => {
+    if (!search.open || !channel?.id) return
+    const id = channel.id
     const asked = search.query.trim()
-    if (!asked || !id || selected !== id || form.busy) return
-    form.busy = true
-    form.error = ''
+    const hasFile = search.hasFile
+    if (!asked && !hasFile) {
+      search.results = null
+      search.nextBefore = null
+      search.activeIndex = -1
+      search.error = ''
+      search.busy = false
+      return
+    }
+    const req = ++searchSeq
+    let cancelled = false
+    const timer = setTimeout(() => {
+      if (!cancelled && alive && selected === id && req === searchSeq) void find(false, req)
+    }, 140)
+    return () => { cancelled = true; clearTimeout(timer) }
+  })
+
+  async function find(append = false, explicitSeq?: number) {
+    const id = channel?.id
+    const asked = search.query.trim()
+    const hasFile = search.hasFile
+    if ((!asked && !hasFile) || !id || selected !== id) return
+    const req = explicitSeq ?? ++searchSeq
+    const before = append ? search.nextBefore : null
+    if (append) search.loadingMore = true
+    else { search.busy = true; search.error = '' }
     try {
-      const results = await call<any[]>('channel/search', { id, query: asked })
-      if (alive && selected === id && search === form) search.results = results
+      const page = await call<{ hits: any[]; next_before: number | null }>('channel/search_rich', {
+        id,
+        query: asked,
+        before,
+        limit: 40,
+        has_file: hasFile
+      })
+      if (!alive || selected !== id || req !== searchSeq) return
+      const hits = append && search.results ? [...search.results, ...(page.hits ?? [])] : (page.hits ?? [])
+      search.results = hits
+      search.nextBefore = page.next_before ?? null
+      if (!append) search.activeIndex = -1
     } catch (e) {
-      if (alive && selected === id && search === form) form.error = errorText(e)
+      if (alive && selected === id && req === searchSeq) search.error = errorText(e)
     } finally {
-      form.busy = false
+      if (alive && selected === id && req === searchSeq) {
+        search.busy = false
+        search.loadingMore = false
+      }
     }
   }
 
-  /** A search result opens with the messages around it. */
-  async function jump(seq: number) {
-    const id = channel.id, form = search, visit = ++channelVisit
+  /** A search result opens with bidirectional surroundings; the search bar stays open for stepping through hits. */
+  async function jump(seq: number, spans?: HighlightSpan[] | null, index = -1) {
+    const id = channel.id, visit = ++channelVisit
     loadingEarlier = false
-    const current = () => alive && selected === id && channelVisit === visit && search === form
+    loadingNewer = false
+    const current = () => alive && selected === id && channelVisit === visit
     try {
-      const list = await call<any[]>('channel/messages', { id, after: Math.max(0, seq - 30), limit: PAGE })
+      const win = await call<{ items: any[]; anchor: number; has_before: boolean; has_after: boolean; next_before: number | null; next_after: number | null }>('channel/messages_around', { id, seq, before: 30, after: 30 })
       if (!current()) return
-      messages = list
-      more = seq > 30
-      nextBefore = more ? messages[0]?.seq ?? null : null
-      highlight = seq
-      reading = true
-      search = { ...search, open: false }
+      messages = win.items
+      more = win.has_before
+      nextBefore = win.next_before
+      moreAfter = win.has_after
+      nextAfter = win.next_after
+      highlight = win.anchor
+      highlightSpans = spans ?? null
+      reading = win.has_after
+      if (index >= 0) search.activeIndex = index
     } catch (e) { if (current()) fail(e) }
+  }
+
+  function stepSearch(delta: 1 | -1) {
+    const hits = search.results
+    if (!hits || !hits.length) { void find(false); return }
+    const next = search.activeIndex < 0
+      ? (delta > 0 ? 0 : hits.length - 1)
+      : (search.activeIndex + delta + hits.length) % hits.length
+    const hit = hits[next]
+    void jump(hit.message.seq, hit.snippet_spans, next)
   }
 
   /** Back from a search result to the channel's newest messages. */
   async function latest() {
     const id = channel.id, visit = ++channelVisit
     loadingEarlier = false
+    loadingNewer = false
     try {
       const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
       if (!alive || selected !== id || channelVisit !== visit) return false
       messages = page.items
       more = page.has_more
       nextBefore = page.next_before
+      moreAfter = false
+      nextAfter = null
       highlight = null
+      highlightSpans = null
       reading = false
       return true
     } catch (e) {
@@ -582,7 +745,9 @@
       void pick(next.id)
     } else if (event.key === 'Escape' && search.open) {
       event.preventDefault()
-      search = { open: false, query: '', results: null }
+      search = { open: false, query: '', hasFile: false, results: null, nextBefore: null, activeIndex: -1 }
+      highlight = null
+      highlightSpans = null
       searchButton?.focus()
     }
   }
@@ -705,7 +870,11 @@
         peer = { account: direct, name: params.get('name') ?? label(direct) }
         creating = true
       }
-    } else if (target) void pick(target)
+    } else if (target) {
+      const rawSeq = params.get('seq')
+      const seqNum = rawSeq ? Number(rawSeq) : undefined
+      void pick(target, seqNum && Number.isSafeInteger(seqNum) ? seqNum : undefined)
+    }
     else if (legacy) {
       legacyRequested = legacy
       void readLegacy()
@@ -769,6 +938,7 @@
 {#snippet item(entry: any)}
   {@const draft = (drafts[entry.id] ?? entry.draft)?.trim()}
   {@const at = Math.max(entry.last?.stored_at ?? 0, entry.active_at ?? 0)}
+  {@const hit = activeChannelHits?.get(entry.id)}
     <button
       class={cn(
         'grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
@@ -781,11 +951,17 @@
       <Avatar id={entry.id} name={entry.name} person={entry.ledger?.type === 'direct'} class="size-9" />
       <span class="min-w-0">
         <span class="flex min-w-0 items-center gap-1">
-          <span class={cn('truncate text-body leading-snug transition-[font-weight] duration-180 ease-calm', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
+          <span class={cn('truncate text-body leading-snug transition-[font-weight] duration-180 ease-calm', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>
+            <HighlightText text={entry.name} spans={hit?.name_spans} />
+          </span>
           {#if entry.muted}<Icon name="eye-off" class="size-3 shrink-0 text-faint" />{/if}
           {#if pins.includes(entry.id)}<Icon name="pin" class="size-3 shrink-0 text-faint" label={t('pinned')} />{/if}
         </span>
-        {#if draft}
+        {#if hit?.match_field === 'member' && hit.match_value}
+          <span class="block truncate text-callout leading-snug text-muted">
+            {t('matchedMember', { name: hit.match_value })}
+          </span>
+        {:else if draft}
           <span class="block truncate text-callout leading-snug text-warn">{t('draft')}: {draft}</span>
         {:else if entry.last}
           <span {@attach visibleName(entry.last.account === me ? undefined : entry.last.account)} class="block truncate text-callout leading-snug text-muted" data-testid="channel-preview">
@@ -864,7 +1040,7 @@
           <!-- A channel that moves up on news slides there; one that joins fades in. -->
           <li data-channel={entry.id} animate:flip={{ duration: flipDuration(listed.live.length) }} in:enter={listed.live.length}>{@render item(entry)}</li>
         {:else}
-          {#if !listed.other.length && !oldChannels.length}
+          {#if !listed.other.length && !oldChannels.length && !activeCrossMessages.length}
             <li>
               {#if status?.sync_initialized === false && unlocked}
                 <Empty icon="channels" title={t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')} description={t('syncInitialHint')} testid="channels-initial-sync" class="px-4 py-10" />
@@ -880,6 +1056,29 @@
             </li>
           {/if}
         {/each}
+        {#if activeCrossMessages.length}
+          <li class="px-2 pt-3 pb-1 text-caption font-medium text-faint" data-testid="channel-cross-messages-heading">{t('matchingMessages')}</li>
+          {#each activeCrossMessages as group (group.channel_id)}
+            {#each group.hits as hit (`${group.channel_id}:${hit.message.seq}`)}
+              <li>
+                <button
+                  class="grid w-full gap-0.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35"
+                  onclick={() => pick(group.channel_id, hit.message.seq, hit.snippet_spans)}
+                  data-testid="channel-cross-message"
+                >
+                  <span class="flex items-baseline justify-between gap-2">
+                    <span class="truncate text-caption font-medium text-ink">{group.channel_name}</span>
+                    <span class="shrink-0 text-caption text-faint tabular-nums">{shortDay.format(hit.message.stored_at)}</span>
+                  </span>
+                  <span class="truncate text-callout text-muted">
+                    <span class="font-medium text-ink-2">{hit.message.account === me ? t('you') : (hit.sender_name || label(hit.message.account, false))}:</span>
+                    <HighlightText text={hit.message.text || hit.message.file?.name || ''} spans={hit.snippet_spans} />
+                  </span>
+                </button>
+              </li>
+            {/each}
+          {/each}
+        {/if}
         {#if listed.other.length}
           <li class="px-2 pt-3">
             <button class="flex w-full items-center gap-1 text-caption font-medium text-faint hover:text-ink" onclick={() => (showOther = !showOther)} data-testid="channel-other-toggle">
@@ -1065,34 +1264,74 @@
 
         {#if search.open}
           <div id="channel-search-panel" class="border-b border-line px-5 py-2" data-testid="channel-search">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
               <input
                 bind:this={searchInput}
-                bind:value={() => search.query, (query) => { search = { open: true, query, results: null } }}
+                bind:value={search.query}
                 type="search"
                 class="min-w-0 flex-1"
                 placeholder={t('searchMessages')}
                 aria-label={t('searchMessages')}
-                onkeydown={(e) => !e.isComposing && e.key === 'Enter' && find()}
+                onkeydown={(e) => {
+                  if (e.isComposing) return
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    stepSearch(e.shiftKey ? -1 : 1)
+                  }
+                }}
                 data-testid="channel-search-query"
               />
-              <button class={iconButtonClass('secondary', 'md')} aria-label={t('searchMessages')} disabled={!search.query.trim() || search.busy} onclick={find} data-testid="channel-search-submit"><Icon name="search" /></button>
+              <button
+                class={buttonClass(search.hasFile ? 'secondary' : 'ghost', 'sm')}
+                aria-pressed={search.hasFile}
+                onclick={() => (search.hasFile = !search.hasFile)}
+                data-testid="channel-search-files"
+              >
+                <Icon name="attach" />{t('attachments')}
+              </button>
+              {#if search.results && search.results.length > 0}
+                <span class="px-1 text-caption text-faint tabular-nums" data-testid="channel-search-count">
+                  {search.activeIndex >= 0 ? `${search.activeIndex + 1} / ` : ''}{search.results.length}{search.nextBefore ? '+' : ''}
+                </span>
+                <button class={iconButtonClass('ghost', 'md')} aria-label={t('searchPrevMatch')} onclick={() => stepSearch(-1)} data-testid="channel-search-prev">
+                  <Icon name="chevron-down" class="rotate-180" />
+                </button>
+                <button class={iconButtonClass('ghost', 'md')} aria-label={t('searchNextMatch')} onclick={() => stepSearch(1)} data-testid="channel-search-next">
+                  <Icon name="chevron-down" />
+                </button>
+              {/if}
+              <button class={iconButtonClass('secondary', 'md')} aria-label={t('searchMessages')} disabled={(!search.query.trim() && !search.hasFile) || search.busy} onclick={() => find(false)} data-testid="channel-search-submit"><Icon name="search" /></button>
+              <button class={iconButtonClass('ghost', 'md')} aria-label={t('close')} onclick={() => showSearch(false)} data-testid="channel-search-close"><Icon name="close" /></button>
             </div>
             {#if search.busy}<p class="mt-1.5 text-callout text-muted" role="status">{t('loading')}</p>{/if}
             {#if search.error}<Notice tone="danger" failure={search.error}>{search.error}</Notice>{/if}
             {#if search.results}
               <ul class="mt-1.5 max-h-56 overflow-y-auto" data-testid="channel-search-results">
-                {#each search.results as hit (hit.seq)}
+                {#each search.results as hit, idx (hit.message.seq)}
                   <li>
-                    <button class="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-start text-callout hover:bg-wash" onclick={() => jump(hit.seq)}>
-                      <span {@attach visibleName(hit.account === me ? undefined : hit.account)} class="shrink-0 font-medium">{hit.account === me ? t('you') : label(hit.account, false)}</span>
-                      <span class="min-w-0 flex-1 truncate text-muted">{hit.text || hit.file?.name}</span>
-                      <span class="shrink-0 text-caption text-faint">{shortDay.format(hit.stored_at)}</span>
+                    <button
+                      class={cn('flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-start text-callout hover:bg-wash', search.activeIndex === idx && 'bg-pale')}
+                      onclick={() => jump(hit.message.seq, hit.snippet_spans, idx)}
+                    >
+                      <span {@attach visibleName(hit.message.account === me ? undefined : hit.message.account)} class="shrink-0 font-medium">
+                        {hit.message.account === me ? t('you') : (hit.sender_name || label(hit.message.account, false))}
+                      </span>
+                      <span class="min-w-0 flex-1 truncate text-muted">
+                        <HighlightText text={hit.message.text || hit.message.file?.name || ''} spans={hit.snippet_spans} />
+                      </span>
+                      <span class="shrink-0 text-caption text-faint tabular-nums">{shortDay.format(hit.message.stored_at)}</span>
                     </button>
                   </li>
                 {:else}
-                  <li class="px-2 py-1.5 text-callout text-muted">{t('noMatch', { query: search.query })}</li>
+                  <li class="px-2 py-1.5 text-callout text-muted">{search.query.trim() ? t('noMatch', { query: search.query }) : t('noResults')}</li>
                 {/each}
+                {#if search.nextBefore}
+                  <li class="pt-1 text-center">
+                    <button class={buttonClass('ghost', 'xs')} disabled={search.loadingMore} onclick={() => find(true)} data-testid="channel-search-more">
+                      {search.loadingMore ? t('loading') : t('loadMore')}
+                    </button>
+                  </li>
+                {/if}
               </ul>
             {/if}
           </div>
@@ -1137,8 +1376,11 @@
           {me}
           {receipts}
           {more}
+          {moreAfter}
           {loadingEarlier}
+          {loadingNewer}
           {highlight}
+          {highlightSpans}
           {images}
           writes={unlocked && can.writes}
           bind:draft={() => drafts[channel.id] ?? '', (text) => (drafts[channel.id] = text)}
@@ -1147,6 +1389,7 @@
           bind:editing
           history={reading}
           onLatest={latest}
+          onNewer={loadNewer}
           onSend={send}
           onRetry={retry}
           onDiscard={discard}

@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Anyone with the link and password"</string>
     <string name="review_receiving" formatted="false">"Receiving"</string>
     <string name="saved_on_device" formatted="false">"Saved on this device"</string>
+    <string name="search_attachments_only" formatted="false">"Attachments"</string>
+    <string name="search_everything" formatted="false">"Search everything"</string>
+    <string name="search_latest_messages" formatted="false">"Latest messages"</string>
     <string name="search_local_messages" formatted="false">"Searches messages saved on this device."</string>
+    <string name="search_matched_notes" formatted="false">"Matched in notes"</string>
+    <string name="search_member_label" formatted="false">"Member"</string>
+    <string name="search_newer_messages" formatted="false">"Load newer messages"</string>
+    <string name="search_next_match" formatted="false">"Next match"</string>
+    <string name="search_open_in_conversation" formatted="false">"Open in conversation"</string>
+    <string name="search_prev_match" formatted="false">"Previous match"</string>
     <string name="search_query_limit" formatted="false">"Use up to 200 characters to search."</string>
+    <string name="search_scope_all" formatted="false">"All"</string>
+    <string name="search_scope_current" formatted="false">"Current"</string>
+    <string name="search_sort_relevance" formatted="false">"Best match"</string>
     <string name="security_confirm" formatted="false">"Confirm in dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Manage an identity"</string>
     <string name="security_unlock" formatted="false">"Unlock dMsg"</string>

@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"同時持有連結和密碼的任何人"</string>
     <string name="review_receiving" formatted="false">"接收"</string>
     <string name="saved_on_device" formatted="false">"已儲存到本機"</string>
+    <string name="search_attachments_only" formatted="false">"附件"</string>
+    <string name="search_everything" formatted="false">"搜尋全部內容"</string>
+    <string name="search_latest_messages" formatted="false">"最新訊息"</string>
     <string name="search_local_messages" formatted="false">"搜尋此裝置已儲存的訊息。"</string>
+    <string name="search_matched_notes" formatted="false">"符合備註"</string>
+    <string name="search_member_label" formatted="false">"成員"</string>
+    <string name="search_newer_messages" formatted="false">"載入較新訊息"</string>
+    <string name="search_next_match" formatted="false">"下一筆符合"</string>
+    <string name="search_open_in_conversation" formatted="false">"在對話中檢視"</string>
+    <string name="search_prev_match" formatted="false">"上一筆符合"</string>
     <string name="search_query_limit" formatted="false">"搜尋詞最多可輸入 200 個字元。"</string>
+    <string name="search_scope_all" formatted="false">"全部"</string>
+    <string name="search_scope_current" formatted="false">"當前"</string>
+    <string name="search_sort_relevance" formatted="false">"最佳符合"</string>
     <string name="security_confirm" formatted="false">"在 dMsg 中確認"</string>
     <string name="security_manage_identity" formatted="false">"管理身分"</string>
     <string name="security_unlock" formatted="false">"解鎖 dMsg"</string>

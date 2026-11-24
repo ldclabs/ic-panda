@@ -63,6 +63,48 @@ struct FileBrowseBar: View {
                     }
             }.buttonStyle(.plain).accessibilityLabel("File transfers")
                 .accessibilityValue(active > 0 ? active.formatted() : "").accessibilityIdentifier("files.transfers")
+            if !showsScopes || scope == .local {
+                let filtered = model.filesFavoritesOnly || !model.filesTag.isEmpty
+                Menu {
+                    Button {
+                        model.filesFavoritesOnly.toggle()
+                    } label: {
+                        if model.filesFavoritesOnly { Label("Favorites", systemImage: "checkmark") }
+                        else { Label("Favorites", systemImage: "star") }
+                    }
+                    if !model.fileTags.isEmpty || !model.filesTag.isEmpty {
+                        Section("Tags") {
+                            Button {
+                                model.filesTag = ""
+                            } label: {
+                                if model.filesTag.isEmpty { Label("All", systemImage: "checkmark") }
+                                else { Text("All") }
+                            }
+                            ForEach(model.fileTags) { entry in
+                                Button {
+                                    model.filesTag = model.filesTag == entry.name ? "" : entry.name
+                                } label: {
+                                    if model.filesTag == entry.name {
+                                        Label { Text(verbatim: "#" + entry.name) } icon: { Image(systemName: "checkmark") }
+                                    } else {
+                                        Text(verbatim: "#" + entry.name)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if filtered {
+                        Divider()
+                        Button("Clear filters") {
+                            model.filesFavoritesOnly = false
+                            model.filesTag = ""
+                        }
+                    }
+                } label: {
+                    Image(systemName: filtered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+                        .font(.body).dynamicTypeSize(...DynamicTypeSize.xxxLarge).frame(width: 44, height: 44)
+                }.accessibilityLabel("Filters").accessibilityValue(model.filesTag).accessibilityIdentifier("files.filters")
+            }
             Menu {
                 Picker("Sort by", selection: $sort) {
                     ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -81,6 +123,8 @@ struct FileSummaryRow: View {
     let subtitle: String
     var expanded = false
     var thumbnail: LibraryFile? = nil
+    var nameSpans: [HighlightSpan]? = nil
+    var subtitleSpans: [HighlightSpan]? = nil
     @Environment(\.dynamicTypeSize) private var textSize
 
     var body: some View {
@@ -96,9 +140,13 @@ struct FileSummaryRow: View {
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(name).font(.body.weight(.medium)).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
+                Text(highlightedText(name, spans: nameSpans))
+                    .font(.body.weight(.medium)).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
                     .accessibilityLabel(name)
-                if !subtitle.isEmpty { Text(subtitle).rowSubtitle().lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).fixedSize(horizontal: false, vertical: true) }
+                if !subtitle.isEmpty {
+                    Text(highlightedText(subtitle, spans: subtitleSpans))
+                        .rowSubtitle().lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).fixedSize(horizontal: false, vertical: true)
+                }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.accessibilityElement(children: .combine)
     }
@@ -111,9 +159,12 @@ struct FileRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            let meta = showsLocation ? model.fileSearchMeta[file.id] : nil
             let details = fileSize(file.size) + " · " + file.statusLabel
             let location = fileFolderPath(file.path)
-            FileSummaryRow(name: file.name, mime: file.mime, subtitle: showsLocation ? location + " · " + details : details, thumbnail: file)
+            let tagHint = (meta?.matchField == "tag" && !(meta?.matchValue ?? "").isEmpty) ? " · #" + (meta?.matchValue ?? "") : ""
+            let subtitle = showsLocation ? location + tagHint + " · " + details : details
+            FileSummaryRow(name: file.name, mime: file.mime, subtitle: subtitle, thumbnail: file, nameSpans: meta?.nameSpans)
             if let job = model.fileTransfers.backups.first(where: { $0.file == file.id && $0.version == file.current }) {
                 FileTransferProgressView(id: job.id, stage: job.stage, bytes: job.bytes, total: job.totalBytes, failure: job.error, retry: job.retryAt, compact: true)
             }

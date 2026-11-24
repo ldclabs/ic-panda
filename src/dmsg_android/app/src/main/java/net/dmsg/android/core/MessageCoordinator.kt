@@ -8,14 +8,24 @@ import kotlinx.coroutines.sync.withLock
 import net.dmsg.core.*
 import kotlinx.serialization.json.*
 
-data class MessageTimeline(val channel: String, val query: String, val items: List<MessageItem>, val hasMore: Boolean, val before: ULong?)
+data class MessageTimeline(
+    val channel: String,
+    val query: String,
+    val items: List<MessageItem>,
+    val hasMore: Boolean,
+    val before: ULong?,
+    val hasAfter: Boolean = false,
+    val after: ULong? = null,
+    val anchor: ULong? = null,
+    val highlightSpans: List<HighlightSpan> = emptyList(),
+)
 internal fun MessageTimeline.withPage(page: MessagePage, older: Boolean): MessageTimeline {
     if (older) return copy(items = (page.items + items).distinctBy { it.id }.sortedBy { it.sequence }, hasMore = page.hasMore, before = page.nextBefore)
     val first = page.items.firstOrNull()?.sequence
     val previous = if (query.isBlank() && page.hasMore && first != null && items.lastOrNull()?.let { it.sequence >= first } == true)
         items.takeWhile { it.sequence < first } else emptyList()
-    return if (previous.isEmpty()) copy(items = page.items, hasMore = page.hasMore, before = page.nextBefore)
-    else copy(items = previous + page.items)
+    return if (previous.isEmpty()) copy(items = page.items, hasMore = page.hasMore, before = page.nextBefore, hasAfter = false, after = null)
+    else copy(items = previous + page.items, hasAfter = false, after = null)
 }
 data class ChannelMatches(val channel: String, val items: List<MessageItem>, val before: ULong?)
 data class MessageOutbox(val channel: String, val items: List<OutgoingMessage>)
@@ -78,14 +88,21 @@ class MessageCoordinator(private val client: ClientController, private val scope
 
     private val directoryText = MutableStateFlow("")
     val directoryQuery = directoryText.asStateFlow()
+    private val directoryFilesOnly = MutableStateFlow(false)
+    val directoryHasFile = directoryFilesOnly.asStateFlow()
     val matches = ReadStore<List<ChannelMatches>> { it.isEmpty() }
+    val channelHits = ReadStore<List<ChannelSearchHit>> { it.isEmpty() }
+    val richMatches = ReadStore<List<RichChannelGroup>> { it.isEmpty() }
+    val conversationSearch = ReadStore<RichChannelSearchPage> { it.hits.isEmpty() }
     private val searchRevision = MutableStateFlow(0L)
     val directoryRevision = searchRevision.asStateFlow()
 
     private fun invalidateDirectory() {
-        if (directoryText.value.isBlank()) return
+        if (directoryText.value.isBlank() && !directoryFilesOnly.value) return
         client.cancelOperation("message:directory")
         matches.reset()
+        channelHits.reset()
+        richMatches.reset()
         searchRevision.value++
     }
 
@@ -93,18 +110,123 @@ class MessageCoordinator(private val client: ClientController, private val scope
         if (text == directoryText.value) return
         client.cancelOperation("message:directory")
         matches.reset()
+        channelHits.reset()
+        richMatches.reset()
         directoryText.value = text
     }
 
-    fun searchDirectory(text: String, sources: List<String>, blocked: Set<String>) {
+    fun toggleDirectoryHasFile() {
+        client.cancelOperation("message:directory")
+        richMatches.reset()
+        directoryFilesOnly.value = !directoryFilesOnly.value
+    }
+
+    fun searchDirectory(text: String, sources: List<String>, blocked: Set<String>, hasFile: Boolean = directoryFilesOnly.value) {
         val query = text.trim()
-        if (text != directoryText.value || query.isEmpty() || query.codePointCount(0, query.length) > 200) return
-        val request = matches.begin(false)
+        if (text != directoryText.value || (query.isEmpty() && !hasFile) || query.codePointCount(0, query.length) > 200) return
+        val allowed = sources.toSet()
+        val chReq = channelHits.begin(false)
+        val msgReq = richMatches.begin(false)
         client.perform({ core ->
-            delay(180)
-            sources.map { channel -> localMatches(core, channel, query, blocked, null) }.filter { it.items.isNotEmpty() }
-        }, key = "message:directory", replace = true, quiet = true, onError = { matches.fail(request, it) }) {
-            matches.accept(request, it)
+            delay(150)
+            val chList = if (query.isEmpty()) emptyList() else core.searchChannels(query).decode().arrayRows().map(::parseChannelSearchHit)
+            val groups = parseRichChannelGroups(core.searchMessagesAll(query, 6u, 30u, hasFile).decode())
+                .filter { it.channelId in allowed }
+                .mapNotNull { group ->
+                    val visible = group.hits.filterNot { it.account in blocked }
+                    if (visible.isEmpty()) null else group.copy(hits = visible)
+                }
+            chList to groups
+        }, key = "message:directory", replace = true, quiet = true, onError = { channelHits.fail(chReq, it); richMatches.fail(msgReq, it) }) { (chList, groups) ->
+            channelHits.accept(chReq, chList)
+            richMatches.accept(msgReq, groups)
+        }
+    }
+
+    fun moreRichMatches(group: RichChannelGroup, blocked: Set<String>, hasFile: Boolean = directoryFilesOnly.value) {
+        val before = group.nextBefore ?: return
+        val query = directoryText.value.trim()
+        val previous = richMatches.value() ?: return
+        val request = richMatches.begin()
+        client.perform({ core ->
+            val obj = core.searchChannelMessages(group.channelId, query, before, 20u, hasFile, null).decode().objectValue()
+            val hits = obj.rows("hits").map { parseRichMessageHit(it, group.channelId, group.channelName) }.filterNot { it.account in blocked }
+            hits to obj.unsigned("next_before")
+        }, key = "message:directory", replace = true, quiet = true, onError = { richMatches.fail(request, it) }) { (hits, nextBefore) ->
+            richMatches.accept(request, previous.map {
+                if (it.channelId == group.channelId) it.copy(hits = (it.hits + hits).distinctBy { h -> h.sequence }, nextBefore = nextBefore) else it
+            })
+        }
+    }
+
+    fun searchConversation(channel: String, text: String, hasFile: Boolean = false, more: Boolean = false) {
+        val term = text.trim()
+        if (term.isEmpty() && !hasFile) {
+            client.cancelOperation("message:conv-search")
+            conversationSearch.reset()
+            return
+        }
+        if (term.codePointCount(0, term.length) > 200) return
+        val previous = if (more) conversationSearch.value()?.takeIf { it.channelId == channel && it.query == term && it.hasFile == hasFile } else null
+        val before = previous?.nextBefore
+        if (more && before == null) return
+        val request = conversationSearch.begin(keep = previous != null)
+        client.perform({ core ->
+            if (!more) delay(140)
+            val obj = core.searchChannelMessages(channel, term, before, 40u, hasFile, null).decode().objectValue()
+            val chName = channels.value()?.firstOrNull { it.id == channel }?.name.orEmpty()
+            val hits = obj.rows("hits").map { parseRichMessageHit(it, channel, chName) }
+            val merged = if (previous != null) (previous.hits + hits).distinctBy { it.sequence } else hits
+            RichChannelSearchPage(channel, term, hasFile, merged, obj.unsigned("next_before"))
+        }, key = "message:conv-search", replace = true, quiet = true, onError = { conversationSearch.fail(request, it) }) {
+            conversationSearch.accept(request, it)
+        }
+    }
+
+    fun clearConversationSearch() {
+        client.cancelOperation("message:conv-search")
+        conversationSearch.reset()
+    }
+
+    fun loadAround(channel: String, sequence: ULong, highlightSpans: List<HighlightSpan> = emptyList()) {
+        if (selected != channel) syncError.value = null
+        selected = channel
+        query = ""
+        val request = timeline.begin(keep = false)
+        client.perform({ core ->
+            core.messagesAround(channel, sequence, 30u, 30u)
+        }, key = "message:timeline", replace = true, quiet = true, onError = { timeline.fail(request, it) }) { win ->
+            timeline.accept(request, MessageTimeline(
+                channel = channel,
+                query = "",
+                items = win.items,
+                hasMore = win.hasBefore,
+                before = win.nextBefore,
+                hasAfter = win.hasAfter,
+                after = win.nextAfter,
+                anchor = win.anchor,
+                highlightSpans = highlightSpans,
+            ))
+        }
+        val outgoing = outbox.begin(keep = false)
+        client.perform({ MessageOutbox(channel, it.outbox(channel).items) }, key = "message:outbox", replace = true, quiet = true,
+            onError = { outbox.fail(outgoing, it) }) { outbox.accept(outgoing, it) }
+    }
+
+    fun newer() {
+        val current = timeline.value() ?: return
+        val after = current.after ?: return
+        if (!current.hasAfter || timeline.state.value is ReadState.Loading) return
+        val request = timeline.begin(keep = true)
+        client.perform({ core ->
+            core.messagesAfter(current.channel, after, 100u)
+        }, key = "message:timeline", replace = true, quiet = true, onError = { timeline.fail(request, it) }) { page ->
+            val merged = (current.items + page.items).distinctBy { it.id }.sortedBy { it.sequence }
+            timeline.accept(request, current.copy(
+                items = merged,
+                hasAfter = page.hasMore,
+                after = if (page.hasMore) merged.lastOrNull()?.sequence else null,
+            ))
         }
     }
 
@@ -219,7 +341,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
             onError = { code -> if (selected == channel) syncError.value = channel to code; finished() }) {
             if (selected == channel) {
                 syncError.value = null
-                load(channel, false, preserveLoaded = true)
+                if (timeline.value()?.hasAfter != true) load(channel, false, preserveLoaded = true)
             }
             invalidateDirectory(); browse(); finished()
         }
@@ -281,7 +403,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
     fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); pendingReads.clear(); refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
-        suspend(); syncError.value = null; matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
+        suspend(); syncError.value = null; matches.reset(); channelHits.reset(); richMatches.reset(); conversationSearch.reset(); directoryText.value = ""; directoryFilesOnly.value = false; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null; query = "" }
     }
 }

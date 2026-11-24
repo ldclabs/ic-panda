@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Iedereen met de link en het wachtwoord"</string>
     <string name="review_receiving" formatted="false">"Ontvangen"</string>
     <string name="saved_on_device" formatted="false">"Opgeslagen op dit apparaat"</string>
+    <string name="search_attachments_only" formatted="false">"Bijlagen"</string>
+    <string name="search_everything" formatted="false">"Overal zoeken"</string>
+    <string name="search_latest_messages" formatted="false">"Nieuwste berichten"</string>
     <string name="search_local_messages" formatted="false">"Doorzoekt berichten die op dit apparaat zijn opgeslagen."</string>
+    <string name="search_matched_notes" formatted="false">"Gevonden in notities"</string>
+    <string name="search_member_label" formatted="false">"Lid"</string>
+    <string name="search_newer_messages" formatted="false">"Nieuwere berichten laden"</string>
+    <string name="search_next_match" formatted="false">"Volgende overeenkomst"</string>
+    <string name="search_open_in_conversation" formatted="false">"Openen in gesprek"</string>
+    <string name="search_prev_match" formatted="false">"Vorige overeenkomst"</string>
     <string name="search_query_limit" formatted="false">"Gebruik maximaal 200 tekens voor je zoekopdracht."</string>
+    <string name="search_scope_all" formatted="false">"Alles"</string>
+    <string name="search_scope_current" formatted="false">"Huidig"</string>
+    <string name="search_sort_relevance" formatted="false">"Beste overeenkomst"</string>
     <string name="security_confirm" formatted="false">"Bevestigen in dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Een identiteit beheren"</string>
     <string name="security_unlock" formatted="false">"dMsg ontgrendelen"</string>

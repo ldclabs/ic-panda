@@ -38,6 +38,7 @@ mod platform;
 mod recovery;
 mod safety;
 pub use safety::ReportInput;
+mod search;
 mod wallet;
 pub use wallet::{WalletChange, WalletTransfer};
 mod secrets;

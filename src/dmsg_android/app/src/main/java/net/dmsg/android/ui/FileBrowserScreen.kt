@@ -33,11 +33,14 @@ import net.dmsg.android.core.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun FileBrowserScreen(client: ClientController, state: UiState, folder: String, trash: Boolean, select: (String) -> Unit) {
     val listing by client.library.listing.state.collectAsStateWithLifecycle()
+    val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     val tree by client.library.tree.state.collectAsStateWithLifecycle()
+    val tagsRead by client.library.tags.state.collectAsStateWithLifecycle()
     val selection by client.library.selection.collectAsStateWithLifecycle()
     val results by client.library.results.collectAsStateWithLifecycle()
     val usage by client.library.usage.state.collectAsStateWithLifecycle()
     val local by client.accountWorkspace.local.state.collectAsStateWithLifecycle()
+    var searchAll by remember { mutableStateOf(false) }
     val root = folder == "root" && !trash
     val listingReady = listing is ReadState.Ready || listing is ReadState.Empty
     LaunchedEffect(root, listingReady, state.epoch) {
@@ -59,20 +62,26 @@ import net.dmsg.android.core.*
     var action by remember { mutableStateOf<String?>(null) }
     var reviewed by remember { mutableStateOf<List<FileActionTarget>>(emptyList()) }
     var showingResults by remember { mutableStateOf(false) }
-    val current = listing.valueOrNull()?.takeIf { it.folder == folder && it.query == preferences.query && it.trash == trash }
-    val sortedFiles = current?.files.orEmpty().filter { !preferences.favorites || it.starred }.let { values -> when (preferences.sort) {
-        "updated" -> values.sortedByDescending { it.updatedAt }
-        "size" -> values.sortedByDescending { it.size }
+    val current = listing.valueOrNull()?.takeIf { it.folder == folder && it.query == preferences.query && it.trash == trash && it.favorites == preferences.favorites && it.tag == preferences.tag }
+    val searchingQuery = preferences.query.isNotBlank()
+    val sortedFiles = current?.files.orEmpty().let { values -> when {
+        searchingQuery && preferences.sort == "name" -> values
+        preferences.sort == "updated" -> values.sortedByDescending { it.updatedAt }
+        preferences.sort == "size" -> values.sortedByDescending { it.size }
         else -> values.sortedBy { it.name.lowercase() }
     } }
-    val folders = if (preferences.favorites) emptyList() else current?.folders.orEmpty().sortedBy { it.name.lowercase() }
+    val folders = if (preferences.favorites || preferences.tag != null) emptyList() else current?.folders.orEmpty().let { list ->
+        if (searchingQuery && preferences.sort == "name") list else list.sortedBy { it.name.lowercase() }
+    }
     val all = folders.map { FileActionTarget(it.id, it.name, true) } + sortedFiles.map { FileActionTarget(it.id, it.name, false) }
     val visible = all.take(preferences.limit)
     fun selectVisible() {
         visible.filterNot { it.id in selection }.forEach { client.library.choose(it.id) }
     }
     val filesById = sortedFiles.associateBy { it.id }
+    val matchedFoldersById = folders.associateBy { it.id }
     val folderMap = tree.valueOrNull().orEmpty().associateBy { it.id }
+    val availableTags = tagsRead.valueOrNull().orEmpty()
     val crumbs = buildList<LibraryFolder> {
         var id = folder
         while (id != "root" && size < 64 && none { it.id == id }) {
@@ -92,7 +101,13 @@ import net.dmsg.android.core.*
             else -> "FILE_DELETED_LOCALLY"
         })
     }
-    LaunchedEffect(folder, trash, preferences.query, state.epoch) { client.library.browse(folder, preferences.query, trash); if (trash) client.library.loadUsage() }
+    LaunchedEffect(folder, trash, preferences.query, preferences.favorites, preferences.tag, state.epoch) {
+        client.library.browse(folder, preferences.query, trash, preferences.favorites, preferences.tag)
+        if (trash) client.library.loadUsage()
+    }
+    LaunchedEffect(searchAll, preferences.query) {
+        if (searchAll && preferences.query.isNotBlank()) client.search.searchAll(preferences.query)
+    }
     DisposableEffect(folder, trash, owner) { onDispose {
         val latest = client.library.preferences.value["$trash:$folder"] ?: FileBrowsePreferences()
         client.library.remember(folder, trash, latest.copy(first = scroll.firstVisibleItemIndex, offset = scroll.firstVisibleItemScrollOffset), owner)
@@ -150,6 +165,7 @@ import net.dmsg.android.core.*
                     }
                 }
             }) { searching ->
+            LaunchedEffect(searching) { if (!searching) searchAll = false }
             if (!trash && !searching) ScreenFab {
                 val atTop by remember { derivedStateOf { scroll.firstVisibleItemIndex == 0 } }
                 FileIntakeButton(client, folder = folder, fab = true, expanded = atTop)
@@ -164,20 +180,55 @@ import net.dmsg.android.core.*
                 }
                 browseScopesItem(searching) {
                     BrowseScopes(trailing = {
-                        SortMenu(preferences.sort, listOf("name" to R.string.text_name_dd4dc4c, "updated" to R.string.text_recent_723c894, "size" to R.string.text_largest_4d2cb3c)) {
+                        if (!searching || !searchAll) SortMenu(preferences.sort, buildList {
+                            add("name" to if (searchingQuery) R.string.search_sort_relevance else R.string.text_name_dd4dc4c)
+                            add("updated" to R.string.text_recent_723c894)
+                            add("size" to R.string.text_largest_4d2cb3c)
+                        }) {
                             update(preferences.copy(sort = it))
                         }
                     }) {
-                        if (!trash && state.session?.accountKind != "local") {
-                            BrowseChoice(str(R.string.text_on_this_device_6032118), true) {}
-                            BrowseChoice(str(R.string.text_cloud_backups_ab4daf1), false) { client.navigation.push(Route("cloud-files")) }
+                        if (searching) {
+                            BrowseChoice(str(R.string.search_scope_current), !searchAll) { searchAll = false }
+                            BrowseChoice(str(R.string.search_scope_all), searchAll) { searchAll = true }
                         }
-                        BrowseChoice(str(R.string.text_favorites_960eb5d), preferences.favorites, toggle = true) {
-                            client.library.clearSelection()
-                            update(preferences.copy(favorites = !preferences.favorites))
+                        if (!searching || !searchAll) {
+                            if (!trash && state.session?.accountKind != "local") {
+                                BrowseChoice(str(R.string.text_on_this_device_6032118), true) {}
+                                BrowseChoice(str(R.string.text_cloud_backups_ab4daf1), false) { client.navigation.push(Route("cloud-files")) }
+                            }
+                            BrowseChoice(str(R.string.text_favorites_960eb5d), preferences.favorites, toggle = true) {
+                                client.library.clearSelection()
+                                update(preferences.copy(favorites = !preferences.favorites))
+                            }
+                            if (!trash && availableTags.isNotEmpty()) {
+                                MenuChoice(preferences.tag?.let { "#$it" } ?: str(R.string.text_tags_33e9c4d), preferences.tag != null) { close ->
+                                    DropdownMenuItem(
+                                        text = { Text(str(R.string.text_all_tags_b8ceb46)) },
+                                        trailingIcon = if (preferences.tag == null) ({ Icon(Icons.Outlined.Check, null) }) else null,
+                                        onClick = { close(); client.library.clearSelection(); update(preferences.copy(tag = null)) },
+                                    )
+                                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                                    availableTags.forEach { item ->
+                                        DropdownMenuItem(
+                                            text = { Text("#" + item.tag) },
+                                            trailingIcon = {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Text(localizedNumber(item.files), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    if (preferences.tag == item.tag) Icon(Icons.Outlined.Check, null)
+                                                }
+                                            },
+                                            onClick = { close(); client.library.clearSelection(); update(preferences.copy(tag = item.tag)) },
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+                if (searching && searchAll) {
+                    globalSearchResults(client, preferences.query, globalRead) { client.search.searchAll(preferences.query) }
+                } else {
                 item {
                     if (searching && selection.isEmpty() && visible.isNotEmpty()) {
                         TextButton(onClick = ::selectVisible) { Text(str(R.string.text_select_visible_items_5b34cd2)) }
@@ -204,13 +255,13 @@ import net.dmsg.android.core.*
                             }
                         }
                     }
-                    ReadFeedback(listing, { client.library.browse(folder, preferences.query, trash) })
+                    ReadFeedback(listing, { client.library.browse(folder, preferences.query, trash, preferences.favorites, preferences.tag) })
                     if (trash) {
                         ReadFeedback(usage, client.library::loadUsage)
                         Column(Modifier.padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             usage.valueOrNull()?.let { Text(str(R.string.text_local_encrypted_storage_b4f4abb) + fileSize(it.bytes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             Notice(str(R.string.text_deleting_permanently_removes_all_local_versions_and_folder_conten_1d4b1ab),
-                                action = if (preferences.query.isBlank() && !preferences.favorites && all.isNotEmpty()) { {
+                                action = if (preferences.query.isBlank() && !preferences.favorites && preferences.tag == null && all.isNotEmpty()) { {
                                     TextButton(onClick = { start("purge", all) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_empty_local_trash_3566898), color = MaterialTheme.colorScheme.error) }
                                 } } else null)
                         }
@@ -218,15 +269,26 @@ import net.dmsg.android.core.*
                 }
                 items(visible, key = { it.id }) { entry ->
                     val file = filesById[entry.id]
-                    BrowseRow(entry.name, Modifier.animateItem().semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
+                    val matchedFolder = matchedFoldersById[entry.id]
+                    val nameSpans = file?.nameSpans ?: matchedFolder?.nameSpans.orEmpty()
+                    val pathSpans = file?.pathSpans ?: matchedFolder?.pathSpans.orEmpty()
+                    BrowseRow(buildHighlightedText(entry.name, nameSpans), Modifier.animateItem().semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
                         .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
                             onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }), supporting = {
                             if (preferences.query.isNotBlank() || file != null) Column {
                                 if (preferences.query.isNotBlank()) {
-                                    val path = file?.path ?: folderMap[entry.id]?.path.orEmpty()
-                                    Text((listOf(str(R.string.text_files_c79ddc2)) + path).joinToString(" / "), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    val path = file?.path ?: matchedFolder?.path ?: folderMap[entry.id]?.path.orEmpty()
+                                    val pathJoined = path.joinToString(" / ")
+                                    if (pathSpans.isNotEmpty()) {
+                                        Text(buildHighlightedText(pathJoined, pathSpans), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    } else {
+                                        Text((listOf(str(R.string.text_files_c79ddc2)) + path).joinToString(" / "), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
-                                file?.let { Text(fileSize(it.size) + " · " + fileState(it)) }
+                                file?.let {
+                                    val tagHint = if (it.matchField == "tag" && !it.matchValue.isNullOrBlank()) "#${it.matchValue} · " else ""
+                                    Text(tagHint + fileSize(it.size) + " · " + fileState(it))
+                                }
                             }
                         },
                         leading = { if (selection.isNotEmpty()) Checkbox(entry.id in selection, onCheckedChange = null) else if (file != null) FileThumbnail(client, file) else BrowseIcon(Icons.Outlined.Folder) },
@@ -239,17 +301,18 @@ import net.dmsg.android.core.*
                 val empty = current != null && all.isEmpty() && (listing is ReadState.Ready || listing is ReadState.Empty)
                 val privacy = str(if (state.session?.accountKind == "local") R.string.saved_on_device else R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b)
                 if (empty) item {
-                    val filtered = preferences.query.isNotBlank() || preferences.favorites
+                    val filtered = preferences.query.isNotBlank() || preferences.favorites || preferences.tag != null
                     EmptyState(str(when { filtered -> R.string.text_no_matching_files_2fc3030; trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.empty_folder }),
                         icon = when { filtered -> Icons.Outlined.Search; trash -> Icons.Outlined.DeleteOutline; else -> null },
                         glyph = if (!filtered && !trash) R.drawable.glyph_folder else null,
                         detail = if (!filtered && !trash) privacy else null,
-                        action = if (filtered) ({ TextButton(onClick = { update(preferences.copy(query = "", favorites = false, limit = 100)) }) { Text(str(R.string.text_clear_filters_5ea61be)) } }) else null)
+                        action = if (filtered) ({ TextButton(onClick = { update(preferences.copy(query = "", favorites = false, tag = null, limit = 100)) }) { Text(str(R.string.text_clear_filters_5ea61be)) } }) else null)
                 }
                 item {
                     // The encryption note is the empty folder's first-run hint; a filled list does not repeat it.
                     if (state.working("files:batch")) { LinearProgressIndicator(Modifier.fillMaxWidth()); TextButton(onClick = client.library::cancelBatch) { Text(str(R.string.text_stop_after_completed_items_d0aee2e)) } }
                     if (results.isNotEmpty()) TextButton(onClick = { showingResults = true }) { Text(str(R.string.text_review_operation_results_f79dc63)) }
+                }
                 }
             }
         }

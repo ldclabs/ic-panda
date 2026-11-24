@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "بہترین مطابقت",
+  "matchedInNotes": "نوٹس میں ملا",
+  "matchedMember": "رکن: {name}",
+  "matchingMessages": "پیغامات",
+  "newerMessages": "نئے پیغامات",
+  "searchPrevMatch": "پچھلا نتیجہ",
+  "searchNextMatch": "اگلا نتیجہ",
+  "loadMore": "مزید لوڈ کریں",
   "promoRedeem": "کوڈ استعمال کریں",
   "promoCode": "رکنیت کا کوڈ",
   "promoCheck": "کوڈ چیک کریں",

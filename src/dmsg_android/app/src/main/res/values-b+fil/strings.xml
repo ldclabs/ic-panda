@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Sinumang may link at password"</string>
     <string name="review_receiving" formatted="false">"Tumatanggap"</string>
     <string name="saved_on_device" formatted="false">"Naka-save sa device na ito"</string>
+    <string name="search_attachments_only" formatted="false">"Mga kalakip"</string>
+    <string name="search_everything" formatted="false">"Hanapin sa lahat"</string>
+    <string name="search_latest_messages" formatted="false">"Pinakabagong mga mensahe"</string>
     <string name="search_local_messages" formatted="false">"Hinahanap ang mga mensaheng naka-save sa device na ito."</string>
+    <string name="search_matched_notes" formatted="false">"Tumugma sa mga tala"</string>
+    <string name="search_member_label" formatted="false">"Miyembro"</string>
+    <string name="search_newer_messages" formatted="false">"Mag-load ng mas bagong mensahe"</string>
+    <string name="search_next_match" formatted="false">"Susunod na tugma"</string>
+    <string name="search_open_in_conversation" formatted="false">"Buksan sa usapan"</string>
+    <string name="search_prev_match" formatted="false">"Nakaraang tugma"</string>
     <string name="search_query_limit" formatted="false">"Gumamit ng hanggang 200 character sa paghahanap."</string>
+    <string name="search_scope_all" formatted="false">"Lahat"</string>
+    <string name="search_scope_current" formatted="false">"Kasalukuyan"</string>
+    <string name="search_sort_relevance" formatted="false">"Pinakamalapit na tugma"</string>
     <string name="security_confirm" formatted="false">"Kumpirmahin sa dMsg"</string>
     <string name="security_manage_identity" formatted="false">"Pamahalaan ang isang identidad"</string>
     <string name="security_unlock" formatted="false">"I-unlock ang dMsg"</string>

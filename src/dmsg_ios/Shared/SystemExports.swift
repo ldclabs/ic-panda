@@ -17,7 +17,11 @@ struct ExportHeader: Codable, Sendable {
     var count: Int? = nil
     var digest: String? = nil
 }
-struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String; var itemID: String? = nil }
+struct CredentialExport: Codable, Identifiable, Sendable {
+    let id: String; let title: String; let username: String; let origin: String
+    var itemID: String? = nil
+    var searchKeys: [String]? = nil
+}
 extension CredentialExport {
     /// System suggestions can outlive a snapshot refresh. Only an exact current
     /// reference may fill immediately; otherwise the person chooses from the list.
@@ -37,7 +41,14 @@ extension CredentialExport {
     }
 
     func contains(_ query: String) -> Bool {
-        [title, username, origin].contains { $0.localizedCaseInsensitiveContains(query) }
+        let terms = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+        guard !terms.isEmpty else { return true }
+        let fields = [title, username, origin] + (searchKeys ?? [])
+        return terms.allSatisfy { term in
+            fields.contains { $0.localizedCaseInsensitiveContains(term) }
+        }
     }
 
     private static func host(_ value: String) -> String? {
@@ -48,7 +59,11 @@ extension CredentialExport {
 }
 
 struct FileExport: Codable, Identifiable, Sendable { let id: String; let name: String; let size: UInt64; let sha256: String; let parts: Int; let modified: UInt64 }
-struct CredentialInput: Sendable { let title: String; let username: String; let password: String; let origin: String; var itemID: String? = nil }
+struct CredentialInput: Sendable {
+    let title: String; let username: String; let password: String; let origin: String
+    var itemID: String? = nil
+    var searchKeys: [String]? = nil
+}
 struct FileExportInput: Sendable { let url: URL; let name: String; let sha256: String; let size: UInt64 }
 struct PreparedExport: Sendable { let header: ExportHeader; let key: SymmetricKey; let directory: URL }
 struct OpenExport: Sendable { let header: ExportHeader; let key: SymmetricKey }
@@ -110,7 +125,7 @@ struct SystemExports: Sendable {
         for entry in entries {
             guard entry.password.utf8.count <= 65_536, entry.username.utf8.count <= 65_536 else { throw CocoaError(.fileReadTooLarge) }
             let id = UUID().uuidString
-            metadata.append(CredentialExport(id: id, title: entry.title, username: entry.username, origin: entry.origin, itemID: entry.itemID))
+            metadata.append(CredentialExport(id: id, title: entry.title, username: entry.username, origin: entry.origin, itemID: entry.itemID, searchKeys: entry.searchKeys))
             try seal(Data(entry.password.utf8), name: id, prepared: prepared)
         }
         try seal(encode(metadata), name: "manifest", prepared: prepared); committed = true; return prepared

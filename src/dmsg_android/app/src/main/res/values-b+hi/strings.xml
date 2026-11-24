@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"लिंक और पासवर्ड वाला कोई भी व्यक्ति"</string>
     <string name="review_receiving" formatted="false">"प्राप्ति"</string>
     <string name="saved_on_device" formatted="false">"इस डिवाइस पर सहेजा गया"</string>
+    <string name="search_attachments_only" formatted="false">"अनुलग्नक"</string>
+    <string name="search_everything" formatted="false">"सब कुछ खोजें"</string>
+    <string name="search_latest_messages" formatted="false">"नवीनतम संदेश"</string>
     <string name="search_local_messages" formatted="false">"इस डिवाइस पर सहेजे गए संदेश खोजता है।"</string>
+    <string name="search_matched_notes" formatted="false">"नोट्स में मिला"</string>
+    <string name="search_member_label" formatted="false">"सदस्य"</string>
+    <string name="search_newer_messages" formatted="false">"नए संदेश लोड करें"</string>
+    <string name="search_next_match" formatted="false">"अगला मिलान"</string>
+    <string name="search_open_in_conversation" formatted="false">"बातचीत में खोलें"</string>
+    <string name="search_prev_match" formatted="false">"पिछला मिलान"</string>
     <string name="search_query_limit" formatted="false">"खोज के लिए अधिकतम 200 अक्षर लिखें।"</string>
+    <string name="search_scope_all" formatted="false">"सब"</string>
+    <string name="search_scope_current" formatted="false">"वर्तमान"</string>
+    <string name="search_sort_relevance" formatted="false">"सर्वश्रेष्ठ मिलान"</string>
     <string name="security_confirm" formatted="false">"dMsg में पुष्टि करें"</string>
     <string name="security_manage_identity" formatted="false">"पहचान प्रबंधित करें"</string>
     <string name="security_unlock" formatted="false">"dMsg अनलॉक करें"</string>

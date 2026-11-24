@@ -7,6 +7,7 @@
  * come from the daemon (`vault/templates`).
  */
 import type { Glyph } from '../../components/glyphs'
+import type { HighlightSpan } from '../../components/highlight.ts'
 import type { Label } from '../../i18n/messages/en'
 
 export type ItemType = 'login' | 'api' | 'key' | 'ssh' | 'wallet' | 'card' | 'identity' | 'server' | 'database' | 'license' | 'note'
@@ -236,6 +237,14 @@ export function facets(entries: any[]): Facets {
   }
   result.tags = [...tags].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   return result
+}
+
+export interface VaultSearchMeta {
+  rank: number
+  titleSpans?: HighlightSpan[]
+  subtitleSpans?: HighlightSpan[]
+  matchField?: string | null
+  matchValue?: string | null
 }
 
 export type Sort = 'updated' | 'created' | 'title'

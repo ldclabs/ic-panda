@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import DMsgCore
 
-struct VaultSummary: Decodable {
+struct VaultSummary: Decodable, Sendable {
     let id: String
     let revision: String
     let kind: String
@@ -16,6 +16,14 @@ struct VaultSummary: Decodable {
     let deleted: Bool
     let createdAt: UInt64
     let updatedAt: UInt64
+    var titleSpans: [HighlightSpan]? = nil
+    var subtitleSpans: [HighlightSpan]? = nil
+    var matchField: String? = nil
+    var matchValue: String? = nil
+
+    var searchMeta: VaultSearchMeta {
+        VaultSearchMeta(titleSpans: titleSpans ?? [], subtitleSpans: subtitleSpans ?? [], matchField: matchField, matchValue: matchValue)
+    }
 
     var item: VaultItem {
         VaultItem(id: id, revision: revision, kind: kind, title: title, subtitle: subtitle,
@@ -24,7 +32,7 @@ struct VaultSummary: Decodable {
     }
 }
 
-struct VaultBrowsePage: Decodable {
+struct VaultBrowsePage: Decodable, Sendable {
     let items: [VaultSummary]
     let total: Int
     let all: Int

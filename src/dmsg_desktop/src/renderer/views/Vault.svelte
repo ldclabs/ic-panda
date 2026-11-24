@@ -49,7 +49,8 @@
     workflowIcon,
     type Scope,
     type Sort,
-    type Templates
+    type Templates,
+    type VaultSearchMeta
   } from './vault/vault'
 
   /**
@@ -77,6 +78,10 @@
   let accessTag = $state<string | null>(null)
   let query = $state('')
   let sort = $state<Sort>(readSort())
+  let searchSortOverride = $state<Sort | 'relevance'>('relevance')
+  let searchResult = $state<{ key: string; hits: Map<string, VaultSearchMeta> } | null>(null)
+  let searchSeq = 0
+  let searchVersion = $state(0)
   let selected = $state<string | null>(remembered('vault.selected') ?? null)
   let editing = $state(false)
   let dirty = $state(false)
@@ -118,15 +123,24 @@
   const conflicted = $derived(new Set(conflicts.map((c) => c.copy.id)))
   const issues = $derived(findingsByItem(findings))
   const flagged = $derived(new Set(issues.keys()))
-  const shown = $derived(
-    sorted(
-      (trash ? trashed : entries).filter(
-        (entry) => (editing && entry.id === selected) || (inScope(entry, scope, flagged) && matches(entry.item, query))
-      ),
+  const trimmedQuery = $derived(query.trim())
+  const searchKey = $derived(trimmedQuery ? `${sessionKey}:${trash}:${scope}:${searchSortOverride}:${trimmedQuery}` : '')
+  const activeHits = $derived(searchResult && searchResult.key === searchKey ? searchResult.hits : null)
+  const shown = $derived.by(() => {
+    const base = trash ? trashed : entries
+    if (trimmedQuery && activeHits) {
+      const matched = base.filter((entry) => (editing && entry.id === selected) || (activeHits.has(entry.id) && (scope !== 'health' || flagged.has(entry.id))))
+      if (searchSortOverride === 'relevance') {
+        return matched.sort((a, b) => (activeHits.get(a.id)?.rank ?? 1e9) - (activeHits.get(b.id)?.rank ?? 1e9))
+      }
+      return sorted(matched, searchSortOverride, trash)
+    }
+    return sorted(
+      base.filter((entry) => (editing && entry.id === selected) || (inScope(entry, scope, flagged) && matches(entry.item, query))),
       sort,
       trash
     )
-  )
+  })
   const listed = $derived(shown.slice(0, limit))
   const current = $derived(shown.find((entry) => entry.id === selected) ?? null)
   const workflows = $derived(vaultWorkflows(status?.account_kind === 'local'))
@@ -213,6 +227,7 @@
       const next = await call('vault/list', { trash: true })
       if (valid(at)) {
         trashed = next
+        searchVersion += 1
         trashLoaded = true
         trashError = ''
       }
@@ -228,6 +243,7 @@
       const next = await call('vault/list')
       if (!valid(at)) return
       entries = next
+      searchVersion += 1
       loaded = true
       error = ''
       contentKey = healthKey(entries)
@@ -260,6 +276,57 @@
       error = unlocked ? '' : 'LOCKED'
       if (unlocked) void reload()
     })
+  })
+
+  // Clear cached search hits across lock/account changes and re-run vault/browse when searching.
+  $effect(() => {
+    const q = trimmedQuery
+    const key = searchKey
+    const at = generation
+    void searchVersion
+    if (!q || !unlocked) {
+      searchResult = null
+      if (!q) searchSortOverride = 'relevance'
+      return
+    }
+    const req = ++searchSeq
+    const currentTrash = trash
+    const currentScope = scope
+    const currentSort = searchSortOverride
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const res = await call<{ items: any[] }>('vault/browse', {
+          trash: currentTrash,
+          query: q,
+          kind: currentScope.startsWith('type:') ? currentScope.slice(5) : null,
+          favorites: currentScope === 'starred',
+          tag: currentScope.startsWith('tag:') ? currentScope.slice(4) : null,
+          sort: currentSort,
+          offset: 0,
+          limit: 500
+        })
+        if (cancelled || !valid(at) || req !== searchSeq) return
+        const hits = new Map<string, VaultSearchMeta>()
+        for (let i = 0; i < (res.items ?? []).length; i++) {
+          const item = res.items[i]
+          hits.set(item.id, {
+            rank: i,
+            titleSpans: item.titleSpans,
+            subtitleSpans: item.subtitleSpans,
+            matchField: item.matchField,
+            matchValue: item.matchValue
+          })
+        }
+        searchResult = { key, hits }
+      } catch {
+        // Fallback to local matches() if daemon browse fails transiently.
+      }
+    }, 80)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   })
 
   // A filter that no longer has items falls back to everything.
@@ -693,8 +760,14 @@
           <Select bind:value={() => scope, pickScope} options={scopes} label={t('vaultFilters')} class="min-w-0 flex-1 @min-[860px]:hidden" testid="vault-scope" />
           {#if !trash}
             <Select
-              bind:value={() => sort, (next) => setSort(next as Sort)}
-              options={sorts.map((s) => ({ value: s.value, label: t(s.label) }))}
+              bind:value={() => (trimmedQuery ? searchSortOverride : sort), (next) => {
+                if (trimmedQuery) searchSortOverride = next as Sort | 'relevance'
+                else setSort(next as Sort)
+              }}
+              options={[
+                ...(trimmedQuery ? [{ value: 'relevance', label: t('sortRelevance') }] : []),
+                ...sorts.map((s) => ({ value: s.value, label: t(s.label) }))
+              ]}
               label={t('sortBy')}
               class="min-w-0 flex-1"
               testid="vault-sort"
@@ -740,6 +813,7 @@
             flagged={flagged.has(entry.id)}
             {trash}
             chosen={chosen.has(entry.id)}
+            searchMeta={activeHits?.get(entry.id)}
             onClick={(event) => onRowClick(entry, event)}
           />
         {:else}

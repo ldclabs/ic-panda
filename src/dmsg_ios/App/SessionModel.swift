@@ -36,6 +36,7 @@ final class SessionModel {
     var noticeHosts: [UUID] = []
     var reminderEntry: ReminderEntry?
     var vault: [VaultItem] = []
+    var vaultSearchMeta: [String: VaultSearchMeta] = [:]
     var channels: [ChannelItem] = []
     private(set) var blockedAccounts: Set<String> = []
     var activeChannel: String?
@@ -102,6 +103,11 @@ final class SessionModel {
     }
     var filesScope = FileScope.local
     var filesSort = FileSort.name
+    var filesFavoritesOnly = false
+    var filesTag = ""
+    var fileTags: [FileTagCount] = []
+    var fileSearchMeta: [String: FileSearchMeta] = [:]
+    var folderSearchMeta: [String: FileSearchMeta] = [:]
     var filesLoading = false
     var filesLoaded = false
     var filesFailed = false
@@ -118,7 +124,7 @@ final class SessionModel {
     var cloudBackupsObservedAt: UInt64?
     var cloudBackupsComplete = false
     var cloudBackupsError: String?
-    var filesQueryKey: String { filesFolder + "\u{0}" + filesSearch }
+    var filesQueryKey: String { [filesFolder, filesSearch, filesFavoritesOnly ? "1" : "0", filesTag].joined(separator: "\u{0}") }
     var filesQueryIsCurrent: Bool { filesQuery == filesQueryKey }
     var approvals: [ApprovalView] = []
     private(set) var recoveryWarning: RecoveryObservation?
@@ -517,7 +523,7 @@ final class SessionModel {
                     }
                     stage = String(localized: "Encrypting on this device…")
                     let prepared = try await Task.detached {
-                        let inputs = catalog.entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url), itemID: $0.id) }
+                        let inputs = catalog.entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url), itemID: $0.id, searchKeys: $0.searchKeys) }
                         return try store.prepareCredentials(inputs, account: account, digest: catalog.digest)
                     }.value
                     guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, unlocked, !concealed,
@@ -1283,7 +1289,7 @@ final class SessionModel {
         recoveryOperation?.cancel()
         epoch &+= 1
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
-        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
+        vault = []; vaultSearchMeta = [:]; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; filesFavoritesOnly = false; filesTag = ""; fileTags = []; fileSearchMeta = [:]; folderSearchMeta = [:]; approvals = []; search = ""
         clearCloudBackups()
         notice = nil; error = nil; passkeySessionLimitCredential = nil
         busyOperation = nil
@@ -1538,14 +1544,17 @@ final class SessionModel {
             }
             #endif
             guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+            let effectiveSort = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && vaultSort == "updated" ? "relevance" : vaultSort
             let result = try await engine.browseVault(request: VaultBrowseRequest(query: search,
                 kind: ["all", "favorites"].contains(vaultFilter) ? nil : vaultFilter,
                 favorites: vaultFilter == "favorites", tag: vaultTag.isEmpty ? nil : vaultTag,
-                sort: vaultSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
+                sort: effectiveSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
             guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
             let page: VaultBrowsePage = try await decodeInBackground(result)
             guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
             vault = more ? vault + page.items.map(\.item) : page.items.map(\.item)
+            if !more { vaultSearchMeta = [:] }
+            for summary in page.items { vaultSearchMeta[summary.id] = summary.searchMeta }
             vaultCounts = VaultCounts(total: page.total, all: page.all, favorites: page.favorites, kinds: page.kinds, tags: page.tags)
             vaultCountsQuery = vaultCountsKey
             vaultHasMore = page.hasMore; vaultLoaded = true; vaultQuery = key

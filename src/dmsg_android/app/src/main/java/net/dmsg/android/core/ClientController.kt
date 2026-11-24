@@ -36,6 +36,7 @@ class ClientController internal constructor(private val application: Application
     val passkeys = NativePasskeys(application)
     val authentication = AuthenticationCoordinator(passkeys)
     val vault = VaultCoordinator(this)
+    val search = SearchCoordinator(this)
     val vaultHistory = VaultHistoryCoordinator(this)
     val secretTools = SecretToolsCoordinator(this)
     val secretSharing = SecretSharingCoordinator(this)
@@ -245,6 +246,7 @@ class ClientController internal constructor(private val application: Application
         mutableAccess.value = AccessPage.WELCOME
         incoming.clear(); systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
         vault.clear()
+        search.clear()
         vaultHistory.clear()
         secretTools.clear()
         secretSharing.clear()
@@ -466,6 +468,7 @@ class ClientController internal constructor(private val application: Application
             systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
             val retain = !workspaceChanged && before?.account == next.account && next.state == "unlocked"
             vault.clear(retainQuery = retain)
+            search.clear()
             vaultHistory.clear()
             secretTools.clear()
             secretSharing.clear(retainForms = retain)

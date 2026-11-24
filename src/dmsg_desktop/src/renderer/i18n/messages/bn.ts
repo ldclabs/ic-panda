@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "সেরা মিল",
+  "matchedInNotes": "নোটে মিলেছে",
+  "matchedMember": "সদস্য: {name}",
+  "matchingMessages": "বার্তা",
+  "newerMessages": "নতুন বার্তা",
+  "searchPrevMatch": "পূর্ববর্তী মিল",
+  "searchNextMatch": "পরবর্তী মিল",
+  "loadMore": "আরও লোড করুন",
   "promoRedeem": "কোড রিডিম করুন",
   "promoCode": "সদস্যতার কোড",
   "promoCheck": "কোড যাচাই করুন",

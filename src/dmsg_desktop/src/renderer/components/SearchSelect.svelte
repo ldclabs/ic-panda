@@ -35,15 +35,14 @@
   let query = $state(''),
     open = $state(false)
   const chosen = $derived(options.find((o) => o.value === value))
-  const shown = $derived(
-    options.filter(
-      (o) =>
-        !query ||
-        `${o.label} ${o.hint ?? ''} ${o.value}`
-          .toLowerCase()
-          .includes(query.toLowerCase())
-    )
-  )
+  const shown = $derived.by(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    if (!terms.length) return options
+    return options.filter((o) => {
+      const hay = `${o.label} ${o.hint ?? ''} ${o.value}`.toLowerCase()
+      return terms.every((term) => hay.includes(term))
+    })
+  })
   function pick(next: string) {
     if (!next || options.find((o) => o.value === next)?.disabled) return
     value = next

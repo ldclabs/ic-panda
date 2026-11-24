@@ -628,6 +628,23 @@ pub struct MessagePage {
     pub next_before: Option<u64>,
 }
 
+/// A bidirectional local timeline window centered around a jumped target message.
+#[derive(Serialize, Clone, Debug)]
+pub struct MessageWindow {
+    /// Oldest first, with amendments applied.
+    pub items: Vec<Message>,
+    /// The requested anchor sequence.
+    pub anchor: u64,
+    /// Earlier local or remote messages exist before the first item.
+    pub has_before: bool,
+    /// Newer local messages exist after the last item.
+    pub has_after: bool,
+    /// Exclusive sequence to pass when loading earlier messages.
+    pub next_before: Option<u64>,
+    /// Exclusive sequence to pass when loading newer messages.
+    pub next_after: Option<u64>,
+}
+
 /// The step a channel read takes next.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Step {
@@ -4601,6 +4618,7 @@ impl Client {
                     extend(&mut local.skipped, message.epoch, message.seq);
                 }
                 self.workspace.put_private(keys, key, message)?;
+                self.index_message_updated(&channel, message);
                 self.amend(&channel, &mut local, message)?;
                 if !message.amends()
                     && local
@@ -4646,6 +4664,7 @@ impl Client {
                         apply(&mut stored, message);
                         self.workspace
                             .put_private(keys, &name(stored.seq), &stored)?;
+                        self.index_message_updated(channel, &stored);
                         if local.last.as_ref().is_some_and(|l| l.seq == stored.seq) {
                             local.last = Some(preview(&stored));
                         }
@@ -4673,6 +4692,7 @@ impl Client {
             }
             self.workspace
                 .put_private(keys, &name(current.seq), &current)?;
+            self.index_message_updated(channel, &current);
         }
         Ok(())
     }
@@ -4883,8 +4903,119 @@ impl Client {
         Ok(None)
     }
 
-    /// The messages of a channel whose text or file name holds `query`,
-    /// newest first, at most `limit`.
+    /// Read one public message by exact sequence, applying deletion markers.
+    pub(crate) fn channel_message_public(
+        &self,
+        channel: &str,
+        seq: u64,
+    ) -> Result<Option<Message>> {
+        base(channel)?;
+        let keys = self.keys()?;
+        let name = format!("{INBOX}{channel}:{seq:020}");
+        let Some(message) = self.workspace.private::<Message>(keys, &name)? else {
+            return Ok(None);
+        };
+        if message.amends() {
+            return Ok(None);
+        }
+        self.public_message(channel, &message).map(Some)
+    }
+
+    /// A bidirectional local timeline window around `seq`, returning up to `before` earlier
+    /// messages, `seq` itself (when present), and up to `after` newer messages, oldest first.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked or `Error::InvalidInput` for an invalid channel.
+    pub fn channel_messages_around(
+        &self,
+        channel: &str,
+        seq: u64,
+        before: usize,
+        after: usize,
+    ) -> Result<MessageWindow> {
+        base(channel)?;
+        let before = before.min(500);
+        let after = after.min(500);
+        let earlier = if before > 0 {
+            self.channel_messages_before(channel, seq, before.saturating_add(1))?
+        } else {
+            Vec::new()
+        };
+        let has_earlier_local = earlier.len() > before;
+        let earlier = if has_earlier_local {
+            earlier[earlier.len() - before..].to_vec()
+        } else {
+            earlier
+        };
+
+        let anchor_msg = self.channel_message_public(channel, seq)?;
+
+        let newer = if after > 0 {
+            self.channel_messages(channel, seq, after.saturating_add(1))?
+        } else {
+            Vec::new()
+        };
+        let has_after = newer.len() > after;
+        let newer = if has_after {
+            newer[..after].to_vec()
+        } else {
+            newer
+        };
+
+        let mut items =
+            Vec::with_capacity(earlier.len() + usize::from(anchor_msg.is_some()) + newer.len());
+        items.extend(earlier);
+        if let Some(m) = anchor_msg {
+            items.push(m);
+        }
+        items.extend(newer);
+
+        let local = self.local(channel)?;
+        let first_seq = items.first().map(|m| m.seq);
+        let last_seq = items.last().map(|m| m.seq);
+        let has_before = has_earlier_local
+            || first_seq.is_some_and(|s| {
+                s > 1 && local.recent.is_none_or(|(after_gap, _)| s > after_gap + 1)
+            });
+        let next_before = has_before.then_some(first_seq.unwrap_or(seq));
+        let next_after = has_after.then_some(last_seq.unwrap_or(seq));
+
+        Ok(MessageWindow {
+            items,
+            anchor: seq,
+            has_before,
+            has_after,
+            next_before,
+            next_after,
+        })
+    }
+
+    /// Newer local messages strictly after `after`, oldest first.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked or `Error::InvalidInput` for an invalid channel.
+    pub fn channel_messages_after_page(
+        &self,
+        channel: &str,
+        after: u64,
+        limit: usize,
+    ) -> Result<MessagePage> {
+        let limit = limit.clamp(1, 500);
+        let mut items = self.channel_messages(channel, after, limit.saturating_add(1))?;
+        let has_more = items.len() > limit;
+        if has_more {
+            items.truncate(limit);
+        }
+        let next_before = has_more.then(|| items.last().map_or(after, |m| m.seq));
+        Ok(MessagePage {
+            items,
+            has_more,
+            next_before,
+        })
+    }
+
+    /// The messages of a channel matching `query` via the unified search engine
+    /// (text, attachment filename, or cached sender name), newest first, at most `limit`.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
@@ -4892,7 +5023,7 @@ impl Client {
         self.channel_search_before(channel, query, u64::MAX, limit)
     }
 
-    /// Search older verified local messages, including attachment names.
+    /// Search older verified local messages, including attachment names and sender display names.
     pub fn channel_search_before(
         &self,
         channel: &str,
@@ -4903,43 +5034,8 @@ impl Client {
         base(channel)?;
         let query = query.trim();
         ensure_valid(!query.is_empty() && query.chars().count() <= 200, "query")?;
-        let query = query.to_lowercase();
-        let keys = self.keys()?;
-        let prefix = format!("{INBOX}{channel}:");
-        let mut found = vec![];
-        let mut cursor = before;
-        while found.len() < limit {
-            let page: Vec<Message> = self.workspace.private_before(
-                keys,
-                &prefix,
-                &format!("{prefix}{cursor:020}"),
-                500,
-            )?;
-            let Some(first) = page.first() else {
-                break;
-            };
-            cursor = first.seq;
-            for message in page.iter().rev() {
-                if message.amends() || message.retracted || message.hidden || message.unreadable {
-                    continue;
-                }
-                let text_matches = message.text.to_lowercase().contains(&query);
-                let file_matches = message
-                    .file
-                    .as_ref()
-                    .is_some_and(|f| f.name.to_lowercase().contains(&query));
-                if text_matches || file_matches {
-                    let result = self.public_message(channel, message)?;
-                    if text_matches || !result.file_deleted {
-                        found.push(result);
-                        if found.len() == limit {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        Ok(found)
+        let page = self.channel_search_rich(channel, query, Some(before), limit, false, None)?;
+        Ok(page.hits.into_iter().map(|h| h.message).collect())
     }
 
     /// Mark the messages through `through` read; the unread count follows.
@@ -5036,6 +5132,7 @@ impl Client {
             .ok_or(Error::NotFound)?;
         message.hidden = hidden;
         self.workspace.put_private(keys, &name, &message)?;
+        self.index_message_updated(channel, &message);
         Ok(message.public())
     }
 

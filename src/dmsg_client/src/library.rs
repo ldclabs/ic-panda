@@ -348,7 +348,7 @@ impl Client {
         Ok((file, record, manifest))
     }
 
-    fn file_view(&mut self, id: &str) -> Result<FileView> {
+    pub(crate) fn file_view(&mut self, id: &str) -> Result<FileView> {
         let file = self.file_record(id)?;
         let current = self.version(id, &file.current)?;
         let backing_up = self.backup_state(id, &file.current)?;
@@ -478,49 +478,16 @@ impl Client {
         Ok(result)
     }
 
-    /// Files not in the trash that `filter` keeps and whose name, tags or
-    /// note contain `query`, by path and name; an empty query lists them
-    /// newest first.
+    /// Files not in the trash that `filter` keeps and that match `query` via the
+    /// unified search matcher (name, tags, folder path, note, and media aliases),
+    /// ordered by relevance; an empty query lists them newest first.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::NotFound` for an
     /// unknown or trashed folder.
     pub fn files_search(&mut self, query: &str, filter: &SearchFilter) -> Result<Vec<FileView>> {
-        let query = query.trim().to_lowercase();
-        let ids: Vec<String> = {
-            let catalog = self.catalog()?;
-            let within: Option<BTreeSet<String>> = match &filter.folder {
-                Some(folder) => {
-                    catalog.live_folder(folder)?;
-                    Some(catalog.subtree(folder).into_iter().collect())
-                }
-                None => None,
-            };
-            catalog
-                .files
-                .iter()
-                .filter(|(_, f)| !catalog.file_trashed(f))
-                .filter(|(_, f)| within.as_ref().is_none_or(|w| w.contains(&f.folder)))
-                .filter(|(_, f)| !filter.starred || f.starred)
-                .filter(|(_, f)| filter.tag.as_ref().is_none_or(|t| f.tags.contains(t)))
-                .filter(|(_, f)| {
-                    query.is_empty()
-                        || f.name.to_lowercase().contains(&query)
-                        || f.note.to_lowercase().contains(&query)
-                        || f.tags.iter().any(|t| t.to_lowercase().contains(&query))
-                })
-                .map(|(id, _)| id.clone())
-                .collect()
-        };
-        let mut files = Vec::with_capacity(ids.len());
-        for id in &ids {
-            files.push(self.file_view(id)?);
-        }
-        match query.is_empty() {
-            true => files.sort_by(|a, b| b.updated_at.cmp(&a.updated_at).then(a.name.cmp(&b.name))),
-            false => files.sort_by(|a, b| (&a.path, &a.name).cmp(&(&b.path, &b.name))),
-        }
-        Ok(files)
+        let listing = self.files_search_listing(query, filter, false)?;
+        Ok(listing.files.into_iter().map(|hit| hit.file).collect())
     }
 
     /// Keep trashed files `days`, 1 to 365, before they go, from now on.

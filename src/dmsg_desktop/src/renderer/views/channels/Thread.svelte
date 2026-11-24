@@ -11,6 +11,8 @@
   import { copyText } from '../../components/clipboard'
   import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
+  import HighlightText from '../../components/HighlightText.svelte'
+  import type { HighlightSpan } from '../../components/highlight'
   import Icon from '../../components/Icon.svelte'
   import Empty from '../../components/page/Empty.svelte'
   import LinkedText from '../../components/LinkedText.svelte'
@@ -50,8 +52,11 @@
     writes,
     receipts,
     more,
+    moreAfter = false,
     loadingEarlier = false,
+    loadingNewer = false,
     highlight,
+    highlightSpans = null,
     images,
     draft = $bindable(''),
     attachments = $bindable<{ id: string; name: string }[]>([]),
@@ -71,6 +76,7 @@
     onSave,
     onSnapshot,
     onEarlier,
+    onNewer,
     onRetract,
     onHide,
     onPreview,
@@ -85,8 +91,11 @@
     writes: boolean
     receipts: any
     more: boolean
+    moreAfter?: boolean
     loadingEarlier?: boolean
+    loadingNewer?: boolean
     highlight: number | null
+    highlightSpans?: HighlightSpan[] | null
     images: Record<number, string>
     draft?: string
     attachments?: { id: string; name: string }[]
@@ -107,6 +116,7 @@
     onSave: (message: any) => void
     onSnapshot: (message: any) => void
     onEarlier: () => Promise<void>
+    onNewer?: () => Promise<void>
     onRetract: (message: any) => void
     onHide: (message: any, hidden: boolean) => void
     onPreview: (message: any) => void
@@ -220,6 +230,43 @@
     if (highlight === null) return
     void tick().then(() => scroller?.querySelector(`[data-seq="${highlight}"]`)?.scrollIntoView({ block: 'center' }))
   })
+
+  /** Build non-truncated highlight spans for the highlighted message bubble. */
+  function bubbleSpans(text: string): HighlightSpan[] | null {
+    if (!highlightSpans || highlightSpans.length === 0) return null
+    if (highlightSpans.map((s) => s.text).join('') === text) return highlightSpans
+    const terms = [...new Set(highlightSpans.filter((s) => s.matched && s.text).map((s) => s.text))]
+    if (!terms.length) return null
+    const ranges: [number, number][] = []
+    const lower = text.toLowerCase()
+    for (const term of terms) {
+      const needle = term.toLowerCase()
+      let from = 0
+      while (from < lower.length) {
+        const at = lower.indexOf(needle, from)
+        if (at < 0) break
+        ranges.push([at, at + term.length])
+        from = at + Math.max(1, term.length)
+      }
+    }
+    if (!ranges.length) return null
+    ranges.sort((a, b) => a[0] - b[0])
+    const merged: [number, number][] = []
+    for (const [s, e] of ranges) {
+      if (merged.length && s <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e)
+      } else merged.push([s, e])
+    }
+    const out: HighlightSpan[] = []
+    let pos = 0
+    for (const [s, e] of merged) {
+      if (s > pos) out.push({ text: text.slice(pos, s), matched: false })
+      out.push({ text: text.slice(s, e), matched: true })
+      pos = e
+    }
+    if (pos < text.length) out.push({ text: text.slice(pos), matched: false })
+    return out
+  }
 
   /** Earlier messages go above without moving what is shown. */
   async function earlier() {
@@ -498,8 +545,9 @@
                 >
                   {#if message.reply_to}{@render quote(bySeq.get(message.reply_to.seq), message.reply_to)}{/if}
                   {#if message.text}
+                    {@const spans = highlight === message.seq ? bubbleSpans(message.text) : null}
                     <p dir="auto" class="text-start text-body leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
-                      <span class="select-text"><LinkedText text={message.text} /></span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
+                      <span class="select-text">{#if spans}<HighlightText text={message.text} {spans} />{:else}<LinkedText text={message.text} />{/if}</span>{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}{@render meta(message)}
                     </p>
                   {:else}{@render meta(message)}{/if}
                 </div>
@@ -580,6 +628,13 @@
       <div class="grid h-full place-items-center"><Empty icon="channels" title={t('noMessages')} /></div>
     {/if}
   {/each}
+  {#if moreAfter && onNewer}
+    <div class="flex justify-center pt-2 pb-1">
+      <button class={buttonClass('ghost', 'xs')} disabled={loadingNewer} onclick={() => void onNewer?.()} data-testid="channel-newer">
+        <Icon name="arrow-down" />{t('newerMessages')}
+      </button>
+    </div>
+  {/if}
   {#each outbox as item (item.message_id)}
     <article class="flex flex-row-reverse gap-2.5 px-4 pt-3" in:enter dir="ltr" data-testid="message-outgoing" data-mine="true" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
       <div class="flex min-w-0 max-w-[min(80%,calc(100%-44px))] flex-col items-end">

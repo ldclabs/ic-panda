@@ -3,6 +3,14 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "sortRelevance": "Phù hợp nhất",
+  "matchedInNotes": "Khớp trong ghi chú",
+  "matchedMember": "Thành viên: {name}",
+  "matchingMessages": "Tin nhắn",
+  "newerMessages": "Tin nhắn mới hơn",
+  "searchPrevMatch": "Kết quả trước",
+  "searchNextMatch": "Kết quả tiếp theo",
+  "loadMore": "Tải thêm",
   "promoRedeem": "Đổi mã",
   "promoCode": "Mã thành viên",
   "promoCheck": "Kiểm tra mã",

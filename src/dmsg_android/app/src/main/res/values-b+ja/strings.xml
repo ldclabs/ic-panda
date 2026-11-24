@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"リンクとパスワードを知っている人"</string>
     <string name="review_receiving" formatted="false">"受信"</string>
     <string name="saved_on_device" formatted="false">"このデバイスに保存されました"</string>
+    <string name="search_attachments_only" formatted="false">"添付ファイル"</string>
+    <string name="search_everything" formatted="false">"すべて検索"</string>
+    <string name="search_latest_messages" formatted="false">"最新のメッセージ"</string>
     <string name="search_local_messages" formatted="false">"このデバイスに保存されたメッセージを検索します。"</string>
+    <string name="search_matched_notes" formatted="false">"メモに一致"</string>
+    <string name="search_member_label" formatted="false">"メンバー"</string>
+    <string name="search_newer_messages" formatted="false">"新しいメッセージを読み込む"</string>
+    <string name="search_next_match" formatted="false">"次の一致"</string>
+    <string name="search_open_in_conversation" formatted="false">"会話で開く"</string>
+    <string name="search_prev_match" formatted="false">"前の一致"</string>
     <string name="search_query_limit" formatted="false">"検索語は200文字以内で入力してください。"</string>
+    <string name="search_scope_all" formatted="false">"すべて"</string>
+    <string name="search_scope_current" formatted="false">"現在"</string>
+    <string name="search_sort_relevance" formatted="false">"関連度順"</string>
     <string name="security_confirm" formatted="false">"dMsg で確認"</string>
     <string name="security_manage_identity" formatted="false">"ログイン ID を管理"</string>
     <string name="security_unlock" formatted="false">"dMsg のロックを解除"</string>

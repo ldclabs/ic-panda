@@ -100,8 +100,20 @@
     <string name="review_anyone_with_the_link_and_password" formatted="false">"링크와 암호가 있는 모든 사람"</string>
     <string name="review_receiving" formatted="false">"받는 중"</string>
     <string name="saved_on_device" formatted="false">"이 기기에 저장되었습니다"</string>
+    <string name="search_attachments_only" formatted="false">"첨부 파일"</string>
+    <string name="search_everything" formatted="false">"전체 검색"</string>
+    <string name="search_latest_messages" formatted="false">"최신 메시지"</string>
     <string name="search_local_messages" formatted="false">"이 기기에 저장된 메시지를 검색합니다."</string>
+    <string name="search_matched_notes" formatted="false">"메모에서 일치"</string>
+    <string name="search_member_label" formatted="false">"회원"</string>
+    <string name="search_newer_messages" formatted="false">"최신 메시지 더 보기"</string>
+    <string name="search_next_match" formatted="false">"다음 일치"</string>
+    <string name="search_open_in_conversation" formatted="false">"대화에서 열기"</string>
+    <string name="search_prev_match" formatted="false">"이전 일치"</string>
     <string name="search_query_limit" formatted="false">"검색어는 200자 이내로 입력하세요."</string>
+    <string name="search_scope_all" formatted="false">"모두"</string>
+    <string name="search_scope_current" formatted="false">"현재"</string>
+    <string name="search_sort_relevance" formatted="false">"관련순"</string>
     <string name="security_confirm" formatted="false">"dMsg에서 확인"</string>
     <string name="security_manage_identity" formatted="false">"ID 관리"</string>
     <string name="security_unlock" formatted="false">"dMsg 잠금 해제"</string>

@@ -50,7 +50,14 @@ internal fun PasswordPicker(modifier: Modifier, entries: List<ExportCredential>,
     val largeText = LocalDensity.current.fontScale >= 1.5f
     val sorted = remember(entries, recent, host, query) {
         val order = recent.withIndex().associate { it.value to it.index }
-        entries.filter { entry -> query.isBlank() || listOf(entry.title, entry.username, entry.origin).any { it.contains(query, true) } }
+        val terms = query.trim().lowercase().split(Regex("\\s+")).filter(String::isNotEmpty)
+        entries.filter { entry ->
+            if (terms.isEmpty()) true
+            else {
+                val fields = listOf(entry.title, entry.username, entry.origin) + entry.searchKeys
+                terms.all { term -> fields.any { it.contains(term, ignoreCase = true) } }
+            }
+        }
             .sortedWith(compareBy<ExportCredential> { order[it.itemId] ?: Int.MAX_VALUE }
                 .thenByDescending { host != null && AutofillTrust.host(it.origin) == host }
                 .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.username })
