@@ -19,6 +19,8 @@ struct SecretPackageImportView: View {
     @State private var request: ApprovalView?
     @State private var completed: [String]?
     @State private var previewTask: Task<Void, Never>?
+    /// Failed previews, such as a wrong password, each answer with an error haptic.
+    @State private var refusals = 0
     private var hasSelection: Bool { !fields.isEmpty || notes || !attachments.isEmpty }
 
     var body: some View {
@@ -84,6 +86,7 @@ struct SecretPackageImportView: View {
             Text("The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.")
                 .font(.footnote).foregroundStyle(.secondary)
         }.disabled(working).privateScreen().navigationTitle("Import secret package").navigationBarTitleDisplayMode(.inline)
+            .sensoryFeedback(.error, trigger: refusals)
             .toolbar {
                 if source != nil { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             }
@@ -115,7 +118,7 @@ struct SecretPackageImportView: View {
             guard epoch == model.epoch, !Task.isCancelled, source != nil || (link == selectedLink && password == selectedPassword) else { return }
             let next: SecretPackagePreview = try model.decode(result)
             preview = next; fields = []; notes = false; attachments = []; completed = nil
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch { if epoch == model.epoch { refusals &+= 1; model.report(error) } }
     }
 
     private func importRequest() async {

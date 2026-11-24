@@ -16,7 +16,7 @@ struct SecretFieldReferenceView: View {
                 if let reference {
                     Text(reference).font(.footnote.monospaced()).textSelection(.enabled)
                         .environment(\.layoutDirection, .leftToRight)
-                    Button("Copy reference", systemImage: "link") { model.clipboard.copy(reference) }
+                    CopyButton("Copy reference", systemImage: "link", value: reference)
                     NavigationLink("Dependencies on this device") { SecretDependenciesView(reference: reference) }
                     Button("Start a rotation checklist", systemImage: "arrow.triangle.2.circlepath") { confirming = true }.disabled(working)
                 } else if loading { ProgressView() }

@@ -10,7 +10,6 @@ struct ConversationComposer: View {
     let willQueue: () -> Void
     let failed: () async -> Void
     @Environment(SessionModel.self) private var model
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focused: Bool
     private var attachments: [LibraryFile] {
         get { model.attachmentDrafts[channel.id] ?? [] }
@@ -41,7 +40,7 @@ struct ConversationComposer: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            if !channel.canPublish || replying != nil || !attachments.isEmpty || receiving || working || tooLong { extras }
+            if !channel.canPublish || replying != nil || !attachments.isEmpty || receiving || working || tooLong { extras.rising() }
             HStack(alignment: .bottom, spacing: 8) {
                 attachMenu
                 HStack(alignment: .bottom, spacing: 0) {
@@ -62,9 +61,11 @@ struct ConversationComposer: View {
                     }
                 }.frame(minHeight: 44)
                     .glassSurface(in: RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous), fallback: Theme.card)
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: empty)
+                    .motion(Motion.settle, value: empty)
             }.padding(.horizontal, 12).padding(.vertical, 8)
         }
+        // ConversationView animates the reply and attachments, so the conversation makes room too.
+        .motion(Motion.move, reduced: Motion.fade, value: [tooLong, receiving, working])
         .sensoryFeedback(.error, trigger: sendFailures)
         .sheet(isPresented: $choosingFile) {
             NavigationStack { AttachmentPicker(folder: "root") { file in

@@ -60,7 +60,7 @@ struct TransferStatusView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(label).font(.subheadline).lineLimit(2)
                 if let phase = model.transfer.phase { Text(phase).font(.footnote).foregroundStyle(.secondary) }
-                if model.transfer.total > 0 { ProgressView(value: Double(model.transfer.completed), total: Double(model.transfer.total)) }
+                if model.transfer.total > 0 { ProgressView(value: Double(model.transfer.completed), total: Double(model.transfer.total)).motion(Motion.move, value: model.transfer.completed) }
                 else { ProgressView() }
                 Button("Pause transfer") { model.transfer.cancel() }
             }

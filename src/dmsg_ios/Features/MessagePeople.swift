@@ -30,6 +30,8 @@ struct Avatar: View {
                     .font(size >= 40 ? .headline : .footnote.weight(.semibold)).foregroundStyle(tone.1)
             }
         }.frame(width: size, height: size).background(tone.0)
+            // A picture that arrives after the initial fades in over it; one already loaded shows at once.
+            .motion(Motion.fade, reduced: Motion.fade, value: image != nil)
             .clipShape(kind == .person ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)))
             .accessibilityHidden(true)
     }

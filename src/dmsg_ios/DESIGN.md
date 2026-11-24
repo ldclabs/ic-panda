@@ -106,11 +106,40 @@ The diagnosis behind it is the 2026-11-23 UI quality review.
 
 ## Motion and feedback
 
-- State changes move or answer: favourites pop in with a selection tap, a copied field's
-  menu turns into a checkmark (`contentTransition(.symbolEffect(.replace))`) and the
-  clipboard gives a light tap, a failed send and a finished approval use
-  `sensoryFeedback`. The conversation list animates conversations that arrive, leave or
-  change read state.
+Motion uses the desktop's seven verbs (`src/dmsg_desktop/docs/motion.zh.md`): settle,
+glide, make room, develop, count, refuse and point out. Curves come from `Motion` in
+`Features/Theme.swift`; `test_ui_conventions.py` rejects curve literals elsewhere.
+
+| `Motion` | Curve | Use |
+| --- | --- | --- |
+| `settle` | snappy, 0.3 s | a checkmark, a star, a badge appearing |
+| `move` | smooth, 0.3 s | a selection gliding, a block opening, a notice arriving |
+| `fade` | smooth, 0.2 s | a fade, a secret developing, a count rolling |
+| `exit` | ease out, 0.15 s | a notice leaving |
+| `tick` | linear, 1 s | a countdown ring between seconds |
+| `point` | ease out, 0.6 s | the highlight on what a jump landed on fading |
+
+- **Floating notices** (the transient notice, workspace status, in-app reminders, the
+  latest-messages button) rise 12 pt as they fade in and leave quicker: `rising()` on
+  the notice, `arrivals(of:)` on its container. Covering the screen stays instant.
+- **Making room.** The reply card and attachments rise above the composer and the
+  conversation moves up with them. A message that arrives while the conversation is
+  open rises in at the end; a queued message slides in from the bottom and fades into
+  its confirmed copy. First pages, earlier history and search results show at once.
+- **Counts** (approvals, unread, unseen, countdown seconds) use `countMotion`: only the
+  digits that changed roll, up as the count grows; badges pop in and shrink away.
+- **Copies** confirm in place: `CopyButton` and `IDCopyButton` turn their icon into a
+  checkmark and their title into "Copied" for 1.5 s, with the clipboard's light tap.
+  Copies from menus, which close, and vault values, whose notice gives their 30-second
+  lifetime, keep the notice.
+- **Revealing** a vault value develops it from a blur (`develop`); hiding is instant.
+  One-time codes sweep their ring evenly and develop each new code.
+- Exclusive scope tabs slide one capsule between them (`slidingTabCapsule()`); progress
+  bars glide to their value; an avatar's picture fades in over its initial when it
+  arrives later; jumping to a quoted message lights it once.
+- Haptics answer results, not activity: a selection tap for favourites, a light tap for
+  copies, `.error` for a failed send or a refused package preview, `.success` for a
+  finished approval. Counts and arriving messages do not buzz.
 - With Reduce Motion, movement and bounces become fades or nothing; `sensoryFeedback`
   follows the system's haptics setting on its own.
 - A first read shows `PlaceholderRows` in the shape of the list instead of a centred

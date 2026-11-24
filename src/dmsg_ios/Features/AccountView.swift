@@ -43,7 +43,7 @@ struct AccountView: View {
                             Text("Approvals")
                             Spacer()
                             if let waiting = model.session?.approvalsWaiting, waiting > 0 { CountBadge(count: waiting) }
-                        }
+                        }.motion(Motion.settle, reduced: Motion.fade, value: (model.session?.approvalsWaiting ?? 0) > 0)
                     } icon: { AppGlyph.approvals.image }
                 }.accessibilityIdentifier("account.approvals")
                 NavigationLink { AccountSecurityView() } label: {

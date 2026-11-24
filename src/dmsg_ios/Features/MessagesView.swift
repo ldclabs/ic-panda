@@ -19,7 +19,6 @@ struct MessagesView: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var creating = false
     @State private var writing: LetterDraft?
     @State private var inbox = InboxLoading()
@@ -62,7 +61,7 @@ struct MessagesView: View {
                 }.plainListRows(selectable: listSelection != nil)
             }.listStyle(.plain)
                 // New, removed, reordered and newly read conversations animate, except with Reduce Motion.
-                .animation(reduceMotion ? nil : .default, value: channels.map { "\($0.id):\($0.unread)" })
+                .motion(Motion.move, value: channels.map { "\($0.id):\($0.unread)" })
                 .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
                 .scopeBar { if !barInList { bars } }
                 .privateScreen(.plain).navigationTitle("Messages")
@@ -401,9 +400,10 @@ private struct ChannelRow: View {
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if channel.unread > 0 {
-                        Text(channel.unread.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
+                        Text(channel.unread.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper).countMotion(channel.unread)
                             .padding(.horizontal, 6).frame(minWidth: 20, minHeight: 20)
                             .background(channel.muted ? Color.secondary : Theme.forest, in: Capsule())
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
                             .accessibilityLabel("Unread messages").accessibilityValue(channel.unread.formatted())
                     } else if channel.news {
                         Circle().fill(channel.muted ? Color.secondary : Theme.forest).frame(width: 8, height: 8)

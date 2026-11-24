@@ -65,17 +65,90 @@ struct IDCopyButton: View {
     let value: String
     let label: LocalizedStringKey
     @Environment(SessionModel.self) private var model
+    @State private var copied = CopiedState()
 
     var body: some View {
-        Button {
-            model.clipboard.copy(value)
-            model.notice = String(localized: "Copied")
-        } label: {
-            Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
+        Button { copied.copy(value, model: model) } label: {
+            Image(systemName: copied.shown ? "checkmark" : "doc.on.doc")
+                .copiedTransition().frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }.buttonStyle(.borderless)
-            .accessibilityLabel(label).accessibilityValue(value)
+            .accessibilityLabel(label).accessibilityValue(copied.shown ? String(localized: "Copied") : value)
+            .copiedState($copied)
     }
+}
+
+/// Copies a value and confirms in place: the icon turns into a checkmark and the title into
+/// "Copied" for a moment, so the button needs no notice. Copies from menus, which close, and
+/// copies of vault values, whose notice gives their lifetime, keep `model.notice` instead.
+struct CopyButton: View {
+    let title: LocalizedStringKey
+    let value: String
+    var systemImage: String?
+    /// A full-row action laid out like `SettingsAction`.
+    var centered = false
+    @Environment(SessionModel.self) private var model
+    @State private var copied = CopiedState()
+
+    init(_ title: LocalizedStringKey, systemImage: String? = nil, value: String, centered: Bool = false) {
+        self.title = title; self.systemImage = systemImage; self.value = value; self.centered = centered
+    }
+
+    var body: some View {
+        Group {
+            if centered {
+                Button { copied.copy(value, model: model) } label: {
+                    HStack(spacing: 8) { icon; Text(copied.shown ? "Copied" : title) }
+                        .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                        .padding(.horizontal, 20).padding(.vertical, 10)
+                        .frame(minHeight: 44).contentShape(Rectangle())
+                }.buttonStyle(.borderless)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .alignmentGuide(.listRowSeparatorLeading) { _ in 20 }
+            } else {
+                Button { copied.copy(value, model: model) } label: {
+                    Label { Text(copied.shown ? "Copied" : title) } icon: { icon }
+                }
+            }
+        }.copiedState($copied)
+    }
+
+    /// One image whose symbol changes, so the checkmark replaces the copy icon in place.
+    @ViewBuilder private var icon: some View {
+        if let name = copied.shown ? "checkmark" : systemImage { Image(systemName: name).copiedTransition().accessibilityHidden(true) }
+    }
+}
+
+/// How long a copy button shows that it copied; a new copy starts the time again.
+struct CopiedState: Equatable {
+    fileprivate(set) var shown = false
+    fileprivate var revision = 0
+
+    @MainActor mutating func copy(_ value: String, model: SessionModel) {
+        model.clipboard.copy(value)
+        shown = true; revision &+= 1
+        UIAccessibility.post(notification: .announcement, argument: String(localized: "Copied"))
+    }
+}
+
+extension View {
+    /// The checkmark replaces the copy icon as a symbol transition; with Reduce Motion it swaps.
+    fileprivate func copiedTransition() -> some View { modifier(CopiedTransition()) }
+
+    /// Settles the checkmark in and turns it back after 1.5 seconds.
+    fileprivate func copiedState(_ state: Binding<CopiedState>) -> some View {
+        motion(Motion.settle, value: state.wrappedValue.shown)
+            .task(id: state.wrappedValue.revision) {
+                guard state.wrappedValue.shown else { return }
+                try? await Task.sleep(for: .seconds(1.5))
+                if !Task.isCancelled { state.wrappedValue.shown = false }
+            }
+    }
+}
+
+private struct CopiedTransition: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View { content.contentTransition(reduceMotion ? .identity : .symbolEffect(.replace)) }
 }
 
 func utf8ByteCounter(_ text: String, limit: Int64) -> String {

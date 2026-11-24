@@ -17,7 +17,7 @@ struct ContentSyncStatusView: View {
             }
             if let status, status.running || !status.initialized {
                 if status.total > 0 {
-                    ProgressView(value: Double(status.entries), total: Double(status.total))
+                    ProgressView(value: Double(status.entries), total: Double(status.total)).motion(Motion.move, value: status.entries)
                     Text(verbatim: "\(status.entries.formatted()) / \(status.total.formatted())")
                         .font(.footnote.monospacedDigit()).accessibilityIdentifier("sync.entries")
                 }

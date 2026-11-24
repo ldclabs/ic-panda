@@ -78,7 +78,7 @@ struct HardwareSecurityView: View {
                 if let enrollmentRequest {
                     Section {
                         DeviceRequestCode(token: enrollmentRequest.token, deviceId: enrollmentRequest.deviceId, keyId: enrollmentRequest.keyId)
-                        SettingsAction("Copy enrollment request") { model.clipboard.copy(enrollmentRequest.token) }
+                        CopyButton("Copy enrollment request", value: enrollmentRequest.token, centered: true)
                     } header: { Text("Send to an administrator") } footer: {
                         Text("Share this request with an authorized administrator. It does not register or approve the key by itself.")
                     }

@@ -19,6 +19,8 @@ struct VaultDetailField: View {
     @Environment(\.layoutDirection) private var direction
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
+    /// Counts values shown (a reveal, a new code), so each one develops once.
+    @State private var reveals = 0
 
     private var text: String { field.concealed && value == nil ? "••••••••" : value ?? field.value }
     private var layout: AnyLayout {
@@ -72,6 +74,8 @@ struct VaultDetailField: View {
             Text(verbatim: text).font(field.concealed ? .body.monospaced() : .body)
                 .foregroundStyle(field.kind == "url" && !field.concealed ? Theme.forest : Color.primary)
                 .fixedSize(horizontal: false, vertical: true)
+                .develop(reveals)
+                .onChange(of: value) { old, new in if new != nil && new != old { reveals &+= 1 } }
                 .environment(\.layoutDirection, vaultFieldIsLTR(field, value: text) ? .leftToRight : direction)
                 .accessibilityLabel(vaultFieldTitle(field)).accessibilityValue(spokenValue)
                 .accessibilityIdentifier("vault.value.\(field.id)")
@@ -105,9 +109,11 @@ struct VaultCodeCountdown: View {
     var body: some View {
         ZStack {
             Circle().stroke(Theme.fill, lineWidth: 3)
+            // The ring sweeps evenly through each second and the seconds roll down.
             Circle().trim(from: 0, to: CGFloat(min(remaining, 30)) / 30)
                 .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
-            Text(remaining.formatted()).font(.caption2.monospacedDigit())
+                .motion(Motion.tick, value: remaining)
+            Text(remaining.formatted()).font(.caption2.monospacedDigit()).countMotion(remaining)
         }.frame(width: 30, height: 30).accessibilityElement(children: .ignore)
             .accessibilityLabel("Remaining").accessibilityValue(remaining.formatted())
     }

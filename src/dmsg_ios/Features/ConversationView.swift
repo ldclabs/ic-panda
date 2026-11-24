@@ -44,6 +44,8 @@ struct ConversationView: View {
     @State private var editingMessage: MessageEdit?
     @State private var selectingText: MessageEdit?
     @State private var retracting: MessageItem?
+    /// The message a reply jump landed on, lit for a moment.
+    @State private var pointed: String?
     private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
     private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private static let bottom = "conversation.bottom"
@@ -100,13 +102,20 @@ struct ConversationView: View {
                             bubble(row, own: row.message.account == own, references: references) { sequence in
                                 actionTask = Task { await reveal(sequence, proxy: proxy) }
                             }
-                        }.padding(.top, row.firstOfGroup ? 10 : 0).id(row.id)
+                        }.padding(.top, row.firstOfGroup ? 10 : 0)
+                            .background {
+                                if pointed == row.id { RoundedRectangle(cornerRadius: Theme.radius).fill(Theme.fill).padding(-4).accessibilityHidden(true) }
+                            }
+                            .id(row.id)
+                            // A message that arrives while the conversation is open rises in; see `load()`.
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
                     }
                     // Pending and confirmed rows need distinct IDs so
                     // LazyVStack replaces the sending UI after an ACK.
                     ForEach(pending, id: \.id) { item in
+                        // Once confirmed, the stored message takes its place as the queued one fades.
                         pendingBubble(item).id("pending:\(item.id)").padding(.top, 8)
-                            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                            .transition(.asymmetric(insertion: reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
                     }
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
@@ -115,7 +124,7 @@ struct ConversationView: View {
                             if let last { await model.channelRead(channel.id, through: last.sequence) }
                         }
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
-                }.padding(16).animation(.easeOut(duration: 0.25), value: pending.map(\.id))
+                }.padding(16).motion(Motion.move, reduced: Motion.fade, value: pending.map(\.id))
             }.defaultScrollAnchor(.bottom)
                 .defaultScrollAnchor(shown.isEmpty && pending.isEmpty ? .center : .bottom, for: .alignment)
                 .scrollDismissesKeyboard(.interactively)
@@ -140,20 +149,24 @@ struct ConversationView: View {
                     proxy.scrollTo(id, anchor: .top)
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    if (historyAnchor != nil || !nearBottom) && searchQuery.isEmpty {
-                        let unseen = shown.filter { $0.sequence > lastSeen && $0.account != own }.count
-                        Button {
-                            followLatest()
-                            withAnimation { proxy.scrollTo(Self.bottom, anchor: .bottom) }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.down").accessibilityHidden(true)
-                                if unseen > 0 { Text(unseen.formatted()).font(.subheadline.monospacedDigit()).accessibilityHidden(true) }
-                            }.frame(minWidth: 24, minHeight: 24)
-                        }.buttonStyle(.borderedProminent).padding(12)
-                            .accessibilityLabel("Latest messages").accessibilityValue(unseen > 0 ? unseen.formatted() : "")
-                            .accessibilityIdentifier("conversation.latest")
-                    }
+                    let following = (historyAnchor != nil || !nearBottom) && searchQuery.isEmpty
+                    ZStack {
+                        if following {
+                            let unseen = shown.filter { $0.sequence > lastSeen && $0.account != own }.count
+                            Button {
+                                followLatest()
+                                withAnimation { proxy.scrollTo(Self.bottom, anchor: .bottom) }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.down").accessibilityHidden(true)
+                                    if unseen > 0 { Text(unseen.formatted()).font(.subheadline.monospacedDigit()).countMotion(unseen).accessibilityHidden(true) }
+                                }.frame(minWidth: 24, minHeight: 24)
+                            }.buttonStyle(.borderedProminent).padding(12)
+                                .accessibilityLabel("Latest messages").accessibilityValue(unseen > 0 ? unseen.formatted() : "")
+                                .accessibilityIdentifier("conversation.latest")
+                                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                        }
+                    }.motion(Motion.settle, reduced: Motion.fade, value: following)
                 }
                 .onChange(of: model.messageSending.revision) { _, _ in
                     if let confirmation = model.messageSending.lastConfirmation, confirmation.channel == channel.id {
@@ -167,6 +180,9 @@ struct ConversationView: View {
                 ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil,
                                      willQueue: { query = ""; searching = false; followLatest(); queuedAt = .now }, failed: { await load() })
             }
+            // The reply and attachments rise above the composer, and the conversation makes room.
+            .motion(Motion.move, reduced: Motion.fade,
+                    value: "\(model.replyDrafts[channel.id]?.id ?? ""):\(model.attachmentDrafts[channel.id]?.count ?? 0)")
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Button { showingSettings = true } label: {
@@ -265,8 +281,13 @@ struct ConversationView: View {
         while !Task.isCancelled && !messages.contains(where: { $0.sequence == sequence }) && hasEarlier {
             let before = nextBefore; await loadEarlier(); if nextBefore == before { break }
         }
-        if let message = messages.first(where: { $0.sequence == sequence }) { proxy.scrollTo(message.id, anchor: .center) }
-        else if !Task.isCancelled { model.notice = String(localized: "The original message is not available on this device.") }
+        if let message = messages.first(where: { $0.sequence == sequence }) {
+            proxy.scrollTo(message.id, anchor: .center)
+            // The original lights where it landed, then fades, so the eye finds it.
+            pointed = message.id
+            try? await Task.sleep(for: .seconds(0.6))
+            if pointed == message.id { withAnimation(Motion.point) { pointed = nil } }
+        } else if !Task.isCancelled { model.notice = String(localized: "The original message is not available on this device.") }
     }
 
     private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
@@ -466,7 +487,13 @@ struct ConversationView: View {
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
             // This runs every second during a sync; an unchanged page redraws nothing.
-            if messages != fresh { messages = fresh }
+            if messages != fresh {
+                // A message that arrives at the end while the conversation is open rises in;
+                // a first page, earlier history and search results show at once.
+                let arrived = query.isEmpty && loadedQuery == query && !reduceMotion && messages.last.map { last in
+                    fresh.contains { $0.id == last.id } && (fresh.last?.sequence ?? 0) > last.sequence } == true
+                if arrived { withAnimation(Motion.move) { messages = fresh } } else { messages = fresh }
+            }
             if hasEarlier != page.hasMore { hasEarlier = page.hasMore }
             if nextBefore != page.nextBefore { nextBefore = page.nextBefore }
             if historyAnchor == nil && firstUnread == nil && channel.unread > 0 {

@@ -72,7 +72,7 @@ struct FileLinkComposer: View {
             Text(link.password ? "The link opens only with its password. Send the password another way." : "The link is ready. It contains the key to this file, so send it over a private channel.")
                 .font(.footnote).padding(.vertical, 4).accessibilityIdentifier("file.link.ready")
             ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }.accessibilityIdentifier("file.link.share")
-            Button("Copy link", systemImage: "doc.on.doc") { model.clipboard.copy(url); model.notice = String(localized: "Copied") }
+            CopyButton("Copy link", systemImage: "doc.on.doc", value: url)
                 .accessibilityIdentifier("file.link.copy")
         }
     }
@@ -178,7 +178,7 @@ struct FileLinkDetailView: View {
                 if shown.active {
                     if let url = shown.url {
                         ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }
-                        Button("Copy link", systemImage: "doc.on.doc") { model.clipboard.copy(url); model.notice = String(localized: "Copied") }
+                        CopyButton("Copy link", systemImage: "doc.on.doc", value: url)
                             .accessibilityIdentifier("file.link.copy")
                     } else {
                         Text("The full link is not available on this device.").font(.footnote).foregroundStyle(.secondary)

@@ -145,9 +145,10 @@ private struct VaultBrowseBar: View {
                             HStack(spacing: 5) {
                                 Text(moreSelected ? vaultKindName(model.vaultFilter) : "More types")
                                 Image(systemName: "chevron.down").font(.footnote)
-                            }.browseTabShape(selected: moreSelected)
+                            }.browseTabShape(selected: moreSelected, sliding: true)
                         }.id("types").accessibilityAddTraits(moreSelected ? .isSelected : []).accessibilityIdentifier("vault.types")
-                    }.padding(.horizontal, 16)
+                    }.slidingTabCapsule().motion(Motion.move, value: "\(model.vaultFilter):\(model.vaultTag.isEmpty)")
+                        .padding(.horizontal, 16)
                 }
                 .accessibilityIdentifier("vault.scopes").edgeFade()
                 .onChange(of: model.vaultFilter) { _, filter in
@@ -163,7 +164,7 @@ private struct VaultBrowseBar: View {
     }
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {
-        BrowseTab(selected: model.vaultFilter == value && (value != "all" || model.vaultTag.isEmpty)) {
+        BrowseTab(selected: model.vaultFilter == value && (value != "all" || model.vaultTag.isEmpty), sliding: true) {
             model.vaultFilter = value
             if value == "all" { model.vaultTag = "" }
         } label: {

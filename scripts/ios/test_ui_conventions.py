@@ -16,6 +16,8 @@ RULES = {
     "fixed font size": re.compile(r"\.font\(\.system\(size:\s*\d"),
     "numeric corner radius (use Theme.radius*)": re.compile(r"cornerRadius:\s*\d"),
     "caption text (use footnote; caption2 is for badges)": re.compile(r"\.caption\b(?!2)"),
+    "animation curve literal (use Motion in Theme.swift)": re.compile(
+        r"\.(?:spring|snappy|smooth|bouncy|easeIn|easeOut|easeInOut|linear|interpolatingSpring|interactiveSpring)\b(?!\w)(?!:)"),
 }
 
 

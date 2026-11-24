@@ -45,7 +45,7 @@ struct PairView: View {
                     LabeledContent("Expires") { Text(expires, style: .relative) }
                     ShareLink(item: token) { SettingsActionLabel("Share pairing request", systemImage: "square.and.arrow.up") }
                     SettingsAction("Refresh") { Task { await request() } }
-                    SettingsAction("Copy pairing request") { model.clipboard.copy(token); model.notice = String(localized: "Copied for 30 seconds") }
+                    CopyButton("Copy pairing request", value: token, centered: true)
                 } else if model.engine != nil { ProgressView().frame(maxWidth: .infinity) }
             }
             if paused {

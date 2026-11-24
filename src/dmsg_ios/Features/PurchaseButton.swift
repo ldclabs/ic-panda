@@ -9,7 +9,6 @@ struct PurchaseButton: View {
     let disabled: Bool
     let identifier: String
     let action: () -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -33,6 +32,6 @@ struct PurchaseButton: View {
                         .transition(.opacity)
                 }
             }
-        }.animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: phase)
+        }.motion(Motion.fade, value: phase)
     }
 }

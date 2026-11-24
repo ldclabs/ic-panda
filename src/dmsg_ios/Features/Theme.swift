@@ -26,6 +26,85 @@ enum Theme {
     static let radiusField = NativeTheme.radiusField
 }
 
+/// The app's own motion (DESIGN.md, Motion and feedback). Views take their curves from here;
+/// `scripts/ios/test_ui_conventions.py` rejects curve literals elsewhere.
+enum Motion {
+    /// Something takes its new state with a little give: a checkmark, a star, a badge.
+    static let settle = Animation.snappy(duration: 0.3)
+    /// A selection glides, a block opens and the rest makes room, a floating notice arrives.
+    static let move = Animation.smooth(duration: 0.3)
+    /// A fade, a secret developing, a count rolling.
+    static let fade = Animation.smooth(duration: 0.2)
+    /// A floating notice leaves, quicker than it came.
+    static let exit = Animation.easeOut(duration: 0.15)
+    /// A countdown ring sweeps evenly through each second.
+    static let tick = Animation.linear(duration: 1)
+    /// What a jump landed on fades from its highlight.
+    static let point = Animation.easeOut(duration: 0.6)
+}
+
+extension View {
+    /// Animates changes of `value`, or with Reduce Motion uses `reduced` (none by default).
+    func motion<V: Equatable>(_ animation: Animation, reduced: Animation? = nil, value: V) -> some View {
+        modifier(MotionModifier(animation: animation, reduced: reduced, value: value))
+    }
+
+    /// A floating notice rises 12 pt from the edge it sits on as it fades in, and sinks as it
+    /// leaves; with Reduce Motion it only fades. Its container animates with `arrivals(of:)`.
+    func rising(from edge: VerticalEdge = .bottom) -> some View { modifier(Rising(edge: edge)) }
+
+    /// Animates the floating notice inside as `value` comes (`move`), changes and goes (`exit`).
+    /// Anything else, such as the privacy shield covering the screen, stays instant.
+    func arrivals<V: Equatable>(of value: V?) -> some View {
+        modifier(MotionModifier(animation: value == nil ? Motion.exit : Motion.move, reduced: Motion.fade, value: value))
+    }
+
+    /// A count rolls only the digits that changed, up when it grows and down when it shrinks;
+    /// with Reduce Motion it fades.
+    func countMotion(_ value: some BinaryInteger) -> some View { modifier(CountMotion(value: Double(value))) }
+
+    /// A secret being shown develops from a blur each time `shown` grows; hiding stays instant.
+    /// With Reduce Motion it appears at once.
+    func develop(_ shown: Int) -> some View { modifier(Develop(shown: shown)) }
+}
+
+private struct Develop: ViewModifier {
+    let shown: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        content.keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : shown) { view, clarity in
+            view.blur(radius: (1 - clarity) * 6).opacity(0.35 + 0.65 * clarity)
+        } keyframes: { _ in
+            MoveKeyframe(0)
+            CubicKeyframe(1, duration: 0.2)
+        }
+    }
+}
+
+private struct MotionModifier<V: Equatable>: ViewModifier {
+    let animation: Animation
+    let reduced: Animation?
+    let value: V
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View { content.animation(reduceMotion ? reduced : animation, value: value) }
+}
+
+private struct Rising: ViewModifier {
+    let edge: VerticalEdge
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        content.transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: edge == .bottom ? 12 : -12)))
+    }
+}
+
+private struct CountMotion: ViewModifier {
+    let value: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        content.contentTransition(reduceMotion ? .opacity : .numericText(value: value)).animation(Motion.fade, value: value)
+    }
+}
+
 extension View {
     /// A bar the content scrolls beneath. iOS 26 fades the content under it as it does
     /// under the toolbars; earlier systems put the bar on `fallback`.
@@ -189,7 +268,8 @@ struct CountBadge: View {
     let count: UInt64
 
     var body: some View {
-        Text(count.formatted()).font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(.white)
+        Text(count.formatted()).font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(.white).countMotion(count)
             .padding(.horizontal, 7).frame(minWidth: 22, minHeight: 22).background(Theme.badgeRed, in: Capsule())
+            .transition(.scale(scale: 0.6).combined(with: .opacity))
     }
 }

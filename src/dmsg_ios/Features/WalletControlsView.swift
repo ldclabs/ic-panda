@@ -40,7 +40,7 @@ struct WalletControlsView: View {
                             Text(address.label.isEmpty ? address.chain : address.label).font(.headline)
                             FingerprintRow(title: "Address", value: address.text)
                             if address.verified {
-                                Button("Copy address") { model.clipboard.copy(address.text) }
+                                CopyButton("Copy address", value: address.text)
                                 Button("Replace cosignature policy") { confirming = .setCosign(address: address.id, cosigners: cosigners.sorted(), threshold: threshold) }
                             } else { Text("Address verification failed").foregroundStyle(.red) }
                         }

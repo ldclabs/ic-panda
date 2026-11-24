@@ -65,9 +65,10 @@ struct WorkspaceFeedback: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             let status = WorkspaceStatus.current(model, at: timeline.date).flatMap { $0.presentsFeedback ? $0 : nil }
+            let shown = status.flatMap { status in active == status.key && dismissed != status.key && !model.concealed
+                && model.notice == nil && model.notifications.presented == nil ? status : nil }
             Group {
-                if let status, active == status.key, dismissed != status.key,
-                   !model.concealed, model.notice == nil, model.notifications.presented == nil {
+                if let status = shown {
                     HStack(spacing: 10) {
                         Image(systemName: status.symbol).foregroundStyle(status.urgent ? .orange : Theme.forest).accessibilityHidden(true)
                         Button { showing = true; dismissed = status.key } label: {
@@ -83,8 +84,9 @@ struct WorkspaceFeedback: View {
                         .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
                         .padding(.horizontal, 16).padding(.bottom, bottomInset)
                         .accessibilityIdentifier("workspace.feedback")
+                        .rising()
                 }
-            }.task(id: status?.key) {
+            }.arrivals(of: shown?.key).task(id: status?.key) {
                 active = status?.key
                 if status?.urgent == true {
                     let message = model.recoveryWarning?.pending == true ? String(localized: "Account recovery is pending")
@@ -106,19 +108,26 @@ struct TransientNotice: View {
     @Environment(SessionModel.self) private var model
     var body: some View {
         let revision = model.noticeRevision
-        if let notice = model.notice, !model.concealed, model.notifications.presented == nil {
-            NoticeBar(text: notice)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius))
-                .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
-                .padding(12).allowsHitTesting(false)
-                .accessibilityElement(children: .ignore).accessibilityLabel(notice).accessibilityAddTraits(.isStaticText)
-                .accessibilityIdentifier("workspace.notice")
-                .onChange(of: revision, initial: true) { _, _ in UIAccessibility.post(notification: .announcement, argument: notice) }
-                .task(id: revision) {
-                    // Long enough to read; bytes treat CJK text as the slower read it is.
-                    try? await Task.sleep(for: .seconds(max(4, min(8, notice.utf8.count / 15))))
-                    if !Task.isCancelled && model.noticeRevision == revision { model.notice = nil }
-                }
-        }
+        let shown = model.notice.flatMap { !model.concealed && model.notifications.presented == nil ? $0 : nil }
+        ZStack {
+            if let notice = shown {
+                noticeBar(notice, revision: revision).rising()
+            }
+        }.arrivals(of: shown)
+    }
+
+    private func noticeBar(_ notice: String, revision: UInt64) -> some View {
+        NoticeBar(text: notice)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius))
+            .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+            .padding(12).allowsHitTesting(false)
+            .accessibilityElement(children: .ignore).accessibilityLabel(notice).accessibilityAddTraits(.isStaticText)
+            .accessibilityIdentifier("workspace.notice")
+            .onChange(of: revision, initial: true) { _, _ in UIAccessibility.post(notification: .announcement, argument: notice) }
+            .task(id: revision) {
+                // Long enough to read; bytes treat CJK text as the slower read it is.
+                try? await Task.sleep(for: .seconds(max(4, min(8, notice.utf8.count / 15))))
+                if !Task.isCancelled && model.noticeRevision == revision { model.notice = nil }
+            }
     }
 }

@@ -91,24 +91,32 @@ private struct WorkspaceOverlays: ViewModifier {
     @State private var rootBottomInset: CGFloat = 0
     private var bottomInset: CGFloat { (model.noticeHosts.isEmpty ? rootBottomInset : model.screenBottomInset) + 8 }
 
+    /// An in-app reminder rises from the bottom edge and leaves the same way.
+    private func reminder(_ plan: ReminderPlan) -> some View {
+        VStack {
+            Spacer()
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
+                Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
+            }.padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius)).padding(.horizontal, 16).padding(.bottom, bottomInset)
+        }.ignoresSafeArea(.all, edges: .bottom)
+            .accessibilityIdentifier("notifications.toast")
+            .task(id: plan.id) {
+                try? await Task.sleep(for: .seconds(6))
+                if model.notifications.presented?.id == plan.id { model.notifications.presented = nil }
+            }
+            .rising()
+    }
+
     func body(content: Content) -> some View {
         ZStack {
             content
-            if let plan = model.notifications.presented, !model.concealed {
-                VStack {
-                    Spacer()
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
-                        Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
-                        Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
-                    }.padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius)).padding(.horizontal, 16).padding(.bottom, bottomInset)
-                }.ignoresSafeArea(.all, edges: .bottom)
-                .accessibilityIdentifier("notifications.toast")
-                .task(id: plan.id) {
-                    try? await Task.sleep(for: .seconds(6))
-                    if model.notifications.presented?.id == plan.id { model.notifications.presented = nil }
+            ZStack {
+                if let plan = model.notifications.presented, !model.concealed {
+                    reminder(plan)
                 }
-            }
+            }.arrivals(of: model.concealed ? nil : model.notifications.presented?.id)
             if model.concealed {
                 Theme.paper.ignoresSafeArea()
                 Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)

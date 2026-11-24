@@ -15,7 +15,7 @@ struct LoginBindingRequestView: View {
                 if let principal = model.session?.principal { FingerprintRow(title: "Login identity", value: principal) }
                 if let qr = QRCode.image(issued.token) { Image(uiImage: qr).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).accessibilityLabel("Share binding request") }
                 ShareLink(item: issued.token) { Label("Share binding request", systemImage: "square.and.arrow.up") }
-                Button("Copy binding request") { model.clipboard.copy(issued.token) }
+                CopyButton("Copy binding request", value: issued.token)
                 Button("Accept approved binding") { Task { await accept(issued.account) } }
             }
             if working { ProgressView("Loading…") }

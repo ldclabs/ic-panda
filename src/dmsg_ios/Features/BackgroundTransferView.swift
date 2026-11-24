@@ -13,6 +13,7 @@ struct BackgroundTransferSection: View {
                     if state.transfer.account == model.session?.account {
                         Text(LocalizedStringKey(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup"))
                         ProgressView(value: Double(state.completed.count), total: Double(state.transfer.parts.count))
+                            .motion(Motion.move, value: state.completed.count)
                         if state.ready { Button("Verify and finish") { Task { await finish(state) } }.disabled(working) }
                         else if Double(state.transfer.expiresAt) <= Date.now.timeIntervalSince1970 * 1000 {
                             Text("The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.").font(.footnote)

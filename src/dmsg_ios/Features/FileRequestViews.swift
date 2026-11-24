@@ -158,15 +158,15 @@ struct FileRequestComposer: View {
                     if let url = link.url {
                         HStack(spacing: 16) {
                             ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }.buttonStyle(.borderless)
-                            Button("Copy link", systemImage: "doc.on.doc") { copy(url) }.buttonStyle(.borderless)
+                            CopyButton("Copy link", systemImage: "doc.on.doc", value: url).buttonStyle(.borderless)
                         }.font(.footnote).labelStyle(.titleOnly)
                     }
                 }.padding(.vertical, 2).accessibilityElement(children: .contain).accessibilityIdentifier("file.request.created")
             }
             if created.count > 1 {
-                Button("Copy all", systemImage: "doc.on.doc") {
-                    copy(created.compactMap { link in link.url.map { url in link.label.map { "\($0),\(url)" } ?? url } }.joined(separator: "\n"))
-                }.accessibilityIdentifier("file.request.copy.all")
+                CopyButton("Copy all", systemImage: "doc.on.doc",
+                           value: created.compactMap { link in link.url.map { url in link.label.map { "\($0),\(url)" } ?? url } }.joined(separator: "\n"))
+                    .accessibilityIdentifier("file.request.copy.all")
             }
         }
     }
@@ -206,8 +206,6 @@ struct FileRequestComposer: View {
             .disabled(working || tooMany || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier("file.request.create")
     }
-
-    private func copy(_ text: String) { model.clipboard.copy(text); model.notice = String(localized: "Copied") }
 
     private func submit() {
         guard !working else { return }
@@ -262,7 +260,7 @@ struct FileRequestDetailView: View {
                 if shown.active {
                     if let url = shown.url {
                         ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }.accessibilityIdentifier("file.request.share")
-                        Button("Copy link", systemImage: "doc.on.doc") { model.clipboard.copy(url); model.notice = String(localized: "Copied") }
+                        CopyButton("Copy link", systemImage: "doc.on.doc", value: url)
                             .accessibilityIdentifier("file.request.copy")
                     } else {
                         Text("This device does not have this link’s key yet.").font(.footnote).foregroundStyle(.secondary)

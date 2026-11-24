@@ -96,7 +96,7 @@ struct DeviceDetail: View {
             Section("Device") {
                 LabeledContent("Role", value: deviceRoleTitle(device.role))
                 FingerprintRow(title: "Device ID", value: device.deviceId)
-                SettingsAction("Copy device ID") { model.clipboard.copy(device.deviceId); model.notice = String(localized: "Copied") }
+                CopyButton("Copy device ID", value: device.deviceId, centered: true)
                 if let revoked = device.revokedAt { LabeledContent("Revoked") { Text(Date(timeIntervalSince1970: Double(revoked) / 1000), style: .date) } }
                 LabeledContent("Added") { Text(Date(timeIntervalSince1970: Double(device.addedAt) / 1000), style: .date) }
                 if let source = device.addedBy { LabeledContent("Approved by") { Text(source).font(.footnote.monospaced()).textSelection(.enabled) } }

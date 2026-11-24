@@ -466,7 +466,7 @@ struct SuccessionRequestView: View {
                     LabeledContent("Approval key", value: made.approvalKey ? String(localized: "made") : String(localized: "not available"))
                     LabeledContent("Cosigner key", value: made.cosigner ? String(localized: "made") : String(localized: "not available"))
                     ShareLink(item: made.token) { Label("Share request", systemImage: "square.and.arrow.up") }
-                    Button("Copy request") { model.clipboard.copy(made.token) }
+                    CopyButton("Copy request", value: made.token)
                     Button("Check authorization") { Task { await refresh() } }.disabled(working)
                 }
             }
@@ -575,7 +575,7 @@ struct DeviceTransferView: View {
             }
             if status.role == "receive" && status.running {
                 LabeledContent("Session code") { Text(verbatim: status.session).font(.footnote.monospaced()).textSelection(.enabled) }
-                Button("Copy") { model.clipboard.copy(status.session) }
+                CopyButton("Copy", value: status.session)
                 FingerprintRow(title: "Device ID", value: status.to)
                 if !status.addresses.isEmpty {
                     FingerprintRow(title: "Address", value: status.addresses.joined(separator: "\n"))

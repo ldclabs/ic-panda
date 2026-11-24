@@ -24,7 +24,6 @@ struct VaultDetailView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var revealRequest: UUID?
     @State private var deleting = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var readKey: String { "\(id):\(revision ?? "head"):\(model.epoch):\(model.concealed):\(model.contentRevision):\(model.vault.first { $0.id == id }?.changeToken ?? "unlisted"):\(reload)" }
 
@@ -181,7 +180,7 @@ struct VaultDetailView: View {
                             Image(systemName: "star.fill").font(.footnote).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
                                 .transition(.scale.combined(with: .opacity))
                         }
-                    }.animation(reduceMotion ? nil : .bouncy, value: item.favorite)
+                    }.motion(Motion.settle, value: item.favorite)
                     let state: LocalizedStringKey = item.deleted ? "In Trash" : item.conflict ? "Sync conflicts"
                         : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync"
                     (Text(vaultKindName(item.kind)) + Text(verbatim: " · ") + Text(state)).font(.subheadline).foregroundStyle(.secondary)

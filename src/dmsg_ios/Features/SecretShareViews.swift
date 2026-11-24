@@ -186,7 +186,7 @@ struct SecretShareDetailView: View {
                     Text(share.plan.title).font(.title3.bold())
                     LabeledContent("Status", value: secretStateTitle(share.state))
                     LabeledContent("Package size", value: ByteCountFormatter.string(fromByteCount: Int64(clamping: share.plan.plainBytes), countStyle: .file))
-                    if share.totalChunks > 0 { ProgressView(value: Double(share.uploadedChunks), total: Double(share.totalChunks)) }
+                    if share.totalChunks > 0 { ProgressView(value: Double(share.uploadedChunks), total: Double(share.totalChunks)).motion(Motion.move, value: share.uploadedChunks) }
                     if let channel = share.plan.channel {
                         LabeledContent("Channel", value: channel.name)
                         FingerprintRow(title: "Channel ID", value: channel.channelId)
@@ -223,7 +223,7 @@ struct SecretShareDetailView: View {
                     Section("Share link") {
                         Text(link).font(.footnote.monospaced()).lineLimit(3).environment(\.layoutDirection, .leftToRight)
                         ShareLink(item: link) { Label("Share link", systemImage: "square.and.arrow.up") }
-                        Button("Copy link") { model.clipboard.copy(link) }
+                        CopyButton("Copy link", value: link)
                         Text("Anyone with the complete link and required password can retrieve it within its limits.").font(.footnote).foregroundStyle(.secondary)
                     }
                 }

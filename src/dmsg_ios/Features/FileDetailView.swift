@@ -208,7 +208,7 @@ struct FileDetailView: View {
                 DisclosureGroup("Integrity") {
                     LabeledContent("Version", value: file.current).font(.footnote).textSelection(.enabled)
                     Text(file.sha256).font(.footnote.monospaced()).textSelection(.enabled)
-                    Button("Copy SHA-256") { model.clipboard.copy(file.sha256); model.notice = String(localized: "Copied") }
+                    CopyButton("Copy SHA-256", value: file.sha256)
                 }
             }
         }.privateScreen().navigationTitle("File").navigationBarTitleDisplayMode(.inline)

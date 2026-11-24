@@ -11,6 +11,12 @@ import XCTest
         return app
     }
 
+    /// A copy button reads "Copied" for a moment after its tap.
+    private func copiedInPlace(_ button: XCUIElement) -> Bool {
+        let copied = expectation(for: NSPredicate(format: "value == %@", "Copied"), evaluatedWith: button)
+        return XCTWaiter().wait(for: [copied], timeout: 3) == .completed
+    }
+
     private func tap(_ label: String, in app: XCUIApplication) {
         let button = app.buttons[label].firstMatch
         _ = button.waitForExistence(timeout: 1)
@@ -547,7 +553,8 @@ import XCTest
         tap("account.profile", in: app)
         XCTAssertTrue(app.textFields["profile.name"].waitForExistence(timeout: 5))
         tap("profile.copy-id", in: app)
-        XCTAssertTrue(app.staticTexts["Copied"].waitForExistence(timeout: 3))
+        // The button confirms in place instead of posting a notice.
+        XCTAssertTrue(copiedInPlace(app.buttons["profile.copy-id"]))
         XCTAssertTrue(app.textFields["profile.name"].exists)
     }
 
@@ -561,7 +568,7 @@ import XCTest
             XCTAssertTrue(copy.isEnabled)
             XCTAssertEqual(copy.value as? String, principal)
             tap("security.copy-login.\(principal)", in: app)
-            XCTAssertTrue(app.staticTexts["Copied"].waitForExistence(timeout: 3))
+            XCTAssertTrue(copiedInPlace(copy))
         }
         let removals = app.buttons.matching(identifier: "Review removing this login")
         XCTAssertEqual(removals.count, 2)

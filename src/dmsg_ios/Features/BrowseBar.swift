@@ -11,23 +11,47 @@ extension View {
                             startPoint: .leading, endPoint: .trailing))
     }
 
-    /// The capsule of a browse bar tab, also for a tab that opens a menu.
-    func browseTabShape(selected: Bool) -> some View {
+    /// The capsule of a browse bar tab, also for a tab that opens a menu. A `sliding` tab leaves
+    /// its capsule to `slidingTabCapsule()` on the row, so a new selection slides there.
+    func browseTabShape(selected: Bool, sliding: Bool = false) -> some View {
         padding(.horizontal, 12).frame(minHeight: 44)
             .foregroundStyle(selected ? Theme.forest : Color.secondary)
-            .background(selected ? Theme.fill : .clear, in: Capsule())
+            .background(selected && !sliding ? Theme.fill : .clear, in: Capsule())
+            .anchorPreference(key: SelectedTabBounds.self, value: .bounds) { selected && sliding ? $0 : nil }
             .contentShape(Capsule())
     }
+
+    /// Draws the selected sliding tab's capsule behind a row of exclusive tabs. Animate the
+    /// row on its selection (`Motion.move`) and the capsule glides from tab to tab.
+    func slidingTabCapsule() -> some View {
+        backgroundPreferenceValue(SelectedTabBounds.self) { anchor in
+            // Anchors resolve in unmirrored coordinates, so the capsule is placed left to right
+            // even in a right-to-left language, where the reader would mirror its origin and offset.
+            GeometryReader { proxy in
+                if let anchor {
+                    let frame = proxy[anchor]
+                    Capsule().fill(Theme.fill).frame(width: frame.width, height: frame.height).offset(x: frame.minX, y: frame.minY)
+                }
+            }.environment(\.layoutDirection, .leftToRight)
+        }
+    }
+}
+
+private struct SelectedTabBounds: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) { value = value ?? nextValue() }
 }
 
 /// One tab of the bar under the search field in Vault, Files and Messages.
 struct BrowseTab<Content: View>: View {
     let selected: Bool
+    /// One of a row of exclusive tabs whose capsule slides (`slidingTabCapsule()`).
+    var sliding = false
     let action: () -> Void
     @ViewBuilder let label: Content
 
     var body: some View {
-        Button(action: action) { HStack(spacing: 5) { label }.browseTabShape(selected: selected) }
+        Button(action: action) { HStack(spacing: 5) { label }.browseTabShape(selected: selected, sliding: sliding) }
             .buttonStyle(.plain).accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
@@ -61,12 +85,13 @@ struct BrowseScopes<Value: Hashable>: View {
     private func tabs(icons: Bool) -> some View {
         HStack(spacing: 6) {
             ForEach(options, id: \.value) { option in
-                BrowseTab(selected: selection == option.value) { selection = option.value } label: {
+                BrowseTab(selected: selection == option.value, sliding: true) { selection = option.value } label: {
                     if icons { option.icon.accessibilityHidden(true) }
                     Text(option.title)
                 }.accessibilityIdentifier(option.identifier)
             }
-        }.padding(.leading, 16).fixedSize(horizontal: true, vertical: false)
+        }.slidingTabCapsule().motion(Motion.move, value: selection)
+            .padding(.leading, 16).fixedSize(horizontal: true, vertical: false)
     }
 
     private var menu: some View {
