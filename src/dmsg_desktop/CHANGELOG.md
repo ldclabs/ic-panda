@@ -6,6 +6,22 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.0-beta.4] - 2026-11-25
+
+- Search from the command palette (Cmd+K on macOS, Ctrl+K elsewhere) across
+  vault items, files, conversations and received letters. Search recognizes
+  pinyin and initials, highlights matches and opens a message with the
+  surrounding conversation. Hidden vault values stay out of search.
+- Open files and conversation attachments in a full-window preview. Zoom,
+  pan or rotate images, switch between rendered Markdown and its source, and
+  use the keyboard to browse by file type. Preview actions use the file
+  version on screen.
+- Distinguish your messages by their green bubbles and see delivery receipts
+  beside the timestamp. Copying a value shows confirmation beside it.
+- Expand an audit entry for its recorded fields, or open Technical details
+  for identifiers and digests in vault and file details.
+- See startup progress while the desktop app reconnects to its local service.
+
 ## [1.6.0-beta.3] - 2026-11-22
 
 - Preview the account, plan and duration before redeeming a membership code.
@@ -977,6 +993,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.0-beta.4]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.3...1.6.0-beta.4
 [1.6.0-beta.3]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.2...1.6.0-beta.3
 [1.6.0-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.1...1.6.0-beta.2
 [1.6.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0-beta.1

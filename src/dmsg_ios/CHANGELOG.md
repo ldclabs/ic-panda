@@ -5,6 +5,23 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.3.0
+
+### Build 39 — 2026-11-25
+
+- Search the current workspace or all workspaces with pinyin and initials.
+  Matches are highlighted, and tapping a message result opens it in context.
+  On iPad, press Cmd+K on a hardware keyboard to open global search.
+- Browse files and conversation attachments in a full-screen preview. Pinch
+  or double-tap to zoom an image, read formatted Markdown and filter the
+  gallery by file type.
+- Read consecutive messages from the same sender in grouped bubbles. On
+  iOS 26 and later, the composer floats above the conversation.
+- Reveal a hidden vault field with its eye button and see confirmation
+  beside a copied value. Plan and usage now breaks storage into used,
+  reserved and free space. Opening Account on a portrait iPad shows its
+  sidebar immediately.
+
 ## 1.2.4
 
 ### Build 38 — 2026-11-22

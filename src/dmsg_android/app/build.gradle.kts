@@ -67,8 +67,8 @@ android {
         applicationId = "net.dmsg.android"
         minSdk = 31
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.0"
+        versionCode = 9
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_CONFIG", quoted(""))
         ndk { abiFilters += requestedAbis }
