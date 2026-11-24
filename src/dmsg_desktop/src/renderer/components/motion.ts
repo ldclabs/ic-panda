@@ -42,3 +42,58 @@ export function pop(_node: Element): TransitionConfig {
 
 /** Reordering a short list moves its rows; a long one, or reduced motion, jumps. */
 export const flipDuration = (rows: number) => (still() || rows >= 100 ? 0 : 180)
+
+export interface IndicatorTarget {
+  /** The chosen item inside the indicator's parent, or `null` for none. */
+  selector: string | null
+  /** `fill` covers the item (a segmented thumb); `bottom` sits on its lower edge (a tab underline). */
+  edge?: 'fill' | 'bottom'
+  /** Pulls the indicator in from both sides of the item. */
+  inset?: number
+}
+
+/**
+ * Keeps an indicator, such as a segmented control's thumb or a tab bar's
+ * underline, under the chosen item of its positioned parent. A new choice
+ * slides it there through its CSS transition; the first placement, a resize
+ * and reduced motion put it there at once.
+ */
+export function indicator(node: HTMLElement, target: IndicatorTarget) {
+  const container = node.parentElement!
+  let item: HTMLElement | null = null
+  const resized = new ResizeObserver(() => place(false))
+  const place = (glide: boolean) => {
+    const next = target.selector ? container.querySelector<HTMLElement>(target.selector) : null
+    if (next !== item) {
+      if (item) resized.unobserve(item)
+      if (next) resized.observe(next)
+      if (!item) glide = false
+      item = next
+    }
+    node.hidden = !item
+    if (!item) return
+    const inset = target.inset ?? 0
+    const top = target.edge === 'bottom' ? item.offsetTop + item.offsetHeight - node.offsetHeight : item.offsetTop
+    const jump = !glide || still()
+    if (jump) node.style.transition = 'none'
+    node.style.width = `${item.offsetWidth - 2 * inset}px`
+    if (target.edge !== 'bottom') node.style.height = `${item.offsetHeight}px`
+    node.style.transform = `translate(${item.offsetLeft + inset}px, ${top}px)`
+    if (jump) {
+      void node.offsetWidth
+      node.style.transition = ''
+    }
+  }
+  resized.observe(container)
+  place(false)
+  return {
+    update(next: IndicatorTarget) {
+      const moved = next.selector !== target.selector
+      target = next
+      place(moved)
+    },
+    destroy() {
+      resized.disconnect()
+    }
+  }
+}

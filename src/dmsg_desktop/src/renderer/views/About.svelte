@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
   import type { AppUpdates } from '../../shared/contract'
+  import Switch from '../components/Switch.svelte'
   import Icon from '../components/Icon.svelte'
-  import Checkbox from '../components/Checkbox.svelte'
   import Fact from '../components/page/Fact.svelte'
   import Group from '../components/page/Group.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -137,11 +137,11 @@
   </Group>
   {#if !info && !readError}<p role="status" class="text-callout text-muted">{t('loading')}</p>{/if}
   <div class="mt-4 grid gap-2" aria-busy={changing}>
-    <Checkbox checked={beta} label={t('betaUpdates')} descriptionId="beta-updates-hint" testid="beta-updates"
+    <Switch checked={beta} label={t('betaUpdates')} descriptionId="beta-updates-hint" testid="beta-updates"
       disabled={!info || changing || info.applying || (info.homebrew && !beta)}
       onCheckedChange={(next) => { beta = next; channelDirty = true; void saveChannel() }}>
       {t('betaUpdates')}
-    </Checkbox>
+    </Switch>
     <p id="beta-updates-hint" class="text-callout text-muted">{t('betaUpdatesHint')}</p>
     {#if channelError}
       <Notice failure={channelError} tone="danger" testid="update-channel-error">{channelError}</Notice>

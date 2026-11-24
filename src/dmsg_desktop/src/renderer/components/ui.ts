@@ -18,7 +18,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'subtle' | 'ghost' | 'dang
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 
 const buttonBase =
-  'relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border font-medium select-none outline-none transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:outline-none active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0'
+  'relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border font-medium select-none outline-none transition-[background-color,border-color,color] duration-150 focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:outline-none active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0'
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: 'border-forest bg-forest text-on-forest hover:not-disabled:border-forest-hover hover:not-disabled:bg-forest-hover',
@@ -46,9 +46,9 @@ export function iconButtonClass(variant: ButtonVariant = 'ghost', size: 'md' | '
   return buttonClass(variant, 'md', cn(size === 'lg' ? 'size-9 [&_svg]:size-5' : 'size-8 [&_svg]:size-4.5', 'p-0', className))
 }
 
-/** A floating panel of choices: the dropdowns, the suggestions and the language menu. */
+/** A floating panel of choices: the dropdowns, the suggestions and the language menu. It grows out of its trigger and only fades when it closes. */
 export const menuContentClass =
-  'z-50 max-h-[min(var(--bits-floating-available-height),360px)] min-w-(--bits-floating-anchor-width) max-w-[min(420px,calc(100vw-16px))] overflow-y-auto rounded-xl border border-line bg-surface p-1 text-ink shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95'
+  'z-50 max-h-[min(var(--bits-floating-available-height),360px)] min-w-(--bits-floating-anchor-width) max-w-[min(420px,calc(100vw-16px))] overflow-y-auto rounded-xl border border-line bg-surface p-1 text-ink shadow-pop outline-none origin-(--bits-floating-transform-origin) data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96 data-[state=open]:duration-160 data-[state=open]:ease-spring-soft data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-100'
 
 export const menuItemClass =
   'flex cursor-default items-center justify-between gap-4 rounded-lg px-2.5 py-1.5 text-body outline-none select-none [overflow-wrap:anywhere] data-highlighted:bg-wash data-[state=checked]:font-medium data-[state=checked]:text-forest data-disabled:cursor-progress data-disabled:opacity-60'

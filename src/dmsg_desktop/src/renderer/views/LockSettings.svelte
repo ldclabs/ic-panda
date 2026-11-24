@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { DesktopSettings } from '../../shared/contract'
-  import Checkbox from '../components/Checkbox.svelte'
+  import Switch from '../components/Switch.svelte'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
   import Group from '../components/page/Group.svelte'
@@ -89,10 +89,10 @@
       <Select value={String(idle)} {options} label={t('idleLock')} onChange={setIdle} disabled={busy} testid="idle-lock" class="w-48" />
     </Fact>
     <Fact label={t('lockOnScreenLock')}>
-      {#if desktop}<Checkbox checked={desktop.lock_on_screen_lock} onCheckedChange={(on) => setDesktop({ lock_on_screen_lock: on })} disabled={busy || reading || !!readError} label={t('lockOnScreenLock')} testid="lock-on-screen-lock">{t('lockOnScreenLockHint')}</Checkbox>{:else if !readError}<span class="text-muted text-callout" role="status">{t('loading')}</span>{/if}
+      {#if desktop}<Switch checked={desktop.lock_on_screen_lock} onCheckedChange={(on) => setDesktop({ lock_on_screen_lock: on })} disabled={busy || reading || !!readError} label={t('lockOnScreenLock')} testid="lock-on-screen-lock">{t('lockOnScreenLockHint')}</Switch>{:else if !readError}<span class="text-muted text-callout" role="status">{t('loading')}</span>{/if}
     </Fact>
     <Fact label={t('openAtLogin')}>
-      {#if desktop}<Checkbox checked={desktop.open_at_login} onCheckedChange={(on) => setDesktop({ open_at_login: on })} disabled={busy || reading || !!readError} label={t('openAtLogin')} testid="open-at-login">{t('openAtLoginHint')}</Checkbox>{:else if !readError}<span class="text-muted text-callout" role="status">{t('loading')}</span>{/if}
+      {#if desktop}<Switch checked={desktop.open_at_login} onCheckedChange={(on) => setDesktop({ open_at_login: on })} disabled={busy || reading || !!readError} label={t('openAtLogin')} testid="open-at-login">{t('openAtLoginHint')}</Switch>{:else if !readError}<span class="text-muted text-callout" role="status">{t('loading')}</span>{/if}
     </Fact>
     {#if status?.account}
       <Fact label={t('fastUnlock')} testid="fast-unlock">

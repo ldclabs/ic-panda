@@ -327,8 +327,10 @@ is used. Every icon-only button has an accessible name and a tooltip.
 Three curves, the springs from anda-bot's extension: `--ease-spring` for
 what pops (notices, a radio dot), `--ease-spring-soft` for what arrives (the
 command palette, dialogs), `--ease-calm` for what moves (the sidebar
-collapsing, a collapsible opening). Menus and tooltips fade and zoom with
-tw-animate-css. Work under way uses the text `shimmer` or
+collapsing, a collapsible opening). Menus grow out of their trigger
+(`--bits-floating-transform-origin`) and only fade when they close; the
+first tooltip of a hover slides 4px out of its control, and the next one,
+moving along a toolbar, shows at once. Work under way uses the text `shimmer` or
 the `progress-run` band; time running out uses the `drain` bar (an armed or
 shown secret) and the approve delay fills inside the button. Under
 `prefers-reduced-motion` every animation and transition ends at once, and the
@@ -343,6 +345,15 @@ in, and one's own outgoing message too; the favourite star, the unread and
 waiting counts and an ID's copy check pop once; notices spring in and fade
 out. A copy from an `Id` with a copy mark shows a check for 1.2s instead of
 a notice.
+
+Controls show where a choice went (`docs/motion.zh.md`: grammar and
+budgets). A segmented control's thumb and a tab bar's underline slide to
+the new pick (`indicator` in `motion.ts`, 220ms spring-soft); a checkbox
+fills from its centre and draws its tick; a switch's thumb slides across
+and stretches while pressed; a collapsible unfolds to its height (220ms)
+and folds faster (140ms); a keyboard focus ring settles in from a little
+outside and leaves at once, except where arrow keys move the focus inside
+a group (`data-roving`, lists, menus, grids).
 
 ## Components
 
@@ -363,8 +374,10 @@ restyle a control by hand.
   and `menuItemClass`; destructive items last, after a separator, in Danger.
   `Select` is a dropdown that checks the chosen option. `SearchSelect` is a
   searchable, closed set of choices, with labels, hints and disabled options.
-- **Choices** — `Checkbox`, `Radio`, `Segmented` (one of a short ordered
-  set), radio cards for types and modes, `Suggest` for free text with
+- **Choices** — `Switch` (a setting that is on or off and takes effect at
+  once: its words first, the switch at the row's end), `Checkbox` (options
+  sent with a form, several choices, a confirmation), `Radio`, `Segmented`
+  (one of a short ordered set), radio cards for types and modes, `Suggest` for free text with
   suggestions, `TagInput`, `SecretInput` (hidden while typed, with a
   generator for logins).
 - **Dialogs** — `Dialog`: icon tile, title, a line of description, scrolling
@@ -422,7 +435,8 @@ controls inside one label.
 | Short fixed choice | `Select`; use `Segmented` for a small set worth keeping visible |
 | Long list of items, files, agents or channels | `SearchSelect`, or an existing domain picker; search labels and safe metadata, show unavailable reasons |
 | Free text with suggestions / multiple tags | `Suggest` / `TagInput` |
-| Boolean / one-of-many choice | `Checkbox` / `Radio` within `RadioGroup.Root` |
+| Setting on or off that applies at once | `Switch` |
+| Option sent with a form, several choices, a confirmation / one-of-many choice | `Checkbox` / `Radio` within `RadioGroup.Root` |
 | Text or multiline input | `TextField` / `TextArea`, with linked labels, hints and errors; numeric text uses `inputmode`, amounts use the wallet’s amount field |
 | Typed password, token, private key or secret-bearing link | `SecretInput`; preserve multiline values, masking and existing clipboard boundaries |
 | Standard action / icon tool | `buttonClass` / `iconButtonClass`; icon-only controls need a name and tooltip |

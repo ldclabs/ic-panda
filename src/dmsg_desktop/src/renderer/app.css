@@ -221,9 +221,16 @@ html[lang='ur'] {
   :root[data-chrome='inset'] body {
     background: transparent;
   }
+  /* The ring settles in from a little outside, as a Mac focus ring does, and
+     leaves at once. Arrow keys move the focus inside the roving groups below
+     without it. */
   :focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+    animation: focus-settle 180ms var(--ease-calm);
+  }
+  :where([data-roving], [data-list], [role='grid'], [role='listbox'], [role='menu'], [role='radiogroup'], [role='tablist'], [role='tree']) :focus-visible {
+    animation: none;
   }
   /* A desktop window: controls keep the arrow (only links point), and the
      interface's own words are not text to select; content is. */
@@ -249,9 +256,7 @@ html[lang='ur'] {
     color: var(--ink);
     padding: 0 10px;
     height: 32px;
-    transition:
-      border-color 150ms,
-      box-shadow 150ms;
+    transition: border-color 150ms;
   }
   textarea {
     height: auto;
@@ -265,6 +270,7 @@ html[lang='ur'] {
     outline: none;
     border-color: var(--forest);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--forest) 18%, transparent);
+    animation: field-settle 180ms var(--ease-calm);
   }
   input::placeholder,
   textarea::placeholder {
@@ -341,6 +347,91 @@ html[lang='ur'] {
   --muted: color-mix(in srgb, var(--on-bubble-mine) 82%, transparent);
   --faint: color-mix(in srgb, var(--on-bubble-mine) 80%, transparent);
   --edge-soft: color-mix(in srgb, var(--on-bubble-mine) 45%, transparent);
+}
+
+/* Focus (base layer): an outline comes in from 6px out; a Tailwind ring, from 4px wider. */
+@keyframes focus-settle {
+  from {
+    outline-color: transparent;
+    outline-offset: 6px;
+    --tw-ring-offset-width: 4px;
+  }
+}
+@keyframes field-settle {
+  from {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* Checkbox (components/Checkbox.svelte): the fill grows from the centre, then the tick draws; unticking takes the tick back first. */
+.check-box::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--forest);
+  opacity: 0;
+  transform: scale(0.45);
+  transition:
+    transform 180ms var(--ease-spring),
+    opacity 120ms;
+}
+.check-box[data-state='checked']::before {
+  opacity: 1;
+  transform: none;
+}
+.check-box path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 90ms var(--ease-calm);
+}
+.check-box[data-state='checked'] path {
+  stroke-dashoffset: 0;
+  transition-duration: 180ms;
+  transition-delay: 50ms;
+}
+
+/* Switch (components/Switch.svelte), after the macOS switch: the thumb slides across and,
+   while pressed, stretches toward where it is going. Off is a tint of ink, on is Forest. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+  transition: background-color 150ms;
+}
+.switch[data-state='checked'] {
+  background: var(--forest);
+}
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 24%),
+    0 0 0 0.5px rgb(0 0 0 / 8%);
+  transition:
+    transform 220ms var(--ease-spring-soft),
+    width 120ms var(--ease-calm),
+    margin 120ms var(--ease-calm);
+}
+.switch-thumb[data-state='checked'] {
+  transform: translateX(16px);
+}
+.switch-thumb[data-state='checked']:dir(rtl) {
+  transform: translateX(-16px);
+}
+.switch:active:not(:disabled) .switch-thumb {
+  width: 20px;
+}
+.switch:active:not(:disabled) .switch-thumb[data-state='checked'] {
+  margin-inline-start: -4px;
 }
 
 /* The approval window's Approve fills while its delay runs. */

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { reminderVisibility } from '../notification-visibility'
   import { onMount, untrack } from 'svelte'
+  import Switch from '../components/Switch.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Confirm from '../components/Confirm.svelte'
   import Select from '../components/Select.svelte'
@@ -284,7 +285,7 @@
     </Section>
 
     <Section title={t('channels')} description={t('settingsInstant')} icon="channels" testid="notifications-channels">
-      <Checkbox checked={receipts} onCheckedChange={changeReceipts} label={t('sendReadReceipts')} testid="read-receipts">{t('sendReadReceipts')}</Checkbox>
+      <Switch checked={receipts} onCheckedChange={changeReceipts} label={t('sendReadReceipts')} testid="read-receipts">{t('sendReadReceipts')}</Switch>
     </Section>
 
     <Section title={t('account')} icon="account" testid="notifications-account-section">
