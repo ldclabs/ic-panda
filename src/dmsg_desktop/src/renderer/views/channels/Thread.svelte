@@ -651,7 +651,7 @@
         {/each}
       </div>
     {/if}
-    <div class="flex items-end gap-1.5 rounded-xl border border-edge bg-surface p-1.5 transition-[border-color,box-shadow] duration-150 focus-within:border-forest focus-within:ring-3 focus-within:ring-forest/18">
+    <div class="flex items-end gap-1.5 rounded-xl border border-field-edge bg-surface p-1.5 shadow-(--field-inset) hover:not-focus-within:border-field-edge-hover transition-[border-color,box-shadow] duration-150 focus-within:border-forest focus-within:ring-3 focus-within:ring-forest/18">
       {#if !editing}
         <DropdownMenu.Root dir={localeDir(locale())} onOpenChange={(open) => open && onAttach()}>
           <Tooltip content={t('attachFile')}>

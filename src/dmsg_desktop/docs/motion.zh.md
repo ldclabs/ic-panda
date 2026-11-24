@@ -35,7 +35,7 @@
 3. **揭示可以有过程，隐藏必须立即完成。** 隐藏秘密、锁定一律瞬时。
 4. **精确值不补间。** 金额、ID、倒计时只换成最终值。计数按位滚动，每一帧都是真实值。
 5. **方向有含义。** 增加向上、减少向下。开关、滑块、翻月、按住填充随阅读方向镜像。
-6. **只动 transform、opacity 和 filter。** 例外只有折叠区和提示条的高度、侧栏宽度。
+6. **只动 transform、opacity 和 filter。** 例外只有折叠区和提示条的高度、侧栏宽度，以及颜色、字重和对勾描边的过渡。
 7. **大列表不做行动效。** 超过 100 行时不做行动效。
 8. **尊重减弱动态效果。** 系统开启“减弱动态效果”时，所有动效立即完成。
 
@@ -62,6 +62,19 @@
 | 密码被拒 | 密码框左右摇动一次，并选中已输入的内容，可以直接重输 | `motion.ts` 的 `shake`，`shell/LocalAccount.svelte` |
 | 按住批准 | 提前松开时，填充沿原路退回 | `views/Approval.svelte` |
 | 已读回执 | 全部成员送达时画出第二个勾；有人读过后颜色转为森林绿 | `views/channels/Thread.svelte`，`app.css` 的 `.receipt` |
+| 显示秘密 | 从模糊到清晰；隐藏立即完成，并取消进行中的显影 | `motion.ts` 的 `develop`，`SecretInput.svelte`、`vault/SecretField.svelte` |
+| 头像 | 加载期间显示首字母，图片加载完成后淡入盖住；已缓存的图片直接显示 | `Avatar.svelte` |
+| 提示条 | 视图打开 400 ms 之后出现的提示条展开高度，把下面的内容推下去；随视图一起出现的直接显示 | `motion.ts` 的 `fold`，`page/Notice.svelte` |
+| 标签输入 | 新标签弹出；删除的标签缩小消失，其余标签顺势补位 | `TagInput.svelte` |
+| 状态胶囊 | 状态变化时颜色渐变，文字上浮进入 | `page/Pill.svelte` |
+| 频道未读 | 读完后标题字重平滑变回常规 | `views/Channels.svelte` |
+| 滑块 | 按下时滑钮放大并出现光晕；拖动时紧跟指针；按键或点轨道时滑过去，数值按位滚动 | `Slider.svelte` |
+| 日历翻月 | 新的月份从翻页的一侧滑入，从右到左时镜像 | `DateInput.svelte` |
+| 定位与保存 | 命令面板或附件跳转到的行滚入视野并亮一次；文件备注保存后亮一次，代替通知 | `motion.ts` 的 `land`、`flash` |
+| 外观切换 | 选浅色或深色时整窗交叉溶解 260 ms；跟随系统的变化直接切换 | `appearance.svelte.ts`，`app.css` 的 `::view-transition-*` |
+| 锁定页 | 页面出现时锁扣合上；解锁进行中锁扣抬起 | `page/Locked.svelte`，`app.css` 的 `.lock-shackle` |
+| 侧栏 | 展开时文字等宽度基本到位后再淡入，淡入期间不换行 | `motion.ts` 的 `follow`，`shell/Sidebar.svelte` |
+| 分栏手柄 | 悬停时一条细线从中间向两端长出 | `PaneHandle.svelte` |
 
 ## 不做的
 

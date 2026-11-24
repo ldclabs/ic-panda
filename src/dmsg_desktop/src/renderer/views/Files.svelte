@@ -20,7 +20,7 @@
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
-  import { arrive } from '../components/motion'
+  import { arrive, land } from '../components/motion'
   import { locale, t } from '../i18n/index.svelte'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
@@ -247,6 +247,8 @@
         pick(details.file.folder)
         selected = [id]
         anchor = id
+        // The file it was shown from lights once, as Finder's Show does.
+        void tick().then(() => land(`[data-testid="files-list"] [data-id="${CSS.escape(id)}"]`))
       })
       .catch((e) => toast(() => errorText(e)))
   })

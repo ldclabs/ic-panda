@@ -4,6 +4,7 @@
   import Generator from '../views/vault/Generator.svelte'
   import Icon from './Icon.svelte'
   import Tooltip from './Tooltip.svelte'
+  import { develop } from './motion'
   import { buttonClass, cn } from './ui'
 
   /**
@@ -60,6 +61,7 @@
     onkeydown={onKey}
     data-testid={testid}
     data-shown={shown}
+    use:develop={shown}
   ></textarea>
   <div class="absolute end-1 top-1 flex items-center gap-0.5">
     {#if generate}

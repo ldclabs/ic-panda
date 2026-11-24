@@ -214,8 +214,12 @@ colors as the tokens (`bg-surface`, `text-muted`, `border-line`), never as
 literal hex values.
 
 - **Line** separates content; **Edge** (3:1 on white) is the boundary of
-  inputs and other controls that need one; **Edge-soft** draws quiet
-  boundaries such as scrollbars; secondary buttons are raised by the
+  small controls that need one (checkboxes, radios); **Field-edge** is a
+  text field's hairline (Ink at 18%, 16% in the dark theme), darker on
+  hover, with a faint inset along its top, as a Mac text field: its label
+  names the field and focus rings it in Forest, and Increase contrast
+  (`prefers-contrast: more`) turns it back into Edge. **Edge-soft** draws
+  quiet boundaries such as scrollbars; secondary buttons are raised by the
   `control` shadow instead, since their label already identifies them.
 - **Gem** amber means "waiting for you": the waiting count, the request's
   kind chip, the diamond. It is not decoration.
@@ -350,6 +354,22 @@ for 1.2s instead of a notice. A refused password shakes its field and
 selects what was typed (`shake`); releasing a hold-to-approve early runs
 its fill back. A sent message's receipt draws its second tick once every
 member has it.
+
+Things that appear show how: a shown secret develops from a blur and
+hides at once (`develop`); an avatar's picture fades in over its letters
+once loaded; a notice that comes after its view opened unfolds and pushes
+what is below down (`fold`); a tag chip pops in, and a removed one shrinks
+while the rest move up; a pill's colours cross over and its words rise
+when its state changes; a channel's name loses its unread weight
+smoothly. A slider's thumb grows while pressed and glides on a key or a
+click on the track, but follows a drag at once; a calendar's next month
+slides in from the side it was paged to. A jump from the command palette
+or a vault attachment lights its row once (`land`, `flash`), and a saved
+file note lights in place of a notice. Picking light or dark cross-fades
+the window (a view transition, only there); the locked page's shackle
+closes as it appears and lifts while unlocking; sidebar labels fade in
+after the sidebar has most of its width; a pane handle grows its line
+from the middle on hover.
 
 Controls show where a choice went (`docs/motion.zh.md`: grammar and
 budgets). A segmented control's thumb and a tab bar's underline slide to
@@ -596,7 +616,7 @@ inline editors alone handle their own cancel shortcut.
   The audit record reads one line per entry (who, what, how it ended) with
   the recorded fields folded under it.
 - **Item form** — the fields sit in one Surface card with rules between
-  them; inputs keep their Edge border for contrast, and the field's type
+  them; inputs keep their field hairline, and the field's type
   is caption text beside its name, changed from the field's more menu.
 - **Login** — one dialog wherever it starts. The default Passkey entry first
   distinguishes an existing credential from creating a new login identity,

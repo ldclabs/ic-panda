@@ -52,6 +52,11 @@
   --on-select-strong: #ffffff;
   /* A push button's edge: a hairline and a soft drop. */
   --control-shadow: 0 0 0 1px rgb(16 37 31 / 13%), 0 1px 2px rgb(16 37 31 / 8%);
+  /* A text field's edge: a hairline with a faint inset along the top, as a Mac
+     text field has; its label names it. Increase contrast restores `--edge`. */
+  --field-edge: rgb(16 37 31 / 18%);
+  --field-edge-hover: rgb(16 37 31 / 30%);
+  --field-inset: inset 0 1px 1px rgb(16 37 31 / 6%);
 }
 @media (prefers-color-scheme: light) {
   /* Small secondary text on tinted surfaces needs the stronger existing ink. */
@@ -94,11 +99,21 @@
     --avatar-amber-ink: #ffdbca;
     --pop-shadow: 0 14px 34px -10px rgb(0 0 0 / 60%), 0 0 0 1px rgb(229 238 232 / 6%);
     --control-shadow: 0 0 0 1px rgb(229 238 232 / 12%), 0 1px 2px rgb(0 0 0 / 40%);
+    --field-edge: rgb(229 238 232 / 16%);
+    --field-edge-hover: rgb(229 238 232 / 26%);
+    --field-inset: inset 0 1px 1px rgb(0 0 0 / 30%);
     --select: #22332b;
     --select-strong: #1f6b52;
     --on-select-strong: #ffffff;
     --bubble-mine: #1f6b52;
     --on-bubble-mine: #ffffff;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --field-edge: var(--edge);
+    --field-edge-hover: var(--edge);
   }
 }
 
@@ -116,6 +131,8 @@
   --color-line: var(--line);
   --color-edge: var(--edge);
   --color-edge-soft: var(--edge-soft);
+  --color-field-edge: var(--field-edge);
+  --color-field-edge-hover: var(--field-edge-hover);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
@@ -250,13 +267,17 @@ html[lang='ur'] {
   textarea {
     width: 100%;
     min-width: 0;
-    border: 1px solid var(--edge);
+    border: 1px solid var(--field-edge);
     border-radius: var(--radius-lg);
     background: var(--surface);
+    box-shadow: var(--field-inset);
     color: var(--ink);
     padding: 0 10px;
     height: 32px;
     transition: border-color 150ms;
+  }
+  :is(input, textarea):hover:not(:disabled, :focus-visible) {
+    border-color: var(--field-edge-hover);
   }
   textarea {
     height: auto;
@@ -350,6 +371,28 @@ html[lang='ur'] {
 }
 
 /* Focus (base layer): an outline comes in from 6px out; a Tailwind ring, from 4px wider. */
+/* The locked page's shackle closes as the page appears and lifts while unlocking. */
+.lock-shackle {
+  transition: transform 160ms var(--ease-calm);
+  animation: shackle-close 220ms var(--ease-spring) 80ms backwards;
+}
+
+.lock[data-open] .lock-shackle {
+  transform: translateY(-2.5px);
+}
+
+@keyframes shackle-close {
+  from {
+    transform: translateY(-2.5px);
+  }
+}
+
+/* Picking light or dark cross-fades the window (`appearance.svelte.ts`). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+}
+
 /* A sent message's receipt: the second stroke draws once every member has it. */
 .receipt path + path {
   stroke-dasharray: 1;

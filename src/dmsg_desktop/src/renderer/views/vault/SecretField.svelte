@@ -7,6 +7,7 @@
   import { bridge, call, errorText } from '../../rpc'
   import FieldActions from './FieldActions.svelte'
   import FieldViewer from './FieldViewer.svelte'
+  import { develop } from '../../components/motion'
 
   /**
    * A concealed field: shown only on a second click within three seconds of
@@ -162,7 +163,7 @@
   view={unlocked ? (element) => { trigger = element; viewing = true } : undefined}>
   <span class={cn('min-w-0 flex-1 py-1 font-mono text-code leading-[1.55]',
     secret === null ? 'overflow-hidden tracking-[0.18em] whitespace-nowrap text-faint' : 'max-h-64 overflow-auto break-all whitespace-pre-wrap text-ink select-text')}
-    dir="ltr" data-testid="vault-secret" data-field={field} data-shown={secret !== null}>{secret ?? '••••••••••••'}</span>
+    dir="ltr" data-testid="vault-secret" data-field={field} data-shown={secret !== null} use:develop={secret !== null}>{secret ?? '••••••••••••'}</span>
 </FieldActions>
 
 {#if viewing && unlocked}

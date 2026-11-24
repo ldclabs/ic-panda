@@ -6,6 +6,7 @@
    * Drags the width of the pane just before it, kept for next time; arrows,
    * Home and End do the same, and a double click goes back to the default. The
    * pane takes the width as `--pane`, which falls back to its own default.
+   * Hovering grows a line out from its middle.
    */
   let { name, min = 200, max = 520, class: className = '' }: { name: string; min?: number; max?: number; class?: string } = $props()
 
@@ -91,7 +92,7 @@
   aria-valuemax={max}
   aria-valuenow={width ?? undefined}
   tabindex="0"
-  class="relative z-10 -mx-1 w-2 shrink-0 cursor-col-resize touch-none outline-none transition-colors duration-100 hover:bg-forest/15 focus-visible:bg-forest/25 active:bg-forest/25 {className}"
+  class="relative z-10 -mx-1 w-2 shrink-0 cursor-col-resize touch-none outline-none transition-colors duration-100 before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:scale-y-0 before:rounded-full before:bg-forest/45 before:transition-transform before:duration-180 before:ease-calm hover:before:scale-y-100 focus-visible:bg-forest/15 focus-visible:before:scale-y-100 active:before:scale-y-100 {className}"
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}

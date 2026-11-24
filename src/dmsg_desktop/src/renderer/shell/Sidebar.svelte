@@ -10,7 +10,7 @@
   import GateRail from './GateRail.svelte'
   import { entryOf, groups, views, type View } from './nav'
   import { filled } from '../components/glyphs'
-  import { pop, shrink } from '../components/motion'
+  import { follow, pop, shrink } from '../components/motion'
   import Count from '../components/Count.svelte'
 
   /**
@@ -65,7 +65,7 @@
         onclick={() => enter(view.path)}
       >
         <Icon name={active ? (filled[view.icon] ?? view.icon) : view.icon} class="size-4.5 text-forest" />
-        {#if !collapsed}<span class="min-w-0 flex-1">{t(view.label)}</span>{/if}
+        {#if !collapsed}<span class="min-w-0 flex-1" in:follow>{t(view.label)}</span>{/if}
         {#if view === views.channels && status?.channels_unread}
           <span
             class={cn(
@@ -135,7 +135,7 @@
       {#if collapsed}
         <div class="mx-auto my-2 h-px w-6 bg-line"></div>
       {:else}
-        <div class="px-2.5 pt-3.5 pb-1 text-caption font-medium text-faint">{t(group.label)}</div>
+        <div class="px-2.5 pt-3.5 pb-1 text-caption font-medium text-faint" in:follow>{t(group.label)}</div>
       {/if}
       {#each group.views as view (view.path)}{@render item(view)}{/each}
     {/each}

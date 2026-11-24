@@ -781,7 +781,7 @@
       <Avatar id={entry.id} name={entry.name} person={entry.ledger?.type === 'direct'} class="size-9" />
       <span class="min-w-0">
         <span class="flex min-w-0 items-center gap-1">
-          <span class={cn('truncate text-body leading-snug', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
+          <span class={cn('truncate text-body leading-snug transition-[font-weight] duration-180 ease-calm', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
           {#if entry.muted}<Icon name="eye-off" class="size-3 shrink-0 text-faint" />{/if}
           {#if pins.includes(entry.id)}<Icon name="pin" class="size-3 shrink-0 text-faint" label={t('pinned')} />{/if}
         </span>

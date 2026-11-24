@@ -60,6 +60,83 @@ export function shake(node: Element) {
   node.animate([0, -6, 5, -3, 2, 0].map((x) => ({ transform: `translateX(${x}px)` })), { duration: 320 })
 }
 
+/**
+ * A secret being shown develops from a blur; hiding it is instant and stops
+ * a develop under way.
+ */
+export function develop(node: HTMLElement, shown: boolean) {
+  let run: Animation | undefined
+  return {
+    update(next: boolean) {
+      if (next === shown) return
+      shown = next
+      run?.cancel()
+      if (shown && !still()) run = node.animate([{ filter: 'blur(6px)', opacity: 0.35 }, { filter: 'none', opacity: 1 }], { duration: 180, easing: calm })
+    },
+    destroy() {
+      run?.cancel()
+    }
+  }
+}
+
+/**
+ * What a jump landed on lights once (900ms, Warn pale), or a field just
+ * saved in place (700ms, Pale), over its own background.
+ */
+export function flash(node: Element | null | undefined, saved = false) {
+  if (!node || still()) return
+  const color = getComputedStyle(document.documentElement).getPropertyValue(saved ? '--pale' : '--warn-pale').trim()
+  node.animate([{ boxShadow: `inset 0 0 0 100vmax ${color}` }, { boxShadow: `inset 0 0 0 100vmax ${color}`, offset: 0.3 }, { boxShadow: 'inset 0 0 0 100vmax transparent' }], {
+    duration: saved ? 700 : 900,
+    easing: 'ease-out'
+  })
+}
+
+/**
+ * Scrolls to what a jump landed on and lights it once, waiting up to 2s for
+ * a list that is still loading to show it.
+ */
+export function land(selector: string) {
+  const found = () => {
+    const node = document.querySelector(selector)
+    if (!node) return false
+    node.scrollIntoView({ block: 'nearest' })
+    flash(node)
+    return true
+  }
+  if (found()) return
+  const watch = new MutationObserver(() => found() && stop())
+  const timer = setTimeout(() => stop(), 2000)
+  const stop = () => (watch.disconnect(), clearTimeout(timer))
+  watch.observe(document.body, { childList: true, subtree: true })
+}
+
+/**
+ * A sidebar label that opens with the sidebar waits for most of its width,
+ * then fades in, on one line until it is in.
+ */
+export function follow(_node: Element): TransitionConfig {
+  if (still()) return { duration: 0 }
+  return { delay: 120, duration: 120, easing: cubicOut, css: (t) => `opacity: ${t}; white-space: nowrap` }
+}
+
+// A view that just opened shows its notices at once; one that comes later unfolds.
+let opened = performance.now()
+addEventListener('hashchange', () => (opened = performance.now()))
+
+/** A notice that comes after its view opened unfolds its height and pushes what is below down. */
+export function fold(node: HTMLElement): TransitionConfig {
+  if (still() || performance.now() - opened < 400) return { duration: 0 }
+  const height = node.offsetHeight
+  const { paddingTop, paddingBottom } = getComputedStyle(node)
+  const [top, bottom] = [parseFloat(paddingTop), parseFloat(paddingBottom)]
+  return {
+    duration: 220,
+    easing: cubicOut,
+    css: (t) => `overflow: hidden; height: ${t * height}px; padding-top: ${t * top}px; padding-bottom: ${t * bottom}px; opacity: ${t}`
+  }
+}
+
 /** Reordering a short list moves its rows; a long one, or reduced motion, jumps. */
 export const flipDuration = (rows: number) => (still() || rows >= 100 ? 0 : 180)
 

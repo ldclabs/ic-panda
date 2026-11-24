@@ -2,6 +2,13 @@
   import { Slider } from 'bits-ui'
   import { locale } from '../i18n/index.svelte'
   import { localeDir } from '../../shared/locales'
+  import Count from './Count.svelte'
+
+  /**
+   * A value on a track. The thumb grows while pressed; it and the number
+   * follow a drag at once, and glide when a key or a click on the track
+   * moves them.
+   */
   let {
     value = $bindable(0),
     min = 0,
@@ -19,12 +26,16 @@
     disabled?: boolean
     testid?: string
   } = $props()
+
+  let dragging = $state(false)
 </script>
+
+<svelte:window onpointerup={() => (dragging = false)} onpointercancel={() => (dragging = false)} />
 
 <div class="grid min-w-0 gap-1" data-testid={testid}>
   <div class="flex justify-between gap-3 text-callout text-muted">
     <span>{label}</span><span class="font-medium tabular-nums text-ink"
-      >{value}</span
+      ><Count {value} quiet={dragging} /></span
     >
   </div>
   <Slider.Root
@@ -35,7 +46,9 @@
     {step}
     {disabled}
     dir={localeDir(locale())}
-    class="relative flex h-8 w-full touch-none items-center select-none data-disabled:opacity-50"
+    class="slider group/slider relative flex h-8 w-full touch-none items-center select-none data-disabled:opacity-50"
+    data-dragging={dragging || undefined}
+    onpointermove={(event: PointerEvent) => event.buttons && (dragging = true)}
   >
     <div class="relative h-1.5 w-full rounded-full bg-edge-soft">
       <Slider.Range class="absolute h-full rounded-full bg-forest" />
@@ -43,7 +56,29 @@
     <Slider.Thumb
       index={0}
       aria-label={label}
-      class="block size-4 rounded-full border-2 border-forest bg-surface outline-none focus-visible:ring-3 focus-visible:ring-focus/35 data-disabled:cursor-not-allowed"
+      class="block size-4 rounded-full border-2 border-forest bg-surface outline-none group-active/slider:scale-125 group-active/slider:ring-6 group-active/slider:ring-forest/15 focus-visible:ring-3 focus-visible:ring-focus/35 data-disabled:cursor-not-allowed"
     />
   </Slider.Root>
 </div>
+
+
+<style>
+  /* Pressing grows the thumb; a key or a click on the track glides it, a drag does not. */
+  :global(.slider [data-slider-thumb]) {
+    transition:
+      left 120ms var(--ease-calm),
+      right 120ms var(--ease-calm),
+      scale 180ms var(--ease-spring),
+      box-shadow 180ms var(--ease-calm);
+  }
+
+  :global(.slider [data-slider-range]) {
+    transition:
+      left 120ms var(--ease-calm),
+      right 120ms var(--ease-calm);
+  }
+
+  :global(.slider[data-dragging] :is([data-slider-thumb], [data-slider-range])) {
+    transition-property: scale, box-shadow;
+  }
+</style>

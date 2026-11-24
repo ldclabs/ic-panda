@@ -17,7 +17,7 @@
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass, modalOpen } from '../components/ui'
-  import { arrive } from '../components/motion'
+  import { arrive, land } from '../components/motion'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
@@ -322,7 +322,10 @@
     const id = focus.id
     if (!id || !loaded) return
     focus.id = null
-    finishEditing(() => { scope = 'all'; query = ''; selected = id })
+    finishEditing(() => {
+      scope = 'all'; query = ''; selected = id
+      void tick().then(() => land(`[data-testid="vault-list"] [data-id="${CSS.escape(id)}"]`))
+    })
   })
 
   function finishEditing(next: () => void) {

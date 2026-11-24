@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte'
   import type { Glyph } from '../glyphs'
   import Icon from '../Icon.svelte'
+  import { fold } from '../motion'
   import { cn } from '../ui'
   import { failureTone, networkFailure } from '../../failure'
   import { network } from '../../network.svelte'
@@ -40,7 +41,7 @@
 </script>
 
 {#if !covered}
-<div {id} class={cn('flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-callout leading-normal', tones[shownTone], className)} data-testid={testid} role={shownTone === 'danger' ? 'alert' : 'status'}>
+<div in:fold|global {id} class={cn('flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-callout leading-normal', tones[shownTone], className)} data-testid={testid} role={shownTone === 'danger' ? 'alert' : 'status'}>
   <Icon name={icon ?? icons[shownTone]} class="mt-px shrink-0" />
   <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">{@render children()}</div>
   {#if action}<div class="-my-0.5 shrink-0">{@render action()}</div>{/if}

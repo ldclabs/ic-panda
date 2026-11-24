@@ -1,11 +1,14 @@
 <script lang="ts">
   import { Calendar, Popover } from 'bits-ui'
-  import { parseDate, type DateValue } from '@internationalized/date'
+  import { cubicOut } from 'svelte/easing'
+  import type { TransitionConfig } from 'svelte/transition'
+  import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date'
   import { locale, t } from '../i18n/index.svelte'
   import { localeDir } from '../../shared/locales'
   import Icon from './Icon.svelte'
   import { buttonClass, iconButtonClass } from './ui'
   import { validDateText, type DateMode } from './form-values'
+  import { still } from './motion'
 
   const id = $props.id()
   let {
@@ -75,6 +78,17 @@
     )
     open = false
   }
+
+  // A new month slides in from the side it was paged to, mirrored right to left.
+  const paging = { at: undefined as DateValue | undefined, forward: true }
+  function paged(next: DateValue) {
+    if (paging.at) paging.forward = next.compare(paging.at) > 0
+    paging.at = next
+  }
+  function turn(_node: Element, forward: boolean): TransitionConfig {
+    const side = (forward ? 16 : -16) * (localeDir(locale()) === 'rtl' ? -1 : 1)
+    return { duration: still() ? 0 : 200, easing: cubicOut, css: (t) => `opacity: ${t}; transform: translateX(${(1 - t) * side}px)` }
+  }
 </script>
 
 <div class="grid min-w-0 gap-1.5">
@@ -84,7 +98,9 @@
   <Popover.Root
     bind:open
     onOpenChange={(next) => {
-      if (next) year = dateValue?.year ?? new Date().getFullYear()
+      if (!next) return
+      year = dateValue?.year ?? new Date().getFullYear()
+      paging.at = dateValue ?? today(getLocalTimeZone())
     }}
   >
     <div class="relative">
@@ -179,6 +195,7 @@
             type="single"
             value={dateValue}
             onValueChange={pick}
+            onPlaceholderChange={paged}
             locale={locale()}
             calendarLabel={label}
             maxValue={maximum}
@@ -197,7 +214,7 @@
                   ><Icon name="forward" /></Calendar.NextButton
                 >
               </Calendar.Header>
-              {#each visibleMonths as month}<Calendar.Grid
+              {#each visibleMonths as month (month.value.toString())}<div in:turn={paging.forward}><Calendar.Grid
                   class="w-full border-collapse"
                 >
                   <Calendar.GridHead
@@ -222,7 +239,7 @@
                           </Calendar.Cell>{/each}</Calendar.GridRow
                       >{/each}</Calendar.GridBody
                   >
-                </Calendar.Grid>{/each}
+                </Calendar.Grid></div>{/each}
             {/snippet}
           </Calendar.Root>
         {/if}
