@@ -27,10 +27,21 @@
     testid?: string
   } = $props()
 
+  let pressed = false
   let dragging = $state(false)
+
+  function endDrag() {
+    pressed = false
+    dragging = false
+  }
 </script>
 
-<svelte:window onpointerup={() => (dragging = false)} onpointercancel={() => (dragging = false)} />
+<svelte:window
+  onpointermovecapture={(event) => { if (pressed && (event.buttons & 1)) dragging = true }}
+  onpointerup={endDrag}
+  onpointercancel={endDrag}
+  onblur={endDrag}
+/>
 
 <div class="grid min-w-0 gap-1" data-testid={testid}>
   <div class="flex justify-between gap-3 text-callout text-muted">
@@ -48,7 +59,8 @@
     dir={localeDir(locale())}
     class="slider group/slider relative flex h-8 w-full touch-none items-center select-none data-disabled:opacity-50"
     data-dragging={dragging || undefined}
-    onpointermove={(event: PointerEvent) => event.buttons && (dragging = true)}
+    onpointerdown={(event: PointerEvent) => { pressed = !disabled && event.button === 0 }}
+    onValueCommit={endDrag}
   >
     <div class="relative h-1.5 w-full rounded-full bg-edge-soft">
       <Slider.Range class="absolute h-full rounded-full bg-forest" />
@@ -60,7 +72,6 @@
     />
   </Slider.Root>
 </div>
-
 
 <style>
   /* Pressing grows the thumb; a key or a click on the track glides it, a drag does not. */

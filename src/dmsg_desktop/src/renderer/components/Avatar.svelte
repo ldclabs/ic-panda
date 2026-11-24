@@ -28,7 +28,9 @@
   aria-hidden="true"
 >
   {#if src && failed !== src}
-    <img {src} alt="" class="peer absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-160 ease-calm data-loaded:opacity-100" use:loaded onerror={() => (failed = src ?? null)} />
+    {#key src}
+      <img {src} alt="" class="peer absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-160 ease-calm data-loaded:opacity-100" use:loaded onerror={() => (failed = src ?? null)} />
+    {/key}
   {/if}
   <span class="transition-[visibility] duration-160 peer-data-loaded:invisible">{text}</span>
 </span>

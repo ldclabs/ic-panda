@@ -1,3 +1,4 @@
+import { tick } from 'svelte'
 import { backOut, cubicOut } from 'svelte/easing'
 import type { TransitionConfig } from 'svelte/transition'
 
@@ -79,36 +80,19 @@ export function develop(node: HTMLElement, shown: boolean) {
   }
 }
 
-/**
- * What a jump landed on lights once (900ms, Warn pale), or a field just
- * saved in place (700ms, Pale), over its own background.
- */
-export function flash(node: Element | null | undefined, saved = false) {
-  if (!node || still()) return
-  const color = getComputedStyle(document.documentElement).getPropertyValue(saved ? '--pale' : '--warn-pale').trim()
-  node.animate([{ boxShadow: `inset 0 0 0 100vmax ${color}` }, { boxShadow: `inset 0 0 0 100vmax ${color}`, offset: 0.3 }, { boxShadow: 'inset 0 0 0 100vmax transparent' }], {
-    duration: saved ? 700 : 900,
-    easing: 'ease-out'
-  })
-}
-
-/**
- * Scrolls to what a jump landed on and lights it once, waiting up to 2s for
- * a list that is still loading to show it.
- */
-export function land(selector: string) {
-  const found = () => {
-    const node = document.querySelector(selector)
-    if (!node) return false
-    node.scrollIntoView({ block: 'nearest' })
-    flash(node)
-    return true
+/** Scrolls the current list to its target and highlights it without covering the selection. */
+export function land(list: HTMLElement | null, id: string) {
+  const row = list?.querySelector(`[data-id="${CSS.escape(id)}"]`)
+  if (!row) return false
+  row.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  if (!still()) {
+    const outline = { outline: '2px solid var(--forest)', outlineOffset: '-2px' }
+    row.animate([outline, { ...outline, offset: 0.3 }, { ...outline, outlineColor: 'transparent' }], {
+      duration: 900,
+      easing: 'ease-out'
+    })
   }
-  if (found()) return
-  const watch = new MutationObserver(() => found() && stop())
-  const timer = setTimeout(() => stop(), 2000)
-  const stop = () => (watch.disconnect(), clearTimeout(timer))
-  watch.observe(document.body, { childList: true, subtree: true })
+  return true
 }
 
 /**
@@ -157,40 +141,53 @@ export interface IndicatorTarget {
  */
 export function indicator(node: HTMLElement, target: IndicatorTarget) {
   const container = node.parentElement!
-  let item: HTMLElement | null = null
+  let position = ''
   const resized = new ResizeObserver(() => place(false))
-  const place = (glide: boolean) => {
-    const next = target.selector ? container.querySelector<HTMLElement>(target.selector) : null
-    if (next !== item) {
-      if (item) resized.unobserve(item)
-      if (next) resized.observe(next)
-      if (!item) glide = false
-      item = next
+  const observeItems = () => {
+    resized.disconnect()
+    resized.observe(container)
+    // A badge on a different item can shift the selection or move it onto another row.
+    for (const child of container.children) {
+      if (child !== node) resized.observe(child)
     }
+  }
+  const children = new MutationObserver(observeItems)
+  const place = (glide: boolean) => {
+    if (!node.isConnected) return
+    const item = target.selector ? container.querySelector<HTMLElement>(target.selector) : null
     node.hidden = !item
-    if (!item) return
+    if (!item) { position = ''; return }
     const inset = target.inset ?? 0
-    const top = target.edge === 'bottom' ? item.offsetTop + item.offsetHeight - node.offsetHeight : item.offsetTop
-    const jump = !glide || still()
+    const bottom = target.edge === 'bottom'
+    const height = bottom ? node.offsetHeight : item.offsetHeight
+    const top = bottom ? item.offsetTop + item.offsetHeight - height : item.offsetTop
+    const left = item.offsetLeft + inset
+    const width = item.offsetWidth - 2 * inset
+    const next = `${left}:${top}:${width}:${height}`
+    if (position === next) return
+    const jump = !position || !glide || still()
+    position = next
     if (jump) node.style.transition = 'none'
-    node.style.width = `${item.offsetWidth - 2 * inset}px`
-    if (target.edge !== 'bottom') node.style.height = `${item.offsetHeight}px`
-    node.style.transform = `translate(${item.offsetLeft + inset}px, ${top}px)`
+    node.style.width = `${width}px`
+    if (!bottom) node.style.height = `${height}px`
+    node.style.transform = `translate(${left}px, ${top}px)`
     if (jump) {
       void node.offsetWidth
       node.style.transition = ''
     }
   }
-  resized.observe(container)
+  observeItems()
+  children.observe(container, { childList: true })
   place(false)
   return {
     update(next: IndicatorTarget) {
       const moved = next.selector !== target.selector
       target = next
-      place(moved)
+      void tick().then(() => place(moved))
     },
     destroy() {
       resized.disconnect()
+      children.disconnect()
     }
   }
 }

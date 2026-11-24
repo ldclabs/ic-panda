@@ -26,20 +26,23 @@
     testid?: string
   } = $props()
 
-  let copied = $state(false)
+  const currentValue = () => typeof value === 'function' ? value() : value
+  let copiedValue = $state<string | null>(null)
+  const copied = $derived(copiedValue !== null && copiedValue === currentValue())
   let timer: ReturnType<typeof setTimeout> | undefined
 
   async function copy() {
-    if (!(await copyText(typeof value === 'function' ? value() : value, null))) return
-    copied = true
+    const text = currentValue()
+    if (!(await copyText(text, null))) return
+    copiedValue = text
     clearTimeout(timer)
-    timer = setTimeout(() => (copied = false), 1200)
+    timer = setTimeout(() => (copiedValue = null), 1200)
   }
 
   $effect(() => () => clearTimeout(timer))
 </script>
 
-<button {...rest} data-testid={testid} data-copied={copied || undefined} onclick={copy}>
+<button type="button" {...rest} data-testid={testid} data-copied={copied || undefined} onclick={copy}>
   {#key copied}<span class="inline-flex shrink-0" in:pop><Icon name={copied ? 'check' : icon} /></span>{/key}{label ?? ''}
 </button>
 <span class="sr-only" role="status">{copied ? t('copiedText') : ''}</span>

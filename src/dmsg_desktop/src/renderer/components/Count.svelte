@@ -16,4 +16,4 @@
   })
 </script>
 
-{#each digits as digit, i (digits.length - i)}{#key digit}<span class="inline-block" in:roll={{ up: step.up, quiet }}>{digit}</span>{/key}{/each}
+<bdi dir="ltr" class="whitespace-nowrap">{#each digits as digit, i (digits.length - i)}{#key digit}<span class="inline-block" in:roll={{ up: step.up, quiet }}>{digit}</span>{/key}{/each}</bdi>

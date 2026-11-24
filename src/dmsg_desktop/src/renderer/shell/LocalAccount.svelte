@@ -76,9 +76,10 @@
       close(); await refresh()
     } catch (e) {
       if (alive) {
+        const failure = code(e)
         error = errorText(e)
-        if (!plan && password) void refuse()
-        if (plan && ['EXPIRED', 'VERSION_CONFLICT'].includes(code(e))) {
+        if (failure === 'LOCAL_UNLOCK_FAILED') void refuse()
+        if (plan && ['EXPIRED', 'VERSION_CONFLICT'].includes(failure)) {
           void call('local_import/cancel', { id: plan.id }).catch(() => {})
           plan = null; items = []; files = []; bytes = 0
         }
@@ -88,9 +89,11 @@
   /** A refused password shakes its field and is selected, ready to be typed again. */
   async function refuse() {
     await tick()
-    if (!current) return
+    if (!alive || !open || !current) return
     shake(current)
-    current.querySelector('textarea')?.select()
+    const input = current.querySelector('textarea')
+    input?.focus()
+    input?.select()
   }
   function toggle(list: number[], index: number, yes: boolean) { return yes ? [...list, index] : list.filter(i => i !== index) }
 </script>

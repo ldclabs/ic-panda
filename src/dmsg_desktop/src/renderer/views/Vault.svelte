@@ -324,7 +324,7 @@
     focus.id = null
     finishEditing(() => {
       scope = 'all'; query = ''; selected = id
-      void tick().then(() => land(`[data-testid="vault-list"] [data-id="${CSS.escape(id)}"]`))
+      void tick().then(() => { if (selected === id) land(list, id) })
     })
   })
 

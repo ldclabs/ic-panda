@@ -116,18 +116,22 @@ try {
   await main.keyboard.press('Enter')
   await main.waitForFunction(id => window.testClipboard === id, fileId)
   const versionId = main.getByTestId('files-copy-current-version')
+  const reference = main.getByTestId('files-copy-reference')
   // The Id's own status follows it; a copy button beside it has another.
   const copyStatus = versionId.locator('xpath=following-sibling::*[1][@role="status"]')
   await copy(versionId, current)
   await copyStatus.filter({ hasText: 'Copied' }).waitFor({ state: 'attached' })
+  await copy(reference, `dmsg-file://${fileId}/${current}`)
+  await main.waitForSelector('[data-testid="files-copy-reference"][data-copied="true"]')
   file.current = older
   emit('files/changed')
   await versionId.getByText('2222…2222').waitFor()
   assert.equal(await copyStatus.textContent(), '', 'the new version was not copied')
+  assert.equal(await reference.getAttribute('data-copied'), null, 'the new reference was not copied')
   file.current = current
   emit('files/changed')
   await versionId.getByText('3333…3333').waitFor()
-  await copy(main.getByTestId('files-copy-reference'), `dmsg-file://${fileId}/${current}`)
+  await copy(reference, `dmsg-file://${fileId}/${current}`)
   const historical = main.locator(`[data-testid="files-version-identity"][data-version="${older}"]`)
   await copy(historical.getByTestId('files-copy-version'), older)
   assert.equal(await historical.getByTestId('files-copy-version').innerText(), '2222…2222')
@@ -138,6 +142,12 @@ try {
   await screenshot('files.png')
   await historical.scrollIntoViewIfNeeded()
   await screenshot('file-versions.png')
+
+  const disclosure = main.getByTestId('files-technical').locator('button').first()
+  await disclosure.press('Enter')
+  assert.equal(await reference.evaluate(el => el.closest('[data-collapsible-content]').inert), true)
+  await main.keyboard.press('Tab')
+  assert.equal(await main.evaluate(() => !!document.activeElement.closest('[data-collapsible-content][data-state="closed"]')), false)
 
   await openVault('Reference fixture')
   await technical('vault')

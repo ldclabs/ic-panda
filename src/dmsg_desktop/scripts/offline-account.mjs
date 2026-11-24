@@ -118,6 +118,10 @@ try {
   await page.getByTestId('local-current-password').fill('wrong synthetic password')
   await page.getByTestId('local-submit').click()
   await page.getByTestId('local-account-dialog').getByText(/LOCAL_UNLOCK_FAILED/i).waitFor()
+  await page.waitForFunction(() => {
+    const input = document.querySelector('[data-testid="local-current-password"]')
+    return input === document.activeElement && input.selectionStart === 0 && input.selectionEnd === input.value.length
+  })
   await page.getByTestId('local-current-password').fill(password)
   await page.getByTestId('local-submit').click()
   await page.getByTestId('vault').waitFor()

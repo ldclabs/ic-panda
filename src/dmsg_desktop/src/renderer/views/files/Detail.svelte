@@ -1,13 +1,12 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
-  import { onMount, tick } from 'svelte'
+  import { onMount } from 'svelte'
   import { localeDir } from '../../../shared/locales'
   import CopyButton from '../../components/CopyButton.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
-  import { flash } from '../../components/motion'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import TagInput from '../../components/TagInput.svelte'
@@ -76,7 +75,6 @@
   let previewing = $state<any | null>(null)
   let note = $state('')
   let editingNote = $state(false)
-  let noteShown = $state<HTMLElement>()
   let checked = $state('')
   /** A version about to be deleted or have its local chunks freed. */
   let confirming = $state<{ kind: 'delete' | 'evict'; version: any } | null>(null)
@@ -142,10 +140,7 @@
     attempt(async () => {
       await call('files/update', { id: file.id, note })
       editingNote = false
-      // The saved note lights once in place of a notice.
-      await tick()
-      flash(noteShown, true)
-    })
+    }, t('saved'))
   const verify = () =>
     attempt(async () => {
       checked = t('verifying')
@@ -360,7 +355,7 @@
               <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={saveNote} data-testid="files-note-save">{t('save')}</button>
             </div>
           {:else}
-            <button bind:this={noteShown} class={cn('w-full rounded-lg px-1 py-0.5 text-start text-body leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', file.note ? 'select-text' : 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
+            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-body leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', file.note ? 'select-text' : 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
               {file.note || (unlocked && !trash ? t('notePlaceholder') : '—')}
             </button>
           {/if}

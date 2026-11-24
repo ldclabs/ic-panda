@@ -73,6 +73,70 @@ export async function uxRegressionsFlow({ app, main, shots, methods, emit, hold,
   await main.keyboard.press('Escape')
   await session('unlocked')
 
+  await check('changing appearance does not hold the old window over a lock', async () => {
+    await go('/vault')
+    await main.getByTestId('vault-list').waitFor()
+    await main.evaluate(() => {
+      const start = document.startViewTransition
+      document.startViewTransition = update => start.call(document, async () => {
+        await update()
+        await new Promise(resolve => { window.finishAppearanceTransition = resolve })
+      })
+    })
+    try {
+      await main.keyboard.press(`${mod}+k`)
+      await main.getByTestId('palette-input').fill('Appearance: Dark')
+      await main.getByText('Appearance: Dark', { exact: true }).click()
+      await main.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
+      await session('locked')
+      assert.equal(await main.evaluate(() => document.documentElement.matches(':active-view-transition')), false)
+    } finally {
+      await main.evaluate(async () => {
+        window.finishAppearanceTransition?.()
+        delete document.startViewTransition
+        await window.dmsg.setAppearance('light')
+      })
+      await main.waitForFunction(() => !matchMedia('(prefers-color-scheme: dark)').matches)
+      await session('unlocked')
+    }
+  })
+
+  await check('a changing approval badge keeps the selected tab underline aligned and reads left to right in Arabic', async () => {
+    const request = original['approval/list']({ all: true }).find(row => row.state === 'awaiting_user')
+    let waiting = []
+    methods['approval/list'] = () => unlocked(waiting)
+    const aligned = () => {
+      const sign = document.querySelector('[data-testid="approvals-tab-sign"]')
+      const tab = sign.getBoundingClientRect()
+      const line = sign.parentElement.querySelector(':scope > span').getBoundingClientRect()
+      return Math.abs(line.left - tab.left - 8) <= 1 && Math.abs(line.bottom - tab.bottom) <= 1
+    }
+    try {
+      await go('/approvals/sign')
+      await main.getByTestId('approvals-tab-sign').waitFor()
+      await main.waitForFunction(aligned)
+      waiting = Array.from({ length: 12 }, (_, i) => ({ ...request, id: i.toString(16).padStart(64, '0') }))
+      emit('approval/changed')
+      const requests = main.getByTestId('approvals-tab-requests')
+      await requests.getByText('12', { exact: true }).waitFor()
+      await main.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))))
+      const followsBadge = await main.evaluate(aligned)
+
+      await main.evaluate(() => window.dmsg.setLocale('ar'))
+      await main.waitForSelector('html[lang="ar"][dir="rtl"]')
+      const digitsLeftToRight = await requests.evaluate(button => {
+        const [first, second] = button.querySelectorAll('span.inline-block')
+        return first.getBoundingClientRect().left < second.getBoundingClientRect().left
+      })
+      assert.deepEqual({ followsBadge, digitsLeftToRight }, { followsBadge: true, digitsLeftToRight: true })
+      await formMatrix(app, main, shots, 'review-approval-tabs', 'nav:has([data-testid="approvals-tab-sign"])')
+    } finally {
+      methods['approval/list'] = p => unlocked(original['approval/list'](p))
+      await main.evaluate(() => window.dmsg.setLocale('en'))
+      await main.waitForSelector('html[lang="en"]')
+    }
+  })
+
   await check('Delete uses the remaining selected row after deselecting the anchor', async () => {
     await go('/vault')
     await main.getByTestId('vault-list').waitFor()
@@ -80,7 +144,7 @@ export async function uxRegressionsFlow({ app, main, shots, methods, emit, hold,
     await main.locator(`[data-id="${a}"]`).click()
     await main.locator(`[data-id="${b}"]`).click({ modifiers: [mod] })
     await main.locator(`[data-id="${a}"]`).click({ modifiers: [mod] })
-    await main.waitForSelector(`[data-id="${b}"][data-chosen="true"]`)
+    await main.waitForSelector(`[data-id="${b}"][aria-current="true"]`)
     const count = calls.filter(c => c.method === 'vault/delete').length
     await main.keyboard.press('Delete')
     await waitFor(() => calls.filter(c => c.method === 'vault/delete').length > count)

@@ -24,6 +24,7 @@
     <span class="min-w-0 flex-1">{@render title()}</span>
   </Collapsible.Trigger>
   <Collapsible.Content
+    inert={!open}
     class="overflow-hidden ps-5.5 ease-calm data-[state=closed]:animate-collapsible-up data-[state=closed]:duration-140 data-[state=open]:animate-collapsible-down data-[state=open]:duration-220"
   >
     {@render children()}

@@ -364,9 +364,9 @@ when its state changes; a channel's name loses its unread weight
 smoothly. A slider's thumb grows while pressed and glides on a key or a
 click on the track, but follows a drag at once; a calendar's next month
 slides in from the side it was paged to. A jump from the command palette
-or a vault attachment lights its row once (`land`, `flash`), and a saved
-file note lights in place of a notice. Picking light or dark cross-fades
-the window (a view transition, only there); the locked page's shackle
+or a vault attachment brings its row into view and highlights its edge
+once (`land`). A saved file note reports success in a notice. Appearance
+changes apply directly to the live window. The locked page's shackle
 closes as it appears and lifts while unlocking; sidebar labels fade in
 after the sidebar has most of its width; a pane handle grows its line
 from the middle on hover.

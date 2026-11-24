@@ -68,6 +68,7 @@
   let usage = $state<any>(null)
   let query = $state('')
   let selected = $state<string[]>(remembered('files.selected') ?? [])
+  let landing = $state<string | null>(null)
   let placesOpen = $state(false)
   let program = $state<{ id: string; version: string | null; name: string } | null>(null)
   /** Where a shift-extended selection starts. */
@@ -244,13 +245,26 @@
     focus.id = null
     void call('files/show', { id })
       .then((details: any) => {
+        if (!alive) return
         pick(details.file.folder)
         selected = [id]
         anchor = id
-        // The file it was shown from lights once, as Finder's Show does.
-        void tick().then(() => land(`[data-testid="files-list"] [data-id="${CSS.escape(id)}"]`))
+        landing = id
       })
-      .catch((e) => toast(() => errorText(e)))
+      .catch((e) => { if (alive) toast(() => errorText(e)) })
+  })
+
+  $effect(() => {
+    const id = landing
+    if (!id) return
+    if (selected.length !== 1 || selected[0] !== id) { landing = null; return }
+    const at = rows.findIndex((row) => row.id === id)
+    if (at < 0) return
+    if (at >= limit) {
+      limit = at + PAGE
+    } else if (land(list, id)) {
+      landing = null
+    }
   })
 
   async function showDetails(id: string | null) {
