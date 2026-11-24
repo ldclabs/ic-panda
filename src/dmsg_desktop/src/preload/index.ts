@@ -69,7 +69,6 @@ const api: DesktopBridge = {
   },
   filesExport: (id, version, name) => unwrap(ipcRenderer.invoke('dmsg:files-export', id, version, name)),
   filesExportMany: (items) => unwrap(ipcRenderer.invoke('dmsg:files-export-many', items)),
-  filesPreview: (id, name) => unwrap(ipcRenderer.invoke('dmsg:files-preview', id, name)),
   filesDrag: (id, name) => unwrap(ipcRenderer.invoke('dmsg:files-drag', id, name)),
   closeApproval: () => unwrap(ipcRenderer.invoke('dmsg:close-approval')),
   filesPreferences: (changes) => unwrap(ipcRenderer.invoke('dmsg:files-preferences', changes)),

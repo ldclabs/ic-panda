@@ -33,6 +33,10 @@ final class PreviewModelsTests: XCTestCase {
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/json", name: "data.json"), .text)
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/pdf", name: "doc.pdf"), .unsupported)
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/vnd.dmsg.secret-package", name: "k.md"), .unsupported)
+        // Same rules as the core: no ICO or TIFF rendering, TypeScript is text.
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "image/tiff", name: "scan.tiff"), .unsupported)
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/octet-stream", name: "favicon.ico"), .unsupported)
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/typescript", name: "main.ts"), .text)
     }
 
     func testFilterCountsAndNearestNeighborFocus() {

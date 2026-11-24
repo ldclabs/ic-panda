@@ -45,6 +45,22 @@ final class FullscreenPreviewUITests: XCTestCase {
         XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
     }
 
+    func testFullscreenPreviewShowsItsOwnNotices() {
+        let app = launch(Look(language: "en", locale: "en_US", dark: false, large: false))
+        tapRow(app.buttons["file.item.fixture-local"], in: app)
+        XCTAssertTrue(app.buttons["preview.actions"].waitForExistence(timeout: 5))
+        app.buttons["preview.actions"].tap()
+        let copy = app.buttons["Copy"].firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 5))
+        copy.tap()
+        // The cover is the notice host while it is shown, so the notice is above it.
+        let notice = app.descendants(matching: .any)["workspace.notice"].firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 5))
+        XCTAssertTrue(notice.isHittable)
+        XCTAssertTrue(app.buttons["preview.close"].exists)
+        shot(app, "ios-preview-notice-en-light")
+    }
+
     func testFullscreenPreviewVisualMatrix() {
         let looks = [
             Look(language: "en", locale: "en_US", dark: false, large: false),

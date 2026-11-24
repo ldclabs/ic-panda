@@ -254,6 +254,14 @@
     }
   }
 
+  /** Formats the window cannot draw, such as HEIC, or damaged bytes: the fallback card with its actions. */
+  function onImageError(event: Event) {
+    const current = loaded
+    if (current.kind !== 'image' || (event.currentTarget as HTMLImageElement).src !== current.url) return
+    revokeUrl()
+    loaded = { kind: 'fallback', meta: current.meta, reason: 'decode_failed' }
+  }
+
   function onImageDblClick() {
     if (zoomMode === 'fit') {
       zoomMode = 'manual'
@@ -304,15 +312,26 @@
     }
   }
 
+  /** The clipboard takes PNG or JPEG; other formats are re-encoded as PNG, at most 4096 px on a side. */
+  async function clipboardImage(bytes: Uint8Array, mime: string): Promise<Uint8Array> {
+    if (mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/jpg') return bytes
+    const bitmap = await createImageBitmap(new Blob([bytes.slice()], { type: mime }))
+    const scale = Math.min(1, 4096 / Math.max(bitmap.width, bitmap.height))
+    const canvas = new OffscreenCanvas(Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)))
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    return new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer())
+  }
+
   async function copyContent() {
     const current = loaded
     if (current.kind === 'image') {
-      const bytes = current.bytes
       try {
+        const bytes = await clipboardImage(current.bytes, current.meta.mime)
         await bridge(() => window.dmsg.copyImage(bytes))
         toast(() => t('copiedText'))
-      } catch (error) {
-        toast(() => errorText(error))
+      } catch {
+        toast(() => t('copyFailed'))
       }
     } else if (current.kind === 'markdown' || current.kind === 'text') {
       await copyText(current.text)
@@ -649,6 +668,7 @@
                 naturalWidth = img.naturalWidth
                 naturalHeight = img.naturalHeight
               }}
+              onerror={onImageError}
               ondblclick={onImageDblClick}
               style:width={naturalWidth ? `${naturalWidth * effectiveScale}px` : undefined}
               style:height={naturalHeight ? `${naturalHeight * effectiveScale}px` : undefined}

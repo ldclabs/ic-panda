@@ -40,6 +40,10 @@ test('preview classification matches supported raster images, markdown, text, an
   assert.equal(classifyPreview('application/octet-stream', 'main.rs'), 'text')
   assert.equal(classifyPreview('application/pdf', 'report.pdf'), 'unsupported')
   assert.equal(classifyPreview('application/vnd.dmsg.secret-package', 'secrets.md'), 'unsupported')
+  // Same rules as `dmsg_client::preview::classify`: no ICO or TIFF rendering, TypeScript is text.
+  assert.equal(classifyPreview('image/tiff', 'scan.tiff'), 'unsupported')
+  assert.equal(classifyPreview('application/octet-stream', 'favicon.ico'), 'unsupported')
+  assert.equal(classifyPreview('application/typescript', 'main.ts'), 'text')
 })
 
 test('previewable check enforces size budgets and cloud-only status', () => {

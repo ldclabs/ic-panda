@@ -290,17 +290,17 @@ object PreviewFilterLogic {
 
     private val imageMimes = setOf(
         "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp",
-        "image/bmp", "image/x-icon", "image/vnd.microsoft.icon",
-        "image/avif", "image/heic", "image/heif", "image/tiff",
+        "image/bmp", "image/avif", "image/heic", "image/heif",
     )
     private val imageExts = setOf(
-        "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif", "heic", "heif", "tif", "tiff",
+        "png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "heic", "heif",
     )
     private val markdownExts = setOf("md", "markdown", "mdown", "mkd")
     private val textMimes = setOf(
         "application/json", "application/ld+json", "application/xml", "application/toml",
         "application/yaml", "application/x-yaml", "application/javascript",
-        "application/x-javascript", "application/x-sh", "application/sql", "application/csv",
+        "application/x-javascript", "application/typescript", "application/x-sh",
+        "application/sql", "application/csv",
     )
     private val textExts = setOf(
         "txt", "log", "json", "jsonc", "yaml", "yml", "toml", "xml", "csv", "tsv",

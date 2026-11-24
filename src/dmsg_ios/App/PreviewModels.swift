@@ -294,17 +294,17 @@ enum PreviewFilterLogic {
 
     private static let imageMimes: Set<String> = [
         "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp",
-        "image/bmp", "image/x-icon", "image/vnd.microsoft.icon",
-        "image/avif", "image/heic", "image/heif", "image/tiff",
+        "image/bmp", "image/avif", "image/heic", "image/heif",
     ]
     private static let imageExts: Set<String> = [
-        "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif", "heic", "heif", "tif", "tiff",
+        "png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "heic", "heif",
     ]
     private static let markdownExts: Set<String> = ["md", "markdown", "mdown", "mkd"]
     private static let textMimes: Set<String> = [
         "application/json", "application/ld+json", "application/xml", "application/toml",
         "application/yaml", "application/x-yaml", "application/javascript",
-        "application/x-javascript", "application/x-sh", "application/sql", "application/csv",
+        "application/x-javascript", "application/typescript", "application/x-sh",
+        "application/sql", "application/csv",
     ]
     private static let textExts: Set<String> = [
         "txt", "log", "json", "jsonc", "yaml", "yml", "toml", "xml", "csv", "tsv",

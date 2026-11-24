@@ -37,15 +37,12 @@ const IMAGE_MIMES = new Set([
   'image/gif',
   'image/webp',
   'image/bmp',
-  'image/x-icon',
-  'image/vnd.microsoft.icon',
   'image/avif',
   'image/heic',
-  'image/heif',
-  'image/tiff'
+  'image/heif'
 ])
 
-const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif', 'heic', 'heif', 'tif', 'tiff'])
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'heic', 'heif'])
 const MARKDOWN_EXTS = new Set(['md', 'markdown', 'mdown', 'mkd'])
 
 const TEXT_MIMES = new Set([
@@ -57,6 +54,7 @@ const TEXT_MIMES = new Set([
   'application/x-yaml',
   'application/javascript',
   'application/x-javascript',
+  'application/typescript',
   'application/x-sh',
   'application/sql',
   'application/csv'

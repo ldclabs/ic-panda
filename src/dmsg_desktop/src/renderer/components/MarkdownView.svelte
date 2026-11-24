@@ -16,6 +16,18 @@
   }
 </script>
 
+{#snippet taskBox(checked: boolean)}
+  <span
+    class={cn(
+      'mt-1 grid size-4 shrink-0 place-items-center rounded border',
+      checked ? 'border-forest bg-forest text-on-forest' : 'border-edge bg-surface'
+    )}
+    aria-hidden="true"
+  >
+    {#if checked}<Icon name="check" class="size-3" />{/if}
+  </span>
+{/snippet}
+
 {#snippet renderBlocks(blocks: MarkdownBlock[])}
   {#each blocks as block, idx (idx)}
     {#if block.type === 'heading'}
@@ -47,7 +59,14 @@
         <ol start={block.start} class="my-2.5 list-decimal space-y-1.5 ps-6 text-body text-ink">
           {#each block.items as item, itemIdx (itemIdx)}
             <li class="ps-0.5">
-              {@render renderBlocks(item.blocks)}
+              {#if item.checked !== undefined}
+                <div class="flex items-start gap-2">
+                  {@render taskBox(item.checked)}
+                  <div class="min-w-0 flex-1">{@render renderBlocks(item.blocks)}</div>
+                </div>
+              {:else}
+                {@render renderBlocks(item.blocks)}
+              {/if}
             </li>
           {/each}
         </ol>
@@ -57,15 +76,7 @@
           {#each block.items as item, itemIdx (itemIdx)}
             <li class={cn(item.checked !== undefined ? 'flex items-start gap-2' : 'ps-0.5')}>
               {#if item.checked !== undefined}
-                <span
-                  class={cn(
-                    'mt-1 grid size-4 shrink-0 place-items-center rounded border',
-                    item.checked ? 'border-forest bg-forest text-on-forest' : 'border-edge bg-surface'
-                  )}
-                  aria-hidden="true"
-                >
-                  {#if item.checked}<Icon name="check" class="size-3" />{/if}
-                </span>
+                {@render taskBox(item.checked)}
                 <div class="min-w-0 flex-1">{@render renderBlocks(item.blocks)}</div>
               {:else}
                 {@render renderBlocks(item.blocks)}

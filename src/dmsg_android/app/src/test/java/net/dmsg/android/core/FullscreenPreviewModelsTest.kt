@@ -29,6 +29,10 @@ class FullscreenPreviewModelsTest {
         assertEquals(PreviewClass.TEXT, PreviewFilterLogic.classify("application/json", "config.json"))
         assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("application/pdf", "report.pdf"))
         assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("application/vnd.dmsg.secret-package", "secret.dmsg"))
+        // Same rules as the core: no ICO or TIFF rendering, TypeScript is text.
+        assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("image/tiff", "scan.tiff"))
+        assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("application/octet-stream", "favicon.ico"))
+        assertEquals(PreviewClass.TEXT, PreviewFilterLogic.classify("application/typescript", "main.ts"))
     }
 
     @Test fun filterCountsAndNearestNeighborPreserveFocus() {

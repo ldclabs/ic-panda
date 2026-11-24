@@ -63,6 +63,7 @@ import java.io.File
     session: FullscreenPreviewSession,
     browser: (String) -> Unit,
     share: (File, String) -> Unit,
+    snackbar: SnackbarHostState,
 ) {
     BackHandler { client.fullscreenPreview.close() }
     val isImagePage = session.isImagePage
@@ -311,6 +312,8 @@ import java.io.File
                 }
             }
         }
+        // The overlay covers the workspace's hosts, so notices and errors raised here show here.
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
 
     if (confirmShare) {

@@ -539,10 +539,6 @@ async function systemCopy(id: string, name: string): Promise<string> {
   }
 }
 app.on('will-quit', dropSystemCopies)
-/** Space in the library: the system's own preview of a copy. */
-handle('dmsg:files-preview', 'main', async (_event, id: string, name: string) => {
-  main?.previewFile(await systemCopy(String(id), String(name)), basename(String(name)))
-})
 /** The file's icon dragged out of the window: the system moves a copy to where it is dropped. */
 handle('dmsg:files-drag', 'main', async (event, id: string, name: string) => {
   const path = await systemCopy(String(id), String(name))
@@ -1090,14 +1086,12 @@ handle('dmsg:preview-cancel', 'main', (_event, requestId?: unknown) => {
   }
 })
 
-/** An image shown in a window, to the clipboard: a data URL or raw image bytes. */
-handle('dmsg:copy-image', 'main', async (_event, input: string | Uint8Array) => {
-  let image: Electron.NativeImage | null = null
-  if (typeof input === 'string') {
-    image = /^data:image\/(png|jpeg|gif|webp);base64,/.test(input) ? nativeImage.createFromDataURL(input) : null
-  } else if (input instanceof Uint8Array && input.byteLength > 0 && input.byteLength <= 25 * 1024 * 1024) {
-    image = nativeImage.createFromBuffer(Buffer.from(input.buffer, input.byteOffset, input.byteLength))
-  }
+/** An image shown in a window, to the clipboard: PNG or JPEG bytes, the formats `nativeImage` decodes. */
+handle('dmsg:copy-image', 'main', async (_event, input: Uint8Array) => {
+  const image =
+    input instanceof Uint8Array && input.byteLength > 0 && input.byteLength <= 80 * 1024 * 1024
+      ? nativeImage.createFromBuffer(Buffer.from(input.buffer, input.byteOffset, input.byteLength))
+      : null
   if (!image || image.isEmpty()) throw new DaemonError('INVALID_INPUT', 'Not an image')
   await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(image.toPNG())], { type: 'image/png' }) })])
 })

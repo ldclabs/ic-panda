@@ -404,7 +404,7 @@ import kotlinx.coroutines.launch
             NoticeDestinationDialog(client)
             QrScannerHost(client, state.concealed)
             previewSession?.takeIf { state.unlocked && !state.concealed }?.let { activePreview ->
-                FullscreenFilePreviewOverlay(client, activePreview, browser, share)
+                FullscreenFilePreviewOverlay(client, activePreview, browser, share, snackbar)
             }
             if (showEditor && state.unlocked && !state.concealed) Dialog(onDismissRequest = ::closeEditor,
                 properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnClickOutside = false)) {

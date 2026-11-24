@@ -4,12 +4,14 @@ import UniformTypeIdentifiers
 
 /// Fullscreen file preview supporting horizontal swiping, type filtering, pinch/double-tap
 /// image zoom, safe native Markdown reading/source views, plain text, and metadata fallback.
-/// Privacy: `.privacySensitive()` plus immediate conceal/dismiss on lock or epoch change.
+/// Privacy: `privateScreen` (privacy-sensitive, and the notice host while shown) plus
+/// immediate conceal/dismiss on lock or epoch change.
 struct FullscreenFilePreviewView: View {
     let launch: FullscreenPreviewLaunch
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.layoutDirection) private var layoutDirection
 
     enum LoadedContent {
         case loading
@@ -36,6 +38,8 @@ struct FullscreenFilePreviewView: View {
     @State private var showingDetails = false
     @State private var confirmShare = false
     @State private var shareFile: ShareCopy?
+    /// The copy to remove once the share sheet closes; SwiftUI clears `shareFile` before `onDismiss`.
+    @State private var sharedCopy: ShareCopy?
     @State private var savingToLibrary = false
 
     struct ShareCopy: Identifiable {
@@ -129,7 +133,7 @@ struct FullscreenFilePreviewView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
-        .privacySensitive()
+        .privateScreen(.plain)
         .onAppear {
             activeEpoch = model.epoch
             model.activity()
@@ -287,9 +291,9 @@ struct FullscreenFilePreviewView: View {
         if let item = activeItem {
             Menu {
                 switch loaded {
-                case .image(let image, _, _, _, _, _):
+                case .image(_, let bytes, let mime, _, _, _):
                     Button(String(localized: "Copy"), systemImage: "doc.on.doc") {
-                        UIPasteboard.general.image = image
+                        model.clipboard.copy(bytes, type: UTType(mimeType: mime) ?? .image)
                         model.notice = String(localized: "Copied")
                     }
                 case .markdown(_, let text, _, _, _, _), .text(let text, _, _, _, _):
@@ -489,10 +493,12 @@ struct FullscreenFilePreviewView: View {
     // MARK: - Keyboard Shortcuts (iPadOS)
 
     private var keyboardShortcuts: some View {
-        Group {
-            Button(action: { step(-1) }) { EmptyView() }
+        // Pages run right to left in RTL layouts, so the arrows follow them.
+        let leftStep = layoutDirection == .rightToLeft ? 1 : -1
+        return Group {
+            Button(action: { step(leftStep) }) { EmptyView() }
                 .keyboardShortcut(.leftArrow, modifiers: [])
-            Button(action: { step(1) }) { EmptyView() }
+            Button(action: { step(-leftStep) }) { EmptyView() }
                 .keyboardShortcut(.rightArrow, modifiers: [])
             Button(action: { clearMemory(); dismiss() }) { EmptyView() }
                 .keyboardShortcut(.escape, modifiers: [])
@@ -716,7 +722,7 @@ struct FullscreenFilePreviewView: View {
                 }
                 let url = URL(fileURLWithPath: opened.path)
                 try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
-                shareFile = ShareCopy(url: url, nonce: opened.nonce, temporaryFile: false)
+                present(ShareCopy(url: url, nonce: opened.nonce, temporaryFile: false))
 
             case .channel:
                 let bytes: Data
@@ -730,7 +736,7 @@ struct FullscreenFilePreviewView: View {
                 try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                 let fileURL = dir.appending(path: safeName.isEmpty ? "file" : safeName)
                 try bytes.write(to: fileURL, options: [.completeFileProtection])
-                shareFile = ShareCopy(url: fileURL, nonce: nil, temporaryFile: true)
+                present(ShareCopy(url: fileURL, nonce: nil, temporaryFile: true))
             }
         } catch {
             if epoch == model.epoch, !Task.isCancelled {
@@ -739,9 +745,16 @@ struct FullscreenFilePreviewView: View {
         }
     }
 
+    private func present(_ copy: ShareCopy) {
+        cleanupShareCopy()
+        sharedCopy = copy
+        shareFile = copy
+    }
+
     private func cleanupShareCopy() {
-        guard let copy = shareFile else { return }
         shareFile = nil
+        guard let copy = sharedCopy else { return }
+        sharedCopy = nil
         if let nonce = copy.nonce, let engine = model.engine {
             Task { try? await engine.closeFile(nonce: nonce) }
         }

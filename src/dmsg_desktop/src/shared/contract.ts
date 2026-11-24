@@ -195,13 +195,11 @@ export interface DesktopBridge {
   filesPreferences(changes: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number }): Promise<unknown>
   /** Export a library file's version to a place the person picks in a system dialog; null when cancelled. */
   filesExport(id: string, version: string | null, name: string): Promise<unknown>
-  /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */
-  /** The system's own preview of a file, macOS only. */
-  filesPreview(id: string, name: string): Promise<void>
   /** Hands a dragged file's decrypted copy to the system's drag. */
   filesDrag(id: string, name: string): Promise<void>
   /** The approval window has done its work. */
   closeApproval(): Promise<void>
+  /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */
   filesOpen(id: string, version: string | null): Promise<unknown>
   /** Upload an image the person picks as the public avatar; null when cancelled. */
   avatar(): Promise<unknown>
@@ -284,8 +282,8 @@ export interface DesktopBridge {
   captureShortcut(active: boolean): Promise<void>
   /** Follow a `dmsg://` link found in a message or letter; it moves the view and executes nothing. */
   openLink(url: string): Promise<void>
-  /** Copy an image a window shows, by its data address or raw image bytes. */
-  copyImage(image: string | Uint8Array): Promise<void>
+  /** Copy an image a window shows, as PNG or JPEG bytes. */
+  copyImage(image: Uint8Array): Promise<void>
   /** Read a verified in-memory fullscreen preview from the local daemon without writing temporary files. */
   previewFile(source: PreviewSource, requestId?: string): Promise<PreviewResult>
   /** Cancel an in-flight preview request (or all in-flight previews when omitted). */

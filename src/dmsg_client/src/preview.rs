@@ -358,7 +358,7 @@ pub fn effective_mime(mime: &str, name: &str) -> String {
         Some("heic") => "image/heic",
         Some("heif") => "image/heif",
         Some("svg") => "image/svg+xml",
-        Some("md" | "markdown") => "text/markdown",
+        Some("md" | "markdown" | "mdown" | "mkd") => "text/markdown",
         Some("txt" | "log") => "text/plain",
         Some("csv") => "text/csv",
         Some("json") => "application/json",
@@ -414,7 +414,7 @@ pub fn classify(mime: &str, name: &str) -> PreviewClass {
     if matches!(base.as_str(), "text/markdown" | "text/x-markdown") {
         return PreviewClass::Markdown;
     }
-    if matches!(ext.as_deref(), Some("md" | "markdown"))
+    if matches!(ext.as_deref(), Some("md" | "markdown" | "mdown" | "mkd"))
         && matches!(
             base.as_str(),
             "" | "application/octet-stream" | "text/plain" | "text/markdown" | "text/x-markdown"
@@ -426,13 +426,17 @@ pub fn classify(mime: &str, name: &str) -> PreviewClass {
         || matches!(
             base.as_str(),
             "application/json"
+                | "application/ld+json"
                 | "application/xml"
                 | "application/yaml"
                 | "application/x-yaml"
                 | "application/toml"
                 | "application/javascript"
+                | "application/x-javascript"
                 | "application/typescript"
+                | "application/x-sh"
                 | "application/sql"
+                | "application/csv"
         )
     {
         return PreviewClass::Text;
@@ -443,34 +447,52 @@ pub fn classify(mime: &str, name: &str) -> PreviewClass {
             Some(
                 "txt"
                     | "log"
-                    | "csv"
                     | "json"
+                    | "jsonc"
                     | "yaml"
                     | "yml"
                     | "toml"
                     | "xml"
+                    | "csv"
+                    | "tsv"
+                    | "ini"
+                    | "cfg"
+                    | "conf"
+                    | "env"
+                    | "sh"
+                    | "bash"
+                    | "zsh"
+                    | "py"
+                    | "rs"
+                    | "js"
+                    | "mjs"
+                    | "cjs"
+                    | "ts"
+                    | "mts"
+                    | "cts"
+                    | "jsx"
+                    | "tsx"
                     | "html"
                     | "htm"
                     | "css"
-                    | "js"
-                    | "mjs"
-                    | "ts"
-                    | "tsx"
-                    | "jsx"
-                    | "rs"
-                    | "py"
-                    | "sh"
+                    | "scss"
                     | "sql"
-                    | "ini"
-                    | "conf"
-                    | "go"
-                    | "java"
-                    | "kt"
                     | "swift"
+                    | "kt"
+                    | "kts"
+                    | "java"
+                    | "go"
                     | "c"
                     | "h"
                     | "cpp"
+                    | "cc"
                     | "hpp"
+                    | "rb"
+                    | "php"
+                    | "svelte"
+                    | "vue"
+                    | "dockerfile"
+                    | "makefile"
             )
         )
     {
@@ -980,6 +1002,7 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
                                 checked,
                                 blocks: item_blocks,
                             });
+                            block_count += 1;
                         }
                     }
                 }
@@ -1005,6 +1028,7 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
                         && let Some(BlockFrame::Table { rows, .. }) = blocks.last_mut()
                     {
                         rows.push(cells);
+                        block_count += 1;
                     }
                 }
                 TagEnd::Table => {
@@ -1114,7 +1138,14 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
                 push_block(&mut blocks, MarkdownBlock::ThematicBreak, &mut block_count);
             }
             Event::TaskListMarker(checked) => {
-                if let Some(BlockFrame::ListItem { checked: slot, .. }) = blocks.last_mut() {
+                // Loose list items carry the marker inside their first paragraph.
+                if let [.., BlockFrame::ListItem { checked: slot, .. }]
+                | [
+                    ..,
+                    BlockFrame::ListItem { checked: slot, .. },
+                    BlockFrame::Paragraph(_),
+                ] = blocks.as_mut_slice()
+                {
                     *slot = Some(checked);
                 }
             }
@@ -1188,7 +1219,24 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
                     });
                 }
             }
-            _ => {}
+            BlockFrame::Table {
+                alignments,
+                headers,
+                rows,
+                ..
+            } => {
+                push_block(
+                    &mut blocks,
+                    MarkdownBlock::Table {
+                        alignments,
+                        headers,
+                        rows,
+                    },
+                    &mut block_count,
+                );
+            }
+            // An unfinished row or cell is dropped; completed rows stay in the table.
+            BlockFrame::Root(_) | BlockFrame::TableRow(_) | BlockFrame::TableCell(_) => {}
         }
     }
 
@@ -1238,6 +1286,16 @@ mod tests {
         );
         assert_eq!(
             classify("application/zip", "archive.zip"),
+            PreviewClass::Unsupported
+        );
+        assert_eq!(classify("", "notes.mdown"), PreviewClass::Markdown);
+        assert_eq!(
+            classify("application/octet-stream", "deploy.env"),
+            PreviewClass::Text
+        );
+        assert_eq!(classify("application/x-sh", "run"), PreviewClass::Text);
+        assert_eq!(
+            classify("application/octet-stream", "scan.tiff"),
             PreviewClass::Unsupported
         );
     }
@@ -1364,5 +1422,44 @@ fn main() {}
         let deep = "> ".repeat(40) + "leaf";
         let doc = parse_markdown(&deep);
         assert!(doc.truncated);
+    }
+
+    #[test]
+    fn keeps_task_markers_in_loose_lists() {
+        let doc = parse_markdown("- [x] done\n\n- [ ] todo\n\n1. [x] first\n");
+        let checked: Vec<_> = doc
+            .blocks
+            .iter()
+            .flat_map(|block| match block {
+                MarkdownBlock::List { items, .. } => items.iter().map(|i| i.checked).collect(),
+                _ => Vec::new(),
+            })
+            .collect();
+        assert_eq!(checked, [Some(true), Some(false), Some(true)]);
+    }
+
+    #[test]
+    fn bounds_table_rows_and_list_items() {
+        let table = format!(
+            "| a |\n| - |\n{}",
+            "| 1 |\n".repeat(MAX_MARKDOWN_BLOCKS + 10)
+        );
+        let doc = parse_markdown(&table);
+        assert!(doc.truncated);
+        match doc.blocks.as_slice() {
+            [MarkdownBlock::Table { headers, rows, .. }] => {
+                assert_eq!(headers.len(), 1);
+                assert!(!rows.is_empty() && rows.len() <= MAX_MARKDOWN_BLOCKS);
+            }
+            other => panic!("expected one partial table, got {} blocks", other.len()),
+        }
+
+        let list = "- x\n".repeat(MAX_MARKDOWN_BLOCKS * 2);
+        let doc = parse_markdown(&list);
+        assert!(doc.truncated);
+        assert!(matches!(
+            doc.blocks.as_slice(),
+            [MarkdownBlock::List { items, .. }] if items.len() < MAX_MARKDOWN_BLOCKS
+        ));
     }
 }

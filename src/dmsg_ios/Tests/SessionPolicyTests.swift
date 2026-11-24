@@ -1,3 +1,4 @@
+import UniformTypeIdentifiers
 import XCTest
 @testable import dMsg
 
@@ -228,6 +229,15 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertGreaterThan(model.viewGeneration, view)
         XCTAssertEqual(UIPasteboard.general.string, "fixture-copied-value")
         model.clipboard.clearOwned()
+    }
+
+    func testCopiedImageIsLocalExpiringAndClearedWithTheSession() {
+        let model = SessionModel()
+        let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        model.clipboard.copy(png, type: .png)
+        XCTAssertEqual(UIPasteboard.general.data(forPasteboardType: UTType.png.identifier), png)
+        model.clipboard.clearOwned()
+        XCTAssertNil(UIPasteboard.general.data(forPasteboardType: UTType.png.identifier))
     }
 
     func testCancelledBusyOperationCannotClearItsReplacementAfterLock() async {
