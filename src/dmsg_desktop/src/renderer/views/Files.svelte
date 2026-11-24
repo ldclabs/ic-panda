@@ -9,6 +9,8 @@
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
+  import Empty from '../components/page/Empty.svelte'
+  import Placeholder from '../components/Placeholder.svelte'
   import Notice from '../components/page/Notice.svelte'
   import PaneHandle from '../components/PaneHandle.svelte'
   import Progress from '../components/Progress.svelte'
@@ -1056,14 +1058,12 @@
                 {:else if !folderScope}
                   <p class="text-body text-muted">{t('noItems')}</p>
                 {:else}
-                  <span class="grid size-11 place-items-center justify-self-center text-faint [&_svg]:size-6"><Icon name="folder-open" /></span>
-                  <b class="text-body font-semibold">{scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')}</b>
-                  <p class="text-callout text-muted">{t('emptyFolderHint')}</p>
+                  <Empty icon="folder-open" title={scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')} description={t('emptyFolderHint')} class="py-2" />
                 {/if}
               </li>
             {:else}
               <!-- The daemon may answer late, busy with other work: never an empty library before it does. -->
-              <li class="px-4 py-10 text-center" data-testid="files-loading"><p class="shimmer text-body text-muted">{t('loading')}</p></li>
+              <Placeholder testid="files-loading" />
             {/if}
           {/each}
           {#if shown.length && (searchResults.result.kind === 'failed' || searchResults.result.kind === 'loading')}

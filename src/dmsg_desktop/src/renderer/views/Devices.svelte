@@ -4,8 +4,9 @@
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Dialog from '../components/Dialog.svelte'
-  import { deviceCapabilities, deviceCapabilityName, deviceRoleName, sameSelection } from './security'
+  import { deviceCapabilities, deviceRoleName, sameSelection } from './security'
   import Checkbox from '../components/Checkbox.svelte'
+  import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -13,7 +14,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, errorText, onChange, single, when } from '../rpc'
+  import { ago, bridge, call, errorText, onChange, single, when } from '../rpc'
   import DeviceTransfer from './DeviceTransfer.svelte'
   import DeviceAuthorization from './DeviceAuthorization.svelte'
   import Succession from './Succession.svelte'
@@ -116,37 +117,28 @@
     {#if status?.state === 'unlocked'}
       <div class="px-5 pb-4"><DeviceAuthorization account={status?.account} disabled={busy || !!loadError} canInvite={view.devices.some((device: any) => device.current && !device.revoked_at && device.role === 'Administrator' && device.capabilities.includes('RootManage'))} /></div>
     {/if}
-    <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-callout text-muted" data-testid="security-snapshot">
-      <span class="inline-flex items-center gap-1"><Icon name="verified" class="size-3.5 text-ok" />{t('snapshotChecked')}</span>
-      <span>{t('accountVersion')} {view.account_version}</span>
-      <span>{t('securityEpoch')} {view.security_epoch}</span>
-      <span>{t('rootGeneration')} {view.root_generation}</span>
-    </p>
     <ul class="divide-y divide-line">
       {#each view.devices as device (device.device_id)}
         <li class={cn('px-5 py-3.5', device.revoked_at && 'opacity-60')}>
           <div class="flex flex-wrap items-start gap-3">
-            <span class={cn('grid size-9 shrink-0 place-items-center rounded-xl', device.current ? 'bg-pale text-forest' : 'bg-surface-2 text-faint')}>
+            <span class={cn('grid size-9 shrink-0 place-items-center rounded-xl', device.current ? 'bg-forest/12 text-forest' : 'bg-wash text-muted')}>
               <Icon name="device" />
             </span>
             <div class="min-w-48 flex-1">
               <div class="flex flex-wrap items-center gap-1.5">
-                <Id id={device.device_id} />
+                <span class="text-body font-medium">{deviceRoleName(device.role, t)}</span>
                 {#if device.current}<Pill tone="forest">{t('thisDevice')}</Pill>{/if}
-                <Pill>{deviceRoleName(device.role, t)}</Pill>
                 {#if device.revoked_at}<Pill tone="danger">{t('revokedAt')} {when(device.revoked_at)}</Pill>{/if}
               </div>
-              <div class="mt-1.5 flex flex-wrap gap-1">
-                {#each device.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{deviceCapabilityName(capability, t)}</Pill>{:else}<span class="text-callout text-muted">-</span>{/each}
-              </div>
-              <p class="mt-1 text-caption text-faint">
-                {t('addedAt')} {when(device.added_at)}{device.added_by ? ` · ${t('addedBy')} ${device.added_by.slice(0, 12)}` : ''}
+              <p class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-callout text-muted">
+                <Id id={device.device_id} />
+                <span title={when(device.added_at)}>{t('addedAt')} {ago(device.added_at)}</span>
               </p>
             </div>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <div class="flex shrink-0 gap-1.5">
                 <button class={buttonClass('subtle', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-label={`${t('capabilities')} · ${device.current ? t('thisDevice') : deviceRoleName(device.role, t)} · ${device.device_id.slice(0, 12)}`} aria-haspopup="dialog"  onclick={() => edit(device)} data-testid="device-capabilities">
-                  {t('capabilities')}
+                  {t('capabilities')} · {device.capabilities.length}
                 </button>
                 {#if !device.current}
                   <button class={buttonClass('danger', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} data-testid="revoke-device" aria-label={`${t('revoke')} · ${device.device_id.slice(0,12)}`} onclick={() => ask('device/revoke', { device: device.device_id })}>
@@ -164,6 +156,20 @@
         </li>
       {/each}
     </ul>
+    <Collapsible class="mt-3 px-5" testid="devices-technical">
+      {#snippet title()}<span class="text-callout text-muted">{t('technicalDetails')}</span>{/snippet}
+      <p class="flex flex-wrap gap-x-3 pb-1 text-callout text-muted" data-testid="security-snapshot">
+        <span class="inline-flex items-center gap-1"><Icon name="verified" class="size-3.5 text-ok" />{t('snapshotChecked')}</span>
+        <span>{t('accountVersion')} {view.account_version}</span>
+        <span>{t('securityEpoch')} {view.security_epoch}</span>
+        <span>{t('rootGeneration')} {view.root_generation}</span>
+      </p>
+      <ul class="grid gap-1 pb-1 text-callout text-muted">
+        {#each view.devices.filter((device: any) => device.added_by) as device (device.device_id)}
+          <li class="flex flex-wrap items-center gap-x-1.5"><Id id={device.device_id} /> {t('addedBy')} <Id id={device.added_by} /></li>
+        {/each}
+      </ul>
+    </Collapsible>
   </Section>
 {/if}
 {#if status?.state === 'unlocked'}

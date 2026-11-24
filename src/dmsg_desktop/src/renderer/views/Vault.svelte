@@ -7,6 +7,8 @@
   import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Page from '../components/page/Page.svelte'
+  import Empty from '../components/page/Empty.svelte'
+  import Placeholder from '../components/Placeholder.svelte'
   import TabBar from '../components/page/TabBar.svelte'
   import PaneHandle from '../components/PaneHandle.svelte'
   import Select from '../components/Select.svelte'
@@ -752,20 +754,21 @@
               {:else if scope === 'health'}
                 <p class="text-body text-muted">{t(healthStatus === 'ready' ? 'healthClear' : healthStatus === 'error' ? 'error' : 'loading')}</p>
               {:else if scope === 'all'}
-                <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="vault" /></span>
-                <b class="text-body font-semibold">{t('emptyVault')}</b>
-                {#if status?.account_kind !== 'local'}<p class="text-callout text-muted">{t('emptyVaultHint')}</p>{/if}
-                {#if unlocked}
-                  <button class={buttonClass('primary', 'sm')} onclick={() => (creating = true)}>{t('add')}</button>
-                  <button class={buttonClass('secondary', 'sm')} onclick={() => (backingUp = true)}>{t('vaultBackupImport')}</button>
-                  <button class={buttonClass('secondary', 'sm')} onclick={() => (importing = true)}><Icon name="import" />{t('importTitle')}</button>
-                {/if}
+                <Empty icon="vault" title={t('emptyVault')} description={status?.account_kind !== 'local' ? t('emptyVaultHint') : undefined} class="py-2">
+                  {#snippet actions()}
+                    {#if unlocked}
+                      <button class={buttonClass('primary', 'sm')} onclick={() => (creating = true)}>{t('add')}</button>
+                      <button class={buttonClass('secondary', 'sm')} onclick={() => (backingUp = true)}>{t('vaultBackupImport')}</button>
+                      <button class={buttonClass('secondary', 'sm')} onclick={() => (importing = true)}><Icon name="import" />{t('importTitle')}</button>
+                    {/if}
+                  {/snippet}
+                </Empty>
               {:else}
                 <p class="text-body text-muted">{t('noItems')}</p>
               {/if}
             </li>
           {:else}
-            <li class="py-10 text-center text-body text-muted" data-testid="vault-loading">{t('loading')}</li>
+            <Placeholder testid="vault-loading" />
           {/if}
           {/if}
         {/each}

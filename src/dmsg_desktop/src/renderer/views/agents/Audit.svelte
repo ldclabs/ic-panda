@@ -1,16 +1,22 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import Collapsible from '../../components/Collapsible.svelte'
+  import Empty from '../../components/page/Empty.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
-  import { locale, t } from '../../i18n/index.svelte'
+  import { locale, stateLabel, t } from '../../i18n/index.svelte'
   import { call, errorText, onChange, single, when } from '../../rpc'
   import { days } from '../channels/channels'
   import { outcomeTone } from './agents'
 
-  /** The device's audit record as a timeline: who did what, through which way in. Readable while locked; IDs only. */
+  /**
+   * The device's audit record as a timeline. Each entry reads as one line,
+   * who did what and how it ended; the recorded fields stay one click away.
+   * Readable while locked; IDs only.
+   */
   let { agents }: { agents: any[] } = $props()
 
   let entries = $state<any[]>([])
@@ -70,6 +76,9 @@
   const dayFormat = $derived(new Intl.DateTimeFormat(locale(), { weekday: 'short', month: 'short', day: 'numeric' }))
   const timeFormat = $derived(new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }))
   const dots = { ok: 'bg-ok', danger: 'bg-danger', warn: 'bg-warn' }
+  /** `dmsg_vault_read` and `grants/add` as words: the tool or method the entry names. */
+  const deed = (action: string) => action.replace(/^dmsg_/, '').replace(/[_/.]+/g, ' ').trim()
+  const ending = { ok: 'done', danger: 'rejected', warn: 'failed' } as const
 </script>
 
 <Section title={t('audit')} description={t('auditHint')} icon="audit" testid="agent-audit">
@@ -91,26 +100,29 @@
       <ol class="relative ms-1.5 border-s border-line ps-5">
         {#each [...group.messages].reverse() as e (e.seq)}
           {@const tone = outcomeTone(e.outcome)}
-          <li class="relative pb-3.5">
-            <span class={cn('absolute -start-[25px] top-1.5 size-2.5 rounded-full ring-3 ring-surface', dots[tone])}></span>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <b class="font-mono text-code font-medium">{e.action}</b>
-              <Pill tone={tone}>{e.outcome}</Pill>
-              <span class="text-callout text-muted">{labelOf(e.actor)}</span>
-              <Pill>{e.via}</Pill>
-              <time class="ms-auto text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
+          <li class="relative pb-2">
+            <span class={cn('absolute -start-[25px] top-2 size-2.5 rounded-full ring-3 ring-surface', dots[tone])}></span>
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <p class="min-w-0 flex-1 text-body [overflow-wrap:anywhere]"><b class="font-medium">{labelOf(e.actor)}</b> <span class="text-ink-2">{deed(e.action)}</span></p>
+              <Pill tone={tone}>{stateLabel(ending[tone])}</Pill>
+              <time class="text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
             </div>
-            {#if e.target || e.detail}
-              <p class="mt-0.5 font-mono text-code break-all text-faint">{[e.target, e.detail].filter(Boolean).join(' · ')}</p>
-            {/if}
+            <Collapsible testid="audit-fields">
+              {#snippet title()}<span class="text-caption text-faint">{t('technical')}</span>{/snippet}
+              <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 pb-1 font-mono text-code text-muted select-text">
+                {#each [['action', e.action], ['outcome', e.outcome], ['via', e.via], ['actor', e.actor], ['target', e.target], ['detail', e.detail]] as [name, value] (name)}
+                  {#if value}<dt class="text-faint">{name}</dt><dd class="break-all">{value}</dd>{/if}
+                {/each}
+              </dl>
+            </Collapsible>
           </li>
         {/each}
       </ol>
     {:else}
-      {#if !error}<div class="flex items-center gap-2 text-body text-muted">
-        <span role="status">{!loaded ? t('loading') : actor ? t('noResults') : t('noAudit')}</span>
-        {#if loaded && actor}<button class={buttonClass('ghost', 'sm')} onclick={() => { actor = ''; void load() }}>{t('everyone')}</button>{/if}
-      </div>{/if}
+      {#if error}{:else if !loaded}<p class="text-body text-muted" role="status">{t('loading')}</p>
+      {:else}<div role="status"><Empty icon="audit" title={actor ? t('noResults') : t('noAudit')} class="py-8">
+        {#snippet actions()}{#if actor}<button class={buttonClass('secondary', 'sm')} onclick={() => { actor = ''; void load() }}>{t('everyone')}</button>{/if}{/snippet}
+      </Empty></div>{/if}
     {/each}
   </div>
   {#if more && !error}

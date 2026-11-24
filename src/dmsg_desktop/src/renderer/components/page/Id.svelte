@@ -5,6 +5,7 @@
   import { cn } from '../ui'
   import { t } from '../../i18n/index.svelte'
   import { shortId } from '../../shell/session'
+  import { idChunks } from '../id-chunks'
 
   /**
    * An identifier as a neutral chip: shortened unless `full`, the whole of
@@ -29,7 +30,7 @@
       {disabled}
       data-testid={testid}
     >
-      <bdi dir="ltr" class={cn('min-w-0 text-start', wrap ? 'break-all' : 'truncate')}>{full ? id : shortId(id)}</bdi>
+      <bdi dir="ltr" class={cn('min-w-0 text-start', wrap ? 'break-all' : 'truncate')}>{#if full}{#each idChunks(id) as part, i}<span class={i ? 'ms-[0.4ch]' : undefined}>{part}</span>{/each}{:else}{shortId(id)}{/if}</bdi>
       {#if copyLabel}<Icon name="copy" class="shrink-0" />{/if}
     </button>
   {/snippet}

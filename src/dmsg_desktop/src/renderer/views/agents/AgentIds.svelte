@@ -5,6 +5,7 @@
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
+  import Empty from '../../components/page/Empty.svelte'
   import Icon from '../../components/Icon.svelte'
   import Segmented from '../../components/Segmented.svelte'
   import TextField from '../../components/TextField.svelte'
@@ -200,7 +201,7 @@
         {/if}
       </li>
     {:else}
-      <li class="px-5 py-3 text-body text-faint">{t('noAgents')}</li>
+      <li><Empty icon="agents" title={t('noAgents')} class="py-8" /></li>
     {/each}
   </ul>
   {#if unlocked}

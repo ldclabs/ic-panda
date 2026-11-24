@@ -6,6 +6,7 @@
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
+  import Collapsible from '../../components/Collapsible.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import TagInput from '../../components/TagInput.svelte'
@@ -331,13 +332,6 @@
         {@render row(t('modified'))}
         <dd class="min-w-0" title={when(file.updated_at)}>{dateFormat.format(file.updated_at)}</dd>
       </div>
-      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
-        {@render row('SHA-256')}
-        <dd class="flex min-w-0 items-center gap-1">
-          <span class="min-w-0 flex-1 truncate font-mono text-code select-text" dir="ltr">{file.sha256}</span>
-          <button class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
-        </dd>
-      </div>
       <div class="grid gap-x-4 py-2 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
         {@render row(t('tags'))}
         <dd class="min-w-0">
@@ -499,7 +493,16 @@
       {/each}
     </ol>
 
-    <dl class="mt-5 grid gap-1 border-t border-line pt-3 text-caption text-faint" data-testid="files-identifiers">
+    <Collapsible class="mt-5 border-t border-line pt-2" testid="files-technical">
+    {#snippet title()}<span class="text-callout text-muted">{t('technicalDetails')}</span>{/snippet}
+    <dl class="grid gap-1.5 pt-1 pb-1 text-callout text-muted" data-testid="files-identifiers">
+      <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <dt>SHA-256</dt>
+        <dd class="flex min-w-0 flex-1 items-center gap-1">
+          <span class="min-w-0 flex-1 truncate font-mono text-code select-text" dir="ltr">{file.sha256}</span>
+          <button class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
+        </dd>
+      </div>
       <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <dt>{t('fileId')}</dt>
         <dd class="min-w-0"><Id id={file.id} copyLabel={t('copyFileId')} disabled={!unlocked} testid="files-copy-id" /></dd>
@@ -511,14 +514,18 @@
           <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${file.current}`)} data-testid="files-copy-reference"><Icon name="link" />{t('copyFileReference')}</button>
         </dd>
       </div>
+      {#if current?.backup}
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <dt>{t('backupGeneration')}</dt>
+          <dd class="tabular-nums">{current.backup.generation}</dd>
+        </div>
+      {/if}
     </dl>
+    </Collapsible>
   </div>
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-caption text-faint">
     <span class="inline-flex items-center gap-1.5"><Icon name="drive" class="size-3.5" />{t('createdAt')} {ago(file.created_at)}</span>
-    {#if current?.backup}
-      <span class="inline-flex items-center gap-1.5 text-ok"><Icon name="sync" class="size-3.5" />{t('backupGeneration')} {current.backup.generation}</span>
-    {/if}
   </footer>
 </section>
 

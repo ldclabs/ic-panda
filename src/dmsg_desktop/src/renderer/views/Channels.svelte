@@ -3,6 +3,7 @@
   import { watchContent } from '../content-refresh'
   import type { Delivery, MessageDeliveries } from '../message-delivery'
   import Notice from '../components/page/Notice.svelte'
+  import Empty from '../components/page/Empty.svelte'
   import { ContextMenu, DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
@@ -860,16 +861,17 @@
           {@render item(entry)}
         {:else}
           {#if !listed.other.length && !oldChannels.length}
-            <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
-              <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
+            <li>
               {#if status?.sync_initialized === false && unlocked}
-                <p class="text-body text-muted" data-testid="channels-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</p>
-                <p class="text-callout text-muted">{t('syncInitialHint')}</p>
+                <Empty icon="channels" title={t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')} description={t('syncInitialHint')} testid="channels-initial-sync" class="px-4 py-10" />
               {:else}
-                <p class="text-body text-muted">{query.trim() ? t('noMatch', { query }) : onlyUnread ? t('noResults') : t('noChannels')}</p>
-              {/if}
-              {#if unlocked && !query.trim() && !onlyUnread && status?.sync_initialized !== false}
-                <button class={buttonClass('secondary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
+                <Empty icon="channels" title={query.trim() ? t('noMatch', { query }) : onlyUnread ? t('noResults') : t('noChannels')} class="px-4 py-10">
+                  {#snippet actions()}
+                    {#if unlocked && !query.trim() && !onlyUnread}
+                      <button class={buttonClass('primary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
+                    {/if}
+                  {/snippet}
+                </Empty>
               {/if}
             </li>
           {/if}

@@ -4318,17 +4318,17 @@ smoke: try {
   assert.equal(eventNotes.some((n) => n.includes('Upstream')), false)
   // The audit record names who did what and through which way in.
   await main.click('[data-testid="agents-tab-audit"]')
-  await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=vault read')
   const finishOldAudit = hold('audit/list', (p) => !p.agent)
   emit('audit/changed')
   await waitFor(() => held.get('audit/list'))
   await choose(main, 'audit-actor', 'owner')
   await waitFor(() => latest('audit/list').params.agent === 'owner')
-  await main.waitForSelector('[data-testid="audit-entries"] >> text=grants/add')
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=grants add')
   await finishOldAudit()
-  assert.equal(await main.locator('[data-testid="audit-entries"] >> text=dmsg_vault_read').count(), 0)
+  assert.equal(await main.locator('[data-testid="audit-entries"] >> text=vault read').count(), 0)
   await choose(main, 'audit-actor', '')
-  await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=vault read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
   // A grant joins the services ticked at the chosen origin with those
   // typed, and the matrix shows what each Agent ID reaches.
@@ -4639,6 +4639,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
   await releaseEditedHealth()
   // History opens below the item; an earlier version becomes current again.
+  if (!(await main.getByTestId('vault-revision').isVisible())) await main.getByTestId('vault-technical').locator('button').first().click()
   await main.click('[data-testid="vault-revision"]')
   await main.click('[data-testid="vault-version"] >> nth=1')
   await main.waitForSelector('[data-testid="vault-version-detail"] >> text=(old)')
@@ -5245,6 +5246,8 @@ smoke: try {
   await approval.screenshot({ path: join(shots, 'approval-key.png') })
   // Another device is revoked only as an approval request.
   await main.click('[data-testid="settings-devices"]')
+  // The snapshot's versions are technical details, folded under the list.
+  await main.getByTestId('devices-technical').getByRole('button').first().click()
   await main.waitForSelector('[data-testid="security-snapshot"]')
   // The capabilities picked go to the daemon as plain values, though the
   // window keeps them as state, and the change is an approval request.

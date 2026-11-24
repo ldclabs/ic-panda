@@ -1,5 +1,6 @@
 <script lang="ts">
   import Checkbox from '../../components/Checkbox.svelte'
+  import Empty from '../../components/page/Empty.svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import TextField from '../../components/TextField.svelte'
@@ -107,11 +108,7 @@
       {#if query.trim() && entries.length}
         <p class="px-4 py-10 text-center text-body text-muted" role="status">{t('noFilesMatch', { query })}</p>
       {:else if loaded && !error}
-        <div class="grid justify-items-center gap-2 px-4 py-14 text-center" data-testid="files-cloud-empty">
-          <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="cloud-down" /></span>
-          <b class="text-body font-semibold">{t('cloudEmpty')}</b>
-          <p class="max-w-sm text-callout text-muted">{t('cloudEmptyHint')}</p>
-        </div>
+        <Empty icon="cloud-down" title={t('cloudEmpty')} description={t('cloudEmptyHint')} testid="files-cloud-empty" />
       {/if}
     {:else}
       <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">

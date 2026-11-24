@@ -29,6 +29,7 @@
   import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
+  import { idChunks } from '../components/id-chunks'
   import { callerLabels, cashTotal, nameActionLabels, skuOf } from './plan/plan'
 
   /**
@@ -565,9 +566,11 @@
   </Notice>
 {/snippet}
 
+{#snippet grouped(value: string)}<bdi dir="ltr">{#each idChunks(value) as part, i}<span class={i ? 'ms-[0.4ch]' : undefined}>{part}</span>{/each}</bdi>{/snippet}
+
 {#snippet row(label: string, value: string, options: { mono?: boolean; multiline?: boolean; testid?: string } = {})}
   <dt class="text-faint">{label}</dt>
-  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-code leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
+  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-code leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{#if options.mono}{@render grouped(value)}{:else}{value}{/if}</dd>
 {/snippet}
 
 {#snippet nameRows()}
@@ -595,6 +598,8 @@
       <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-s border-line ps-2.5">
         {#each f.value.fields as inner (inner.name)}{@render field(inner)}{/each}
       </dl>
+    {:else if ['hash', 'principal', 'artifact'].includes(f.value?.type)}
+      {@render grouped(actionValue(f.value, lang))}
     {:else}
       {actionValue(f.value, lang)}
     {/if}

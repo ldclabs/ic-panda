@@ -4,6 +4,8 @@
   import { nameOf } from './channels/names.svelte'
   import Page from '../components/page/Page.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import Placeholder from '../components/Placeholder.svelte'
+  import Empty from '../components/page/Empty.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
   import Segmented from '../components/Segmented.svelte'
@@ -190,7 +192,8 @@
             </DropdownMenu.Root>
           </li>
         {:else}
-          {#if !error}<li class="grid justify-items-center gap-2 px-5 py-12 text-center" role="status"><Icon name="bell" class="size-6 text-faint" /><span class="text-body font-medium">{loading ? t('loading') : counts?.unverified ? t('noticeVerifyHint') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')}</span>{#if !loading && !counts?.unverified && scope === 'open'}<span class="text-callout text-muted">{t('reminderEmptyHint')}</span>{/if}</li>{/if}
+          {#if error}{:else if loading}<Placeholder testid="reminders-loading" />
+          {:else}<li role="status"><Empty icon="bell" title={counts?.unverified ? t('noticeVerifyHint') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')} description={!counts?.unverified && scope === 'open' ? t('reminderEmptyHint') : undefined} /></li>{/if}
         {/each}
       </ul>
       {#if cursor}<div><button class={buttonClass('secondary','sm')} disabled={loading || busy} onclick={() => load(true)}>{t('more')}</button></div>{/if}

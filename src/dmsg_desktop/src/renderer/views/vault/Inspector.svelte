@@ -5,6 +5,7 @@
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
+  import Collapsible from '../../components/Collapsible.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
@@ -354,12 +355,21 @@
         <History id={entry.id} head={entry.revision} {device} {unlocked} {editable} onClose={() => (history = false)} />
       {/if}
     {/if}
-    <dl class="mt-5 border-t border-line pt-3 text-caption text-faint" data-testid="vault-identifiers">
-      <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <dt>{t('vaultItemId')}</dt>
-        <dd class="min-w-0"><Id id={entry.id} copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
-      </div>
-    </dl>
+    <Collapsible class="mt-5 border-t border-line pt-2" testid="vault-technical">
+      {#snippet title()}<span class="text-callout text-muted">{t('technicalDetails')}</span>{/snippet}
+      <dl class="grid gap-1.5 pt-1 pb-1 text-callout text-muted" data-testid="vault-identifiers">
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <dt>{t('vaultItemId')}</dt>
+          <dd class="min-w-0"><Id id={entry.id} copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
+        </div>
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <dt>{t('revision')}</dt>
+          <dd class="min-w-0">
+            <button class={buttonClass('subtle', 'xs')} title={entry.revision} onclick={() => (history = !history)} data-testid="vault-revision"><bdi dir="ltr" class="font-mono">{entry.revision.slice(0, 10)}</bdi></button>
+          </dd>
+        </div>
+      </dl>
+    </Collapsible>
   </div>
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-caption text-faint">
@@ -368,8 +378,5 @@
     </span>
     <span title={when(item.createdAt)}>{t('created')} {ago(item.createdAt)}</span>
     <span title={when(item.updatedAt)}>{t('updated')} {ago(item.updatedAt)}</span>
-    <button class="hover:text-ink" title={entry.revision} onclick={() => (history = !history)} data-testid="vault-revision">
-      {t('revision')} <bdi dir="ltr" class="font-mono">{entry.revision.slice(0, 10)}</bdi>
-    </button>
   </footer>
 </section>

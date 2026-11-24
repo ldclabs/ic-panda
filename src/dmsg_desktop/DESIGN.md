@@ -175,6 +175,9 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
   detail content, after the content and version history, in the shortened
   `Id` presentation. Version rows also use shortened IDs. Hover or keyboard
   focus exposes the full value; copying always uses the complete identifier.
+  A long ID shown whole (the approval window, technical details) reads in
+  groups of four with a thin gap between them (`idChunks`); copying still
+  gives the plain value.
 - **R4 Consequence first, details after.** Approvals, grants and transfers
   say in one sentence what will happen; raw fields stay folded below.
 - **R5 Risk costs one more step.** Reject has the focus; Approve waits 1.2
@@ -315,7 +318,7 @@ channels and objects are rounded tiles, as on iOS and Android.
 One family, Remix Icon 4.6.0 (Apache-2.0, `public/licenses`), line style,
 inlined in `components/glyphs.ts` so they take the text color. Names say what
 an icon is for (`vault`, `conflict`, `epoch`), with the Remix name beside
-each path. 18px in navigation and toolbars, 16–18px beside button text, and 20px in large buttons and section titles. Status marks remain 12–14px; empty states use 24px without a decorative frame. Panel close buttons use a 20px SVG with a tighter viewBox, giving the existing Remix cross about 14px of visible width inside a 36px hit area. Icons that point along the reading direction (`chevron-end`, `enter`,
+each path. 18px in navigation and toolbars, 16–18px beside button text, and 20px in large buttons and section titles. Status marks remain 12–14px; empty states use 40px in Forest without a decorative frame. Panel close buttons use a 20px SVG with a tighter viewBox, giving the existing Remix cross about 14px of visible width inside a 36px hit area. Icons that point along the reading direction (`chevron-end`, `enter`,
 the sidebar toggles) mirror right to left; the send icon is flipped where it
 is used. Every icon-only button has an accessible name and a tooltip.
 
@@ -362,7 +365,15 @@ restyle a control by hand.
   rule between rows, as the system's settings group them), `Notice` (info,
   warn, danger, ok), `Pill` (states), `Id` (the neutral ID chip), `Field`,
   `Fact` (label and value rows), `TabBar` (`onPick` when a route owns the
-  choice).
+  choice), `Empty` (an empty place: 40px Forest mark, a title, one line,
+  actions side by side).
+- **Loading** — a list's first read shows `Placeholder` rows after 300ms,
+  still under reduced motion, with a status for screen readers; small
+  inline reads keep a line of text.
+- **Technical details** — revision, root generation, item and version IDs,
+  SHA-256, the security snapshot and raw audit fields sit in a `Collapsible`
+  at the end of the detail, closed by default; footers keep the sync state
+  and times.
 - **Lists** — a list's container has `data-list`; its current row
   (`aria-current`) or chosen rows (`data-chosen`) take Select, and Forest
   while the list holds the focus (`app.css`). Vault and file rows lead with
@@ -543,8 +554,16 @@ inline editors alone handle their own cancel shortcut.
   trail (relayed hops dashed), the content, "when you approve", folded
   technical fields, then the fixed decision area: expiry line, Reject, Approve or Hold to
   approve, and after a decision the steps the daemon reports.
-- **Empty and locked states** — an icon tile, one sentence, and the next
-  action (log in, unlock, continue setup, new item, import).
+- **Empty and locked states** — `Empty` and `Locked`: the 40px Forest mark,
+  one sentence, and the next action (log in, unlock, continue setup, new
+  item, import).
+- **Devices** — each device shows its role, "this device", the ID and when
+  it was added; capabilities are a count on the button that opens the
+  editor. The audit record reads one line per entry (who, what, how it
+  ended) with the recorded fields folded under it.
+- **Item form** — the fields sit in one Surface card with rules between
+  them; inputs keep their Edge border for contrast, and the field's type
+  is caption text beside its name, changed from the field's more menu.
 - **Login** — one dialog wherever it starts. The default Passkey entry first
   distinguishes an existing credential from creating a new login identity,
   with Internet Identity as an alternate. Opening the choices does not start

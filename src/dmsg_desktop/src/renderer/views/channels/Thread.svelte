@@ -11,6 +11,7 @@
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
+  import Empty from '../../components/page/Empty.svelte'
   import LinkedText from '../../components/LinkedText.svelte'
   import TargetMenu from '../../components/TargetMenu.svelte'
   import { toast } from '../../components/toast.svelte'
@@ -569,12 +570,7 @@
     </section>
   {:else}
     {#if !outbox.length && !more}
-      <div class="grid h-full place-items-center px-8 text-center">
-        <div class="grid justify-items-center gap-2">
-          <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
-          <p class="text-body text-muted">{t('noMessages')}</p>
-        </div>
-      </div>
+      <div class="grid h-full place-items-center"><Empty icon="channels" title={t('noMessages')} /></div>
     {/if}
   {/each}
   {#each outbox as item (item.message_id)}

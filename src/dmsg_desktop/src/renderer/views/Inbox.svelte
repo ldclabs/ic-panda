@@ -2,6 +2,8 @@
   import { daemonBlocked } from '../connection-gate'
   import { watchContent } from '../content-refresh'
   import Notice from '../components/page/Notice.svelte'
+  import Placeholder from '../components/Placeholder.svelte'
+  import Empty from '../components/page/Empty.svelte'
   import { Tabs } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
@@ -348,10 +350,8 @@
             </button>
           </li>
         {:else}
-          {#if !boxError}<li class="grid justify-items-center gap-2 px-4 py-10 text-center">
-            <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="inbox" /></span>
-            <p class="text-body text-muted" role="status" data-testid="letters-empty">{!ready || (refreshing && box !== 'sent') ? t('loading') : asked ? t('noResults') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
-          </li>{/if}
+          {#if boxError}{:else if !ready || (refreshing && box !== 'sent')}<Placeholder testid="letters-loading" />
+          {:else}<li role="status"><Empty icon="inbox" title={asked ? t('noResults') : box === 'sent' ? t('noSent') : t('noLetters')} testid="letters-empty" class="px-4 py-10" /></li>{/if}
         {/each}
       </ul>
     </section>

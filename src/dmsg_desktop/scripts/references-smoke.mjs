@@ -94,9 +94,16 @@ try {
     }
     await main.screenshot({ path: join(shots, name) })
   }
+  // Technical details are folded in an open item or file; open them when they are not shown.
+  const technical = async part => {
+    const body = main.getByTestId(`${part}-identifiers`)
+    if (!(await body.isVisible())) await main.getByTestId(`${part}-technical`).locator('button').first().click()
+    await body.waitFor()
+  }
 
   await main.evaluate(() => { location.hash = '/files' })
   await main.getByText(file.name, { exact: true }).first().click()
+  await technical('files')
   await copy(main.getByTestId('files-copy-id'), fileId)
   assert.equal(await main.getByTestId('files-copy-id').innerText(), '1111…1111')
   assert.equal(await main.getByTestId('files-copy-current-version').innerText(), '3333…3333')
@@ -122,6 +129,7 @@ try {
   await screenshot('file-versions.png')
 
   await openVault('Reference fixture')
+  await technical('vault')
   await copy(main.getByTestId('vault-copy-id'), itemId)
   assert.equal(await main.getByTestId('vault-copy-id').innerText(), '4444…4444')
   assert.equal(await main.getByTestId('vault-identifiers').evaluate(el => el === el.parentElement.lastElementChild && !!(document.querySelector('[data-testid="vault-detail"]').compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)), true)
@@ -177,6 +185,7 @@ try {
     assert.ok(releaseReference)
     if (exit === 'revision') {
       entries[0].revision = 'aa'.repeat(32); emit('vault/changed')
+      await technical('vault')
       await main.waitForFunction(revision => document.querySelector('[data-testid="vault-revision"]')?.title === revision, entries[0].revision)
     } else {
       if (exit === 'navigation') await main.evaluate(() => { location.hash = '/files' })
@@ -191,8 +200,10 @@ try {
   locked = false; emit('session/changed', status())
   await openVault('Reference fixture')
   await main.evaluate(() => window.dmsg.setLocale('zh'))
+  await technical('vault')
   await main.getByRole('button', { name: '复制条目 ID', exact: true }).waitFor()
   await (await app.browserWindow(main)).evaluate(window => window.setContentSize(760, 540))
+  await technical('vault')
   await main.getByTestId('vault-copy-id').scrollIntoViewIfNeeded()
   await screenshot('vault-zh-narrow.png')
   await main.evaluate(() => window.dmsg.setAppearance('dark'))
@@ -203,6 +214,7 @@ try {
   await screenshot('vault-ar-narrow.png')
   await main.evaluate(() => { location.hash = '/files' })
   await main.getByText(file.name, { exact: true }).first().click()
+  await technical('files')
   await main.getByTestId('files-copy-id').scrollIntoViewIfNeeded()
   await screenshot('files-ar-dark-narrow.png')
   await main.getByTestId('files-places-open').click()
@@ -214,6 +226,7 @@ try {
   await main.getByTestId('files-places-dialog').getByTestId('files-scope-root').click()
   await main.getByTestId('files-places-dialog').waitFor({ state: 'detached' })
   await main.getByText(file.name, { exact: true }).first().click()
+  await technical('files')
   await main.getByTestId('files-copy-id').scrollIntoViewIfNeeded()
   await fits()
 

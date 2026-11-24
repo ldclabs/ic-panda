@@ -65,10 +65,11 @@
 
 <div class="flex h-full w-full flex-col overflow-y-auto bg-paper" data-testid="welcome">
   <div class="h-10 shrink-0 [-webkit-app-region:drag]"></div>
-  <div class="mx-auto grid w-full max-w-[600px] gap-6 px-6 pb-10">
-    <header class="flex items-center gap-2.5">
-      <Brand class="h-7 w-6" />
-      <span class="me-auto text-title-2 leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+  <!-- my-auto centres the steps in a tall window and lets a short one scroll from the top. -->
+  <div class="mx-auto my-auto grid w-full max-w-[600px] gap-6 px-6 pb-10">
+    <header class="flex items-center gap-3.5">
+      <Brand class="h-16 w-14" />
+      <span class="me-auto text-title-1 leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
       {#if step === 0}
         <Select value={locale()} options={locales.map((code) => ({ value: code, label: localeNames[code] }))} label={t('language')} onChange={pickLanguage} testid="welcome-language" class="w-44" />
       {:else if step === 1}

@@ -239,9 +239,10 @@
     </div>
   {/if}
 
-  <div bind:this={list} class="grid gap-2.5" data-testid="vault-form-fields">
+  <!-- The fields are one group: a rule between them instead of a frame around each. -->
+  <div bind:this={list} class="divide-y divide-line rounded-xl border border-line bg-surface" data-testid="vault-form-fields">
     {#each fields as field, i (i)}
-      <div class="grid gap-1 rounded-xl border border-line bg-surface px-2.5 py-2" data-index={i} data-field={field.id} data-type={field.type}>
+      <div class="grid gap-1 px-2.5 py-2.5" data-index={i} data-field={field.id} data-type={field.type}>
         <div class="flex items-center gap-1.5">
           <input
             value={field.label}
@@ -251,7 +252,7 @@
             class="h-6 min-w-0 flex-1 border-transparent bg-transparent px-1 text-callout font-medium text-ink-2 shadow-none placeholder:text-ink-2 hover:border-edge-soft focus:border-forest"
             data-label
           />
-          <span class="shrink-0 rounded bg-wash px-1.5 py-px text-caption text-faint">{t(fieldTypeLabel[field.type])}</span>
+          <span class="shrink-0 text-caption text-faint">{t(fieldTypeLabel[field.type])}</span>
           <DropdownMenu.Root dir={localeDir(locale())}>
             <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions') + ' · ' + (fieldName(field, t) || t(fieldTypeLabel[field.type]))} data-testid="field-menu">
               <Icon name="more" />

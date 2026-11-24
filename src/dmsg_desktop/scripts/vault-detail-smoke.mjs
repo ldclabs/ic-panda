@@ -286,6 +286,7 @@ try {
 
   // Historical secrets stay read-only; managed fields retain desktop read/copy policy.
   await select()
+  if (!(await main.getByTestId('vault-revision').isVisible())) await main.getByTestId('vault-technical').locator('button').first().click()
   await main.getByTestId('vault-revision').click()
   await main.getByTestId('vault-version').click()
   const history = main.getByTestId('vault-version-detail')
