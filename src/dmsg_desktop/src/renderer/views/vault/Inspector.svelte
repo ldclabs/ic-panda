@@ -9,6 +9,7 @@
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { pop } from '../../components/motion'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, size, when } from '../../rpc'
   import { focus as fileFocus } from '../files/focus.svelte'
@@ -219,7 +220,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex min-w-0 items-start gap-1.5">
           <h2 class="min-w-0 text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
-          {#if item.favorite}<span class="pt-0.5 text-gem" role="img" aria-label={t('starred')} title={t('starred')}><Icon name="starred" class="size-4" /></span>{/if}
+          {#if item.favorite}<span class="pt-0.5 text-gem" role="img" aria-label={t('starred')} title={t('starred')} in:pop><Icon name="starred" class="size-4" /></span>{/if}
         </div>
         <div class="mt-1 flex flex-wrap items-center gap-1.5 text-callout text-muted">
           <span>{t(typeLabel[type])}</span>

@@ -1577,6 +1577,13 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 const profile = await mkdtemp(join(tmpdir(), 'dmsg-desktop-smoke-'))
 const shots = resolve('test-results')
+/** Closes the main window's notices until none is left; a closed one fades out before it leaves. */
+const dismissNotices = (page) =>
+  page.waitForFunction(() => {
+    const closes = document.querySelectorAll('[role="status"][aria-live="polite"] button[aria-label]')
+    closes.forEach((button) => button.click())
+    return closes.length === 0
+  })
 await mkdir(shots, { recursive: true })
 // The windows start in English and light, whatever the system's languages and appearance.
 await writeFile(join(profile, 'locale'), 'en')
@@ -2882,9 +2889,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="message-outgoing"][data-state="queued"] >> text=Session send two')
   assert.equal(await main.getByTestId('outgoing-retry').count(), 0)
   await main.getByTestId('sidebar-toggle').click()
-  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label]').count()) {
-    await main.locator('[role="status"][aria-live="polite"] button[aria-label]').first().click()
-  }
+  await dismissNotices(main)
   await formMatrix(app, main, shots, 'channel-queued', '[data-testid="channel-messages"]')
   await main.getByTestId('sidebar-toggle').click()
   await finishQueuedSend()
@@ -2931,9 +2936,7 @@ smoke: try {
   await main.getByText('Earlier window message', { exact: true }).waitFor()
   await main.getByTestId('channel-earlier').waitFor({ state: 'detached' })
   emit('channel/changed', {})
-  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label]').count()) {
-    await main.locator('[role="status"][aria-live="polite"] button[aria-label]').first().click()
-  }
+  await dismissNotices(main)
   await main.screenshot({ path: join(shots, 'channel-history-loaded.png') })
   assert.equal(await main.getByTestId('channel-earlier').count(), 0)
   methods['channel/list'] = realList; methods['channel/show'] = realShow
@@ -4329,6 +4332,9 @@ smoke: try {
   assert.equal(await main.locator('[data-testid="audit-entries"] >> text=vault read').count(), 0)
   await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=vault read')
+  // Each line opens on its recorded fields.
+  await main.getByTestId('audit-entry').first().getByRole('button').click()
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
   // A grant joins the services ticked at the chosen origin with those
   // typed, and the matrix shows what each Agent ID reaches.

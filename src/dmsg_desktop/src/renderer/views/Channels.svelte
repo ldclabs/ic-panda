@@ -4,6 +4,8 @@
   import type { Delivery, MessageDeliveries } from '../message-delivery'
   import Notice from '../components/page/Notice.svelte'
   import Empty from '../components/page/Empty.svelte'
+  import { flip } from 'svelte/animate'
+  import { arrive, enter, flipDuration } from '../components/motion'
   import { ContextMenu, DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
@@ -766,7 +768,6 @@
 {#snippet item(entry: any)}
   {@const draft = (drafts[entry.id] ?? entry.draft)?.trim()}
   {@const at = Math.max(entry.last?.stored_at ?? 0, entry.active_at ?? 0)}
-  <li data-channel={entry.id}>
     <button
       class={cn(
         'grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
@@ -813,7 +814,6 @@
         {/if}
       </span>
     </button>
-  </li>
 {/snippet}
 
 <div class="@container relative flex h-full min-h-0">
@@ -858,7 +858,8 @@
         {#snippet menu(entry)}{@render channelMenu(entry)}{/snippet}
       <ul data-list class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
         {#each listed.live as entry (entry.id)}
-          {@render item(entry)}
+          <!-- A channel that moves up on news slides there; one that joins fades in. -->
+          <li data-channel={entry.id} animate:flip={{ duration: flipDuration(listed.live.length) }} in:enter={listed.live.length}>{@render item(entry)}</li>
         {:else}
           {#if !listed.other.length && !oldChannels.length}
             <li>
@@ -884,7 +885,7 @@
           </li>
           {#if showOther}
             {#each listed.other as entry (entry.id)}
-              {@render item(entry)}
+              <li data-channel={entry.id}>{@render item(entry)}</li>
             {/each}
           {/if}
         {/if}
@@ -914,7 +915,7 @@
     </section>
 
     <PaneHandle name="channels" />
-    <section class="@container/conversation flex min-w-0 flex-1 flex-col">
+    <section class="@container/conversation flex min-w-0 flex-1 flex-col" use:arrive={channel?.id}>
       {#if legacySelected}
         {#key `${legacySelected.archive}:${legacySelected.source}`}
           <LegacyHistory entry={legacySelected} onDeleted={() => { legacySelected = null; void readLegacy() }} />

@@ -4,6 +4,7 @@
   import Toaster from '../components/Toaster.svelte'
   import { t } from '../i18n/index.svelte'
   import { modalOpen } from '../components/ui'
+  import { arrive } from '../components/motion'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
   import { lastRoute, noteRoute, visitRoute } from '../view-memory'
@@ -357,7 +358,7 @@
         <Header {view} {mod} {collapsed} {scrolled} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
       {/key}
       {#if !local}{#key viewSession}<RecoveryBanner />{/key}{/if}
-      <main bind:this={mainArea} class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page} onscrollcapture={underTitle}>
+      <main bind:this={mainArea} class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page} onscrollcapture={underTitle} use:arrive={view}>
         {#key viewSession}
           <!-- A session change ended every view; the next status opens one. -->
           {#if local && status?.state === 'moved'}

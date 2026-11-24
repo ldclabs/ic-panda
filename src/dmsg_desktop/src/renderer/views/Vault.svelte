@@ -17,6 +17,7 @@
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass, modalOpen } from '../components/ui'
+  import { arrive } from '../components/motion'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
@@ -793,7 +794,7 @@
     </section>
     <PaneHandle name="vault" />
 
-    <div class="min-w-0 flex-1">
+    <div class="min-w-0 flex-1" use:arrive={current?.id}>
       {#if picked.length > 1}
         <div class="grid h-full place-items-center p-8 text-body text-muted">{t('nSelected', { n: picked.length })}</div>
       {:else if current}

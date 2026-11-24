@@ -2,13 +2,15 @@
   import { t } from '../i18n/index.svelte'
   import { isFailure, temporaryFailure } from '../failure'
   import Icon from './Icon.svelte'
+  import { leave } from './motion'
   import { dismiss, pauseToasts, resumeToasts, toasts } from './toast.svelte'
   import { buttonClass, iconButtonClass } from './ui'
 
   /**
    * The main window's notices, newest last, at the bottom of the reading end:
    * a raised card in the window's own colors. A failure carries its mark; the
-   * close shows on hover or focus, and resting on a notice holds it.
+   * close shows on hover or focus, and resting on a notice holds it. Notices
+   * spring in and fade out.
    */
   let now = $state(Date.now())
 
@@ -34,6 +36,7 @@
     <div
       class="group pointer-events-auto flex max-w-full items-center gap-2.5 rounded-xl bg-surface py-2 ps-3 pe-1.5 text-callout text-ink shadow-pop duration-300 ease-spring animate-in fade-in-0 slide-in-from-bottom-2 dark:bg-surface-2"
       data-testid={item.testid}
+      out:leave
     >
       {#if item.countdown}
         <span

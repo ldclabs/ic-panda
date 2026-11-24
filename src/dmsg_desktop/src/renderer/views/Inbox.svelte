@@ -16,6 +16,7 @@
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
+  import { arrive } from '../components/motion'
   import { t, type Label } from '../i18n/index.svelte'
   import { ago, call, closed, code, errorText, single, when } from '../rpc'
   import { shortId } from '../shell/session'
@@ -357,7 +358,7 @@
     </section>
     <PaneHandle name="inbox" class="hidden @min-[760px]:block" />
 
-    <section class={cn('h-[62%] min-w-0 w-full overflow-y-auto @min-[760px]:h-full @min-[760px]:w-auto @min-[760px]:flex-1', onlyList && 'hidden @min-[760px]:block')}>
+    <section class={cn('h-[62%] min-w-0 w-full overflow-y-auto @min-[760px]:h-full @min-[760px]:w-auto @min-[760px]:flex-1', onlyList && 'hidden @min-[760px]:block')} use:arrive={selected}>
       {#if missingNotice}<div class="p-5"><Notice>{t('noticeEnded')}</Notice></div>{/if}
       {#if letter}
         <article class="mx-auto max-w-2xl px-4 py-5 @min-[900px]:px-8" data-testid="letter">

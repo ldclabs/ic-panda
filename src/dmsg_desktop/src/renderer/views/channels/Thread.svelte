@@ -17,6 +17,7 @@
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { enter } from '../../components/motion'
   import { locale, t } from '../../i18n/index.svelte'
   import { bridge, errorText, size, when } from '../../rpc'
   import { remember, remembered } from '../../view-memory'
@@ -144,6 +145,9 @@
     if (diff < 2) return new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(-diff, 'day').replace(/^\p{L}/u, (c) => c.toLocaleUpperCase(locale()))
     return dayFormat.format(date)
   }
+
+  /** Another's message stored after the thread opened fades in; the ones already there show at once. */
+  const opened = Date.now()
 
   /** A message continues the one before it when the same account wrote both within five minutes. */
   const follows = (list: any[], i: number) => i > 0 && list[i - 1].account === list[i].account && list[i].stored_at - list[i - 1].stored_at < 300_000 && !list[i].reply_to
@@ -459,7 +463,7 @@
       {:else}
         {@const own = mine(message)}
         <article
-          class={cn('group relative flex gap-2.5 px-4', own && 'flex-row-reverse', compact ? 'pt-0.5' : 'pt-3', highlight === message.seq && 'bg-warn-pale/60')}
+          class={cn('group relative flex gap-2.5 px-4', own && 'flex-row-reverse', compact ? 'pt-0.5' : 'pt-3', highlight === message.seq && 'bg-warn-pale/60', !own && message.stored_at > opened && 'animate-in fade-in-0 duration-150')}
           data-seq={message.seq}
           data-mine={own}
           dir="ltr"
@@ -574,7 +578,7 @@
     {/if}
   {/each}
   {#each outbox as item (item.message_id)}
-    <article class="flex flex-row-reverse gap-2.5 px-4 pt-3" dir="ltr" data-testid="message-outgoing" data-mine="true" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
+    <article class="flex flex-row-reverse gap-2.5 px-4 pt-3" in:enter dir="ltr" data-testid="message-outgoing" data-mine="true" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
       <div class="flex min-w-0 max-w-[min(80%,calc(100%-44px))] flex-col items-end">
         <div class="mb-0.5 flex flex-wrap items-baseline justify-end gap-2 px-1">
           {#if item.queued}

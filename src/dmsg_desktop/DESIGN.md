@@ -334,6 +334,16 @@ shown secret) and the approve delay fills inside the button. Under
 `prefers-reduced-motion` every animation and transition ends at once, and the
 drain bars hide.
 
+Small motions, 120–200ms, from `components/motion.ts`, which asks for
+reduced motion as each starts: a view, and the item in a detail, fade in
+when they change (`arrive`, without remounting); a channel that moves up
+on news slides there (`flip`) and a new one fades in, in lists under 100
+rows; another's message that arrives while the conversation is open fades
+in, and one's own outgoing message too; the favourite star, the unread and
+waiting counts and an ID's copy check pop once; notices spring in and fade
+out. A copy from an `Id` with a copy mark shows a check for 1.2s instead of
+a notice.
+
 ## Components
 
 The kit lives in `src/renderer/components`; views compose it and do not
@@ -655,6 +665,14 @@ Electron smoke script; credential workflows also have
 `node scripts/secrets-smoke.mjs`. Use isolated fixtures for UI checks, and
 report real-device, OS-dialog or accessibility checks separately if they
 were not run. Documentation-only changes do not require a new visual run.
+
+Visual changes compare `DMSG_DESKTOP_SMOKE=gallery node scripts/smoke.mjs`
+before and after: the main views in English light and dark, Chinese,
+Arabic dark (1180 wide) and the 760px window, in `test-results/gallery/`.
+`tests/ui-typography.test.ts` holds the type scale. Page screenshots cannot
+show the macOS sidebar material, the traffic lights or full screen; check
+those on a Mac, and the window lifecycle step of the smoke needs dMsg in
+front and the screen unlocked.
 
 
 ## 2026-10-24 UI simplification

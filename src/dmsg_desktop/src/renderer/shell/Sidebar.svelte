@@ -10,6 +10,7 @@
   import GateRail from './GateRail.svelte'
   import { entryOf, groups, views, type View } from './nav'
   import { filled } from '../components/glyphs'
+  import { pop } from '../components/motion'
 
   /**
    * The main window's sidebar: the window's buttons in the title bar's line,
@@ -70,7 +71,7 @@
               'min-w-4.5 rounded-full bg-forest px-1.5 text-center text-caption leading-[18px] font-semibold text-on-forest tabular-nums',
               collapsed && 'absolute -end-1 -top-1 min-w-4 px-1 text-caption leading-4'
             )}
-            data-testid="channels-unread">{status.channels_unread > 99 ? '99+' : status.channels_unread}</span
+            data-testid="channels-unread">{#key status.channels_unread}<span class="inline-block" in:pop>{status.channels_unread > 99 ? '99+' : status.channels_unread}</span>{/key}</span
           >
         {/if}
         {#if view === views.approvals && status?.approvals_waiting}
@@ -79,7 +80,7 @@
               'inline-flex items-center gap-1.5 text-caption font-semibold text-gem tabular-nums',
               collapsed && 'absolute end-0.5 top-0.5 gap-1 text-caption leading-none'
             )}
-            data-testid="waiting-count"><i class="size-[7px] rotate-45 rounded-[1px] bg-gem"></i>{status.approvals_waiting}</span
+            data-testid="waiting-count"><i class="size-[7px] rotate-45 rounded-[1px] bg-gem"></i>{#key status.approvals_waiting}<span class="inline-block" in:pop>{status.approvals_waiting}</span>{/key}</span
           >
         {/if}
       </button>

@@ -100,15 +100,17 @@
       <ol class="relative ms-1.5 border-s border-line ps-5">
         {#each [...group.messages].reverse() as e (e.seq)}
           {@const tone = outcomeTone(e.outcome)}
-          <li class="relative pb-2">
-            <span class={cn('absolute -start-[25px] top-2 size-2.5 rounded-full ring-3 ring-surface', dots[tone])}></span>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <p class="min-w-0 flex-1 text-body [overflow-wrap:anywhere]"><b class="font-medium">{labelOf(e.actor)}</b> <span class="text-ink-2">{deed(e.action)}</span></p>
-              <Pill tone={tone}>{stateLabel(ending[tone])}</Pill>
-              <time class="text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
-            </div>
-            <Collapsible testid="audit-fields">
-              {#snippet title()}<span class="text-caption text-faint">{t('technical')}</span>{/snippet}
+          <li class="relative pb-1">
+            <span class={cn('absolute -start-[25px] top-2.5 size-2.5 rounded-full ring-3 ring-surface', dots[tone])}></span>
+            <!-- The line is the disclosure: who did what and how it ended, the recorded fields under it. -->
+            <Collapsible testid="audit-entry">
+              {#snippet title()}
+                <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span class="min-w-0 flex-1 text-body [overflow-wrap:anywhere]"><b class="font-medium">{labelOf(e.actor)}</b> <span class="text-ink-2">{deed(e.action)}</span></span>
+                  <Pill tone={tone}>{stateLabel(ending[tone])}</Pill>
+                  <time class="text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
+                </span>
+              {/snippet}
               <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 pb-1 font-mono text-code text-muted select-text">
                 {#each [['action', e.action], ['outcome', e.outcome], ['via', e.via], ['actor', e.actor], ['target', e.target], ['detail', e.detail]] as [name, value] (name)}
                   {#if value}<dt class="text-faint">{name}</dt><dd class="break-all">{value}</dd>{/if}

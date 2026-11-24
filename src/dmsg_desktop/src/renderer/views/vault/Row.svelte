@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../components/Icon.svelte'
   import { cn } from '../../components/ui'
+  import { pop } from '../../components/motion'
   import { t } from '../../i18n/index.svelte'
   import { ago } from '../../rpc'
   import { isManaged, line, typeIcon, typeOf } from './vault'
@@ -64,7 +65,7 @@
         {/if}
         {#if flagged}<Icon name="warning" class="size-3 text-warn" label={t('healthFlagged')} />{/if}
         {#if managed}<Icon name="lock" class="size-3" label={t('managedByDmsg')} />{/if}
-        {#if item.favorite}<Icon name="starred" class="size-3 text-gem" label={t('starred')} />{/if}
+        {#if item.favorite}<span class="inline-flex" in:pop><Icon name="starred" class="size-3 text-gem" label={t('starred')} /></span>{/if}
       </span>
     </span>
   </button>

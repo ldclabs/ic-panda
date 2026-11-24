@@ -6,14 +6,29 @@
   import { t } from '../../i18n/index.svelte'
   import { shortId } from '../../shell/session'
   import { idChunks } from '../id-chunks'
+  import { pop } from '../motion'
 
   /**
    * An identifier as a neutral chip: shortened unless `full`, the whole of
    * it in a tooltip, copied on a click. It reads left to right in every
    * language. `wrap` breaks a full identifier over lines instead of
-   * truncating it.
+   * truncating it. With `copyLabel` its copy mark turns to a check for a
+   * moment after a copy, in place of a notice; the status says it for a
+   * screen reader.
    */
   let { id, full = false, wrap = false, copyLabel, disabled = false, testid, class: className }: { id: string; full?: boolean; wrap?: boolean; copyLabel?: string; disabled?: boolean; testid?: string; class?: string } = $props()
+  let copied = $state(false)
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  async function copy() {
+    if (!copyLabel) return void copyText(id)
+    if (!(await copyText(id, null))) return
+    copied = true
+    clearTimeout(timer)
+    timer = setTimeout(() => (copied = false), 1200)
+  }
+
+  $effect(() => () => clearTimeout(timer))
 </script>
 
 <Tooltip content={`${id} · ${copyLabel ?? t('copy')}`}>
@@ -25,13 +40,14 @@
         copyLabel && 'min-h-8 py-1',
         className
       )}
-      onclick={() => copyText(id)}
+      onclick={copy}
       aria-label={copyLabel}
       {disabled}
       data-testid={testid}
     >
       <bdi dir="ltr" class={cn('min-w-0 text-start', wrap ? 'break-all' : 'truncate')}>{#if full}{#each idChunks(id) as part, i}<span class={i ? 'ms-[0.4ch]' : undefined}>{part}</span>{/each}{:else}{shortId(id)}{/if}</bdi>
-      {#if copyLabel}<Icon name="copy" class="shrink-0" />{/if}
+      {#if copyLabel}{#key copied}<span class="inline-flex shrink-0" in:pop><Icon name={copied ? 'check' : 'copy'} class={copied ? 'text-forest' : undefined} /></span>{/key}{/if}
     </button>
   {/snippet}
 </Tooltip>
+{#if copyLabel}<span class="sr-only" role="status">{copied ? t('copiedText') : ''}</span>{/if}

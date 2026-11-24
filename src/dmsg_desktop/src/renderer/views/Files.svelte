@@ -19,6 +19,7 @@
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
+  import { arrive } from '../components/motion'
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
@@ -1077,7 +1078,7 @@
       </section>
       <PaneHandle name="files" />
 
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 flex-1" use:arrive={current?.id}>
         {#if current && details?.file?.id === current.id}
           {#key current.id}
             <Detail {standalone}
