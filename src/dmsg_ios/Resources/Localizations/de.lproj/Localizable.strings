@@ -1482,6 +1482,8 @@
 	<string>Als ungelesen markieren</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Erinnerungen aller Konten als gelesen markieren</string>
+	<key>Markdown source</key>
+	<string>Quelltext</string>
 	<key>Matched in notes</key>
 	<string>Treffer in Notizen</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>Sortieren nach</string>
 	<key>Source</key>
-	<string>Quelltext</string>
+	<string>Quelle</string>
 	<key>Source address</key>
 	<string>Quelladresse</string>
 	<key>Source address %u</key>

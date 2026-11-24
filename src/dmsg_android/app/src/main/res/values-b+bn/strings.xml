@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"পাঠ"</string>
     <string name="preview_save_to_files" formatted="false">"ফাইলে সংরক্ষণ করুন"</string>
     <string name="preview_size" formatted="false">"আকার"</string>
+    <string name="preview_source" formatted="false">"সোর্স"</string>
     <string name="preview_too_large" formatted="false">"এই ফাইলটি অ্যাপের মধ্যে প্রিভিউ করার জন্য খুব বড়।"</string>
     <string name="preview_truncated" formatted="false">"দীর্ঘ নথি প্রিভিউয়ের জন্য সংক্ষিপ্ত করা হয়েছে। সম্পূর্ণ বিষয়বস্তু দেখতে ডাউনলোড বা বাহ্যিকভাবে খুলুন।"</string>
     <string name="preview_unavailable" formatted="false">"এই ফাইলটি আর উপলব্ধ নয়।"</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"শব্দ"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"উৎস ঠিকানা"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"উৎস ডিভাইস · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"সোর্স"</string>
+    <string name="text_source_fcdba0f" formatted="false">"উৎস"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"উৎসের সীমা: 64 MiB। আর্কাইভের সংযুক্তি, পাসকি ও ইতিহাস এখানে আমদানি হয় না।"</string>
     <string name="text_spam_afdcb81" formatted="false">"স্প্যাম"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"এখন খরচযোগ্য"</string>

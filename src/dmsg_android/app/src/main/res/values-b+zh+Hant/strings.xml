@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"閱讀"</string>
     <string name="preview_save_to_files" formatted="false">"儲存至檔案"</string>
     <string name="preview_size" formatted="false">"大小"</string>
+    <string name="preview_source" formatted="false">"原始碼"</string>
     <string name="preview_too_large" formatted="false">"檔案過大，暫不支援於應用程式內預覽。"</string>
     <string name="preview_truncated" formatted="false">"文件較長，已截斷部分預覽內容；請下載或以其他應用程式檢視完整內容。"</string>
     <string name="preview_unavailable" formatted="false">"此檔案已無法使用。"</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"聲音"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"來源地址"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"來源裝置 · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"原始碼"</string>
+    <string name="text_source_fcdba0f" formatted="false">"來源"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"原始檔上限為 64 MiB；此入口不匯入歸檔附件、Passkey 或歷史版本。"</string>
     <string name="text_spam_afdcb81" formatted="false">"垃圾資訊"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"現在可花費"</string>

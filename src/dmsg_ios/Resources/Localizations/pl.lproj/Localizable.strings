@@ -1482,6 +1482,8 @@
 	<string>Oznacz jako nieprzeczytane</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Oznacz przypomnienia ze wszystkich kont jako przeczytane</string>
+	<key>Markdown source</key>
+	<string>Źródło</string>
 	<key>Matched in notes</key>
 	<string>Znaleziono w notatkach</string>
 	<key>Maximum fee</key>

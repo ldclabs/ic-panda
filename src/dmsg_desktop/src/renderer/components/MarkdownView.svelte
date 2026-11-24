@@ -22,7 +22,8 @@
       'mt-1 grid size-4 shrink-0 place-items-center rounded border',
       checked ? 'border-forest bg-forest text-on-forest' : 'border-edge bg-surface'
     )}
-    aria-hidden="true"
+    role="img"
+    aria-label={t(checked ? 'experience.complete' : 'experience.pending')}
   >
     {#if checked}<Icon name="check" class="size-3" />{/if}
   </span>

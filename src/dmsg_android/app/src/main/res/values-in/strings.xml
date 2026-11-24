@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Baca"</string>
     <string name="preview_save_to_files" formatted="false">"Simpan ke File"</string>
     <string name="preview_size" formatted="false">"Ukuran"</string>
+    <string name="preview_source" formatted="false">"Sumber"</string>
     <string name="preview_too_large" formatted="false">"File ini terlalu besar untuk pratinjau di aplikasi."</string>
     <string name="preview_truncated" formatted="false">"Dokumen panjang dipotong untuk pratinjau. Unduh atau buka secara eksternal untuk melihat seluruh isi."</string>
     <string name="preview_unavailable" formatted="false">"File ini tidak lagi tersedia."</string>

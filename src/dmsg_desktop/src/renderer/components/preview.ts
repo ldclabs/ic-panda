@@ -71,7 +71,7 @@ const TEXT_EXTS = new Set([
 function extensionOf(name: string | undefined): string {
   if (!name) return ''
   const dot = name.lastIndexOf('.')
-  if (dot <= 0 || dot === name.length - 1) return ''
+  if (dot < 0 || dot === name.length - 1) return ''
   return name.slice(dot + 1).toLowerCase()
 }
 
@@ -86,13 +86,14 @@ export function classifyPreview(mime: string | undefined, name: string | undefin
   if (m === 'application/vnd.dmsg.secret-package' || m === 'image/svg+xml' || ext === 'svg' || ext === 'svgz') {
     return 'unsupported'
   }
-  if (m === 'text/markdown' || m === 'text/x-markdown' || MARKDOWN_EXTS.has(ext)) {
+  const generic = m === '' || m === 'application/octet-stream'
+  if (m === 'text/markdown' || m === 'text/x-markdown' || ((generic || m === 'text/plain') && MARKDOWN_EXTS.has(ext))) {
     return 'markdown'
   }
-  if (IMAGE_MIMES.has(m) || ((m === '' || m === 'application/octet-stream') && IMAGE_EXTS.has(ext))) {
+  if (IMAGE_MIMES.has(m) || (generic && IMAGE_EXTS.has(ext))) {
     return 'image'
   }
-  if (m.startsWith('text/') || TEXT_MIMES.has(m) || ((m === '' || m === 'application/octet-stream') && TEXT_EXTS.has(ext))) {
+  if (m.startsWith('text/') || TEXT_MIMES.has(m) || (generic && TEXT_EXTS.has(ext))) {
     return 'text'
   }
   return 'unsupported'
@@ -176,5 +177,5 @@ export function stepZoom(current: number, direction: 1 | -1): number {
     return next ?? ZOOM_MAX
   }
   const prev = [...ZOOM_STEPS].reverse().find((step) => step < current - 0.01)
-  return prev ?? ZOOM_MIN
+  return prev ?? Math.min(current, ZOOM_MIN)
 }

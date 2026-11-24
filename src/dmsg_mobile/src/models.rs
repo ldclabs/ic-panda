@@ -469,6 +469,8 @@ pub struct PreviewPayload {
     pub markdown_json: Option<String>,
     /// Original UTF-8 text when rendering Markdown or plain text.
     pub text: Option<String>,
+    /// Original text attachment when its bytes differ from the displayed UTF-8 text.
+    pub original_text_bytes: Option<Vec<u8>>,
     /// Metadata fallback reason (`unsupported_type`, `too_large`, `cloud_only`, `decode_failed`, `unavailable`).
     pub fallback_reason: Option<String>,
 }
@@ -511,7 +513,45 @@ impl PreviewPayload {
             image_bytes,
             markdown_json,
             text,
+            original_text_bytes: preview
+                .original_text_bytes
+                .map(|mut b| std::mem::take(&mut *b)),
             fallback_reason,
+        }
+    }
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::*;
+    use dmsg_client::preview::from_verified_bytes;
+
+    #[test]
+    fn text_and_markdown_shares_reproduce_the_verified_bytes() {
+        for name in ["note.txt", "note.md"] {
+            for bytes in [
+                b"Hi".as_slice(),
+                b"\xef\xbb\xbfHi",
+                b"\xff\xfeH\0i\0",
+                b"\xfe\xff\0H\0i",
+            ] {
+                let preview = from_verified_bytes(
+                    String::new(),
+                    name.into(),
+                    bytes.len() as u64,
+                    None,
+                    bytes.to_vec().into(),
+                );
+                let payload = PreviewPayload::from_full(1, preview);
+                assert_eq!(payload.text.as_deref(), Some("Hi"));
+                assert_eq!(
+                    payload
+                        .original_text_bytes
+                        .as_deref()
+                        .unwrap_or(payload.text.as_ref().unwrap().as_bytes()),
+                    bytes
+                );
+            }
         }
     }
 }

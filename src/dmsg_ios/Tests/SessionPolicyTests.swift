@@ -240,6 +240,17 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertNil(UIPasteboard.general.data(forPasteboardType: UTType.png.identifier))
     }
 
+    func testRestartRemovesAnUnfinishedPreviewShareAndPreservesItsOriginalEncoding() throws {
+        let data = Data([0xff, 0xfe, 0x41, 0x00])
+        let copy = try PrivateFiles.previewShareCopy(data, name: "draft.txt")
+        defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+        XCTAssertEqual(try Data(contentsOf: copy), data)
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        _ = try PrivateFiles(base: base)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
+    }
+
     func testCancelledBusyOperationCannotClearItsReplacementAfterLock() async {
         let model = SessionModel()
         let old = model.beginBusyOperation(.synchronizing)

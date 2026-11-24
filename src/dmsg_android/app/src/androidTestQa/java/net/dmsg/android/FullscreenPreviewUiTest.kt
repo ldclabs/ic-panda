@@ -151,9 +151,11 @@ class FullscreenPreviewUiTest {
         // Filter back to All, switch to unsupported PDF -> renders fallback metadata card.
         compose.onNodeWithTag("preview-filter").performClick()
         compose.onNode(hasText(str(R.string.text_all_eae0ae1), substring = true) and hasClickAction()).performClick()
-        val pdfItem = client.fullscreenPreview.session.value!!.allItems.first { it.name == pdfName }
-        compose.runOnIdle { client.fullscreenPreview.select(pdfItem.id) }
+        compose.waitForIdle()
+        assertEquals(mdName, client.fullscreenPreview.session.value?.activeItem?.name)
+        compose.onNodeWithTag("fullscreen-preview").performTouchInput { swipeLeft() }
         compose.waitUntil(15_000) { client.fullscreenPreview.session.value?.content is LoadedPreviewContent.Fallback }
+        assertEquals(pdfName, client.fullscreenPreview.session.value?.activeItem?.name)
         compose.onNodeWithTag("preview-fallback").assertExists()
         capture("android-preview-fallback-en-light")
 
@@ -196,6 +198,17 @@ class FullscreenPreviewUiTest {
     }
 
     @Test fun fullscreenPreviewAtLargeFontScale() {
+        val previousScale = shell("settings get system font_scale").trim()
+        try {
+            shell("settings put system font_scale 2.0")
+            compose.waitUntil(15_000) { compose.activity.resources.configuration.fontScale >= 1.99f && compose.activity.hasWindowFocus() }
+            checkLargeFontPreview()
+        } finally {
+            shell(if (previousScale == "null") "settings delete system font_scale" else "settings put system font_scale $previousScale")
+        }
+    }
+
+    private fun checkLargeFontPreview() {
         compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
         val (_, mdName, pdfName) = seedPreviewFiles()
         val client = compose.activity.qaClient
@@ -221,11 +234,11 @@ class FullscreenPreviewUiTest {
         val file = File(app.getExternalFilesDir(null), "$name.png")
         file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
-        android.os.ParcelFileDescriptor.AutoCloseInputStream(
-            instrumentation.uiAutomation.executeShellCommand("mkdir -p /sdcard/Download/dmsg-preview-qa")
-        ).use { it.readBytes() }
-        android.os.ParcelFileDescriptor.AutoCloseInputStream(
-            instrumentation.uiAutomation.executeShellCommand("cp ${file.absolutePath} /sdcard/Download/dmsg-preview-qa/$name.png")
-        ).use { it.readBytes() }
+        shell("mkdir -p /sdcard/Download/dmsg-preview-qa")
+        shell("cp ${file.absolutePath} /sdcard/Download/dmsg-preview-qa/$name.png")
     }
+
+    private fun shell(command: String): String = android.os.ParcelFileDescriptor.AutoCloseInputStream(
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+    ).use { it.readBytes().toString(Charsets.UTF_8) }
 }

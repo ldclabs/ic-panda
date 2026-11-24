@@ -9726,6 +9726,11 @@
     "zh-Hans": "阅读",
     "ios": "Reading"
   },
+  "preview_source": {
+    "en": "Source",
+    "zh-Hans": "源码",
+    "ios": "Markdown source"
+  },
   "preview_unsupported": {
     "en": "Preview is not supported for this file type.",
     "zh-Hans": "暂不支持预览此文件类型。",

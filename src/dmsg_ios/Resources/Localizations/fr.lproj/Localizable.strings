@@ -1482,6 +1482,8 @@
 	<string>Marquer comme non lu</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Marquer les rappels de tous les comptes comme lus</string>
+	<key>Markdown source</key>
+	<string>Source</string>
 	<key>Matched in notes</key>
 	<string>Trouvé dans les notes</string>
 	<key>Maximum fee</key>

@@ -1482,6 +1482,8 @@
 	<string>未読にする</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>すべてのアカウントのリマインダーを既読にする</string>
+	<key>Markdown source</key>
+	<string>ソース</string>
 	<key>Matched in notes</key>
 	<string>メモに一致</string>
 	<key>Maximum fee</key>

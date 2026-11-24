@@ -1482,6 +1482,8 @@
 	<string>Segna come non letto</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Segna i promemoria di tutti gli account come letti</string>
+	<key>Markdown source</key>
+	<string>Sorgente</string>
 	<key>Matched in notes</key>
 	<string>Trovato nelle note</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>Ordina per</string>
 	<key>Source</key>
-	<string>Sorgente</string>
+	<string>Origine</string>
 	<key>Source address</key>
 	<string>Indirizzo di origine</string>
 	<key>Source address %u</key>

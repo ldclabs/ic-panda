@@ -1482,6 +1482,8 @@
 	<string>Đánh dấu chưa đọc</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Đánh dấu lời nhắc của mọi tài khoản là đã đọc</string>
+	<key>Markdown source</key>
+	<string>Mã nguồn</string>
 	<key>Matched in notes</key>
 	<string>Khớp trong ghi chú</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>Sắp xếp theo</string>
 	<key>Source</key>
-	<string>Mã nguồn</string>
+	<string>Nguồn</string>
 	<key>Source address</key>
 	<string>Địa chỉ nguồn</string>
 	<key>Source address %u</key>

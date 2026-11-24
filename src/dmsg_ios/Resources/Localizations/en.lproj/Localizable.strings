@@ -1482,6 +1482,8 @@
 	<string>Mark as unread</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Mark reminders for all accounts as read</string>
+	<key>Markdown source</key>
+	<string>Source</string>
 	<key>Matched in notes</key>
 	<string>Matched in notes</string>
 	<key>Maximum fee</key>

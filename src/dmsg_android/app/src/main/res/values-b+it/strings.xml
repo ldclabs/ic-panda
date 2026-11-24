@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Lettura"</string>
     <string name="preview_save_to_files" formatted="false">"Salva in File"</string>
     <string name="preview_size" formatted="false">"Dimensione"</string>
+    <string name="preview_source" formatted="false">"Sorgente"</string>
     <string name="preview_too_large" formatted="false">"Questo file è troppo grande per l’anteprima nell’app."</string>
     <string name="preview_truncated" formatted="false">"Documento lungo troncato per l’anteprima. Scaricalo o aprilo esternamente per vedere tutto il contenuto."</string>
     <string name="preview_unavailable" formatted="false">"Questo file non è più disponibile."</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Suono"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Indirizzo di origine"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Dispositivo di origine · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Sorgente"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Origine"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Limite del sorgente: 64 MiB. Gli allegati dell\'archivio, le passkey e la cronologia non vengono importati qui."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Spendibile ora"</string>

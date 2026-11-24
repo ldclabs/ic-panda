@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Чтение"</string>
     <string name="preview_save_to_files" formatted="false">"Сохранить в Файлы"</string>
     <string name="preview_size" formatted="false">"Размер"</string>
+    <string name="preview_source" formatted="false">"Исходник"</string>
     <string name="preview_too_large" formatted="false">"Этот файл слишком велик для предпросмотра в приложении."</string>
     <string name="preview_truncated" formatted="false">"Длинный документ сокращён в предпросмотре. Скачайте его или откройте во внешнем приложении целиком."</string>
     <string name="preview_unavailable" formatted="false">"Этот файл больше недоступен."</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Звук"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Исходный адрес"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Исходное устройство · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Исходник"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Источник"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Лимит источника: 64 MiB. Вложения архива, ключи доступа и история здесь не импортируются."</string>
     <string name="text_spam_afdcb81" formatted="false">"Спам"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Доступно сейчас"</string>

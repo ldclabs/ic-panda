@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Lesen"</string>
     <string name="preview_save_to_files" formatted="false">"In Dateien speichern"</string>
     <string name="preview_size" formatted="false">"Größe"</string>
+    <string name="preview_source" formatted="false">"Quelltext"</string>
     <string name="preview_too_large" formatted="false">"Diese Datei ist zu groß für die Vorschau in der App."</string>
     <string name="preview_truncated" formatted="false">"Langes Dokument für die Vorschau gekürzt. Zum vollständigen Lesen herunterladen oder extern öffnen."</string>
     <string name="preview_unavailable" formatted="false">"Diese Datei ist nicht mehr verfügbar."</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Ton"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Quelladresse"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Quellgerät · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Quelltext"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Quelle"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Quelldateilimit: 64 MiB. Archivanhänge, Passkeys und Verlauf werden hier nicht importiert."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Jetzt verfügbar"</string>

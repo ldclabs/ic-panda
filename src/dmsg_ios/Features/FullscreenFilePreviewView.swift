@@ -15,9 +15,9 @@ struct FullscreenFilePreviewView: View {
 
     enum LoadedContent {
         case loading
-        case image(image: UIImage, bytes: Data, mime: String, name: String, size: UInt64, sha256: String?)
-        case markdown(document: MarkdownDocument, text: String, mime: String, name: String, size: UInt64, sha256: String?)
-        case text(text: String, mime: String, name: String, size: UInt64, sha256: String?)
+        case image(image: UIImage, bytes: Data, mime: String)
+        case markdown(document: MarkdownDocument, text: String, original: Data?)
+        case text(text: String, original: Data?)
         case fallback(reason: PreviewFallbackReason, mime: String, name: String, size: UInt64, sha256: String?)
         case error(String)
     }
@@ -37,6 +37,7 @@ struct FullscreenFilePreviewView: View {
     @State private var detailFile: LibraryFile?
     @State private var showingDetails = false
     @State private var confirmShare = false
+    @State private var shareTask: Task<Void, Never>?
     @State private var shareFile: ShareCopy?
     /// The copy to remove once the share sheet closes; SwiftUI clears `shareFile` before `onDismiss`.
     @State private var sharedCopy: ShareCopy?
@@ -45,8 +46,7 @@ struct FullscreenFilePreviewView: View {
     struct ShareCopy: Identifiable {
         let id = UUID()
         let url: URL
-        let nonce: String?
-        let temporaryFile: Bool
+        let opened: OpenedFile?
     }
 
     init(launch: FullscreenPreviewLaunch) {
@@ -74,6 +74,7 @@ struct FullscreenFilePreviewView: View {
         guard let item = activeItem else { return false }
         switch item.source {
         case .library:
+            if case .fallback(let reason, _, _, _, _) = loaded, reason == .cloudOnly || reason == .unavailable { return false }
             return item.canOpen
         case .channel:
             switch loaded {
@@ -118,7 +119,7 @@ struct FullscreenFilePreviewView: View {
             .background { keyboardShortcuts }
             .navigationDestination(isPresented: $showingDetails) {
                 if let file = detailFile {
-                    FileDetailView(file: file, previewed: true)
+                    FileDetailDestination(id: file.id, version: file.current, fromFullscreen: true)
                 }
             }
             .sheet(item: $shareFile, onDismiss: cleanupShareCopy) { copy in
@@ -126,7 +127,8 @@ struct FullscreenFilePreviewView: View {
             }
             .confirmationDialog(String(localized: "Share a copy"), isPresented: $confirmShare, titleVisibility: .visible) {
                 Button(String(localized: "Share a copy")) {
-                    Task { await prepareShareCopy() }
+                    shareTask?.cancel()
+                    shareTask = Task { await prepareShareCopy() }
                 }
             } message: {
                 Text("Shared copies leave dMsg's protection and cannot be recalled.")
@@ -139,14 +141,15 @@ struct FullscreenFilePreviewView: View {
             model.activity()
             if !model.unlocked { dismiss(); return }
             startLoadingCurrent()
-            if let channelID = launch.channelID {
-                Task { await loadAllChannelAttachments(channelID: channelID) }
-            }
+        }
+        .task(id: launch.channelID) {
+            if let channelID = launch.channelID { await loadAllChannelAttachments(channelID: channelID) }
         }
         .onDisappear {
             clearMemory()
         }
         .onChange(of: activeID) { _, _ in
+            shareTask?.cancel()
             model.activity()
             markdownMode = .reading
             showChrome = true
@@ -259,7 +262,7 @@ struct FullscreenFilePreviewView: View {
                         .glassSurface(in: Circle(), interactive: true, fallback: Theme.card)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(markdownMode == .reading ? String(localized: "Source") : String(localized: "Reading"))
+                .accessibilityLabel(markdownMode == .reading ? String(localized: "Markdown source") : String(localized: "Reading"))
                 .accessibilityIdentifier("preview.markdown.mode")
             }
 
@@ -288,15 +291,15 @@ struct FullscreenFilePreviewView: View {
 
     @ViewBuilder
     private var actionMenu: some View {
-        if let item = activeItem {
+        if let item = activeItem, canShareCurrent || item.libraryFile == nil {
             Menu {
                 switch loaded {
-                case .image(_, let bytes, let mime, _, _, _):
+                case .image(_, let bytes, let mime):
                     Button(String(localized: "Copy"), systemImage: "doc.on.doc") {
                         model.clipboard.copy(bytes, type: UTType(mimeType: mime) ?? .image)
                         model.notice = String(localized: "Copied")
                     }
-                case .markdown(_, let text, _, _, _, _), .text(let text, _, _, _, _):
+                case .markdown(_, let text, _), .text(let text, _):
                     Button(String(localized: "Copy"), systemImage: "doc.on.doc") {
                         model.clipboard.copy(text)
                         model.notice = String(localized: "Copied")
@@ -348,13 +351,13 @@ struct FullscreenFilePreviewView: View {
                 ProgressView(String(localized: "Loading…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            case .image(let image, _, _, _, _, _):
+            case .image(let image, _, _):
                 ZoomableImageView(image: image) {
                     showChrome.toggle()
                 }
                 .accessibilityIdentifier("file.preview")
 
-            case .markdown(let document, let raw, _, _, _, _):
+            case .markdown(let document, let raw, _):
                 ScrollView {
                     Group {
                         if markdownMode == .reading {
@@ -373,7 +376,7 @@ struct FullscreenFilePreviewView: View {
                 }
                 .accessibilityIdentifier("file.preview")
 
-            case .text(let value, _, _, _, _):
+            case .text(let value, _):
                 ScrollView {
                     Text(verbatim: value)
                         .font(.footnote.monospaced())
@@ -464,7 +467,7 @@ struct FullscreenFilePreviewView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(savingToLibrary)
                 } else if let file = item.libraryFile {
-                    if item.canOpen {
+                    if canShareCurrent {
                         Button {
                             confirmShare = true
                         } label: {
@@ -524,6 +527,8 @@ struct FullscreenFilePreviewView: View {
     }
 
     private func clearMemory() {
+        shareTask?.cancel()
+        shareTask = nil
         loadTask?.cancel()
         loadTask = nil
         loaded = .loading
@@ -589,13 +594,10 @@ struct FullscreenFilePreviewView: View {
                 loaded = .markdown(
                     document: doc,
                     text: "# dMsg 全屏预览架构说明\n\nSupports **Markdown reading**, *italic*, ~~removed~~ and `dmsg preview`.",
-                    mime: item.mime,
-                    name: item.name,
-                    size: item.size,
-                    sha256: item.sha256
+                    original: nil
                 )
             case .text:
-                loaded = .text(text: "A preview of this file.", mime: item.mime, name: item.name, size: item.size, sha256: item.sha256)
+                loaded = .text(text: "A preview of this file.", original: nil)
             case .image:
                 let img = UIGraphicsImageRenderer(size: CGSize(width: 640, height: 480)).image { ctx in
                     NativeTheme.forest.setFill()
@@ -605,7 +607,7 @@ struct FullscreenFilePreviewView: View {
                     NativeTheme.forest.setFill()
                     UIBezierPath(ovalIn: CGRect(x: 255, y: 175, width: 130, height: 130)).fill()
                 }
-                loaded = .image(image: img, bytes: img.pngData() ?? Data(), mime: "image/png", name: item.name, size: item.size, sha256: item.sha256)
+                loaded = .image(image: img, bytes: img.pngData() ?? Data(), mime: "image/png")
             case .unsupported:
                 loaded = .fallback(reason: .unsupportedType, mime: item.mime, name: item.name, size: item.size, sha256: item.sha256)
             }
@@ -641,7 +643,7 @@ struct FullscreenFilePreviewView: View {
                     return
                 }
                 guard !Task.isCancelled, epoch == model.epoch, activeID == targetID else { return }
-                loaded = .image(image: image, bytes: data, mime: payload.mime, name: payload.name, size: payload.size, sha256: payload.sha256)
+                loaded = .image(image: image, bytes: data, mime: payload.mime)
 
             case "markdown":
                 guard let json = payload.markdownJson,
@@ -649,10 +651,10 @@ struct FullscreenFilePreviewView: View {
                     loaded = .fallback(reason: .decodeFailed, mime: payload.mime, name: payload.name, size: payload.size, sha256: payload.sha256)
                     return
                 }
-                loaded = .markdown(document: doc, text: payload.text ?? "", mime: payload.mime, name: payload.name, size: payload.size, sha256: payload.sha256)
+                loaded = .markdown(document: doc, text: payload.text ?? "", original: payload.originalTextBytes)
 
             case "text":
-                loaded = .text(text: payload.text ?? "", mime: payload.mime, name: payload.name, size: payload.size, sha256: payload.sha256)
+                loaded = .text(text: payload.text ?? "", original: payload.originalTextBytes)
 
             default:
                 loaded = .fallback(reason: .unsupportedType, mime: payload.mime, name: payload.name, size: payload.size, sha256: payload.sha256)
@@ -671,19 +673,12 @@ struct FullscreenFilePreviewView: View {
         guard let snapshot = try? await engine.channelAttachments(channel: channelID),
               let records: [ChannelAttachmentRecord] = try? model.decode(snapshot),
               epoch == model.epoch, !Task.isCancelled else { return }
-        var merged: [UInt64: FullscreenPreviewItem] = [:]
-        for record in records {
-            merged[record.seq] = FullscreenPreviewItem.fromAttachment(channel: channelID, record: record)
-        }
-        for existing in allItems {
-            if case .channel(_, let seq) = existing.source, merged[seq] == nil {
-                merged[seq] = existing
-            }
-        }
-        let sorted = merged.keys.sorted().compactMap { merged[$0] }
-        if !sorted.isEmpty {
-            allItems = sorted
-        }
+        let items = records.map { FullscreenPreviewItem.fromAttachment(channel: channelID, record: $0) }
+        guard !items.isEmpty else { dismiss(); return }
+        if !items.contains(where: { PreviewFilterLogic.matches($0, filter: filter) }) { filter = .all }
+        let picked = PreviewFilterLogic.pickNearest(items: items, currentID: activeID, filter: filter)
+        allItems = items
+        if let id = picked.activeID { activeID = id }
     }
 
     private func saveChannelAttachment(_ item: FullscreenPreviewItem) async {
@@ -707,7 +702,7 @@ struct FullscreenFilePreviewView: View {
     }
 
     private func prepareShareCopy() async {
-        guard let item = activeItem else { return }
+        guard let item = activeItem, !model.concealed, !Task.isCancelled else { return }
         let epoch = model.epoch
         do {
             switch item.source {
@@ -715,28 +710,26 @@ struct FullscreenFilePreviewView: View {
                 struct Opened: Decodable { let path: String; let nonce: String }
                 guard let engine = model.engine, let targetVersion = version ?? item.libraryFile?.current else { return }
                 let result = try await coreOperation { try await engine.openFile(id: id, version: targetVersion, operation: $0) }
-                let opened: Opened = try model.decode(result)
-                guard epoch == model.epoch, !Task.isCancelled, !model.concealed else {
-                    try? await engine.closeFile(nonce: opened.nonce)
-                    return
-                }
+                let opened = try JSONDecoder().decode(Opened.self, from: Data(result.json.utf8))
                 let url = URL(fileURLWithPath: opened.path)
+                let copy = OpenedFile(url: url, version: targetVersion, nonce: opened.nonce, engine: engine)
+                guard epoch == model.epoch, !Task.isCancelled, !model.concealed, activeID == item.id else { return }
                 try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
-                present(ShareCopy(url: url, nonce: opened.nonce, temporaryFile: false))
+                present(ShareCopy(url: url, opened: copy))
 
             case .channel:
                 let bytes: Data
                 switch loaded {
-                case .image(_, let data, _, _, _, _): bytes = data
-                case .markdown(_, let raw, _, _, _, _), .text(let raw, _, _, _, _): bytes = Data(raw.utf8)
+                case .image(_, let data, _): bytes = data
+                case .markdown(_, let raw, let original), .text(let raw, let original): bytes = original ?? Data(raw.utf8)
                 default: return
                 }
-                let safeName = (item.name as NSString).lastPathComponent
-                let dir = FileManager.default.temporaryDirectory.appending(path: "dmsg-share-\(UUID().uuidString)")
-                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-                let fileURL = dir.appending(path: safeName.isEmpty ? "file" : safeName)
-                try bytes.write(to: fileURL, options: [.completeFileProtection])
-                present(ShareCopy(url: fileURL, nonce: nil, temporaryFile: true))
+                let fileURL = try await Task.detached { try PrivateFiles.previewShareCopy(bytes, name: item.name) }.value
+                guard epoch == model.epoch, !Task.isCancelled, !model.concealed, activeID == item.id else {
+                    try? FileManager.default.removeItem(at: fileURL.deletingLastPathComponent())
+                    return
+                }
+                present(ShareCopy(url: fileURL, opened: nil))
             }
         } catch {
             if epoch == model.epoch, !Task.isCancelled {
@@ -755,10 +748,7 @@ struct FullscreenFilePreviewView: View {
         shareFile = nil
         guard let copy = sharedCopy else { return }
         sharedCopy = nil
-        if let nonce = copy.nonce, let engine = model.engine {
-            Task { try? await engine.closeFile(nonce: nonce) }
-        }
-        if copy.temporaryFile {
+        if copy.opened == nil {
             let dir = copy.url.deletingLastPathComponent()
             try? FileManager.default.removeItem(at: dir)
         }

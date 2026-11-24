@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Lezen"</string>
     <string name="preview_save_to_files" formatted="false">"Opslaan in Bestanden"</string>
     <string name="preview_size" formatted="false">"Grootte"</string>
+    <string name="preview_source" formatted="false">"Bron"</string>
     <string name="preview_too_large" formatted="false">"Dit bestand is te groot voor een voorbeeld in de app."</string>
     <string name="preview_truncated" formatted="false">"Lang document ingekort voor voorbeeldweergave. Download of open extern om alle inhoud te bekijken."</string>
     <string name="preview_unavailable" formatted="false">"Dit bestand is niet meer beschikbaar."</string>

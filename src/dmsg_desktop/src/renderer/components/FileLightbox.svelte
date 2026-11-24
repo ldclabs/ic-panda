@@ -5,7 +5,7 @@
   import { localeDir } from '../../shared/locales'
   import { locale, t } from '../i18n/index.svelte'
   import type { Label } from '../i18n/messages/en'
-  import { bridge, code, errorText, size } from '../rpc'
+  import { bridge, errorText, size } from '../rpc'
   import { copyText } from './clipboard'
   import Icon from './Icon.svelte'
   import { leaving } from './link-confirm.svelte'
@@ -186,7 +186,7 @@
   // Load preview whenever open + activeItem changes.
   $effect(() => {
     if (!open || !activeItem) return
-    const key = activeItem.key
+    const key = JSON.stringify([activeItem.source, activeItem.status, activeItem.name])
     if (loadedForKey === key) return
     loadedForKey = key
     resetView()
@@ -219,7 +219,6 @@
       }
     } catch (error) {
       if (gen !== loadGeneration || !open) return
-      if (code(error) === 'CANCELLED') return
       loaded = { kind: 'error', message: errorText(error) }
     }
   }
@@ -238,6 +237,7 @@
 
   function zoomBy(direction: 1 | -1) {
     const next = stepZoom(effectiveScale, direction)
+    if (next === effectiveScale) return
     zoomMode = 'manual'
     manualScale = next
     if (next <= fitScale + 0.01) { panX = 0; panY = 0 }
@@ -276,6 +276,7 @@
   function onImageWheel(event: WheelEvent) {
     if (loaded.kind !== 'image') return
     event.preventDefault()
+    if (event.deltaY === 0 || (event.deltaY > 0 && effectiveScale <= ZOOM_MIN)) return
     const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12
     const next = clampZoom(effectiveScale * factor)
     zoomMode = 'manual'
@@ -286,7 +287,7 @@
   function onPointerDown(event: PointerEvent) {
     if (!canPan || event.button !== 0) return
     event.preventDefault()
-    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+    ;(event.target as Element).setPointerCapture(event.pointerId)
     dragging = true
     dragStart = { x: event.clientX, y: event.clientY, panX, panY, moved: false }
   }
@@ -391,8 +392,10 @@
   const circleBtn =
     'grid size-9 shrink-0 place-items-center rounded-full border border-lightbox-control-border bg-lightbox-control text-lightbox-control-ink shadow-pop outline-none transition-[background-color,transform,opacity] duration-150 hover:not-disabled:bg-lightbox-control-hover active:not-disabled:scale-95 focus-visible:ring-3 focus-visible:ring-focus/45 disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-4.5'
 
-  const canDownload = $derived(!!onDownload && !!activeItem && activeItem.status !== 'cloud_only')
-  const canOpenExternally = $derived(!!onOpen && !!activeItem && activeItem.status !== 'cloud_only')
+  const available = $derived(!!activeItem && activeItem.status !== 'cloud_only'
+    && !(loaded.kind === 'fallback' && (loaded.reason === 'cloud_only' || loaded.reason === 'unavailable')))
+  const canDownload = $derived(!!onDownload && available)
+  const canOpenExternally = $derived(!!onOpen && available)
   const canCopy = $derived(loaded.kind === 'image' || loaded.kind === 'markdown' || loaded.kind === 'text')
   const showFilterBar = $derived(showFilter && items.length > 1)
 </script>
@@ -673,7 +676,7 @@
               style:width={naturalWidth ? `${naturalWidth * effectiveScale}px` : undefined}
               style:height={naturalHeight ? `${naturalHeight * effectiveScale}px` : undefined}
               style:transform={panX || panY ? `translate3d(${panX}px, ${panY}px, 0)` : undefined}
-              class="max-w-none select-none rounded-lg shadow-pop"
+              class="flex-none max-w-none select-none rounded-lg shadow-pop"
               data-testid="lightbox-image"
             />
           </div>

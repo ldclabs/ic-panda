@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Đọc"</string>
     <string name="preview_save_to_files" formatted="false">"Lưu vào Tệp"</string>
     <string name="preview_size" formatted="false">"Kích thước"</string>
+    <string name="preview_source" formatted="false">"Mã nguồn"</string>
     <string name="preview_too_large" formatted="false">"Tệp này quá lớn để xem trước trong ứng dụng."</string>
     <string name="preview_truncated" formatted="false">"Tài liệu dài đã được rút gọn khi xem trước. Hãy tải xuống hoặc mở bằng ứng dụng ngoài để xem toàn bộ."</string>
     <string name="preview_unavailable" formatted="false">"Tệp này không còn khả dụng."</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Âm thanh"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Địa chỉ nguồn"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Thiết bị nguồn · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Mã nguồn"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Nguồn"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Giới hạn nguồn: 64 MiB. Tệp đính kèm trong kho lưu trữ, khóa truy cập và lịch sử không được nhập tại đây."</string>
     <string name="text_spam_afdcb81" formatted="false">"Thư rác"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Có thể chi tiêu ngay"</string>

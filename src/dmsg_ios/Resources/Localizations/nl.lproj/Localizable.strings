@@ -1482,6 +1482,8 @@
 	<string>Markeren als ongelezen</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Herinneringen van alle accounts als gelezen markeren</string>
+	<key>Markdown source</key>
+	<string>Bron</string>
 	<key>Matched in notes</key>
 	<string>Gevonden in notities</string>
 	<key>Maximum fee</key>

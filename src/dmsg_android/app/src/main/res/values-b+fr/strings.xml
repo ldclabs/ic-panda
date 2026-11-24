@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Lecture"</string>
     <string name="preview_save_to_files" formatted="false">"Enregistrer dans Fichiers"</string>
     <string name="preview_size" formatted="false">"Taille"</string>
+    <string name="preview_source" formatted="false">"Source"</string>
     <string name="preview_too_large" formatted="false">"Ce fichier est trop volumineux pour un aperçu dans l’application."</string>
     <string name="preview_truncated" formatted="false">"Document long tronqué pour l’aperçu. Téléchargez-le ou ouvrez-le dans une autre application pour tout voir."</string>
     <string name="preview_unavailable" formatted="false">"Ce fichier n’est plus disponible."</string>

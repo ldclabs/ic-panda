@@ -33,6 +33,9 @@ class FullscreenPreviewModelsTest {
         assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("image/tiff", "scan.tiff"))
         assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("application/octet-stream", "favicon.ico"))
         assertEquals(PreviewClass.TEXT, PreviewFilterLogic.classify("application/typescript", "main.ts"))
+        assertEquals(PreviewClass.IMAGE, PreviewFilterLogic.classify("image/png", "renamed.md"))
+        assertEquals(PreviewClass.UNSUPPORTED, PreviewFilterLogic.classify("application/pdf", "renamed.md"))
+        assertEquals(PreviewClass.TEXT, PreviewFilterLogic.classify("application/octet-stream", ".env"))
     }
 
     @Test fun filterCountsAndNearestNeighborPreserveFocus() {

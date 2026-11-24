@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"อ่าน"</string>
     <string name="preview_save_to_files" formatted="false">"บันทึกไปยังไฟล์"</string>
     <string name="preview_size" formatted="false">"ขนาด"</string>
+    <string name="preview_source" formatted="false">"ซอร์ส"</string>
     <string name="preview_too_large" formatted="false">"ไฟล์นี้ใหญ่เกินไปที่จะดูตัวอย่างในแอป"</string>
     <string name="preview_truncated" formatted="false">"ตัดทอนเอกสารขนาดยาวสำหรับการดูตัวอย่าง ดาวน์โหลดหรือเปิดด้วยแอปภายนอกเพื่อดูทั้งหมด"</string>
     <string name="preview_unavailable" formatted="false">"ไฟล์นี้ไม่สามารถใช้งานได้แล้ว"</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"เสียง"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"ที่อยู่ต้นทาง"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"อุปกรณ์ต้นทาง · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"ซอร์ส"</string>
+    <string name="text_source_fcdba0f" formatted="false">"แหล่งที่มา"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"ต้นทางจำกัดที่ 64 MiB ที่นี่ไม่นำเข้าไฟล์แนบในอาร์ไคฟ์ พาสคีย์ และประวัติ"</string>
     <string name="text_spam_afdcb81" formatted="false">"สแปม"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"ใช้จ่ายได้ตอนนี้"</string>

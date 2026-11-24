@@ -35,6 +35,9 @@ test('preview classification matches supported raster images, markdown, text, an
   assert.equal(classifyPreview('application/octet-stream', 'photo.WEBP'), 'image')
   assert.equal(classifyPreview('image/svg+xml', 'icon.svg'), 'unsupported')
   assert.equal(classifyPreview('text/plain', 'README.md'), 'markdown')
+  assert.equal(classifyPreview('image/png', 'renamed.md'), 'image')
+  assert.equal(classifyPreview('application/pdf', 'renamed.md'), 'unsupported')
+  assert.equal(classifyPreview('application/octet-stream', '.env'), 'text')
   assert.equal(classifyPreview('text/markdown', 'notes'), 'markdown')
   assert.equal(classifyPreview('application/json', 'config.json'), 'text')
   assert.equal(classifyPreview('application/octet-stream', 'main.rs'), 'text')
@@ -83,6 +86,7 @@ test('filter counts and nearest-neighbor focus preservation behave deterministic
 })
 
 test('zoom steps clamp within bounds and advance cleanly', () => {
+  assert.equal(stepZoom(0.10, -1), 0.10, 'zooming out must not enlarge an image fitted below 25%')
   assert.equal(clampZoom(0.1), 0.25)
   assert.equal(clampZoom(10), 4.0)
   assert.equal(stepZoom(1, 1), 1.25)

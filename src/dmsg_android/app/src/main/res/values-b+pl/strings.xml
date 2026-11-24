@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Czytanie"</string>
     <string name="preview_save_to_files" formatted="false">"Zapisz w Plikach"</string>
     <string name="preview_size" formatted="false">"Rozmiar"</string>
+    <string name="preview_source" formatted="false">"Źródło"</string>
     <string name="preview_too_large" formatted="false">"Ten plik jest zbyt duży do podglądu w aplikacji."</string>
     <string name="preview_truncated" formatted="false">"Długi dokument skrócono w podglądzie. Pobierz lub otwórz w zewnętrznej aplikacji, aby zobaczyć całość."</string>
     <string name="preview_unavailable" formatted="false">"Ten plik nie jest już dostępny."</string>

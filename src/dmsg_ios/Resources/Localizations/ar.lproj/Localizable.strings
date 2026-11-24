@@ -1482,6 +1482,8 @@
 	<string>وضع علامة كغير مقروءة</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>وضع علامة مقروء على تذكيرات جميع الحسابات</string>
+	<key>Markdown source</key>
+	<string>المصدر</string>
 	<key>Matched in notes</key>
 	<string>تطابق في الملاحظات</string>
 	<key>Maximum fee</key>

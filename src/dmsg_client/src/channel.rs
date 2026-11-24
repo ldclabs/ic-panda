@@ -2549,19 +2549,15 @@ pub async fn preview_attachment<H: Hold>(
 ) -> Result<crate::preview::FullPreview> {
     let bound = crate::hold::Unlocked::new(h).await?;
     let h = &bound;
-    let (reference, author, saved) = h
+    let (reference, author) = h
         .with(|c| {
-            let message = c.attachment_message(channel, seq)?;
-            let reference = message.file.clone().ok_or(Error::NotFound)?;
+            let message = c.preview_attachment_message(channel, seq)?;
+            let reference = message.file.ok_or(Error::NotFound)?;
             ensure(
                 reference.mime != crate::secrets::package::MIME,
                 Error::UnsupportedProtocol,
             )?;
-            let saved = c
-                .channel_saved_attachment(channel, seq)?
-                .filter(|f| f.status != "cloud_only" && f.trashed_at.is_none())
-                .map(|f| (f.id, f.current));
-            Ok((reference, message.account, saved))
+            Ok((reference, message.account))
         })
         .await?;
     let class = crate::preview::classify(&reference.mime, &reference.name);
@@ -2583,42 +2579,28 @@ pub async fn preview_attachment<H: Hold>(
             crate::preview::FallbackReason::TooLarge,
         ));
     }
-    if let Some((file_id, version)) = saved
-        && let Ok(preview) =
-            crate::library::reading::preview_full(h, &file_id, Some(&version)).await
+    if let Some(saved) = h.with(|c| c.channel_saved_attachment(channel, seq)).await?
+        && let Ok(bytes) =
+            crate::library::reading::saved_attachment_bytes(h, &saved.id, &saved.current, limit)
+                .await
     {
-        return Ok(preview);
+        h.with(|c| c.preview_attachment_message(channel, seq))
+            .await?;
+        return Ok(crate::preview::from_verified_bytes(
+            reference.mime,
+            reference.name,
+            reference.size,
+            Some(saved.sha256),
+            bytes,
+        ));
     }
+    // shared_manifest verifies the original name, MIME and size against the reference.
     let manifest = fetch_file_progress(h, channel, &reference, &author, progress).await?;
-    let manifest_class = crate::preview::classify(&manifest.mime, &manifest.name);
-    let Some(manifest_limit) = crate::preview::size_limit(manifest_class) else {
-        return Ok(crate::preview::FullPreview::fallback(
-            manifest.mime,
-            manifest.name,
-            manifest.size,
-            Some(manifest.sha256),
-            crate::preview::FallbackReason::UnsupportedType,
-        ));
-    };
-    if manifest.size > manifest_limit {
-        return Ok(crate::preview::FullPreview::fallback(
-            manifest.mime,
-            manifest.name,
-            manifest.size,
-            Some(manifest.sha256),
-            crate::preview::FallbackReason::TooLarge,
-        ));
-    }
     let plain = h
         .with(|c| {
-            c.attachment_message(channel, seq)?;
+            c.preview_attachment_message(channel, seq)?;
             let mut buf = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
-            read_file(
-                &c.workspace.store,
-                &manifest,
-                manifest_limit,
-                Some(&mut *buf),
-            )?;
+            read_file(&c.workspace.store, &manifest, limit, Some(&mut *buf))?;
             Ok(buf)
         })
         .await?;
@@ -4906,15 +4888,7 @@ impl Client {
     /// Returns `Error::Locked` while locked.
     fn public_message(&self, channel: &str, message: &Message) -> Result<Message> {
         let mut result = message.public();
-        if let Some(file) = &result.file {
-            result.file_deleted = self
-                .workspace
-                .private::<Json>(
-                    self.keys()?,
-                    &format!("channel-deleted:{channel}:{}", file.upload_id),
-                )?
-                .is_some();
-        }
+        result.file_deleted |= self.attachment_removed(channel, &result)?;
         Ok(result)
     }
 
@@ -5330,7 +5304,31 @@ impl Client {
     fn attachment_message(&self, channel: &str, seq: u64) -> Result<Message> {
         let message = self.message_at(channel, seq)?;
         ensure(
-            !message.hidden && !message.retracted && !message.file_deleted && !message.unreadable,
+            !message.hidden
+                && !message.retracted
+                && !message.file_deleted
+                && !message.unreadable
+                && !self.attachment_removed(channel, &message)?,
+            Error::Forbidden,
+        )?;
+        Ok(message)
+    }
+
+    fn attachment_removed(&self, channel: &str, message: &Message) -> Result<bool> {
+        let Some(file) = &message.file else {
+            return Ok(false);
+        };
+        let key = format!("channel-deleted:{channel}:{}", file.upload_id);
+        Ok(self
+            .workspace
+            .private::<Json>(self.keys()?, &key)?
+            .is_some())
+    }
+
+    fn preview_attachment_message(&self, channel: &str, seq: u64) -> Result<Message> {
+        let message = self.attachment_message(channel, seq)?;
+        ensure(
+            !self.blocked_accounts()?.contains(&message.account),
             Error::Forbidden,
         )?;
         Ok(message)

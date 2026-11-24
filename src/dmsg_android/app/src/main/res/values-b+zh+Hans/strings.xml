@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"阅读"</string>
     <string name="preview_save_to_files" formatted="false">"保存到文件"</string>
     <string name="preview_size" formatted="false">"大小"</string>
+    <string name="preview_source" formatted="false">"源码"</string>
     <string name="preview_too_large" formatted="false">"文件过大，暂不支持应用内预览。"</string>
     <string name="preview_truncated" formatted="false">"文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。"</string>
     <string name="preview_unavailable" formatted="false">"此文件已不可用。"</string>

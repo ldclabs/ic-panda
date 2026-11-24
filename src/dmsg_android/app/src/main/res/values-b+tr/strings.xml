@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Okuma"</string>
     <string name="preview_save_to_files" formatted="false">"Dosyalara kaydet"</string>
     <string name="preview_size" formatted="false">"Boyut"</string>
+    <string name="preview_source" formatted="false">"Kaynak"</string>
     <string name="preview_too_large" formatted="false">"Bu dosya uygulama içinde önizlemek için çok büyük."</string>
     <string name="preview_truncated" formatted="false">"Uzun belge önizleme için kısaltıldı. Tüm içeriği görmek için indirin veya harici olarak açın."</string>
     <string name="preview_unavailable" formatted="false">"Bu dosya artık kullanılamıyor."</string>

@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Reading"</string>
     <string name="preview_save_to_files" formatted="false">"Save to Files"</string>
     <string name="preview_size" formatted="false">"Size"</string>
+    <string name="preview_source" formatted="false">"Source"</string>
     <string name="preview_too_large" formatted="false">"This file is too large to preview in app."</string>
     <string name="preview_truncated" formatted="false">"Long document truncated for preview. Download or open externally to view all content."</string>
     <string name="preview_unavailable" formatted="false">"This file is no longer available."</string>

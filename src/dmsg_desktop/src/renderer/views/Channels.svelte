@@ -182,7 +182,7 @@
   })
   const lightboxItems = $derived.by<PreviewItem[]>(() => {
     const id = channel?.id
-    if (!id) return []
+    if (!id || !unlocked || !lightboxOpen) return []
     const bySeq = new Map<number, PreviewItem>()
     if (channelAttachmentList && attachmentListChannel === id) {
       for (const item of channelAttachmentList) {
@@ -200,9 +200,11 @@
       }
     }
     for (const m of shownMessages) {
-      if (m.retracted || m.hidden || m.unreadable || m.file_deleted || !m.file) continue
-      if (m.file.mime === 'application/vnd.dmsg.secret-package') continue
-      if (!bySeq.has(m.seq)) {
+      if (m.retracted || m.hidden || m.unreadable || m.file_deleted || !m.file || m.file.mime === 'application/vnd.dmsg.secret-package') {
+        bySeq.delete(m.seq)
+        continue
+      }
+      if (!channelAttachmentList || attachmentListChannel !== id) {
         bySeq.set(m.seq, {
           key: String(m.seq),
           source: { source: 'channel', channel: id, seq: m.seq },
@@ -212,9 +214,6 @@
           updatedAt: m.stored_at || m.created_at,
           placeholderUrl: images[m.seq] || undefined
         })
-      } else if (images[m.seq]) {
-        const existing = bySeq.get(m.seq)!
-        if (!existing.placeholderUrl) bySeq.set(m.seq, { ...existing, placeholderUrl: images[m.seq] })
       }
     }
     return [...bySeq.entries()].sort((a, b) => a[0] - b[0]).map(([, item]) => item)
@@ -224,11 +223,16 @@
     const id = channel?.id
     if (!id || !message?.file || message.file_deleted || message.retracted || message.file.mime === 'application/vnd.dmsg.secret-package') return
     lightboxKey = String(message.seq)
+    channelAttachmentList = null
     lightboxOpen = true
+    refreshAttachments(id)
+  }
+
+  function refreshAttachments(id: string) {
     const req = ++attachmentListReq
     void call<ChannelAttachmentItem[]>('channel/attachments', { id })
       .then((list) => {
-        if (!alive || selected !== id || req !== attachmentListReq) return
+        if (!alive || !lightboxOpen || selected !== id || req !== attachmentListReq) return
         channelAttachmentList = list
         attachmentListChannel = id
       })
@@ -959,6 +963,7 @@
     const offs = [
       onChange(['channel/changed', 'session/changed', 'sync/changed'], () => {
         void reload()
+        if (lightboxOpen && selected) refreshAttachments(selected)
         if (channel && Date.now() - receiptsAt > 10_000) void loadReceipts(channel.id)
       }),
       onChange(['legacy/changed', 'session/changed', 'sync/changed'], readLegacy)

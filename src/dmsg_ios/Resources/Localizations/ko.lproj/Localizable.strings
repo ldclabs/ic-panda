@@ -1482,6 +1482,8 @@
 	<string>읽지 않음으로 표시</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>모든 계정의 알림을 읽음으로 표시</string>
+	<key>Markdown source</key>
+	<string>원본</string>
 	<key>Matched in notes</key>
 	<string>메모에서 일치</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>정렬 기준</string>
 	<key>Source</key>
-	<string>원본</string>
+	<string>출처</string>
 	<key>Source address</key>
 	<string>소스 주소</string>
 	<key>Source address %u</key>

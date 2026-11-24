@@ -1482,6 +1482,8 @@
 	<string>Okunmadı olarak işaretle</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Tüm hesapların hatırlatıcılarını okundu olarak işaretle</string>
+	<key>Markdown source</key>
+	<string>Kaynak</string>
 	<key>Matched in notes</key>
 	<string>Notlarda eşleşti</string>
 	<key>Maximum fee</key>

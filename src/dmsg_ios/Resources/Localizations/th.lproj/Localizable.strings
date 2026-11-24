@@ -1482,6 +1482,8 @@
 	<string>ทำเครื่องหมายว่ายังไม่ได้อ่าน</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>ทำเครื่องหมายการเตือนของทุกบัญชีว่าอ่านแล้ว</string>
+	<key>Markdown source</key>
+	<string>ซอร์ส</string>
 	<key>Matched in notes</key>
 	<string>ตรงกับบันทึก</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>จัดเรียงตาม</string>
 	<key>Source</key>
-	<string>ซอร์ส</string>
+	<string>แหล่งที่มา</string>
 	<key>Source address</key>
 	<string>ที่อยู่ต้นทาง</string>
 	<key>Source address %u</key>

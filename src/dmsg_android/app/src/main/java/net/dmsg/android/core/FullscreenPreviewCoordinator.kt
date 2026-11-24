@@ -15,10 +15,12 @@ import net.dmsg.core.MessageItem
 import java.io.File
 
 sealed interface LoadedPreviewContent {
+    val originalBytes: ByteArray? get() = null
+
     data class Loading(val completed: ULong = 0uL, val total: ULong = 0uL) : LoadedPreviewContent
     data class Image(
         val bitmap: Bitmap,
-        val bytes: ByteArray,
+        override val originalBytes: ByteArray,
         val mime: String,
         val name: String,
         val size: ULong,
@@ -27,6 +29,7 @@ sealed interface LoadedPreviewContent {
     data class Markdown(
         val document: MarkdownDocument,
         val raw: String,
+        override val originalBytes: ByteArray?,
         val mime: String,
         val name: String,
         val size: ULong,
@@ -34,6 +37,7 @@ sealed interface LoadedPreviewContent {
     ) : LoadedPreviewContent
     data class Text(
         val text: String,
+        override val originalBytes: ByteArray?,
         val mime: String,
         val name: String,
         val size: ULong,
@@ -68,7 +72,8 @@ data class FullscreenPreviewSession(
         get() {
             val item = activeItem ?: return false
             return when (item.source) {
-                is PreviewSource.Library -> item.canOpen
+                is PreviewSource.Library -> item.canOpen && !(content is LoadedPreviewContent.Fallback &&
+                    (content.reason == PreviewFallbackReason.CLOUD_ONLY || content.reason == PreviewFallbackReason.UNAVAILABLE))
                 is PreviewSource.Channel -> content is LoadedPreviewContent.Image ||
                     content is LoadedPreviewContent.Markdown ||
                     content is LoadedPreviewContent.Text
@@ -183,19 +188,23 @@ class FullscreenPreviewCoordinator(
     fun shareCurrent(open: (File, String) -> Unit) {
         val current = mutable.value ?: return
         val item = current.activeItem ?: return
+        val selection = loadSequence
+        fun showCopy(file: File, mime: String) {
+            if (selection == loadSequence) open(file, mime) else file.parentFile?.deleteRecursively()
+        }
         when (item.source) {
             is PreviewSource.Library -> {
                 val file = item.libraryFile ?: return
-                client.transfers.share(file, open)
+                client.transfers.share(file, ::showCopy)
             }
             is PreviewSource.Channel -> {
                 val files = paths() ?: return
                 val stamp = client.currentStamp() ?: return
                 val owner = stamp.account ?: return
                 val pair: Pair<ByteArray, String> = when (val loaded = current.content) {
-                    is LoadedPreviewContent.Image -> loaded.bytes.copyOf() to loaded.mime
-                    is LoadedPreviewContent.Markdown -> loaded.raw.toByteArray(Charsets.UTF_8) to loaded.mime
-                    is LoadedPreviewContent.Text -> loaded.text.toByteArray(Charsets.UTF_8) to loaded.mime
+                    is LoadedPreviewContent.Image -> loaded.originalBytes.copyOf() to loaded.mime
+                    is LoadedPreviewContent.Markdown -> (loaded.originalBytes?.copyOf() ?: loaded.raw.toByteArray(Charsets.UTF_8)) to loaded.mime
+                    is LoadedPreviewContent.Text -> (loaded.originalBytes?.copyOf() ?: loaded.text.toByteArray(Charsets.UTF_8)) to loaded.mime
                     else -> return
                 }
                 client.perform({
@@ -205,7 +214,7 @@ class FullscreenPreviewCoordinator(
                         pair.first.fill(0)
                     }
                 }, key = "fullscreen:share:${item.id}", replace = true) { sharedFile ->
-                    open(sharedFile, pair.second)
+                    showCopy(sharedFile, pair.second)
                 }
             }
         }
@@ -222,8 +231,7 @@ class FullscreenPreviewCoordinator(
     }
 
     private fun zeroLoadedBytes() {
-        val image = mutable.value?.content as? LoadedPreviewContent.Image
-        image?.bytes?.fill(0)
+        mutable.value?.content?.originalBytes?.fill(0)
     }
 
     private fun loadCurrent() {
@@ -285,7 +293,7 @@ class FullscreenPreviewCoordinator(
                     } else {
                         LoadedPreviewContent.Image(
                             bitmap = bitmap,
-                            bytes = bytes,
+                            originalBytes = bytes,
                             mime = payload.mime,
                             name = payload.name,
                             size = payload.size,
@@ -307,6 +315,7 @@ class FullscreenPreviewCoordinator(
                         LoadedPreviewContent.Markdown(
                             document = doc,
                             raw = payload.text.orEmpty(),
+                            originalBytes = payload.originalTextBytes,
                             mime = payload.mime,
                             name = payload.name,
                             size = payload.size,
@@ -316,6 +325,7 @@ class FullscreenPreviewCoordinator(
                 }
                 "text" -> LoadedPreviewContent.Text(
                     text = payload.text.orEmpty(),
+                    originalBytes = payload.originalTextBytes,
                     mime = payload.mime,
                     name = payload.name,
                     size = payload.size,
@@ -338,8 +348,8 @@ class FullscreenPreviewCoordinator(
             val live = mutable.value
             if (loadSequence == seq && live?.activeId == targetId) {
                 mutable.value = live.copy(loadedForId = targetId, content = loaded)
-            } else if (loaded is LoadedPreviewContent.Image) {
-                loaded.bytes.fill(0)
+            } else {
+                loaded.originalBytes?.fill(0)
             }
         }
     }
@@ -350,18 +360,13 @@ class FullscreenPreviewCoordinator(
         }, key = "fullscreen:attachments", replace = true, quiet = true) { records ->
             val live = mutable.value ?: return@perform
             if (live.channelId != channel) return@perform
-            val merged = linkedMapOf<ULong, FullscreenPreviewItem>()
-            for (record in records) {
-                merged[record.seq] = FullscreenPreviewItem.fromAttachment(channel, record)
-            }
-            for (existing in live.allItems) {
-                val src = existing.source as? PreviewSource.Channel ?: continue
-                if (src.sequence !in merged) merged[src.sequence] = existing
-            }
-            val sorted = merged.entries.sortedBy { it.key }.map { it.value }
-            if (sorted.isNotEmpty()) {
-                mutable.value = live.copy(allItems = sorted)
-            }
+            val items = records.map { FullscreenPreviewItem.fromAttachment(channel, it) }
+            if (items.isEmpty()) { close(); return@perform }
+            val filter = live.filter.takeIf { f -> items.any { PreviewFilterLogic.matches(it, f) } } ?: PreviewFilter.ALL
+            val selected = PreviewFilterLogic.pickNearest(items, live.activeId, filter).activeId ?: return@perform
+            if (selected != live.activeId) zeroLoadedBytes()
+            mutable.value = live.copy(allItems = items, activeId = selected, filter = filter)
+            if (selected != live.activeId) loadCurrent()
         }
     }
 }

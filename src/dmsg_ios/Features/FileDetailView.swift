@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct FileDetailDestination: View {
     let id: String
     var version: String? = nil
+    var fromFullscreen = false
     @Environment(SessionModel.self) private var model
     @State private var details: LibraryDetails?
     @State private var failure: String?
@@ -20,9 +21,9 @@ struct FileDetailDestination: View {
                     }.privateScreen().navigationTitle("File")
                 } else if let version {
                     if let item = details.versions.first(where: { $0.id == version }) {
-                        FileScreen(file: item.file(in: details.file), historical: !item.current)
+                        destination(item.file(in: details.file), historical: !item.current)
                     } else { ContentUnavailableView("File not available on this device", systemImage: "doc.badge.ellipsis") }
-                } else { FileScreen(file: details.file) }
+                } else { destination(details.file, historical: false) }
             } else {
                 List {
                     if loading { ProgressView("Loading…") }
@@ -39,11 +40,21 @@ struct FileDetailDestination: View {
             guard stamp == model.epoch, !Task.isCancelled else { return }; details = value
         } catch { if stamp == model.epoch, !Task.isCancelled { failure = model.fileFailureMessage(error) } }
     }
+
+    @ViewBuilder
+    private func destination(_ file: LibraryFile, historical: Bool) -> some View {
+        if fromFullscreen {
+            let rendered = PreviewFilterLogic.classify(mime: file.mime, name: file.name) != .unsupported
+            FileDetailView(file: file, historical: historical, previewed: rendered)
+        } else {
+            FileScreen(file: file, historical: historical)
+        }
+    }
 }
 
 /// The decrypted copy behind a preview. It closes when the screen holding it goes
 /// away by any route, and stays open while another screen is pushed on top.
-private final class OpenedFile {
+final class OpenedFile {
     let url: URL
     let version: String
     private let nonce: String?

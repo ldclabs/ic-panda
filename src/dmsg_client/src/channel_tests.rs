@@ -577,6 +577,65 @@ fn attachment_search_pages_preserve_all_matches_and_reply_targets() {
     );
 }
 
+#[tokio::test]
+async fn fullscreen_preview_respects_channel_visibility_and_original_name_for_saved_files() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let channel = "ab".repeat(32);
+    let author = client.me().unwrap();
+    let file = client
+        .files_write("root", "renamed.txt", b"# Notes")
+        .unwrap();
+    let mut version = client.version(&file.file.id, &file.version).unwrap();
+    version.origin = Origin::SharedIn {
+        channel: channel.clone(),
+        seq: 1,
+    };
+    client
+        .save_version(&file.file.id, &file.version, &version)
+        .unwrap();
+    let upload = "cd".repeat(32);
+    let message = Message {
+        file: Some(FileRef {
+            upload_id: upload.clone(),
+            file_id: file.file.id.clone(),
+            version: file.version.clone(),
+            epoch: 1,
+            manifest_digest: "ef".repeat(32),
+            name: "original.md".into(),
+            size: 7,
+            mime: "text/plain".into(),
+            key: b64(&[0; 32]),
+        }),
+        ..written(1, &author, "")
+    };
+    keep(&client, &channel, &mut Local::default(), &message);
+    assert_eq!(client.channel_attachments(&channel).unwrap().len(), 1);
+    let preview = preview_attachment(&client.hold(), &channel, 1, &mut |_, _| {})
+        .await
+        .unwrap();
+    assert_eq!(preview.meta.name, "original.md");
+    assert_eq!(preview.meta.kind, crate::preview::PreviewClass::Markdown);
+    for deleted in [false, true] {
+        client.set_blocked_account(&author, !deleted).unwrap();
+        if deleted {
+            client
+                .workspace
+                .put_private(
+                    client.keys().unwrap(),
+                    &format!("channel-deleted:{channel}:{upload}"),
+                    &json!({}),
+                )
+                .unwrap();
+        }
+        assert!(client.channel_attachments(&channel).unwrap().is_empty());
+        assert!(matches!(
+            preview_attachment(&client.hold(), &channel, 1, &mut |_, _| {}).await,
+            Err(Error::Forbidden)
+        ));
+    }
+}
+
 #[test]
 fn edits_and_withdrawals_reach_their_authors_messages_in_any_order() {
     use crate::testing::{TempDir, unlocked};

@@ -37,6 +37,9 @@ final class PreviewModelsTests: XCTestCase {
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "image/tiff", name: "scan.tiff"), .unsupported)
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/octet-stream", name: "favicon.ico"), .unsupported)
         XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/typescript", name: "main.ts"), .text)
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "image/png", name: "renamed.md"), .image)
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/pdf", name: "renamed.md"), .unsupported)
+        XCTAssertEqual(PreviewFilterLogic.classify(mime: "application/octet-stream", name: ".env"), .text)
     }
 
     func testFilterCountsAndNearestNeighborFocus() {

@@ -1482,6 +1482,8 @@
 	<string>অপঠিত হিসেবে চিহ্নিত করুন</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>সব অ্যাকাউন্টের রিমাইন্ডার পঠিত হিসেবে চিহ্নিত করুন</string>
+	<key>Markdown source</key>
+	<string>সোর্স</string>
 	<key>Matched in notes</key>
 	<string>নোটে মিলেছে</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>সাজানোর ক্রম</string>
 	<key>Source</key>
-	<string>সোর্স</string>
+	<string>উৎস</string>
 	<key>Source address</key>
 	<string>উৎস ঠিকানা</string>
 	<key>Source address %u</key>

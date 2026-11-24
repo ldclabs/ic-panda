@@ -980,11 +980,8 @@ impl Client {
         &self,
         channel: &str,
     ) -> Result<Vec<crate::preview::ChannelAttachmentItem>> {
-        let blocked: HashSet<String> = self
-            .blocked_accounts()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
+        ensure_valid(is_hash(channel), "channel")?;
+        let blocked: HashSet<String> = self.blocked_accounts()?.into_iter().collect();
         let indexed = self.ensure_channel_search_index(channel)?;
         let mut items = Vec::new();
         for cached in indexed {

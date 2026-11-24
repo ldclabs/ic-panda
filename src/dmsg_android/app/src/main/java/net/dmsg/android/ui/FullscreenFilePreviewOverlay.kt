@@ -53,6 +53,7 @@ import net.dmsg.android.ui.kit.Notice
 import net.dmsg.android.ui.kit.Progress
 import net.dmsg.android.ui.kit.RowIcon
 import java.io.File
+import kotlinx.coroutines.flow.first
 
 /**
  * Fullscreen file preview mounted as a root-level overlay inside [DMsgApp],
@@ -83,16 +84,22 @@ import java.io.File
     var topBarHeightPx by remember { mutableIntStateOf(0) }
     val topBarHeight = with(LocalDensity.current) { topBarHeightPx.toDp() }
 
-    LaunchedEffect(session.activeId, filtered.size) {
+    LaunchedEffect(session.activeId, filtered) {
+        if (filtered.isEmpty()) return@LaunchedEffect
         val target = session.activeIndex
-        if (filtered.isNotEmpty() && pagerState.currentPage != target) {
+        if (pagerState.settledPage != target) {
             pagerState.scrollToPage(target)
         }
+        val next = snapshotFlow { pagerState.settledPage }.first { it != target }
+        filtered.getOrNull(next)?.let { client.fullscreenPreview.select(it.id) }
     }
-    LaunchedEffect(pagerState.currentPage, filtered) {
-        val item = filtered.getOrNull(pagerState.currentPage)
-        if (item != null && item.id != session.activeId) {
-            client.fullscreenPreview.select(item.id)
+
+    fun openDetails(file: LibraryFile) {
+        client.fullscreenPreview.close()
+        client.navigation.open("files")
+        val route = client.navigation.state.value.current
+        if (route.page != "files" || route.id != file.id) {
+            client.navigation.push(Route("files", id = file.id, folder = route.folder, revision = file.version))
         }
     }
 
@@ -120,11 +127,7 @@ import java.io.File
                     onToggleChrome = { showChrome = !showChrome },
                     onZoomChanged = { zoomed -> isZoomed = zoomed },
                     onShareRequest = { confirmShare = true },
-                    onOpenDetails = { file ->
-                        client.fullscreenPreview.close()
-                        client.navigation.open("files")
-                        client.navigation.select(file.id)
-                    },
+                    onOpenDetails = ::openDetails,
                 )
             }
         }
@@ -239,25 +242,21 @@ import java.io.File
                             ) {
                                 Icon(
                                     imageVector = if (markdownSource) Icons.AutoMirrored.Outlined.Article else Icons.Outlined.Code,
-                                    contentDescription = str(if (markdownSource) R.string.preview_reading else R.string.text_source_fcdba0f),
+                                    contentDescription = str(if (markdownSource) R.string.preview_reading else R.string.preview_source),
                                 )
                             }
                         }
 
                         session.activeItem?.libraryFile?.let { file ->
                             IconButton(
-                                onClick = {
-                                    client.fullscreenPreview.close()
-                                    client.navigation.open("files")
-                                    client.navigation.select(file.id)
-                                },
+                                onClick = { openDetails(file) },
                                 modifier = Modifier.testTag("preview-file-details"),
                             ) {
                                 Icon(Icons.Outlined.Info, str(R.string.text_file_details_27e9099))
                             }
                         }
 
-                        Box {
+                        if (session.canShareCurrent || session.activeItem?.source is PreviewSource.Channel) Box {
                             IconButton(
                                 onClick = { actionsMenu = true },
                                 modifier = Modifier.testTag("preview-actions"),
@@ -440,6 +439,7 @@ import java.io.File
                     size = loaded.size,
                     sha256 = loaded.sha256 ?: item.sha256,
                     savingToFiles = session.savingToFiles,
+                    canShare = session.canShareCurrent,
                     onSaveToFiles = { client.fullscreenPreview.saveChannelAttachment(item) },
                     onShare = onShareRequest,
                     onDetails = { item.libraryFile?.let(onOpenDetails) },
@@ -557,6 +557,7 @@ import java.io.File
     size: ULong,
     sha256: String?,
     savingToFiles: Boolean,
+    canShare: Boolean,
     onSaveToFiles: () -> Unit,
     onShare: () -> Unit,
     onDetails: () -> Unit,
@@ -596,7 +597,7 @@ import java.io.File
                     }
                 }
                 is PreviewSource.Library -> {
-                    if (item.canOpen) {
+                    if (canShare) {
                         Button(onClick = onShare, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Share, null)
                             Spacer(Modifier.width(8.dp))

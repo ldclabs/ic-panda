@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"قراءة"</string>
     <string name="preview_save_to_files" formatted="false">"حفظ في الملفات"</string>
     <string name="preview_size" formatted="false">"الحجم"</string>
+    <string name="preview_source" formatted="false">"المصدر"</string>
     <string name="preview_too_large" formatted="false">"هذا الملف كبير جداً للمعاينة داخل التطبيق."</string>
     <string name="preview_truncated" formatted="false">"تم اختصار المستند الطويل للمعاينة. نزّله أو افتحه خارجياً لعرض المحتوى بالكامل."</string>
     <string name="preview_unavailable" formatted="false">"هذا الملف لم يعد متاحاً."</string>

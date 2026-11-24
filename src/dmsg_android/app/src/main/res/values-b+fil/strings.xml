@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Pagbasa"</string>
     <string name="preview_save_to_files" formatted="false">"I-save sa Mga File"</string>
     <string name="preview_size" formatted="false">"Laki"</string>
+    <string name="preview_source" formatted="false">"Source"</string>
     <string name="preview_too_large" formatted="false">"Masyadong malaki ang file na ito para i-preview sa app."</string>
     <string name="preview_truncated" formatted="false">"Pinaikli ang mahabang dokumento para sa preview. I-download o buksan sa labas upang makita ang buong nilalaman."</string>
     <string name="preview_unavailable" formatted="false">"Hindi na available ang file na ito."</string>
@@ -1729,7 +1730,7 @@
     <string name="text_sound_29e55cd" formatted="false">"Tunog"</string>
     <string name="text_source_address_b68a3f4" formatted="false">"Address ng pinagmulan"</string>
     <string name="text_source_device_abc1e1a" formatted="false">"Pinagmulang device · "</string>
-    <string name="text_source_fcdba0f" formatted="false">"Source"</string>
+    <string name="text_source_fcdba0f" formatted="false">"Pinagmulan"</string>
     <string name="text_source_limit_64_mib_archive_attachments_passkeys_and_history_are_7b86dbc" formatted="false">"Limitasyon ng source: 64 MiB. Hindi ini-import dito ang mga attachment sa archive, passkey, at kasaysayan."</string>
     <string name="text_spam_afdcb81" formatted="false">"Spam"</string>
     <string name="text_spendable_now_8f7ddfb" formatted="false">"Magagastos na ngayon"</string>

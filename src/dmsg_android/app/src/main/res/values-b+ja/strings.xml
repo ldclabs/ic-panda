@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"閲覧"</string>
     <string name="preview_save_to_files" formatted="false">"ファイルに保存"</string>
     <string name="preview_size" formatted="false">"サイズ"</string>
+    <string name="preview_source" formatted="false">"ソース"</string>
     <string name="preview_too_large" formatted="false">"ファイルサイズが大きすぎるためアプリ内でプレビューできません。"</string>
     <string name="preview_truncated" formatted="false">"長いドキュメントのためプレビューを一部省略しました。全文を見るにはダウンロードするか外部アプリで開いてください。"</string>
     <string name="preview_unavailable" formatted="false">"このファイルは利用できなくなりました。"</string>

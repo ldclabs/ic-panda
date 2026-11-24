@@ -1482,6 +1482,8 @@
 	<string>Отметить непрочитанным</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Отметить напоминания всех аккаунтов как прочитанные</string>
+	<key>Markdown source</key>
+	<string>Исходник</string>
 	<key>Matched in notes</key>
 	<string>Совпадение в заметках</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>Сортировка</string>
 	<key>Source</key>
-	<string>Исходник</string>
+	<string>Источник</string>
 	<key>Source address</key>
 	<string>Исходный адрес</string>
 	<key>Source address %u</key>

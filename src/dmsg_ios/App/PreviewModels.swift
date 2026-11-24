@@ -219,7 +219,7 @@ struct FullscreenPreviewItem: Identifiable, Equatable, Sendable {
         let key = version.map { "\(file.id)@\($0)" } ?? file.id
         return FullscreenPreviewItem(
             id: key,
-            source: .library(id: file.id, version: version),
+            source: .library(id: file.id, version: version ?? file.current),
             name: file.name,
             mime: file.mime,
             size: file.size,
@@ -316,17 +316,18 @@ enum PreviewFilterLogic {
 
     static func classify(mime: String, name: String) -> PreviewClass {
         let base = mime.split(separator: ";", maxSplits: 1).first.map { $0.trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
-        let ext = (name as NSString).pathExtension.lowercased()
+        let ext = name.lastIndex(of: ".").map { name[name.index(after: $0)...].lowercased() } ?? ""
         if base == "application/vnd.dmsg.secret-package" || base == "image/svg+xml" || ext == "svg" || ext == "svgz" {
             return .unsupported
         }
-        if base == "text/markdown" || base == "text/x-markdown" || markdownExts.contains(ext) {
+        let generic = base.isEmpty || base == "application/octet-stream"
+        if base == "text/markdown" || base == "text/x-markdown" || ((generic || base == "text/plain") && markdownExts.contains(ext)) {
             return .markdown
         }
-        if imageMimes.contains(base) || ((base.isEmpty || base == "application/octet-stream") && imageExts.contains(ext)) {
+        if imageMimes.contains(base) || (generic && imageExts.contains(ext)) {
             return .image
         }
-        if base.hasPrefix("text/") || textMimes.contains(base) || ((base.isEmpty || base == "application/octet-stream") && textExts.contains(ext)) {
+        if base.hasPrefix("text/") || textMimes.contains(base) || (generic && textExts.contains(ext)) {
             return .text
         }
         return .unsupported
@@ -423,10 +424,8 @@ enum PreviewImageDecoder {
                 kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
             ]
             guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-            if let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) {
-                return UIImage(cgImage: cgImage)
-            }
-            return UIImage(data: data)
+            guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+            return UIImage(cgImage: thumbnail)
         }.value
     }
 }

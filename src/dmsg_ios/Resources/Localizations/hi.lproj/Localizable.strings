@@ -1482,6 +1482,8 @@
 	<string>अपठित चिह्नित करें</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>सभी खातों के रिमाइंडर पढ़े हुए चिह्नित करें</string>
+	<key>Markdown source</key>
+	<string>स्रोत</string>
 	<key>Matched in notes</key>
 	<string>नोट्स में मिला</string>
 	<key>Maximum fee</key>

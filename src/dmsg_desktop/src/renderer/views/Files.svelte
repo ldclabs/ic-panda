@@ -194,7 +194,7 @@
       .filter((r) => r.kind === 'file')
       .map((f) => ({
         key: f.id,
-        source: { source: 'library', id: f.id, version: null },
+        source: { source: 'library', id: f.id, version: f.current },
         name: f.name,
         mime: f.mime ?? '',
         size: f.size ?? 0,
@@ -205,14 +205,14 @@
   )
   const lightboxItems = $derived<PreviewItem[]>(versionPreview ? [versionPreview] : previewItems)
 
-  function openPreview(fileId: string, version?: { id: string; created_at: number; size: number; sha256?: string; local?: boolean } | null) {
+  function openPreview(fileId: string, version?: { id: string; created_at: number; size: number; mime?: string; sha256?: string; local?: boolean } | null) {
     if (version) {
       const file = details?.file?.id === fileId ? details.file : rows.find((r) => r.id === fileId)
       const item: PreviewItem = {
         key: `${fileId}@${version.id}`,
         source: { source: 'library', id: fileId, version: version.id },
         name: file?.name ?? '',
-        mime: file?.mime ?? '',
+        mime: version.mime ?? '',
         size: version.size ?? file?.size ?? 0,
         updatedAt: version.created_at,
         sha256: version.sha256,

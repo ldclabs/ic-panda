@@ -330,11 +330,7 @@ function sendJsonPreview(res, payload) {
   res.writeHead(200, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
-    'x-dmsg-preview-kind': payload.kind,
-    'x-dmsg-preview-mime': payload.mime,
-    'x-dmsg-preview-name': encodeURIComponent(payload.name),
-    'x-dmsg-preview-size': String(payload.size),
-    ...(payload.sha256 ? { 'x-dmsg-preview-sha256': payload.sha256 } : {})
+    'x-dmsg-preview-kind': 'json'
   })
   res.end(body)
 }
@@ -344,10 +340,9 @@ function sendImagePreview(res, meta) {
     'content-type': 'image/png',
     'cache-control': 'no-store',
     'x-dmsg-preview-kind': 'image',
-    'x-dmsg-preview-mime': 'image/png',
-    'x-dmsg-preview-name': encodeURIComponent(meta.name),
-    'x-dmsg-preview-size': String(pngBytes.length),
-    ...(meta.sha256 ? { 'x-dmsg-preview-sha256': meta.sha256 } : {})
+    'x-dmsg-preview-meta': Buffer.from(JSON.stringify({
+      kind: 'image', mime: 'image/png', name: meta.name, size: pngBytes.length, sha256: meta.sha256
+    })).toString('base64url')
   })
   res.end(pngBytes)
 }
@@ -483,6 +478,11 @@ try {
   const afterZoom = await main.getByTestId('lightbox-zoom-reset').innerText()
   assert.notEqual(afterZoom, beforeZoom, 'zoom-in should update zoom percentage')
   await main.getByTestId('lightbox-zoom-reset').click()
+  assert.ok(previewRequests.some((request) => request.source === 'library' && request.version === libraryFiles[0].current))
+  await main.keyboard.press('0')
+  await main.getByTestId('lightbox-image').dblclick()
+  await main.getByTestId('lightbox-image').dblclick()
+  assert.equal(await main.getByTestId('lightbox-zoom-reset').innerText(), beforeZoom, 'double-clicking a zoomed image should restore fit')
 
   await main.screenshot({ path: join(shots, 'desktop-files-image-en-light-1180.png'), animations: 'disabled' })
   await setLook('en', 'dark', 1180, 760)
@@ -547,6 +547,9 @@ try {
   await main.getByTestId('lightbox-markdown').waitFor()
   assert.ok(await main.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   await main.screenshot({ path: join(shots, 'desktop-files-markdown-ar-light-760.png'), animations: 'disabled' })
+  await setLook('de', 'light', 760, 540)
+  await main.getByTestId('lightbox-close').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'desktop-files-markdown-de-light-760.png'), animations: 'disabled' })
 
   // Escape closes lightbox
   await main.keyboard.press('Escape')
@@ -575,6 +578,12 @@ try {
   await main.getByTestId('lightbox-next').click()
   await main.getByTestId('lightbox-fallback').waitFor()
   assert.equal(await main.getByTestId('lightbox-filename').innerText(), 'archive-bundle.pdf')
+
+  // A synced deletion removes the current attachment even while its old message is still visible.
+  channelAttachments.pop()
+  for (const socket of sockets) socket.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type: 'channel/changed', data: {} } }))
+  await main.getByTestId('lightbox-image').waitFor()
+  assert.equal(await main.getByTestId('lightbox-counter').innerText(), '1 / 2')
 
   await main.keyboard.press('Escape')
   await lightbox.waitFor({ state: 'detached' })

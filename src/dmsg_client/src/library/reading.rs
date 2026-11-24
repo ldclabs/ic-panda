@@ -41,6 +41,13 @@ impl Reading {
         ensure(c.session_generation == self.generation, Error::Locked)
     }
 
+    async fn bytes<H: Hold>(&self, h: &H) -> Result<Zeroizing<Vec<u8>>> {
+        ensure(self.manifest.size <= self.max, Error::QuotaExceeded)?;
+        let mut bytes = Zeroizing::new(Vec::with_capacity(self.manifest.size as usize));
+        self.read(h, &mut *bytes).await?;
+        Ok(bytes)
+    }
+
     async fn read<H: Hold>(&self, h: &H, out: &mut (dyn Write + Send)) -> Result<()> {
         let count = chunk_count(self.manifest.size);
         ensure(
@@ -201,7 +208,7 @@ pub async fn preview_full<H: Hold>(
             let mime = manifest.mime.clone();
             let size = manifest.size;
             let sha256 = Some(manifest.sha256.clone());
-            if file.trashed_at.is_some() {
+            if c.catalog()?.file_trashed(&file) {
                 return Ok(Plan::Fallback(crate::preview::FullPreview::fallback(
                     mime,
                     name,
@@ -249,9 +256,13 @@ pub async fn preview_full<H: Hold>(
         Plan::Fallback(fallback) => return Ok(fallback),
         Plan::Read(reading) => reading,
     };
-    let mut bytes = Zeroizing::new(Vec::with_capacity(reading.manifest.size as usize));
-    reading.read(h, &mut *bytes).await?;
-    h.with(|c| reading.check(c)).await?;
+    let bytes = reading.bytes(h).await?;
+    h.with(|c| {
+        reading.check(c)?;
+        let file = c.file_record(id)?;
+        ensure(!c.catalog()?.file_trashed(&file), Error::NotFound)
+    })
+    .await?;
     Ok(crate::preview::from_verified_bytes(
         reading.manifest.mime.clone(),
         reading.manifest.name.clone(),
@@ -259,6 +270,18 @@ pub async fn preview_full<H: Hold>(
         Some(reading.manifest.sha256.clone()),
         bytes,
     ))
+}
+
+/// Read the immutable library version previously imported from a channel attachment.
+pub(crate) async fn saved_attachment_bytes<H: Hold>(
+    h: &H,
+    id: &str,
+    version: &str,
+    limit: u64,
+) -> Result<Zeroizing<Vec<u8>>> {
+    let mut reading = h.with(|c| Reading::prepare(c, id, Some(version))).await?;
+    reading.max = limit;
+    reading.bytes(h).await
 }
 
 /// Verify a file's versions one chunk at a time.

@@ -1482,6 +1482,8 @@
 	<string>Markahan bilang hindi pa nababasa</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Markahan bilang nabasa ang mga paalala ng lahat ng account</string>
+	<key>Markdown source</key>
+	<string>Source</string>
 	<key>Matched in notes</key>
 	<string>Tumugma sa mga tala</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>Ayusin ayon sa</string>
 	<key>Source</key>
-	<string>Source</string>
+	<string>Pinagmulan</string>
 	<key>Source address</key>
 	<string>Address ng pinagmulan</string>
 	<key>Source address %u</key>

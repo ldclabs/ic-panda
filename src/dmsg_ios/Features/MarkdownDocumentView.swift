@@ -130,7 +130,7 @@ struct MarkdownDocumentView: View {
                             Image(systemName: checked ? "checkmark.square.fill" : "square")
                                 .font(.body)
                                 .foregroundStyle(checked ? Theme.forest : Color.secondary)
-                                .accessibilityHidden(true)
+                                .accessibilityLabel(checked ? String(localized: "Completed") : String(localized: "Incomplete"))
                         } else if ordered {
                             Text(verbatim: "\(start + UInt64(idx)).")
                                 .font(.body.monospacedDigit())

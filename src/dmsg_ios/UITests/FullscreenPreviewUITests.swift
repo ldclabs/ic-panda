@@ -41,8 +41,8 @@ final class FullscreenPreviewUITests: XCTestCase {
         XCTAssertTrue(app.buttons["file.item.fixture-video"].waitForExistence(timeout: 5))
         tapRow(app.buttons["file.item.fixture-video"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["preview.fallback"].waitForExistence(timeout: 5))
-        app.buttons["preview.close"].tap()
-        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
+        app.buttons["file.details"].tap()
+        XCTAssertTrue(app.buttons["Preview file"].waitForExistence(timeout: 5), "The original system preview remains available for video.")
     }
 
     func testFullscreenPreviewShowsItsOwnNotices() {

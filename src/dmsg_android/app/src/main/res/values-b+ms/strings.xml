@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"Bacaan"</string>
     <string name="preview_save_to_files" formatted="false">"Simpan ke Fail"</string>
     <string name="preview_size" formatted="false">"Saiz"</string>
+    <string name="preview_source" formatted="false">"Sumber"</string>
     <string name="preview_too_large" formatted="false">"Fail ini terlalu besar untuk dipratonton dalam aplikasi."</string>
     <string name="preview_truncated" formatted="false">"Dokumen panjang dipendekkan untuk pratonton. Muat turun atau buka secara luaran untuk melihat semua kandungan."</string>
     <string name="preview_unavailable" formatted="false">"Fail ini tidak lagi tersedia."</string>

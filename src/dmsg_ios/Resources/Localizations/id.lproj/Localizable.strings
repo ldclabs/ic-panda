@@ -1482,6 +1482,8 @@
 	<string>Tandai belum dibaca</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>Tandai pengingat semua akun sebagai dibaca</string>
+	<key>Markdown source</key>
+	<string>Sumber</string>
 	<key>Matched in notes</key>
 	<string>Cocok di catatan</string>
 	<key>Maximum fee</key>

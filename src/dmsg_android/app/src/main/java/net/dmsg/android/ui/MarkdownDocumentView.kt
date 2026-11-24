@@ -155,7 +155,7 @@ import net.dmsg.android.ui.kit.Notice
                         when {
                             item.checked != null -> Icon(
                                 imageVector = if (item.checked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                                contentDescription = null,
+                                contentDescription = str(if (item.checked) R.string.text_completed_6ff49bc else R.string.text_incomplete_022e64c),
                                 tint = if (item.checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp).size(18.dp),
                             )

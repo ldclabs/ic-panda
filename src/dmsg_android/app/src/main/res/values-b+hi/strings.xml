@@ -102,6 +102,7 @@
     <string name="preview_reading" formatted="false">"पठन"</string>
     <string name="preview_save_to_files" formatted="false">"फ़ाइलों में सहेजें"</string>
     <string name="preview_size" formatted="false">"आकार"</string>
+    <string name="preview_source" formatted="false">"स्रोत"</string>
     <string name="preview_too_large" formatted="false">"यह फ़ाइल ऐप में पूर्वावलोकन के लिए बहुत बड़ी है।"</string>
     <string name="preview_truncated" formatted="false">"लंबा दस्तावेज़ पूर्वावलोकन के लिए छोटा किया गया है। पूरी सामग्री देखने के लिए डाउनलोड करें या बाहर खोलें।"</string>
     <string name="preview_unavailable" formatted="false">"यह फ़ाइल अब उपलब्ध नहीं है।"</string>

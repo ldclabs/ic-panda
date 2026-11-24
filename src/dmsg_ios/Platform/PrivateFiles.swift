@@ -19,6 +19,7 @@ enum LibraryImportUse: Sendable {
 }
 
 struct PrivateFiles: Sendable {
+    private static let previewSharePrefix = "dmsg-share-"
     let root: URL
     let workspace: URL
     let staging: URL
@@ -72,6 +73,27 @@ struct PrivateFiles: Sendable {
             }
         }
         PhotoImport.removeAbandoned()
+        let temporary = manager.temporaryDirectory
+        for name in (try? manager.contentsOfDirectory(atPath: temporary.path)) ?? []
+        where name.hasPrefix(Self.previewSharePrefix) && UUID(uuidString: String(name.dropFirst(Self.previewSharePrefix.count))) != nil {
+            try? manager.removeItem(at: temporary.appending(path: name))
+        }
+    }
+
+    static func previewShareCopy(_ bytes: Data, name: String) throws -> URL {
+        let manager = FileManager.default
+        let directory = manager.temporaryDirectory.appending(path: previewSharePrefix + UUID().uuidString)
+        try manager.createDirectory(at: directory, withIntermediateDirectories: false,
+                                    attributes: [.protectionKey: FileProtectionType.complete])
+        let filename = (name as NSString).lastPathComponent
+        let url = directory.appending(path: ["", ".", "..", "/"].contains(filename) ? "file" : filename)
+        do {
+            try bytes.write(to: url, options: [.completeFileProtection])
+            return url
+        } catch {
+            try? manager.removeItem(at: directory)
+            throw error
+        }
     }
 
     /// Only the caller that completed an import may remove its exact temporary

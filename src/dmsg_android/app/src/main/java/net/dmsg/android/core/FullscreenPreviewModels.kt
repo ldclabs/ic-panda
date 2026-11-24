@@ -238,7 +238,7 @@ data class FullscreenPreviewItem(
             val key = if (version != null) "${file.id}@$version" else file.id
             return FullscreenPreviewItem(
                 id = key,
-                source = PreviewSource.Library(file.id, version),
+                source = PreviewSource.Library(file.id, version ?: file.version),
                 name = file.name,
                 mime = file.mime,
                 size = file.size,
@@ -316,13 +316,14 @@ object PreviewFilterLogic {
         if (base == "application/vnd.dmsg.secret-package" || base == "image/svg+xml" || ext == "svg" || ext == "svgz") {
             return PreviewClass.UNSUPPORTED
         }
-        if (base == "text/markdown" || base == "text/x-markdown" || ext in markdownExts) {
+        val generic = base.isEmpty() || base == "application/octet-stream"
+        if (base == "text/markdown" || base == "text/x-markdown" || ((generic || base == "text/plain") && ext in markdownExts)) {
             return PreviewClass.MARKDOWN
         }
-        if (base in imageMimes || ((base.isEmpty() || base == "application/octet-stream") && ext in imageExts)) {
+        if (base in imageMimes || (generic && ext in imageExts)) {
             return PreviewClass.IMAGE
         }
-        if (base.startsWith("text/") || base in textMimes || ((base.isEmpty() || base == "application/octet-stream") && ext in textExts)) {
+        if (base.startsWith("text/") || base in textMimes || (generic && ext in textExts)) {
             return PreviewClass.TEXT
         }
         return PreviewClass.UNSUPPORTED

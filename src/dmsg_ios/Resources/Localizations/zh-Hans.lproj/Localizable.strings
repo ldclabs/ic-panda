@@ -1482,6 +1482,8 @@
 	<string>标为未读</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>将所有账户的提醒标为已读</string>
+	<key>Markdown source</key>
+	<string>源码</string>
 	<key>Matched in notes</key>
 	<string>命中备注</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>排序方式</string>
 	<key>Source</key>
-	<string>源码</string>
+	<string>来源</string>
 	<key>Source address</key>
 	<string>来源地址</string>
 	<key>Source address %u</key>

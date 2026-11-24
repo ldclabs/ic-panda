@@ -10,6 +10,24 @@ use dmsg_types::DAY;
 
 fn no_progress(_: u64, _: u64) {}
 
+#[tokio::test]
+async fn fullscreen_preview_excludes_files_in_trashed_folders() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let folder = client.files_mkdir(ROOT, "drafts").unwrap();
+    let file = client
+        .files_write(&folder.id, "note.txt", b"draft")
+        .unwrap();
+    client.files_trash(&[folder.id]).unwrap();
+    let preview = reading::preview_full(&client.hold(), &file.file.id, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        preview.to_json().reason,
+        Some(crate::preview::FallbackReason::Unavailable)
+    );
+}
+
 #[test]
 fn historical_file_types_do_not_follow_the_newest_contents_or_a_rename() {
     let dir = TempDir::new();

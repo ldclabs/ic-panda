@@ -1482,6 +1482,8 @@
 	<string>بغیر پڑھا نشان لگائیں</string>
 	<key>Mark reminders for all accounts as read</key>
 	<string>تمام اکاؤنٹس کی یاد دہانیوں کو پڑھا ہوا نشان زد کریں</string>
+	<key>Markdown source</key>
+	<string>سورس</string>
 	<key>Matched in notes</key>
 	<string>نوٹس میں ملا</string>
 	<key>Maximum fee</key>
@@ -2803,7 +2805,7 @@
 	<key>Sort by</key>
 	<string>ترتیب دیں</string>
 	<key>Source</key>
-	<string>سورس</string>
+	<string>ماخذ</string>
 	<key>Source address</key>
 	<string>ماخذ کا پتہ</string>
 	<key>Source address %u</key>

@@ -16,6 +16,8 @@ pub const MAX_PREVIEW_TEXT_BYTES: u64 = 1024 * 1024;
 
 const MAX_MARKDOWN_DEPTH: usize = 16;
 const MAX_MARKDOWN_BLOCKS: usize = 5_000;
+// Inline spans and table cells also allocate native views. A long paragraph is only one block.
+const MAX_MARKDOWN_EVENTS: usize = 50_000;
 
 /// Preview category resolved from a file's MIME type and filename extension.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -202,6 +204,8 @@ pub struct FullPreview {
     pub meta: PreviewMeta,
     /// Decoded preview payload.
     pub content: PreviewContent,
+    /// Original verified text bytes when decoding changed their representation.
+    pub original_text_bytes: Option<Zeroizing<Vec<u8>>>,
 }
 
 /// Decoded in-memory preview body.
@@ -290,6 +294,7 @@ impl FullPreview {
                 sha256,
             },
             content: PreviewContent::Fallback { reason },
+            original_text_bytes: None,
         }
     }
 
@@ -386,7 +391,10 @@ pub fn effective_mime(mime: &str, name: &str) -> String {
 pub fn classify(mime: &str, name: &str) -> PreviewClass {
     let base = normalize_mime(mime);
     let ext = extension_of(name);
-    if base == "image/svg+xml" || (ext.as_deref() == Some("svg") && base.is_empty()) {
+    if base == "image/svg+xml"
+        || base == crate::secrets::package::MIME
+        || matches!(ext.as_deref(), Some("svg" | "svgz"))
+    {
         return PreviewClass::Unsupported;
     }
     if matches!(
@@ -576,19 +584,23 @@ pub fn from_verified_bytes(
 ) -> FullPreview {
     let mime = effective_mime(&mime, &name);
     let kind = classify(&mime, &name);
+    let mut original_text_bytes = None;
     let content = match kind {
         PreviewClass::Image => PreviewContent::Image(bytes),
-        PreviewClass::Markdown => match decode_text(&bytes) {
-            Some(raw) => {
-                let document = parse_markdown(&raw);
-                PreviewContent::Markdown { document, raw }
+        PreviewClass::Markdown | PreviewClass::Text => match decode_text(&bytes) {
+            Some(text) => {
+                if bytes.as_slice() != text.as_bytes() {
+                    original_text_bytes = Some(bytes);
+                }
+                if kind == PreviewClass::Markdown {
+                    PreviewContent::Markdown {
+                        document: parse_markdown(&text),
+                        raw: text,
+                    }
+                } else {
+                    PreviewContent::Text { text }
+                }
             }
-            None => PreviewContent::Fallback {
-                reason: FallbackReason::DecodeFailed,
-            },
-        },
-        PreviewClass::Text => match decode_text(&bytes) {
-            Some(text) => PreviewContent::Text { text },
             None => PreviewContent::Fallback {
                 reason: FallbackReason::DecodeFailed,
             },
@@ -606,6 +618,7 @@ pub fn from_verified_bytes(
             sha256,
         },
         content,
+        original_text_bytes,
     }
 }
 
@@ -769,9 +782,10 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
     let mut block_count = 0usize;
     let mut truncated = false;
     let mut ignored_depth = 0usize;
+    let mut link_bytes = 0;
 
-    for event in parser {
-        if block_count >= MAX_MARKDOWN_BLOCKS {
+    for (index, event) in parser.enumerate() {
+        if block_count >= MAX_MARKDOWN_BLOCKS || index >= MAX_MARKDOWN_EVENTS {
             truncated = true;
             break;
         }
@@ -784,6 +798,10 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
             continue;
         }
         match event {
+            Event::Start(_) if inlines.len() >= MAX_MARKDOWN_DEPTH => {
+                truncated = true;
+                ignored_depth = 1;
+            }
             Event::Start(tag) => match tag {
                 Tag::Paragraph => {
                     if blocks.len() >= MAX_MARKDOWN_DEPTH {
@@ -900,32 +918,28 @@ pub fn parse_markdown(input: &str) -> MarkdownDocument {
                     blocks.push(BlockFrame::TableCell(Vec::new()));
                 }
                 Tag::Strong => {
-                    if inlines.len() < MAX_MARKDOWN_DEPTH {
-                        inlines.push(InlineFrame::Strong(Vec::new()));
-                    }
+                    inlines.push(InlineFrame::Strong(Vec::new()));
                 }
                 Tag::Emphasis => {
-                    if inlines.len() < MAX_MARKDOWN_DEPTH {
-                        inlines.push(InlineFrame::Emphasis(Vec::new()));
-                    }
+                    inlines.push(InlineFrame::Emphasis(Vec::new()));
                 }
                 Tag::Strikethrough => {
-                    if inlines.len() < MAX_MARKDOWN_DEPTH {
-                        inlines.push(InlineFrame::Strikethrough(Vec::new()));
-                    }
+                    inlines.push(InlineFrame::Strikethrough(Vec::new()));
                 }
                 Tag::Link { dest_url, .. } => {
-                    if inlines.len() < MAX_MARKDOWN_DEPTH {
-                        inlines.push(InlineFrame::Link {
-                            url: safe_link_url(&dest_url),
-                            children: Vec::new(),
-                        });
+                    // Reference links repeat the destination in the rendered document.
+                    link_bytes += dest_url.len() as u64;
+                    if link_bytes > MAX_PREVIEW_MARKDOWN_BYTES {
+                        truncated = true;
+                        break;
                     }
+                    inlines.push(InlineFrame::Link {
+                        url: safe_link_url(&dest_url),
+                        children: Vec::new(),
+                    });
                 }
                 Tag::Image { .. } => {
-                    if inlines.len() < MAX_MARKDOWN_DEPTH {
-                        inlines.push(InlineFrame::Image(String::new()));
-                    }
+                    inlines.push(InlineFrame::Image(String::new()));
                 }
                 Tag::HtmlBlock | Tag::MetadataBlock(_) => {
                     ignored_depth = 1;
@@ -1422,6 +1436,14 @@ fn main() {}
         let deep = "> ".repeat(40) + "leaf";
         let doc = parse_markdown(&deep);
         assert!(doc.truncated);
+
+        let deep = format!("before {}inner{} after", "*".repeat(40), "*".repeat(40));
+        let doc = parse_markdown(&deep);
+        assert!(doc.truncated);
+        let [MarkdownBlock::Paragraph { inlines }] = doc.blocks.as_slice() else {
+            panic!("expected paragraph")
+        };
+        assert!(matches!(inlines.last(), Some(MarkdownInline::Text { text }) if text == " after"));
     }
 
     #[test]
@@ -1461,5 +1483,15 @@ fn main() {}
             doc.blocks.as_slice(),
             [MarkdownBlock::List { items, .. }] if items.len() < MAX_MARKDOWN_BLOCKS
         ));
+    }
+
+    #[test]
+    fn bounds_inline_work_even_within_one_paragraph() {
+        let source = "a `word` ".repeat(MAX_MARKDOWN_EVENTS / 2 + 1);
+        let doc = parse_markdown(&source);
+        assert!(doc.truncated);
+        assert!(
+            matches!(doc.blocks.as_slice(), [MarkdownBlock::Paragraph { inlines }] if !inlines.is_empty())
+        );
     }
 }
