@@ -387,7 +387,7 @@ import net.dmsg.android.core.*
                     onClick = { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link) }, null)) },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_invitation_c716745)) }
-                CopyButton(str(R.string.text_copy_invitation_6a08c36), outlined = true) { client.clipboard.copy(link) }
+                CopyButton(str(R.string.text_copy_invitation_6a08c36), outlined = true, key = link) { client.clipboard.copy(link) }
                 TextButton(onClick = { client.channels.editInvite(channel, ChannelInvite()) }) { Text(str(R.string.text_invite_another_account_67d5fa8)) }
             }
         }

@@ -44,7 +44,7 @@ import net.dmsg.core.PasskeyOperation
                 if (login.current) Text(str(R.string.text_current_login_3d84cda), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 SelectionContainer { Text(login.principal, style = MaterialTheme.typography.bodyMedium.code()) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CopyButton(str(R.string.text_copy_identity_f95ea28)) { client.clipboard.copy(login.principal) }
+                    CopyButton(str(R.string.text_copy_identity_f95ea28), key = login.principal) { client.clipboard.copy(login.principal) }
                     TextButton(
                         onClick = { client.approvals.request("login:remove:" + login.principal) { it.removeLogin(login.principal) } },
                         enabled = manage && !login.current && value.logins.size > 1,
@@ -314,7 +314,7 @@ import net.dmsg.core.PasskeyOperation
                     device.addedBy?.let { CodeRow(str(R.string.text_approved_by_808eaa3).trimEnd(' ', '·', ':'), it) { client.clipboard.copy(it) } }
                     device.revokedAt?.let { ListRow(str(R.string.text_revoked_bc16396).trimEnd(' ', '·', ':'), value = messageTime(it)) }
                 }
-                CopyButton(str(R.string.text_copy_device_id_70ef1a5), outlined = true) { client.clipboard.copy(device.id) }
+                CopyButton(str(R.string.text_copy_device_id_70ef1a5), outlined = true, key = device.id) { client.clipboard.copy(device.id) }
                 if (device.capabilities.isNotEmpty()) Section(title = str(R.string.text_permissions_be9338a)) {
                     device.capabilities.forEach { cap -> ListRow(cap, icon = Icons.Outlined.VerifiedUser) }
                 }

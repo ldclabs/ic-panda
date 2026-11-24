@@ -238,7 +238,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     Text(str(R.string.text_share_link_b335ffa), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     SelectionContainer { Text(link, style = MaterialTheme.typography.bodySmall.code()) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        CopyButton(str(R.string.text_copy_link_8e702f5)) { client.clipboard.copy(link) }
+                        CopyButton(str(R.string.text_copy_link_8e702f5), key = link) { client.clipboard.copy(link) }
                         TextButton(onClick = { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link), null)) }) {
                             Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa))
                         }

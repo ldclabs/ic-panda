@@ -18,6 +18,7 @@
     label,
     icon = 'copy',
     testid,
+    onclick,
     ...rest
   }: Omit<HTMLButtonAttributes, 'value'> & {
     value: string | (() => string)
@@ -31,7 +32,16 @@
   const copied = $derived(copiedValue !== null && copiedValue === currentValue())
   let timer: ReturnType<typeof setTimeout> | undefined
 
-  async function copy() {
+  $effect(() => {
+    const current = currentValue()
+    if (copiedValue !== null && copiedValue !== current) {
+      copiedValue = null
+      clearTimeout(timer)
+    }
+  })
+
+  async function copy(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+    onclick?.(event)
     const text = currentValue()
     if (!(await copyText(text, null))) return
     copiedValue = text

@@ -68,13 +68,14 @@ struct IDCopyButton: View {
     @State private var copied = CopiedState()
 
     var body: some View {
+        let isCopied = copied.isCopied(value)
         Button { copied.copy(value, model: model) } label: {
-            Image(systemName: copied.shown ? "checkmark" : "doc.on.doc")
+            Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
                 .copiedTransition().frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }.buttonStyle(.borderless)
-            .accessibilityLabel(label).accessibilityValue(copied.shown ? String(localized: "Copied") : value)
-            .copiedState($copied)
+            .accessibilityLabel(label).accessibilityValue(isCopied ? String(localized: "Copied") : value)
+            .copiedState($copied, value: value)
     }
 }
 
@@ -95,39 +96,50 @@ struct CopyButton: View {
     }
 
     var body: some View {
+        let isCopied = copied.isCopied(value)
         Group {
             if centered {
                 Button { copied.copy(value, model: model) } label: {
-                    HStack(spacing: 8) { icon; Text(copied.shown ? "Copied" : title) }
+                    HStack(spacing: 8) { icon(isCopied); Text(isCopied ? "Copied" : title) }
                         .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                         .padding(.horizontal, 20).padding(.vertical, 10)
                         .frame(minHeight: 44).contentShape(Rectangle())
                 }.buttonStyle(.borderless)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .alignmentGuide(.listRowSeparatorLeading) { _ in 20 }
+            } else if systemImage != nil {
+                Button { copied.copy(value, model: model) } label: {
+                    Label { Text(isCopied ? "Copied" : title) } icon: { icon(isCopied) }
+                }
             } else {
                 Button { copied.copy(value, model: model) } label: {
-                    Label { Text(copied.shown ? "Copied" : title) } icon: { icon }
+                    HStack(spacing: 8) { icon(isCopied); Text(isCopied ? "Copied" : title) }
                 }
             }
-        }.copiedState($copied)
+        }.copiedState($copied, value: value)
     }
 
     /// One image whose symbol changes, so the checkmark replaces the copy icon in place.
-    @ViewBuilder private var icon: some View {
-        if let name = copied.shown ? "checkmark" : systemImage { Image(systemName: name).copiedTransition().accessibilityHidden(true) }
+    @ViewBuilder private func icon(_ isCopied: Bool) -> some View {
+        if let name = isCopied ? "checkmark" : systemImage { Image(systemName: name).copiedTransition().accessibilityHidden(true) }
     }
 }
 
 /// How long a copy button shows that it copied; a new copy starts the time again.
 struct CopiedState: Equatable {
-    fileprivate(set) var shown = false
+    fileprivate(set) var copiedValue: String?
     fileprivate var revision = 0
+
+    func isCopied(_ value: String) -> Bool { copiedValue == value }
 
     @MainActor mutating func copy(_ value: String, model: SessionModel) {
         model.clipboard.copy(value)
-        shown = true; revision &+= 1
+        copiedValue = value; revision &+= 1
         UIAccessibility.post(notification: .announcement, argument: String(localized: "Copied"))
+    }
+
+    mutating func clear() {
+        copiedValue = nil
     }
 }
 
@@ -135,13 +147,14 @@ extension View {
     /// The checkmark replaces the copy icon as a symbol transition; with Reduce Motion it swaps.
     fileprivate func copiedTransition() -> some View { modifier(CopiedTransition()) }
 
-    /// Settles the checkmark in and turns it back after 1.5 seconds.
-    fileprivate func copiedState(_ state: Binding<CopiedState>) -> some View {
-        motion(Motion.settle, value: state.wrappedValue.shown)
+    /// Settles the checkmark in and turns it back after 1.5 seconds or when `value` changes.
+    fileprivate func copiedState(_ state: Binding<CopiedState>, value: String) -> some View {
+        motion(Motion.settle, value: state.wrappedValue.isCopied(value))
+            .onChange(of: value) { _, _ in state.wrappedValue.clear() }
             .task(id: state.wrappedValue.revision) {
-                guard state.wrappedValue.shown else { return }
+                guard state.wrappedValue.isCopied(value) else { return }
                 try? await Task.sleep(for: .seconds(1.5))
-                if !Task.isCancelled { state.wrappedValue.shown = false }
+                if !Task.isCancelled { state.wrappedValue.clear() }
             }
     }
 }

@@ -390,8 +390,8 @@ html[lang='ur'] {
 
 /* A sent message's receipt: the second stroke draws once every member has it. */
 .receipt path + path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 1.25;
+  stroke-dashoffset: 1.25;
   transition: stroke-dashoffset 180ms var(--ease-calm);
 }
 
@@ -431,8 +431,8 @@ html[lang='ur'] {
   transform: none;
 }
 .check-box path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 1.25;
+  stroke-dashoffset: 1.25;
   transition: stroke-dashoffset 90ms var(--ease-calm);
 }
 .check-box[data-state='checked'] path {

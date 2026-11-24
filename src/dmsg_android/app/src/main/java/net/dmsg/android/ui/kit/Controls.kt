@@ -80,6 +80,8 @@ import net.dmsg.android.ui.pageMargin
 @Composable internal fun Modifier.develop(value: Any?): Modifier {
     // A new value starts blurred in the same frame that shows it.
     val clarity = remember(value) { Animatable(if (value == null) 1f else 0f) }
-    LaunchedEffect(clarity) { clarity.animateTo(1f, Motion.effects()) }
-    return blur(((1f - clarity.value) * 6f).dp).graphicsLayer { alpha = 0.35f + 0.65f * clarity.value }
+    LaunchedEffect(clarity) { if (clarity.value < 1f) clarity.animateTo(1f, Motion.effects()) }
+    val current = clarity.value
+    if (current >= 1f) return this
+    return blur(((1f - current) * 6f).dp).graphicsLayer { alpha = 0.35f + 0.65f * current }
 }

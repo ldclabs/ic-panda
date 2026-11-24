@@ -68,7 +68,7 @@
     <Slider.Thumb
       index={0}
       aria-label={label}
-      class="block size-4 rounded-full border-2 border-forest bg-surface outline-none group-active/slider:scale-125 group-active/slider:ring-6 group-active/slider:ring-forest/15 focus-visible:ring-3 focus-visible:ring-focus/35 data-disabled:cursor-not-allowed"
+      class="block size-4 rounded-full border-2 border-forest bg-surface outline-none group-active/slider:not-data-disabled:scale-125 group-active/slider:not-data-disabled:ring-6 group-active/slider:not-data-disabled:ring-forest/15 focus-visible:ring-3 focus-visible:ring-focus/35 data-disabled:cursor-not-allowed"
     />
   </Slider.Root>
 </div>

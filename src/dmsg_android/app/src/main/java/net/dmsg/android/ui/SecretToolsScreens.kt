@@ -84,7 +84,7 @@ import net.dmsg.android.core.*
                 Button(onClick = { confirming = true }, enabled = !state.working("secret:rotation:create:" + item + ":" + field), modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.Loop, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_start_a_rotation_checklist_db2bb4b))
                 }
-                CopyButton(str(R.string.text_copy_reference_8191597), outlined = true) { client.clipboard.copy(value.uri) }
+                CopyButton(str(R.string.text_copy_reference_8191597), outlined = true, key = value.uri) { client.clipboard.copy(value.uri) }
             }
             SectionTitle(str(R.string.text_dependencies_on_this_device_2c15aef))
             Text(str(R.string.text_this_inventory_covers_this_device_s_records_other_devices_and_arb_af07c5c),

@@ -151,7 +151,7 @@
         sideOffset={4}
         collisionPadding={8}
         dir={localeDir(locale())}
-        class="z-50 max-h-[min(360px,var(--bits-floating-available-height))] w-[min(296px,calc(100vw-24px))] overflow-y-auto rounded-xl border border-line bg-surface p-3 text-ink shadow-pop outline-none"
+        class="z-50 max-h-[min(360px,var(--bits-floating-available-height))] w-[min(296px,calc(100vw-24px))] overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface p-3 text-ink shadow-pop outline-none"
         data-testid={testid && `${testid}-popover`}
       >
         {#if mode === 'month'}

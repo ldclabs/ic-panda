@@ -203,9 +203,11 @@ import net.dmsg.android.core.*
                 Button(onClick = {
                     if (link.active) { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link.url) }, null)) }
                 }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa)) }
-                CopyButton(str(R.string.text_copy_link_8e702f5), outlined = true) {
+                TryCopyButton(str(R.string.text_copy_link_8e702f5), outlined = true, key = link.url) {
                     val now = System.currentTimeMillis().coerceAtLeast(0).toULong()
-                    if (link.active && now < link.expiresAt) client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
+                    if (!link.active || now >= link.expiresAt) return@TryCopyButton false
+                    client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
+                    true
                 }
             }
         }

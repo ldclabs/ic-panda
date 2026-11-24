@@ -34,6 +34,6 @@
   }
 </script>
 
-<span class={cn('inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-caption font-medium whitespace-nowrap transition-colors duration-180 ease-calm [&_svg]:size-3', tones[tone], className)} data-testid={testid} use:rise={tone}>
-  {@render children()}
+<span class={cn('inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-caption font-medium whitespace-nowrap transition-colors duration-180 ease-calm [&_svg]:size-3', tones[tone], className)} data-testid={testid}>
+  <span class="inline-flex min-w-0 items-center gap-1" use:rise={tone}>{@render children()}</span>
 </span>

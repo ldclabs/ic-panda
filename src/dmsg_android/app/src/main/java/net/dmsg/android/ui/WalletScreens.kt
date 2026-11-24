@@ -121,7 +121,7 @@ import net.dmsg.android.core.*
                         DetailCard {
                             Text(address.label.ifBlank { address.chain }, style = MaterialTheme.typography.titleSmall)
                             SelectionContainer { Text(address.text, style = MaterialTheme.typography.bodySmall.code()) }
-                            if (address.verified) CopyButton(str(R.string.text_copy_verified_address_2f7f0e4)) { client.clipboard.copy(address.text) } else Notice(str(R.string.text_address_verification_failed_b36aa77), true)
+                            if (address.verified) CopyButton(str(R.string.text_copy_verified_address_2f7f0e4), key = address.text) { client.clipboard.copy(address.text) } else Notice(str(R.string.text_address_verification_failed_b36aa77), true)
                         }
                     }
                     OutlinedButton(onClick = { client.wallets.balances(wallet) }, enabled = !state.working("wallet:display:balances"), modifier = Modifier.fillMaxWidth()) {

@@ -134,7 +134,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.weight(1f)) { ParticipantIdentity(client, account, showId = true) }
-                    CopyIconButton(str(R.string.text_copy_account_id_faa481e)) { client.clipboard.copy(account) }
+                    CopyIconButton(str(R.string.text_copy_account_id_faa481e), key = account) { client.clipboard.copy(account) }
                 }
                 Text(messageTime(letter?.createdAt ?: outgoing?.createdAt),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

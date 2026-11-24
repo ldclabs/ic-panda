@@ -43,7 +43,11 @@ export function pop(_node: Element): TransitionConfig {
 
 /** A badge that clears shrinks away, a little faster than it came. */
 export function shrink(_node: Element): TransitionConfig {
-  return { duration: still() ? 0 : 140, easing: cubicOut, css: (t) => `opacity: ${t}; transform: scale(${0.6 + 0.4 * t})` }
+  return {
+    duration: still() ? 0 : 140,
+    easing: cubicOut,
+    css: (t) => `pointer-events: none; opacity: ${t}; transform: scale(${0.6 + 0.4 * t})`
+  }
 }
 
 /**
@@ -162,7 +166,7 @@ export function indicator(node: HTMLElement, target: IndicatorTarget) {
     const height = bottom ? node.offsetHeight : item.offsetHeight
     const top = bottom ? item.offsetTop + item.offsetHeight - height : item.offsetTop
     const left = item.offsetLeft + inset
-    const width = item.offsetWidth - 2 * inset
+    const width = Math.max(0, item.offsetWidth - 2 * inset)
     const next = `${left}:${top}:${width}:${height}`
     if (position === next) return
     const jump = !position || !glide || still()

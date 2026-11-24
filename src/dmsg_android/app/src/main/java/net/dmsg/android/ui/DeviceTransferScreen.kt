@@ -71,7 +71,7 @@ import net.dmsg.android.core.*
                     )
                     if (transfer.role == "receive") {
                         TransferIdentity(str(R.string.text_session_code_78cc2a3), transfer.session)
-                        CopyButton(str(R.string.text_copy_session_code_9c60941), outlined = true) { client.clipboard.copy(transfer.session) }
+                        CopyButton(str(R.string.text_copy_session_code_9c60941), outlined = true, key = transfer.session) { client.clipboard.copy(transfer.session) }
                         TransferIdentity(str(R.string.text_receiving_device_id_2b4bb35), transfer.to)
                         if (transfer.running) transfer.addresses.forEach { address -> TransferIdentity(str(R.string.text_address_d082ce5), address) }
                     } else TransferIdentity(str(R.string.text_receiving_device_id_2b4bb35), transfer.to)

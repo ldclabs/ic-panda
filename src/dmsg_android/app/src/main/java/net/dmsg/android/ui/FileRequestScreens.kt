@@ -200,9 +200,11 @@ import net.dmsg.android.core.*
         TextButton(onClick = { if (link.shareable) { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link.url) }, null)) } }) {
             Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_link_b335ffa))
         }
-        CopyButton(str(R.string.text_copy_link_8e702f5)) {
+        TryCopyButton(str(R.string.text_copy_link_8e702f5), key = link.url) {
             val now = System.currentTimeMillis().coerceAtLeast(0).toULong()
-            if (link.shareable && now < link.expiresAt) client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
+            if (!link.shareable || now >= link.expiresAt) return@TryCopyButton false
+            client.clipboard.copy(link.url, (link.expiresAt - now).coerceAtMost(30_000u).toLong())
+            true
         }
     } else if (link.shareable) Notice(str(R.string.text_this_device_does_not_yet_have_this_link_s_content_key_synchronize_2d2794e))
 }

@@ -48,20 +48,23 @@ val LocalNoticePermission = staticCompositionLocalOf<() -> Unit> { {} }
     val state by client.state.collectAsStateWithLifecycle()
     // The card slides down into place and fades out when it goes; covering the screen hides it at once.
     val shown = plan?.takeIf { !state.concealed && !state.starting }
-    val current = retained(shown) ?: return
+    val current = retained(shown)
     val drop = with(LocalDensity.current) { 16.dp.roundToPx() }
     AnimatedVisibility(shown != null, Modifier.fillMaxSize(), enter = slideInVertically(Motion.spatial()) { -drop } + fadeIn(Motion.effects()),
-        exit = if (state.concealed) ExitTransition.None else fadeOut(Motion.effectsFast())) {
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 16.dp, vertical = 72.dp)) {
-            ElevatedCard(Modifier.align(Alignment.TopCenter).widthIn(max = 560.dp).fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Notifications, null)
-                        Text(noticeCategoryTitle(current.category), Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleMedium)
-                        IconButton(onClick = client.notices::dismiss) { Icon(Icons.Outlined.Close, str(R.string.text_dismiss_reminder_daba687)) }
+        exit = if (state.concealed || state.starting) ExitTransition.None else fadeOut(Motion.effectsFast())) {
+        current?.let { reminder ->
+            val interactive = shown != null
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 16.dp, vertical = 72.dp)) {
+                ElevatedCard(Modifier.align(Alignment.TopCenter).widthIn(max = 560.dp).fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Notifications, null)
+                            Text(noticeCategoryTitle(reminder.category), Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleMedium)
+                            IconButton(onClick = client.notices::dismiss, enabled = interactive) { Icon(Icons.Outlined.Close, str(R.string.text_dismiss_reminder_daba687)) }
+                        }
+                        Text(client.notices.system.body(reminder.category, reminder.generic))
+                        TextButton(onClick = client.notices::open, enabled = interactive) { Text(str(R.string.text_open_reminder_9f594be)) }
                     }
-                    Text(client.notices.system.body(current.category, current.generic))
-                    TextButton(onClick = client.notices::open) { Text(str(R.string.text_open_reminder_9f594be)) }
                 }
             }
         }

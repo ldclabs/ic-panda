@@ -45,7 +45,7 @@ struct ConversationView: View {
     @State private var selectingText: MessageEdit?
     @State private var retracting: MessageItem?
     /// The message a reply jump landed on, lit for a moment.
-    @State private var pointed: String?
+    @State private var pointed: (id: String, token: UUID)?
     private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
     private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private static let bottom = "conversation.bottom"
@@ -100,11 +100,12 @@ struct ConversationView: View {
                                 Label("Unread messages", systemImage: "circle.fill").font(.footnote).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
                             bubble(row, own: row.message.account == own, references: references) { sequence in
+                                actionTask?.cancel()
                                 actionTask = Task { await reveal(sequence, proxy: proxy) }
                             }
                         }.padding(.top, row.firstOfGroup ? 10 : 0)
                             .background {
-                                if pointed == row.id { RoundedRectangle(cornerRadius: Theme.radius).fill(Theme.fill).padding(-4).accessibilityHidden(true) }
+                                if pointed?.id == row.id { RoundedRectangle(cornerRadius: Theme.radius).fill(Theme.fill).padding(-4).accessibilityHidden(true) }
                             }
                             .id(row.id)
                             // A message that arrives while the conversation is open rises in; see `load()`.
@@ -164,7 +165,7 @@ struct ConversationView: View {
                             }.buttonStyle(.borderedProminent).padding(12)
                                 .accessibilityLabel("Latest messages").accessibilityValue(unseen > 0 ? unseen.formatted() : "")
                                 .accessibilityIdentifier("conversation.latest")
-                                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                                .popping(scale: 0.8)
                         }
                     }.motion(Motion.settle, reduced: Motion.fade, value: following)
                 }
@@ -284,9 +285,10 @@ struct ConversationView: View {
         if let message = messages.first(where: { $0.sequence == sequence }) {
             proxy.scrollTo(message.id, anchor: .center)
             // The original lights where it landed, then fades, so the eye finds it.
-            pointed = message.id
+            let token = UUID()
+            pointed = (message.id, token)
             try? await Task.sleep(for: .seconds(0.6))
-            if pointed == message.id { withAnimation(Motion.point) { pointed = nil } }
+            if pointed?.token == token { withAnimation(Motion.point) { pointed = nil } }
         } else if !Task.isCancelled { model.notice = String(localized: "The original message is not available on this device.") }
     }
 

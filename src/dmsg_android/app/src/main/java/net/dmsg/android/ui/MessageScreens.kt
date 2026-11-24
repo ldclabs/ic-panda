@@ -207,15 +207,19 @@ import net.dmsg.core.MessageItem
     val firstUnread = if (search.isBlank() && info != null && info.unread > 0u) {
         rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
     } else null
-    val pending = outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty().filter {
+    val rawPending = outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty()
+    val pending = rawPending.filter {
         search.isBlank() || it.text.contains(search, true) || it.attachmentName?.contains(search, true) == true
     }
-    // A send that fails answers with the Reject haptic, once per failure.
-    val failedSends = pending.count { !state.working("message:send:" + it.id) && it.error != null && it.error != "EXECUTION_UNKNOWN" }
-    val failedBefore = remember(channel) { intArrayOf(failedSends) }
-    LaunchedEffect(failedSends) {
-        if (failedSends > failedBefore[0]) haptics.performHapticFeedback(HapticFeedbackType.Reject)
-        failedBefore[0] = failedSends
+    // A send that fails answers with the Reject haptic once per failure, ignoring failures already present on load or hidden by search.
+    val outgoingReady = outgoing.valueOrNull()?.channel == channel || outgoing is ReadState.Empty
+    val failedIds = rawPending.mapNotNull { item -> item.id.takeIf { !state.working("message:send:" + item.id) && item.error != null && item.error != "EXECUTION_UNKNOWN" } }.toSet()
+    val seenFailures = remember(channel) { mutableStateOf<Set<String>?>(null) }
+    LaunchedEffect(outgoingReady, failedIds) {
+        if (!outgoingReady) return@LaunchedEffect
+        val previous = seenFailures.value
+        if (previous != null && failedIds.any { it !in previous }) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        seenFailures.value = failedIds
     }
     LaunchedEffect(focusReply) {
         if (focusReply) { composerFocus.requestFocus(); keyboard?.show(); focusReply = false }
@@ -490,7 +494,7 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
                         }
                     }
                 }
-                CopyButton(str(R.string.text_copy_d6e9651), outlined = true, enabled = shown.text.isNotEmpty()) { client.clipboard.copy(shown.text) }
+                CopyButton(str(R.string.text_copy_d6e9651), outlined = true, enabled = shown.text.isNotEmpty(), key = shown.text) { client.clipboard.copy(shown.text) }
             }
         }
     }

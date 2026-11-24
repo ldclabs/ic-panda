@@ -51,7 +51,7 @@ import java.security.MessageDigest
             DetailCard {
                 state.session?.principal?.let { LabelValue(str(R.string.join_identity), it, code = true) }
                 SelectionContainer { Text(request, style = MaterialTheme.typography.bodySmall.code(), maxLines = 5) }
-                CopyButton(str(R.string.text_copy_request_b707c92), outlined = true) { client.clipboard.copy(request) }
+                CopyButton(str(R.string.text_copy_request_b707c92), outlined = true, key = request) { client.clipboard.copy(request) }
                 Button(
                     onClick = { submitted?.let { target -> client.perform({ it.acceptBinding(target) }, transition = true, onError = { failure = it }) { client.showAccess(AccessPage.WELCOME) } } },
                     enabled = !state.busy,
@@ -107,7 +107,7 @@ import java.security.MessageDigest
                 DetailCard {
                     TransferIdentity(str(R.string.text_device_id_b31993b), state.session?.deviceId.orEmpty())
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CopyButton(str(R.string.text_copy_device_request_7bde6dd)) { client.clipboard.copy(encoded) }
+                        CopyButton(str(R.string.text_copy_device_request_7bde6dd), key = encoded) { client.clipboard.copy(encoded) }
                         TextButton(onClick = ::request, enabled = !state.working("access:pair-request")) {
                             Icon(Icons.Outlined.Refresh, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_refresh_request_b86a6e2))
                         }
@@ -165,7 +165,7 @@ import java.security.MessageDigest
                 val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, token)
                 context.startActivity(Intent.createChooser(intent, null))
             }) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.pair_share_request)) }
-            CopyButton(str(R.string.text_copy_request_b707c92)) { client.clipboard.copy(token) }
+            CopyButton(str(R.string.text_copy_request_b707c92), key = token) { client.clipboard.copy(token) }
         }
     }
 }

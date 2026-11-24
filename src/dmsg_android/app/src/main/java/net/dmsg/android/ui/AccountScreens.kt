@@ -210,7 +210,10 @@ private fun approvalSource(source: String): String = when {
     val deciding = state.working("approval:decide:" + selected)
     LaunchedEffect(deciding, current?.state) {
         if (deciding) decided[0] = true
-        else if (decided[0] && current != null && current.state != "awaiting_user") { decided[0] = false; haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
+        else if (decided[0]) {
+            decided[0] = false
+            if (current != null && current.state != "awaiting_user") haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
     }
     LaunchedEffect(selected, state.epoch) { if (selected.isEmpty()) client.approvals.refreshRemote() else client.approvals.select(selected) }
     DisposableEffect(selected) { onDispose { client.approvals.leave(selected) } }

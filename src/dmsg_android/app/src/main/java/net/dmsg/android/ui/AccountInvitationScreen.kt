@@ -317,7 +317,7 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
                 DetailCard {
                     state.session?.account?.let { LabelValue(str(R.string.text_account_id_43f0a66), it, code = true) }
                     Text(str(R.string.join_show_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    CopyButton(str(R.string.text_copy_request_b707c92), outlined = true) { client.clipboard.copy(token) }
+                    CopyButton(str(R.string.text_copy_request_b707c92), outlined = true, key = token) { client.clipboard.copy(token) }
                 }
             }
             else -> LinearProgressIndicator(Modifier.fillMaxWidth())

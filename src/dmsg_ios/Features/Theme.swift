@@ -53,6 +53,9 @@ extension View {
     /// leaves; with Reduce Motion it only fades. Its container animates with `arrivals(of:)`.
     func rising(from edge: VerticalEdge = .bottom) -> some View { modifier(Rising(edge: edge)) }
 
+    /// A badge or floating action pops in and shrinks away; with Reduce Motion it only fades.
+    func popping(scale: CGFloat = 0.6) -> some View { modifier(Popping(scale: scale)) }
+
     /// Animates the floating notice inside as `value` comes (`move`), changes and goes (`exit`).
     /// Anything else, such as the privacy shield covering the screen, stays instant.
     func arrivals<V: Equatable>(of value: V?) -> some View {
@@ -63,20 +66,26 @@ extension View {
     /// with Reduce Motion it fades.
     func countMotion(_ value: some BinaryInteger) -> some View { modifier(CountMotion(value: Double(value))) }
 
-    /// A secret being shown develops from a blur each time `shown` grows; hiding stays instant.
-    /// With Reduce Motion it appears at once.
-    func develop(_ shown: Int) -> some View { modifier(Develop(shown: shown)) }
+    /// A secret being shown develops from a blur each time `shown` grows while `active`;
+    /// hiding (`active == false`) stays instant. With Reduce Motion it appears at once.
+    func develop(_ active: Bool, trigger shown: Int) -> some View { modifier(Develop(active: active, shown: shown)) }
 }
 
 private struct Develop: ViewModifier {
+    let active: Bool
     let shown: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var trigger = 0
     func body(content: Content) -> some View {
-        content.keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : shown) { view, clarity in
-            view.blur(radius: (1 - clarity) * 6).opacity(0.35 + 0.65 * clarity)
+        content.keyframeAnimator(initialValue: 1.0, trigger: trigger) { view, clarity in
+            let shownClarity = active && !reduceMotion ? clarity : 1.0
+            view.blur(radius: (1 - shownClarity) * 6).opacity(0.35 + 0.65 * shownClarity)
         } keyframes: { _ in
             MoveKeyframe(0)
             CubicKeyframe(1, duration: 0.2)
+        }
+        .onChange(of: shown) { _, _ in
+            if active && !reduceMotion { trigger &+= 1 }
         }
     }
 }
@@ -94,6 +103,14 @@ private struct Rising: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func body(content: Content) -> some View {
         content.transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: edge == .bottom ? 12 : -12)))
+    }
+}
+
+private struct Popping: ViewModifier {
+    let scale: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        content.transition(reduceMotion ? .opacity : .scale(scale: scale).combined(with: .opacity))
     }
 }
 
@@ -270,6 +287,6 @@ struct CountBadge: View {
     var body: some View {
         Text(count.formatted()).font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(.white).countMotion(count)
             .padding(.horizontal, 7).frame(minWidth: 22, minHeight: 22).background(Theme.badgeRed, in: Capsule())
-            .transition(.scale(scale: 0.6).combined(with: .opacity))
+            .popping()
     }
 }

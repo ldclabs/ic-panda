@@ -74,7 +74,7 @@ struct VaultDetailField: View {
             Text(verbatim: text).font(field.concealed ? .body.monospaced() : .body)
                 .foregroundStyle(field.kind == "url" && !field.concealed ? Theme.forest : Color.primary)
                 .fixedSize(horizontal: false, vertical: true)
-                .develop(reveals)
+                .develop(value != nil, trigger: reveals)
                 .onChange(of: value) { old, new in if new != nil && new != old { reveals &+= 1 } }
                 .environment(\.layoutDirection, vaultFieldIsLTR(field, value: text) ? .leftToRight : direction)
                 .accessibilityLabel(vaultFieldTitle(field)).accessibilityValue(spokenValue)
@@ -105,16 +105,25 @@ struct VaultDetailField: View {
 
 struct VaultCodeCountdown: View {
     let remaining: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var progress: CGFloat?
+
+    private var target: CGFloat { CGFloat(min(max(remaining, 0), 30)) / 30 }
 
     var body: some View {
         ZStack {
             Circle().stroke(Theme.fill, lineWidth: 3)
-            // The ring sweeps evenly through each second and the seconds roll down.
-            Circle().trim(from: 0, to: CGFloat(min(remaining, 30)) / 30)
+            // The ring sweeps evenly through each second and fills at once for a new code.
+            Circle().trim(from: 0, to: progress ?? target)
                 .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
-                .motion(Motion.tick, value: remaining)
             Text(remaining.formatted()).font(.caption2.monospacedDigit()).countMotion(remaining)
-        }.frame(width: 30, height: 30).accessibilityElement(children: .ignore)
+        }.frame(width: 30, height: 30)
+            .onChange(of: remaining) { old, new in
+                let next = CGFloat(min(max(new, 0), 30)) / 30
+                if reduceMotion || new > old { progress = next }
+                else { withAnimation(Motion.tick) { progress = next } }
+            }
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Remaining").accessibilityValue(remaining.formatted())
     }
 }

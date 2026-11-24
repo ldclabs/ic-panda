@@ -259,7 +259,7 @@ import net.dmsg.android.core.*
                 DetailCard {
                     LabelValue(str(R.string.text_account_id_43f0a66), account, code = true)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CopyButton(str(R.string.text_copy_account_id_7bcff24)) { client.clipboard.copy(account) }
+                        CopyButton(str(R.string.text_copy_account_id_7bcff24), key = account) { client.clipboard.copy(account) }
                         TextButton(onClick = { client.beginExternalInteraction(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://dmsg.net/" + account) }, null)) }) {
                             Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_public_profile_e6eaf6b))
                         }

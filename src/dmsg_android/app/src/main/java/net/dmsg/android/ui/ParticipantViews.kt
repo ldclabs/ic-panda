@@ -44,7 +44,7 @@ import net.dmsg.android.core.*
             Text(str(R.string.text_a_name_or_avatar_is_not_a_unique_identity_compare_the_complete_ac_9255f9b), style = MaterialTheme.typography.bodyMedium)
             person?.takeIf { it.observedAt > 0u }?.let { Text(str(R.string.text_last_verified_92b1841) + displayTime(it.observedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-    }, confirmButton = { CopyButton(str(R.string.text_copy_account_id_7bcff24), icon = false) { client.clipboard.copy(account) } }, dismissButton = { TextButton(onClick = { inspecting = false }) { Text(str(R.string.text_close_6cf4a77)) } })
+    }, confirmButton = { CopyButton(str(R.string.text_copy_account_id_7bcff24), icon = false, key = account) { client.clipboard.copy(account) } }, dismissButton = { TextButton(onClick = { inspecting = false }) { Text(str(R.string.text_close_6cf4a77)) } })
 }
 
 @Composable fun RecipientField(client: ClientController, account: String, change: (String) -> Unit, enabled: Boolean = true, label: String = str(R.string.text_account_id_e4ff381)) {

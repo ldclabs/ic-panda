@@ -403,7 +403,7 @@ private struct ChannelRow: View {
                         Text(channel.unread.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper).countMotion(channel.unread)
                             .padding(.horizontal, 6).frame(minWidth: 20, minHeight: 20)
                             .background(channel.muted ? Color.secondary : Theme.forest, in: Capsule())
-                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                            .popping()
                             .accessibilityLabel("Unread messages").accessibilityValue(channel.unread.formatted())
                     } else if channel.news {
                         Circle().fill(channel.muted ? Color.secondary : Theme.forest).frame(width: 8, height: 8)

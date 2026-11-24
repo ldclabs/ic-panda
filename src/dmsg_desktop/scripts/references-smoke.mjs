@@ -131,6 +131,7 @@ try {
   file.current = current
   emit('files/changed')
   await versionId.getByText('3333…3333').waitFor()
+  assert.equal(await reference.getAttribute('data-copied'), null, 'switching back does not restore stale copy confirmation')
   await copy(reference, `dmsg-file://${fileId}/${current}`)
   const historical = main.locator(`[data-testid="files-version-identity"][data-version="${older}"]`)
   await copy(historical.getByTestId('files-copy-version'), older)

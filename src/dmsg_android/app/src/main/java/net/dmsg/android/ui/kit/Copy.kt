@@ -1,6 +1,5 @@
 package net.dmsg.android.ui.kit
 
-import android.os.SystemClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -26,9 +25,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -57,7 +57,8 @@ import net.dmsg.android.ui.Motion
  * A button that copies and confirms in place: its icon turns into a tick and its label into
  * "Copied" for two seconds, with the Confirm haptic, so no notice is needed. The button keeps
  * the width of the longer label. [outlined] is a page's full-width secondary action; otherwise
- * it is a text button. A dialog's action leaves out the [icon].
+ * it is a text button. A dialog's action leaves out the [icon]. Pass [key] when the copied value
+ * can change in place so stale confirmation clears immediately.
  */
 @Composable internal fun CopyButton(
     label: String,
@@ -66,21 +67,35 @@ import net.dmsg.android.ui.Motion
     enabled: Boolean = true,
     icon: Boolean = true,
     colors: ButtonColors? = null,
+    key: Any? = null,
     copy: () -> Unit,
+) = TryCopyButton(label, modifier, outlined, enabled, icon, colors, key) { copy(); true }
+
+/** Like [CopyButton], confirming only when [copy] actually wrote to the clipboard. */
+@Composable internal fun TryCopyButton(
+    label: String,
+    modifier: Modifier = Modifier,
+    outlined: Boolean = false,
+    enabled: Boolean = true,
+    icon: Boolean = true,
+    colors: ButtonColors? = null,
+    key: Any? = null,
+    copy: () -> Boolean,
 ) {
     val haptics = LocalHapticFeedback.current
-    var copiedAt by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(copiedAt) { if (copiedAt != 0L) { delay(2000); copiedAt = 0L } }
-    val copied = copiedAt != 0L
+    var copies by remember(key) { mutableIntStateOf(0) }
+    LaunchedEffect(key, copies) { if (copies > 0) { delay(2000); copies = 0 } }
+    val copied = copies > 0
     val shown by animateFloatAsState(if (copied) 1f else 0f, Motion.effects(), label = "copied")
     val click = {
-        copy()
-        copiedAt = SystemClock.elapsedRealtime()
-        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        if (copy()) {
+            copies += 1
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
     }
     val content: @Composable () -> Unit = {
         if (icon) { CopyIcon(copied, null); Spacer(Modifier.width(8.dp)) }
-        Box {
+        Box(contentAlignment = Alignment.CenterStart) {
             // Both labels take space, so the button keeps its width; only the shown one is read out.
             Text(label, Modifier.graphicsLayer { alpha = 1f - shown }.then(if (copied) Modifier.clearAndSetSemantics {} else Modifier))
             Text(str(R.string.vault_copied), Modifier.graphicsLayer { alpha = shown }.then(if (copied) Modifier else Modifier.clearAndSetSemantics {}))
@@ -91,13 +106,14 @@ import net.dmsg.android.ui.Motion
 }
 
 /** An icon button that copies: its icon turns into a tick for two seconds, with the Confirm haptic. */
-@Composable internal fun CopyIconButton(contentDescription: String, copy: () -> Unit) {
+@Composable internal fun CopyIconButton(contentDescription: String, key: Any? = null, copy: () -> Unit) {
     val haptics = LocalHapticFeedback.current
-    var copiedAt by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(copiedAt) { if (copiedAt != 0L) { delay(2000); copiedAt = 0L } }
+    var copies by remember(key) { mutableIntStateOf(0) }
+    LaunchedEffect(key, copies) { if (copies > 0) { delay(2000); copies = 0 } }
+    val copied = copies > 0
     IconButton(onClick = {
         copy()
-        copiedAt = SystemClock.elapsedRealtime()
+        copies += 1
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-    }, Modifier.semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }) { CopyIcon(copiedAt != 0L, contentDescription) }
+    }, Modifier.semantics { if (copied) stateDescription = str(R.string.vault_copied) }) { CopyIcon(copied, contentDescription) }
 }
