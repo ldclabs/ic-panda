@@ -57,7 +57,7 @@
 <Section title={t('globalShortcuts')} description={t('globalShortcutsHint')} icon="system" testid="shortcut-settings">
   <div class="grid max-w-xl gap-5">
     {#if failure}<Notice tone="danger">{failure}</Notice>{/if}
-    {#if loading}<p class="text-sm text-muted" role="status">{t('loading')}</p>
+    {#if loading}<p class="text-body text-muted" role="status">{t('loading')}</p>
     {:else if saved}
       <ShortcutInput value={draft.open} label={t('shortcutOpen')} disabled={busy} testid="shortcut-open" bind:recording={openRecording}
         error={duplicate ? t('shortcutDuplicate') : draft.open && draft.open === saved.bindings.open && !saved.registered.open ? t('shortcutUnavailable') : ''}
@@ -65,7 +65,7 @@
       <ShortcutInput value={draft.lock} label={t('shortcutLock')} disabled={busy} testid="shortcut-lock" bind:recording={lockRecording}
         error={duplicate ? t('shortcutDuplicate') : draft.lock && draft.lock === saved.bindings.lock && !saved.registered.lock ? t('shortcutUnavailable') : ''}
         onChange={value => { draft.lock = value; error = ''; failureCode = '' }} />
-      {#if dirty}<span class="text-xs text-muted" role="status">{t('settingsUnsaved')}</span>{/if}
+      {#if dirty}<span class="text-callout text-muted" role="status">{t('settingsUnsaved')}</span>{/if}
       <div class="flex flex-wrap gap-2">
         <button class={buttonClass('primary')} disabled={busy || duplicate || recording || (!dirty && !unavailable)} onclick={save} data-testid="shortcuts-save" aria-busy={busy}>{busy ? t('loading') : dirty ? t('save') : unavailable ? t('retry') : t('savedValue')}</button>
         {#if dirty}<button class={buttonClass('ghost')} disabled={busy || recording}

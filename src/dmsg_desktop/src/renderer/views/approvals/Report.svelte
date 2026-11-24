@@ -58,14 +58,14 @@
       <Icon name={report.valid ? 'check' : 'close'} />
     </span>
     <div class="min-w-0 flex-1">
-      <b id="bundle-verdict" class="block text-[14px] font-semibold" data-testid="verify-result">{report.valid ? t('reportValid') : t('reportInvalid')}</b>
-      {#if report.statement}<span class="block truncate text-[12px] text-muted">{summary(report.statement)}</span>{/if}
+      <b id="bundle-verdict" class="block text-title-3 font-semibold" data-testid="verify-result">{report.valid ? t('reportValid') : t('reportInvalid')}</b>
+      {#if report.statement}<span class="block truncate text-callout text-muted">{summary(report.statement)}</span>{/if}
     </div>
     {#if save}<button class={buttonClass('ghost', 'sm')} onclick={save} data-testid="verify-save"><Icon name="download" />{t('saveReport')}</button>{/if}
   </div>
   <ul class="divide-y divide-line border-b border-line" data-testid="verify-checks">
     {#each checks as [label, passed, detail] (label)}
-      <li class="flex items-start gap-2.5 px-4 py-2 text-[13px]">
+      <li class="flex items-start gap-2.5 px-4 py-2 text-body">
         <span
           class={cn(
             'mt-0.5 grid size-4 shrink-0 place-items-center rounded-full',
@@ -75,7 +75,7 @@
           )}><Icon name={passed === true ? 'check' : passed === false ? 'close' : 'info'} class="size-2.5" /></span
         >
         <span class="w-36 shrink-0 text-ink-2">{t(label)}</span>
-        <span class="min-w-0 flex-1 font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">{detail}</span>
+        <span class="min-w-0 flex-1 font-mono text-code text-muted [overflow-wrap:anywhere]">{detail}</span>
       </li>
     {/each}
   </ul>
@@ -87,7 +87,7 @@
       </Fact>
     {/if}
     {#if report.approved_at}<Fact label={t('approvedAt')}>{when(report.approved_at)}</Fact>{/if}
-    {#if report.origin}<Fact label={t('origin')}><bdi dir="ltr" class="font-mono text-[12.5px]">{report.origin}</bdi></Fact>{/if}
+    {#if report.origin}<Fact label={t('origin')}><bdi dir="ltr" class="font-mono text-code">{report.origin}</bdi></Fact>{/if}
     {#if report.statement}<Fact label={t('statement')}>{report.statement.profile}: {summary(report.statement)}</Fact>{/if}
   </dl>
 </div>

@@ -146,7 +146,7 @@
 {:else}
 {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={getQuote}>{w('retry')}</button></Notice>{/if}
 {#if readiness}
-  <div class="border-line bg-surface rounded-xl border p-4 text-[12px]">
+  <div class="border-line bg-surface rounded-xl border p-4 text-callout">
     <p>{w('payer')}: <span class="font-mono break-all">{readiness.payer?.principal ?? readiness.payer?.payer ?? '—'}</span></p>
     <p>{t('balance')}: {readiness.balance?.balance ? units(String(readiness.balance.balance), 8) + ' ICP' : '—'}</p>
     {#if preview && BigInt(readiness.balance?.balance ?? '0') < BigInt(total)}<p class="text-danger mt-2"
@@ -162,7 +162,7 @@
       <span class="border-line bg-surface text-forest grid size-10 shrink-0 place-items-center rounded-xl border"
         ><Icon name="coins" /></span
       >
-      <p class="text-muted min-w-0 flex-1 text-[12.5px] leading-relaxed">{t('twQuoteHint')}</p>
+      <p class="text-muted min-w-0 flex-1 text-callout leading-relaxed">{t('twQuoteHint')}</p>
       <button class={buttonClass('secondary')} disabled={busy || quoteLoading} onclick={getQuote} data-testid="wallet-quote">
         <Icon name={quoteLoading ? 'pending' : 'coins'} class={quoteLoading ? 'animate-spin motion-reduce:animate-none' : ''} />
         {t('twQuote')}
@@ -176,21 +176,21 @@
         >
         <dl class="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 @min-[520px]:grid-cols-3">
           <div class="min-w-0">
-            <dt class="text-faint text-[11px]">{t('twActivation')}</dt>
-            <dd class="text-[19px] leading-snug font-semibold tabular-nums"
-              >{units(preview.price_e8s, 8)}{'\u00a0'}<span class="text-muted text-[12px] font-normal">ICP</span></dd
+            <dt class="text-faint text-caption">{t('twActivation')}</dt>
+            <dd class="text-title-2 leading-snug font-semibold tabular-nums"
+              >{units(preview.price_e8s, 8)}{'\u00a0'}<span class="text-muted text-callout font-normal">ICP</span></dd
             >
           </div>
           <div class="min-w-0">
-            <dt class="text-faint text-[11px]">{t('twFee')}</dt>
-            <dd class="text-[13.5px] font-medium tabular-nums"
-              >{units(preview.ledger_fee_e8s, 8)}{'\u00a0'}<span class="text-muted text-[12px] font-normal">ICP</span></dd
+            <dt class="text-faint text-caption">{t('twFee')}</dt>
+            <dd class="text-body font-medium tabular-nums"
+              >{units(preview.ledger_fee_e8s, 8)}{'\u00a0'}<span class="text-muted text-callout font-normal">ICP</span></dd
             >
           </div>
           <div class="min-w-0">
-            <dt class="text-faint text-[11px]">{t('twTotal')}</dt>
-            <dd class="text-[13.5px] font-semibold tabular-nums"
-              >{units(total, 8)}{'\u00a0'}<span class="text-muted text-[12px] font-normal">ICP</span></dd
+            <dt class="text-faint text-caption">{t('twTotal')}</dt>
+            <dd class="text-body font-semibold tabular-nums"
+              >{units(total, 8)}{'\u00a0'}<span class="text-muted text-callout font-normal">ICP</span></dd
             >
           </div>
         </dl>
@@ -213,7 +213,7 @@
         </div>
       </div>
       {#if remaining === 0}
-        <p class="border-line text-warn mt-3 flex flex-wrap items-center gap-1.5 border-t pt-2.5 text-[12px]">
+        <p class="border-line text-warn mt-3 flex flex-wrap items-center gap-1.5 border-t pt-2.5 text-callout">
           <Icon name="warning" class="size-3.5" />
           <span>{t('twQuoteNone')}</span>
           <a class="text-forest font-medium underline underline-offset-2" href="#/plan">{t('openPlan')}</a>
@@ -236,17 +236,17 @@
             data-testid="wallet-name"
           />
         </Field>
-        {#if utf8Length(name.trim()) > 64}<p class="text-danger text-[12px]">{w('nameBytes')}</p>{/if}
+        {#if utf8Length(name.trim()) > 64}<p class="text-danger text-callout">{w('nameBytes')}</p>{/if}
 
         <div class="grid gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-baseline gap-2">
-              <span class="text-faint text-[12px]">{t('members')}</span>
-              <span class="text-faint text-[11px] tabular-nums">{memberCount}</span>
+              <span class="text-muted text-callout">{t('members')}</span>
+              <span class="text-faint text-caption tabular-nums">{memberCount}</span>
             </div>
             <button
               type="button"
-              class={buttonClass('secondary', 'xs')}
+              class={buttonClass('subtle', 'xs')}
               disabled={busy || drafts.length >= MAX_DRAFT_MEMBERS}
               onclick={addMember}
               data-testid="wallet-member-add"
@@ -259,14 +259,14 @@
               {#if creator}<Avatar id={creator} size="sm" />{/if}
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <b class="text-[12.5px] font-medium">{t('you')}</b>
+                  <b class="text-callout font-medium">{t('you')}</b>
                   <Pill tone="forest">{t('twRoleAdmin')}</Pill>
                 </div>
                 {#if creator}<div class="mt-0.5"><Id id={creator} /></div>{/if}
               </div>
             </div>
             <div
-              class="border-line bg-surface-2 text-faint hidden gap-2 border-b px-2.5 py-1.5 text-[11px] font-medium @min-[560px]:grid @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem]"
+              class="border-line bg-surface-2 text-faint hidden gap-2 border-b px-2.5 py-1.5 text-caption font-medium @min-[560px]:grid @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem]"
             >
               <span>{t('twMemberId')}</span>
               <span>{t('role')}</span>
@@ -281,7 +281,7 @@
               >
                 <MemberLookup bind:id={row.id} bind:label={row.label} testid="wallet-member-id" />
                 <Select bind:value={row.role} options={roleOptions} label={t('role')} testid="wallet-member-role" class="w-full" />
-                <p class="text-muted text-[12px] @min-[560px]:col-span-4">{w(`role${row.role[0].toUpperCase()+row.role.slice(1)}Hint`)}</p>
+                <p class="text-muted text-callout @min-[560px]:col-span-4">{w(`role${row.role[0].toUpperCase()+row.role.slice(1)}Hint`)}</p>
                 <input
                   bind:value={row.label}
                   class="min-w-0"
@@ -299,22 +299,22 @@
                   data-testid="wallet-member-remove"><Icon name="close" /></button
                 >
                 {#if problem && (row.touched || problem !== 'twMemberInvalid')}
-                  <p class="text-danger text-[11.5px] @min-[560px]:col-span-4" data-testid="wallet-member-error">{t(problem)}</p>
+                  <p class="text-danger text-caption @min-[560px]:col-span-4" data-testid="wallet-member-error">{t(problem)}</p>
                 {/if}
               </div>
             {/each}
           </div>
-          <p class="text-faint text-[11.5px] leading-normal">{t('twMembersHint')}</p>
+          <p class="text-faint text-caption leading-normal">{t('twMembersHint')}</p>
         </div>
 
         <Readiness wallet={{wallet:'',name,frozen:false,addresses:[],cosigners:[],policy:{approver_threshold:approvals,admin_threshold:adminApprovals},members:[{id:creator,role:'Admin',status:'Active',agent_ids:[]},...drafts.filter((d) => d.id.trim()).map((d) => ({id:d.id,role:d.role[0].toUpperCase()+d.role.slice(1),status:'Invited',agent_ids:[]}))]}} />
         <div class="@container grid gap-2">
-          <span class="text-faint text-[12px]">{t('twPolicySection')}</span>
+          <span class="text-muted text-callout">{t('twPolicySection')}</span>
           <div class="grid gap-2 @min-[560px]:grid-cols-2">
             <div class="border-line bg-surface-2 flex items-start gap-3 rounded-xl border p-3.5">
               <div class="min-w-0 flex-1">
-                <p class="text-[12.5px] font-medium">{t('twApprovals')}</p>
-                <p class="text-faint mt-0.5 text-[11.5px] leading-normal">{t('twApprovalsHint', { max: limits.approvers })}</p>
+                <p class="text-callout font-medium">{t('twApprovals')}</p>
+                <p class="text-faint mt-0.5 text-caption leading-normal">{t('twApprovalsHint', { max: limits.approvers })}</p>
               </div>
               <div class="border-edge-soft bg-surface flex shrink-0 items-center rounded-lg border p-0.5">
                 <button
@@ -323,23 +323,23 @@
                   aria-label={`${t('twDecrease')} ${t('twApprovals')}`}
                   disabled={busy || approvals <= 1}
                   onclick={() => (approvals -= 1)}
-                  data-testid="wallet-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
+                  data-testid="wallet-approvals-dec"><span aria-hidden="true" class="text-title-3 leading-none">−</span></button
                 >
-                <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-approvals">{approvals}</span>
+                <span class="w-8 text-center text-body font-medium tabular-nums" data-testid="wallet-approvals">{approvals}</span>
                 <button
                   type="button"
                   class={iconButtonClass('ghost', 'md')}
                   aria-label={`${t('twIncrease')} ${t('twApprovals')}`}
                   disabled={busy || approvals >= limits.approvers}
                   onclick={() => (approvals += 1)}
-                  data-testid="wallet-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
+                  data-testid="wallet-approvals-inc"><span aria-hidden="true" class="text-title-3 leading-none">+</span></button
                 >
               </div>
             </div>
             <div class="border-line bg-surface-2 flex items-start gap-3 rounded-xl border p-3.5">
               <div class="min-w-0 flex-1">
-                <p class="text-[12.5px] font-medium">{t('twAdminApprovals')}</p>
-                <p class="text-faint mt-0.5 text-[11.5px] leading-normal">{t('twAdminApprovalsHint', { max: limits.admins })}</p>
+                <p class="text-callout font-medium">{t('twAdminApprovals')}</p>
+                <p class="text-faint mt-0.5 text-caption leading-normal">{t('twAdminApprovalsHint', { max: limits.admins })}</p>
               </div>
               <div class="border-edge-soft bg-surface flex shrink-0 items-center rounded-lg border p-0.5">
                 <button
@@ -348,9 +348,9 @@
                   aria-label={`${t('twDecrease')} ${t('twAdminApprovals')}`}
                   disabled={busy || adminApprovals <= 1}
                   onclick={() => (adminApprovals -= 1)}
-                  data-testid="wallet-admin-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
+                  data-testid="wallet-admin-approvals-dec"><span aria-hidden="true" class="text-title-3 leading-none">−</span></button
                 >
-                <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-admin-approvals"
+                <span class="w-8 text-center text-body font-medium tabular-nums" data-testid="wallet-admin-approvals"
                   >{adminApprovals}</span
                 >
                 <button
@@ -359,7 +359,7 @@
                   aria-label={`${t('twIncrease')} ${t('twAdminApprovals')}`}
                   disabled={busy || adminApprovals >= limits.admins}
                   onclick={() => (adminApprovals += 1)}
-                  data-testid="wallet-admin-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
+                  data-testid="wallet-admin-approvals-inc"><span aria-hidden="true" class="text-title-3 leading-none">+</span></button
                 >
               </div>
             </div>
@@ -367,7 +367,7 @@
         </div>
 
         <div class="border-line flex flex-wrap items-center gap-2 border-t pt-4">
-          <p class="text-faint min-w-0 flex-1 text-[11.5px] leading-normal">
+          <p class="text-faint min-w-0 flex-1 text-caption leading-normal">
             {t('twCreateSummary', { total: units(total, 8), approvals, admin: adminApprovals })}
           </p>
           <button type="button" class={buttonClass('ghost')} disabled={busy} onclick={cancelCreate} data-testid="wallet-create-cancel"

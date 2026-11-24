@@ -246,7 +246,7 @@
     >{#if supported && !ready}<Notice tone="warn"
         >{w('FSKIT_DAEMON_UNSIGNED')}</Notice
       >{:else if supported}<div class="flex flex-wrap items-center gap-3">
-        <p class="max-w-2xl text-xs text-muted">{w('enableExtension')}</p>
+        <p class="max-w-2xl text-callout text-muted">{w('enableExtension')}</p>
         <button class={buttonClass('secondary')} onclick={settings}
           >{w('openSettings')}</button
         >
@@ -262,7 +262,7 @@
       onchange={changed}
     >
       <h3 class="font-medium">{ux('setup')}</h3>
-      <p class="text-xs leading-relaxed text-muted">{w('exclude')}</p>
+      <p class="text-callout leading-relaxed text-muted">{w('exclude')}</p>
       <Field label={w('project')}
         ><input bind:value={project} maxlength="100" required /></Field
       >
@@ -284,7 +284,7 @@
           /></Field
         >
       </div>
-      {#if sourceType === 'library_file'}<p class="text-xs text-muted">
+      {#if sourceType === 'library_file'}<p class="text-callout text-muted">
           {w('filesPermissions')}
         </p>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -357,7 +357,7 @@
               placeholder="TOKEN=dmsg-secret://…"></textarea></Field
           >
         {:else}<details>
-            <summary class="cursor-pointer text-xs text-forest"
+            <summary class="text-callout text-forest"
               >{ux('advanced')}</summary
             ><Field label="dmsg-secret://"
               ><input
@@ -378,7 +378,7 @@
         onclick={add}>{w('add')}</button
       >
       {#each mappings as mapping, i}<div
-          class="flex items-center justify-between gap-2 rounded-lg bg-wash p-2 text-sm"
+          class="flex items-center justify-between gap-2 rounded-lg bg-wash p-2 text-body"
         >
           <div class="min-w-0">
             <p class="break-all font-medium">
@@ -386,7 +386,7 @@
                 ? ` → ${mapping.alias}`
                 : ''}
             </p>
-            <p class="text-xs text-muted">
+            <p class="text-callout text-muted">
               {w(
                 mapping.source.type === 'library_file'
                   ? 'library'
@@ -423,15 +423,15 @@
     </form>{/if}
   {#if preview}<div class={card} data-testid="mount-preview">
       <h3 class="font-medium">{ux('reviewSelection')}</h3>
-      <p class="break-all text-sm">
+      <p class="break-all text-body">
         {preview.input.project_directory} → {preview.input.mount_point}
       </p>
       {#each preview.input.entries ?? mappings as entry}<p
-          class="text-sm break-all"
+          class="text-body break-all"
         >
           {entry.relative_path}
         </p>{/each}
-      <p class="text-xs text-muted">{w('window')}: {windowSeconds}s</p>
+      <p class="text-callout text-muted">{w('window')}: {windowSeconds}s</p>
       <button
         class={buttonClass('primary')}
         disabled={model.state.busy}
@@ -441,7 +441,7 @@
   <Notice>{ux('mountSaved')}</Notice>
   {#each mounts as mount}<article class={card}>
       <div class="flex flex-wrap justify-between gap-2">
-        <strong>{mount.input.project_label}</strong><span class="text-sm"
+        <strong>{mount.input.project_label}</strong><span class="text-body"
           >{term(statuses[mount.id]?.state ?? 'unknown')}</span
         >
       </div>
@@ -488,7 +488,7 @@
           >{t('remove')}</button
         >
       </div>
-      {#each statuses[mount.id]?.core?.grants ?? [] as grant}<p class="text-xs">
+      {#each statuses[mount.id]?.core?.grants ?? [] as grant}<p class="text-callout">
           {grant.entry} · {Math.ceil(grant.remaining_ms / 1000)}s · {size(
             grant.released_bytes
           )}

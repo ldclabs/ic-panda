@@ -68,7 +68,7 @@
   <div class="mx-auto grid w-full max-w-[600px] gap-6 px-6 pb-10">
     <header class="flex items-center gap-2.5">
       <Brand class="h-7 w-6" />
-      <span class="me-auto text-xl leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+      <span class="me-auto text-title-2 leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
       {#if step === 0}
         <Select value={locale()} options={locales.map((code) => ({ value: code, label: localeNames[code] }))} label={t('language')} onChange={pickLanguage} testid="welcome-language" class="w-44" />
       {:else if step === 1}
@@ -76,10 +76,10 @@
       {/if}
     </header>
 
-    <ol class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]" aria-label={t('welcomeSteps')} data-testid="welcome-steps">
+    <ol class="flex flex-wrap items-center gap-x-3 gap-y-1 text-callout" aria-label={t('welcomeSteps')} data-testid="welcome-steps">
       {#each steps as name, index (index)}
         <li class={cn('flex items-center gap-1.5', index === step ? 'font-medium text-ink' : 'text-faint')} aria-current={index === step ? 'step' : undefined}>
-          <span class={cn('grid size-5 place-items-center rounded-full text-[11px] tabular-nums', index < step ? 'bg-forest text-on-forest' : index === step ? 'bg-pale text-forest' : 'bg-wash')}>
+          <span class={cn('grid size-5 place-items-center rounded-full text-caption tabular-nums', index < step ? 'bg-forest text-on-forest' : index === step ? 'bg-pale text-forest' : 'bg-wash')}>
             {#if index < step}<Icon name="check" class="size-3" />{:else}{index + 1}{/if}
           </span>
           {name}
@@ -92,9 +92,9 @@
     {#if step < 2}<button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={() => accountJoinRequested.set(true)} data-testid="open-account-invite">{t('joinOpen')}</button>{/if}
     {#if step === 0}
       <div class="grid gap-4">
-        <h1 class="text-[22px] leading-tight font-semibold">{t('welcomeTitle')}</h1>
-        <p class="text-[14px] leading-relaxed text-muted">{t('welcomeBody')}</p>
-        <ul class="grid gap-2 text-[13.5px] text-ink-2">
+        <h1 class="text-title-1 leading-tight font-semibold">{t('welcomeTitle')}</h1>
+        <p class="text-body leading-relaxed text-muted">{t('welcomeBody')}</p>
+        <ul class="grid gap-2 text-body text-ink-2">
           <li class="flex items-start gap-2.5"><Icon name="vault" class="mt-0.5 shrink-0 text-forest" />{t('welcomeVault')}</li>
           <li class="flex items-start gap-2.5"><Icon name="file" class="mt-0.5 shrink-0 text-forest" />{t('welcomeFiles')}</li>
           <li class="flex items-start gap-2.5"><Icon name="agents" class="mt-0.5 shrink-0 text-forest" />{t('welcomeApprovals')}</li>
@@ -107,7 +107,7 @@
           {#if status?.passkey_available}
             <button class={buttonClass('ghost', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'ii')} data-testid="welcome-login-ii">{t('loginWithIi')}</button>
           {/if}
-          <p class="text-[12.5px] text-faint">{t(status?.passkey_available ? 'passkeyLoginHint' : 'welcomeLoginHint')}</p>
+          <p class="text-callout text-muted">{t(status?.passkey_available ? 'passkeyLoginHint' : 'welcomeLoginHint')}</p>
         </div>
       </div>
     {:else if step === 1}
@@ -115,17 +115,17 @@
       <Moved {status} {refresh} />
     {:else}
       <div class="grid gap-4" data-testid="welcome-finish">
-        <h1 class="text-[22px] leading-tight font-semibold">{t('welcomeReadyTitle')}</h1>
-        <p class="text-[14px] leading-relaxed text-muted">{t('welcomeReadyBody')}</p>
+        <h1 class="text-title-1 leading-tight font-semibold">{t('welcomeReadyTitle')}</h1>
+        <p class="text-body leading-relaxed text-muted">{t('welcomeReadyBody')}</p>
         <ul class="divide-y divide-line rounded-xl border border-line bg-surface">
           <li class="flex flex-wrap items-center gap-3 px-4 py-3">
             <Icon name="key" class="text-forest" />
             <span class="min-w-40 flex-1">
-              <b class="block text-[13.5px] font-medium">{t('fastUnlock')}</b>
-              <span class="block text-[12.5px] text-muted">{t('fastUnlockHint')}</span>
+              <b class="block text-body font-medium">{t('fastUnlock')}</b>
+              <span class="block text-callout text-muted">{t('fastUnlockHint')}</span>
             </span>
             {#if status?.fast_unlock}
-              <span class="flex items-center gap-1 text-[12.5px] text-forest" data-testid="welcome-fast-on"><Icon name="check" />{t('on')}</span>
+              <span class="flex items-center gap-1 text-callout text-forest" data-testid="welcome-fast-on"><Icon name="check" />{t('on')}</span>
             {:else}
               <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={fastUnlock} data-testid="welcome-fast">{t('fastUnlockOn')}</button>
             {/if}
@@ -133,17 +133,17 @@
           <li class="flex flex-wrap items-center gap-3 px-4 py-3">
             <Icon name="bell" class="text-forest" />
             <span class="min-w-40 flex-1">
-              <b class="block text-[13.5px] font-medium">{t('noticeSetupTitle')}</b>
-              <span class="block text-[12.5px] text-muted">{t('noticeSetupBody')}</span>
+              <b class="block text-body font-medium">{t('noticeSetupTitle')}</b>
+              <span class="block text-callout text-muted">{t('noticeSetupBody')}</span>
             </span>
             {#if alerts}
-              <span class="flex items-center gap-1 text-[12.5px] text-forest" data-testid="welcome-alerts-on"><Icon name="check" />{t('on')}</span>
+              <span class="flex items-center gap-1 text-callout text-forest" data-testid="welcome-alerts-on"><Icon name="check" />{t('on')}</span>
             {:else}
               <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={turnOnAlerts} data-testid="welcome-alerts">{t('noticeEnable')}</button>
             {/if}
           </li>
         </ul>
-        <p class="text-[12.5px] leading-relaxed text-muted" data-testid="welcome-recovery">{t('recoveryPreparation')}</p>
+        <p class="text-callout leading-relaxed text-muted" data-testid="welcome-recovery">{t('recoveryPreparation')}</p>
         <button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={onDone} data-testid="welcome-done">{t('welcomeStart')}<Icon name="chevron-end" /></button>
       </div>
     {/if}

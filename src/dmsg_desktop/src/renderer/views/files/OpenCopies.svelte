@@ -46,23 +46,23 @@
         <li class="flex items-center gap-2.5 px-3 py-2">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-1.5">
-              <span class="truncate text-[13px] font-medium">{copy.name}</span>
+              <span class="truncate text-body font-medium">{copy.name}</span>
               {#if copy.changed}<Pill tone="warn">{t('copyChangedBadge')}</Pill>{/if}
             </div>
-            <p class="truncate font-mono text-[11px] text-faint" dir="ltr" title={copy.path}>{copy.path}</p>
-            <p class="text-[11px] text-faint">{t('openedAgo', { time: ago(copy.opened_at) })}</p>
+            <p class="truncate font-mono text-code text-faint" dir="ltr" title={copy.path}>{copy.path}</p>
+            <p class="text-caption text-faint">{t('openedAgo', { time: ago(copy.opened_at) })}</p>
           </div>
           {#if copy.changed}
             <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => settle(copy.nonce, false)}>{t('discardChange')}</button>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => settle(copy.nonce, true)}><Icon name="history" />{t('saveAsVersion')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => settle(copy.nonce, true)}><Icon name="history" />{t('saveAsVersion')}</button>
           {:else}
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => settle(copy.nonce, false)} data-testid="files-copy-remove"><Icon name="trash" />{t('removeCopy')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => settle(copy.nonce, false)} data-testid="files-copy-remove"><Icon name="trash" />{t('removeCopy')}</button>
           {/if}
         </li>
       {/each}
     </ul>
   {:else}
-    <p class="mt-3 py-6 text-center text-[13px] text-muted">{t('noOpenCopies')}</p>
+    <p class="mt-3 py-6 text-center text-body text-muted">{t('noOpenCopies')}</p>
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>

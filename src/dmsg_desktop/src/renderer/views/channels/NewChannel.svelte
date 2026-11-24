@@ -121,19 +121,19 @@
   }
 
   const tabClass =
-    'h-7 flex-1 rounded-lg px-3 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
+    'h-7 flex-1 rounded-lg px-3 text-callout text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
 </script>
 
 <Dialog bind:open title={tab === 'create' ? t('newChannel') : t('joinChannel')} icon="channels" testid="channel-new-dialog">
   {#if direct?.kind === 'invited'}
     {@const link = direct.link}
     <div class="grid gap-2" data-testid="channel-invitation-box">
-      <p class="text-[12.5px] text-ink-2">{t('directInvited')}</p>
-      <TextField readonly value={link} label={t('invitation')} hideLabel mono class="text-[11px]" data-testid="channel-invitation-link" />
+      <p class="text-callout text-ink-2">{t('directInvited')}</p>
+      <TextField readonly value={link} label={t('invitation')} hideLabel mono class="text-caption" data-testid="channel-invitation-link" />
       <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(link)}><Icon name="link" />{t('copyLink')}</button>
     </div>
   {:else if direct}
-    <div class="grid gap-2 text-[12.5px] text-ink-2" data-testid="channel-invite-pending">
+    <div class="grid gap-2 text-callout text-ink-2" data-testid="channel-invite-pending">
       <p role="status">{t('directInvitePending')}</p>
       <p>{t('directWith')} <Id id={direct.account} full wrap /></p>
     </div>
@@ -149,7 +149,7 @@
             <RadioGroup.Item
               value={option.value}
               data-testid="channel-kind-{option.value}"
-              class="flex flex-col items-center gap-1 rounded-xl border border-line bg-surface px-2 py-3 text-[12px] text-muted outline-none transition-colors duration-150 hover:border-edge-soft hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=checked]:border-forest data-[state=checked]:bg-pale data-[state=checked]:text-forest"
+              class="flex flex-col items-center gap-1 rounded-xl border border-line bg-surface px-2 py-3 text-callout text-muted outline-none transition-colors duration-150 hover:border-edge-soft hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=checked]:border-forest data-[state=checked]:bg-pale data-[state=checked]:text-forest"
             >
               <Icon name={option.icon} class="size-5" />
               {t(option.value as 'collaboration' | 'distribution' | 'direct')}

@@ -146,20 +146,20 @@
     <button class={buttonClass('primary')} disabled={busy || !ready} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
   </div>
   {#if ready && pairs.length}
-    <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyOffers')}</h3>
+    <h3 class="mb-1.5 text-callout font-medium text-muted">{t('legacyOffers')}</h3>
     <RadioGroup.Root bind:value={selected} disabled={busy} onValueChange={() => { confirmed = false; principal = '' }} aria-label={t('legacyOffers')}>
       <ul class="divide-y divide-line">
         {#each pairs as p (p.nonce)}
           <li class={cn('flex flex-wrap items-center gap-2 px-3.5 py-2.5', selected === p.nonce && 'bg-pale/60')}>
             <Radio value={p.nonce} testid="legacy-pick-{p.nonce}" class="min-w-0 flex-1">
-              <span class="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+              <span class="flex flex-wrap items-center gap-1.5 text-callout">
                 <bdi dir="ltr" class="font-mono">{p.origin}</bdi>
                 <span class="font-mono text-faint">{p.fingerprint.slice(0, 16)}</span>
                 <span class="text-faint">· {t('expires')} {when(p.expires_at)}</span>
                 {#if p.started}<Pill tone="warn">{t('legacyStarted')}</Pill>{/if}
               </span>
             </Radio>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => window.dmsg.openLegacy(p.link)}>{t('open')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => window.dmsg.openLegacy(p.link)}>{t('open')}</button>
             <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => cancel(p.nonce)}>{t('cancel')}</button>
           </li>
         {/each}
@@ -169,9 +169,9 @@
   {#if ready && pairing}
     <div class="mt-3 grid gap-3 rounded-xl border border-forest/30 bg-pale/40 p-4">
       <dl class="divide-y divide-line" data-testid="legacy-offer">
-        <Fact label={t('legacyLink')}><bdi dir="ltr" class="font-mono text-[11.5px] break-all">{pairing.link}</bdi></Fact>
-        <Fact label={t('device')}><span class="font-mono text-[12px] break-all">{pairing.target}</span></Fact>
-        <Fact label={t('fingerprint')}><span class="font-mono text-[12px] font-semibold break-all text-forest">{pairing.fingerprint}</span></Fact>
+        <Fact label={t('legacyLink')}><bdi dir="ltr" class="font-mono text-code break-all">{pairing.link}</bdi></Fact>
+        <Fact label={t('device')}><span class="font-mono text-code break-all">{pairing.target}</span></Fact>
+        <Fact label={t('fingerprint')}><span class="font-mono text-code font-semibold break-all text-forest">{pairing.fingerprint}</span></Fact>
       </dl>
       <TextField label={t('legacyPrincipal')} bind:value={principal} oninput={() => (confirmed = false)} autocomplete="off" mono disabled={busy} data-testid="legacy-principal" />
       <Checkbox bind:checked={confirmed} disabled={busy}>{t('legacyConfirm')}</Checkbox>
@@ -189,13 +189,13 @@
       <li class="flex flex-wrap items-center gap-2 px-5 py-3">
         <Pill>{a.mode}</Pill>
         <Id id={a.principal} full class="max-w-[50%]" />
-        <span class="min-w-0 flex-1 text-[12px] text-faint">{a.objects} {t('legacyObjects')} · {a.gaps} {t('legacyGaps')}</span>
+        <span class="min-w-0 flex-1 text-callout text-muted">{a.objects} {t('legacyObjects')} · {a.gaps} {t('legacyGaps')}</span>
         <Pill tone={a.synced ? 'ok' : 'neutral'}>{t(a.synced ? 'synced' : 'legacyWaitingSync')}</Pill>
-        <a class={buttonClass('secondary', 'xs')} href={`#/channels?legacy=${encodeURIComponent(a.id)}`} data-testid="legacy-open-channels">{t('legacyHistory')}</a>
-        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => open(a.id)}>{t('legacyRead')}</button>
+        <a class={buttonClass('subtle', 'xs')} href={`#/channels?legacy=${encodeURIComponent(a.id)}`} data-testid="legacy-open-channels">{t('legacyHistory')}</a>
+        <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => open(a.id)}>{t('legacyRead')}</button>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('legacyNone')}</li>
+      <li class="px-5 py-3 text-body text-faint">{t('legacyNone')}</li>
     {/each}
   </ul>
 </Section>
@@ -215,7 +215,7 @@
           <Fact label={t('legacyUsername')} testid="legacy-username">
             <span class="flex flex-wrap items-center gap-2">
               <b class="font-semibold">@{report.profile.username}</b>
-              <a class={buttonClass('secondary', 'xs')} href={`#/plan?names=${encodeURIComponent(report.profile.username)}`} data-testid="legacy-claim-name">{t('claimOldName')}</a>
+              <a class={buttonClass('subtle', 'xs')} href={`#/plan?names=${encodeURIComponent(report.profile.username)}`} data-testid="legacy-claim-name">{t('claimOldName')}</a>
             </span>
           </Fact>
         {/if}
@@ -224,20 +224,20 @@
       {#if report.gaps.length}
         <Notice tone="warn">
           <p class="font-medium">{t('legacyGapList')}</p>
-          <ul class="mt-1 grid gap-0.5 font-mono text-[11.5px]">
+          <ul class="mt-1 grid gap-0.5 font-mono text-code">
             {#each report.gaps.slice(0, 30) as gap, i (i)}<li>{gap.code} · {gap.source}: {gap.detail}</li>{/each}
           </ul>
         </Notice>
       {/if}
       {#if report.files.length}
         <div>
-          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyFiles')}</h3>
+          <h3 class="mb-1.5 text-callout font-medium text-muted">{t('legacyFiles')}</h3>
           <ul class="divide-y divide-line">
             {#each report.files as file (file.source)}
               <li class="flex items-center gap-2 px-3.5 py-2">
                 <Icon name="file" class="shrink-0 text-faint" />
-                <span class="min-w-0 flex-1 truncate text-[13px]">{file.name} <span class="font-mono text-[11px] text-faint">{file.source}</span></span>
-                <button class={buttonClass('secondary', 'xs')} disabled={busy || !file.verified} onclick={() => saveFile(file)}>
+                <span class="min-w-0 flex-1 truncate text-body">{file.name} <span class="font-mono text-code text-faint">{file.source}</span></span>
+                <button class={buttonClass('subtle', 'xs')} disabled={busy || !file.verified} onclick={() => saveFile(file)}>
                   {file.verified ? t('legacySave') : t('legacyUnverified')}
                 </button>
               </li>
@@ -247,36 +247,36 @@
       {/if}
       {#if report.resources.length || report.entitlements.length}
         <div class="grid gap-1.5">
-          <h3 class="text-[12px] font-medium text-faint">{t('legacyResources')}</h3>
-          <p class="text-[12px] text-muted">{t('legacyResourcesHint')}</p>
+          <h3 class="text-callout font-medium text-muted">{t('legacyResources')}</h3>
+          <p class="text-callout text-muted">{t('legacyResourcesHint')}</p>
           {#each report.resources as r (r.source)}
-            <p class="font-mono text-[11.5px] text-muted">{r.name} · {t('legacyResource', { paid: r.paid, gas: r.gas })}</p>
+            <p class="font-mono text-code text-muted">{r.name} · {t('legacyResource', { paid: r.paid, gas: r.gas })}</p>
           {/each}
           {#each report.entitlements as e (e.source)}
             <Collapsible>
-              {#snippet title()}<span class="font-mono text-[12px]">{e.source}</span>{/snippet}
-              <pre class="overflow-x-auto rounded-lg bg-surface-2 p-2.5 font-mono text-[11px]">{pretty(e.value)}</pre>
+              {#snippet title()}<span class="font-mono text-code">{e.source}</span>{/snippet}
+              <pre class="overflow-x-auto rounded-lg bg-surface-2 p-2.5 font-mono text-code">{pretty(e.value)}</pre>
             </Collapsible>
           {/each}
         </div>
       {/if}
       <div class="flex flex-wrap items-center gap-2 rounded-xl border border-line px-3.5 py-2.5">
         <Icon name={report.frozen.matched ? 'verified' : 'warning'} class={report.frozen.matched ? 'text-ok' : 'text-warn'} />
-        <span class="min-w-0 flex-1 text-[12.5px]">
+        <span class="min-w-0 flex-1 text-callout">
           <b class="font-medium">{t('legacyFrozen')}</b> · {report.frozen.matched ? t('legacyFrozenMatched') : `${report.frozen.total_changes} ${t('legacyFrozenChanges')}`}
         </span>
-        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={frozen}>{t('legacyFrozenImport')}</button>
+        <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={frozen}>{t('legacyFrozenImport')}</button>
       </div>
       <div>
-        <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyMessages')} · {report.total_messages}</h3>
+        <h3 class="mb-1.5 text-callout font-medium text-muted">{t('legacyMessages')} · {report.total_messages}</h3>
         <ul class="divide-y divide-line" data-testid="legacy-messages">
           {#each report.messages as m (m.source)}
             <li class="px-3.5 py-2.5">
-              <p class="font-mono text-[11px] text-faint">{m.author} · {m.time}{m.system ? ` · ${t('legacySystem')}` : ''}</p>
-              <p class={cn('text-[13px] whitespace-pre-wrap [overflow-wrap:anywhere]', m.deleted && 'text-faint italic')}>
+              <p class="font-mono text-code text-faint">{m.author} · {m.time}{m.system ? ` · ${t('legacySystem')}` : ''}</p>
+              <p class={cn('text-body whitespace-pre-wrap select-text [overflow-wrap:anywhere]', m.deleted && 'text-faint italic')}>
                 {m.deleted ? t('legacyDeleted') : m.text}
               </p>
-              {#if m.file}<p class="mt-0.5 inline-flex items-center gap-1 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{m.file.name}</p>{/if}
+              {#if m.file}<p class="mt-0.5 inline-flex items-center gap-1 text-callout text-muted"><Icon name="attach" class="size-3.5" />{m.file.name}</p>{/if}
             </li>
           {/each}
         </ul>

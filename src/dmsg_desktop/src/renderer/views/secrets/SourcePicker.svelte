@@ -72,7 +72,7 @@
     >{/if}
 </div>
 {#if !items.some((i) => !i.blocked && (sharing || i.type !== 'wallet'))}<p
-    class="text-xs text-muted"
+    class="text-callout text-muted"
   >
     {ux('noSources')}
   </p>{/if}

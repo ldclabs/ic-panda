@@ -172,8 +172,8 @@
   <section class="flex h-full min-w-0 flex-col" data-testid="files-requests-page">
     <header class="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
       <div class="min-w-0 flex-1">
-        <h2 class="text-[15px] font-semibold">{t('fileRequests')}</h2>
-        <p class="mt-0.5 text-[12px] text-faint">{t('requestsSubtitle')}</p>
+        <h2 class="text-title-3 font-semibold">{t('fileRequests')}</h2>
+        <p class="mt-0.5 text-callout text-muted">{t('requestsSubtitle')}</p>
       </div>
       <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={refresh} data-testid="requests-refresh"
         ><Icon name="sync" />{t('refreshLinks')}</button
@@ -185,7 +185,7 @@
     <div class="min-h-0 flex-1 overflow-y-auto p-5">
       {#if error}<Notice failure={error} tone="danger" testid="requests-error">{error}</Notice>{/if}
       {#if allowed}
-        <p class="mb-3 text-[12px] text-faint" data-testid="requests-usage">
+        <p class="mb-3 text-callout text-muted" data-testid="requests-usage">
           {t('requestsUsage', {
             active,
             limit: allowed,
@@ -206,20 +206,20 @@
                   data-testid="requests-open"
                 >
                   {#if link.title}
-                    <span class="block break-words text-[13px] font-medium"><bdi dir="auto">{link.title}</bdi></span>
+                    <span class="block break-words text-body font-medium"><bdi dir="auto">{link.title}</bdi></span>
                   {:else}
                     <Id id={link.request_id} />
                   {/if}
-                  {#if link.label}<span class="mt-0.5 block break-words text-[12px] text-muted"><bdi dir="auto">{link.label}</bdi></span>{/if}
+                  {#if link.label}<span class="mt-0.5 block break-words text-callout text-muted"><bdi dir="auto">{link.label}</bdi></span>{/if}
                 </button>
-                <p class="mt-0.5 text-[11.5px] text-faint" data-testid="requests-state">
+                <p class="mt-0.5 text-caption text-faint" data-testid="requests-state">
                   {t(requestStates[link.status] ?? 'requestStateOpen')} · {t('requestFilesCount', { n: link.files ?? 0, size: size(link.bytes ?? 0) })}
                   {#if link.unread}
                     · <span class="font-medium text-forest" data-testid="requests-unread">{t('requestUnread')}</span>
                   {/if}
                 </p>
-                <p class="mt-0.5 text-[11.5px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
-                {#if !link.url}<p class="mt-0.5 text-[11.5px] text-warn">{t('requestNoKey')}</p>{/if}
+                <p class="mt-0.5 text-caption text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
+                {#if !link.url}<p class="mt-0.5 text-caption text-warn">{t('requestNoKey')}</p>{/if}
               </div>
               <div class="flex flex-wrap gap-1">
                 {#if link.url && isActiveRequest(link)}
@@ -241,8 +241,8 @@
           {/each}
         </ul>
         {#if shown.length < rows.length}<button class={buttonClass('secondary', 'sm', 'mt-3')} onclick={() => (limit += 300)}>{t('moreRows', { n: rows.length - shown.length })}</button>{/if}
-        {#if !rows.length}<p class="py-12 text-center text-[13px] text-faint" data-testid="requests-empty">{query.trim() ? t('linksEmpty') : t('requestsEmpty')}</p>{/if}
-      {:else if busy}<p class="py-12 text-center text-[13px] text-faint">{t('loading')}</p>{/if}
+        {#if !rows.length}<p class="py-12 text-center text-body text-faint" data-testid="requests-empty">{query.trim() ? t('linksEmpty') : t('requestsEmpty')}</p>{/if}
+      {:else if busy}<p class="py-12 text-center text-body text-faint">{t('loading')}</p>{/if}
     </div>
   </section>
 {/if}
@@ -252,7 +252,7 @@
 {/if}
 
 <Dialog bind:open={upgrading} title={t('requestUpgradeTitle')} icon="inbox" testid="requests-upgrade">
-  <p class="text-[13px] text-muted">{t('requestUpgrade')}</p>
+  <p class="text-body text-muted">{t('requestUpgrade')}</p>
   {#snippet footer()}<span class="flex-1"></span><button class={buttonClass('ghost')} onclick={() => (upgrading = false)}>{t('cancel')}</button><button
       class={buttonClass('primary')}
       onclick={() => {
@@ -264,8 +264,8 @@
 </Dialog>
 
 <Dialog bind:open={() => !!confirmation, (next) => !next && (confirmation = null)} title={t('requestClose')} icon="inbox" tone="danger" testid="requests-confirm">
-  <p class="break-words text-[13px] font-medium"><bdi dir="auto">{confirmation?.title ?? confirmation?.request_id}</bdi></p>
-  <p class="mt-2 text-[13px] text-muted">{t('requestCloseHint')}</p>
+  <p class="break-words text-body font-medium"><bdi dir="auto">{confirmation?.title ?? confirmation?.request_id}</bdi></p>
+  <p class="mt-2 text-body text-muted">{t('requestCloseHint')}</p>
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}<span class="flex-1"></span><button class={buttonClass('ghost')} onclick={() => (confirmation = null)}>{t('cancel')}</button><button class={buttonClass('danger')} disabled={busy || !unlocked} onclick={close} data-testid="requests-confirm-close">{t('requestClose')}</button>{/snippet}
 </Dialog>

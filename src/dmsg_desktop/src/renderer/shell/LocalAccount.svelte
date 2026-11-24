@@ -91,8 +91,8 @@
     {#if error}<Notice tone="danger" failure={error}>{error}</Notice>{/if}
     {#if count}<p>{t('vault')} · {count.vault}　{t('files')} · {count.files}</p>{/if}
     {#if plan}
-      {#if busy}<output class="text-sm text-muted">{size(bytes)}</output>{/if}
-      <p class="text-sm">{t('account')} · <bdi dir="ltr">{plan.target}</bdi></p>
+      {#if busy}<output class="text-body text-muted">{size(bytes)}</output>{/if}
+      <p class="text-body">{t('account')} · <bdi dir="ltr">{plan.target}</bdi></p>
       <h3>{t('vault')}</h3>
       {#each plan.items as row (row.index)}
         {@const omitted = row.attachments.filter(index => index === null).length}

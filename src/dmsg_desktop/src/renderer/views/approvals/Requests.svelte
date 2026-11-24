@@ -89,16 +89,16 @@
         <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gem-pale text-gem"><Icon name={kindIcon[k] ?? 'info'} /></span>
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
-            <b class="text-[13px] font-medium">{title(request)}</b>
+            <b class="text-body font-medium">{title(request)}</b>
             {#if request.risk === 'high'}<Pill tone="warn">{t('highRisk')}</Pill>{/if}
             <Pill><Icon name={from.icon} class="size-3" />{from.name || t(from.role)}</Pill>
-            <span class="text-[11.5px] text-faint" title={when(request.created_at)}>{ago(request.created_at)}</span>
-            <span class={cn('text-[11.5px] tabular-nums', request.expires_at - now <= 60_000 ? 'text-warn' : 'text-faint')} title={when(request.expires_at)} data-testid="waiting-left">
+            <span class="text-caption text-faint" title={when(request.created_at)}>{ago(request.created_at)}</span>
+            <span class={cn('text-caption tabular-nums', request.expires_at - now <= 60_000 ? 'text-warn' : 'text-faint')} title={when(request.expires_at)} data-testid="waiting-left">
               {request.expires_at <= now ? stateLabel('expired') : t('minutesLeft', { n: minutes(request.expires_at - now) })}
             </span>
           </div>
-          <p class="truncate text-[12.5px] text-muted">{summaryOf(request)}</p>
-          {#if request.error}<p class="text-[12px] text-warn" data-testid="waiting-error">{t('notRunYet')} {reason(request.error)}</p>{/if}
+          <p class="truncate text-callout text-muted">{summaryOf(request)}</p>
+          {#if request.error}<p class="text-callout text-warn" data-testid="waiting-error">{t('notRunYet')} {reason(request.error)}</p>{/if}
         </div>
         {#if request.type !== 'connect' && request.expires_at > now}
           <button class={buttonClass('ghost', 'sm')} disabled={busy || !!error} aria-label={t('withdraw') + ' · ' + title(request)} onclick={(event) => { withdrawTrigger = event.currentTarget; withdrawError = ''; withdrawing = request.id }} data-testid="request-cancel">{t('withdraw')}</button>
@@ -109,7 +109,7 @@
   </ul>
 </Section>
 {:else if !error}
-  <p class="flex items-center gap-2 px-5 text-[13px] text-faint" data-testid="waiting-list" role="status">{#if loaded}<Icon name="check" class="text-ok" />{/if}{loaded ? t('noRequests') : t('loading')}</p>
+  <p class="flex items-center gap-2 px-5 text-body text-faint" data-testid="waiting-list" role="status">{#if loaded}<Icon name="check" class="text-ok" />{/if}{loaded ? t('noRequests') : t('loading')}</p>
 {/if}
 
 {#if running.length}
@@ -121,8 +121,8 @@
       {#each running as request (request.id)}
         <li class="flex items-center gap-3 px-5 py-2.5">
           <Pill tone="warn">{stateLabel(request.state)}</Pill>
-          <button class="min-w-0 flex-1 truncate text-start text-[12.5px] hover:underline" onclick={() => open(request.id)}>{title(request)} · {summaryOf(request)}</button>
-          {#if request.error}<span class="shrink-0 text-[11.5px] text-faint">{reason(request.error)}</span>{/if}
+          <button class="min-w-0 flex-1 truncate text-start text-callout hover:underline" onclick={() => open(request.id)}>{title(request)} · {summaryOf(request)}</button>
+          {#if request.error}<span class="shrink-0 text-caption text-faint">{reason(request.error)}</span>{/if}
         </li>
       {/each}
     </ul>
@@ -139,15 +139,15 @@
         <button class="flex w-full items-center gap-3 px-5 py-2.5 text-start hover:bg-wash" onclick={() => open(request.id)} data-testid="history-open">
           <Pill tone={stateTone(request.state)}>{stateLabel(request.state)}</Pill>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[13px] font-medium">{title(request)}</span>
-            <span class="block truncate text-[12px] text-muted">{request.detail === null ? t('approvalDetailUnavailable') : summaryOf(request)}</span>
-            {#if ['failed', 'lost'].includes(request.state) && request.error}<span class="block text-[11.5px] text-faint">{reason(request.error)}</span>{/if}
+            <span class="block truncate text-body font-medium">{title(request)}</span>
+            <span class="block truncate text-callout text-muted">{request.detail === null ? t('approvalDetailUnavailable') : summaryOf(request)}</span>
+            {#if ['failed', 'lost'].includes(request.state) && request.error}<span class="block text-caption text-faint">{reason(request.error)}</span>{/if}
           </span>
-          <span class="shrink-0 text-[11.5px] text-faint" title={when(request.decided_at ?? request.updated_at)}>{ago(request.decided_at ?? request.updated_at)}</span>
+          <span class="shrink-0 text-caption text-faint" title={when(request.decided_at ?? request.updated_at)}>{ago(request.decided_at ?? request.updated_at)}</span>
         </button>
       </li>
     {:else}
-      {#if loaded && !error}<li class="flex items-center gap-2 px-5 py-3 text-[13px] text-faint">
+      {#if loaded && !error}<li class="flex items-center gap-2 px-5 py-3 text-body text-faint">
         <span role="status">{kind === 'all' ? t('noRecords') : t('noResults')}</span>
         {#if kind !== 'all'}<button class={buttonClass('ghost', 'sm')} onclick={() => (kind = 'all')}>{t('allKinds')}</button>{/if}
       </li>{/if}
@@ -160,8 +160,8 @@
   onCloseAutoFocus={(e) => { e.preventDefault(); (withdrawTrigger?.isConnected ? withdrawTrigger : document.querySelector<HTMLButtonElement>('[data-testid="request-open"], [data-testid="history-kind"]'))?.focus() }}>
   {#if target}
     {@const from = source(target)}
-    <p class="text-[13px] text-muted">{from.name || t(from.role)}</p>
-    <p class="mt-1 text-sm [overflow-wrap:anywhere]">{summaryOf(target)}</p>
+    <p class="text-body text-muted">{from.name || t(from.role)}</p>
+    <p class="mt-1 text-body [overflow-wrap:anywhere]">{summaryOf(target)}</p>
   {/if}
   {#if withdrawError}<Notice tone="danger">{withdrawError}</Notice>{/if}
   {#snippet footer()}

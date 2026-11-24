@@ -88,7 +88,7 @@
         (!!request &&
           ['awaiting_user', 'executing', 'unknown'].includes(request.state))}
     >
-      <legend class="mb-2 text-xs text-muted">{ux('selected')}</legend
+      <legend class="mb-2 text-callout text-muted">{ux('selected')}</legend
       >{#each received.preview.fields as field}<div>
           <Checkbox
             checked={fields.includes(field.id)}
@@ -108,7 +108,7 @@
         </div>{/each}
     </fieldset>
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-xs"
+      <span class="text-callout"
         >{w('destination')}: {folder === 'root'
           ? t('library')
           : (folders.find((f) => f.id === folder)?.name ?? folder)}</span

@@ -68,7 +68,7 @@
     <Notice tone="info">{t('noAgents')}</Notice>
   {:else}
     <div class="grid gap-3">
-      <div class="grid gap-1 text-[12px] text-faint">
+      <div class="grid gap-1 text-callout text-muted">
         {t('grantee')}
         <Select bind:value={agent} options={agents.map((a) => ({ value: a.agent_id, label: a.label }))} label={t('grantee')} testid="files-grant-agent" class="w-full" />
       </div>
@@ -79,14 +79,14 @@
           {#each here as g (g.id)}
             <li class="flex items-center gap-2 px-3 py-2">
               <div class="min-w-0 flex-1">
-                <b class="block truncate text-[12.5px] font-medium">{labelOf(g.grantee)}</b>
+                <b class="block truncate text-callout font-medium">{labelOf(g.grantee)}</b>
                 <div class="mt-0.5 flex flex-wrap gap-1">
                   {#each g.capabilities.filter((c: string) => names.includes(c)) as capability (capability)}
                     <Pill class="font-normal">{capability.startsWith('files.write') ? t('grantWriteShort') : t('grantReadShort')}</Pill>
                   {/each}
                 </div>
               </div>
-              <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => attempt(() => call('grants/revoke', { id: g.id }))}>{t('revoke')}</button>
+              <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => attempt(() => call('grants/revoke', { id: g.id }))}>{t('revoke')}</button>
             </li>
           {/each}
         </ul>

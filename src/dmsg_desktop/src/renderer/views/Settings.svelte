@@ -12,6 +12,7 @@
   import Icon from '../components/Icon.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import Fact from '../components/page/Fact.svelte'
+  import Group from '../components/page/Group.svelte'
   import Id from '../components/page/Id.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -249,14 +250,14 @@
 </script>
 
 <div class="@container flex h-full min-h-0">
-  <nav class="hidden w-[228px] shrink-0 flex-col gap-px overflow-y-auto border-e border-line p-2.5 @min-[720px]:flex" aria-label={t('settings')}>
+  <nav data-list class="hidden w-[228px] shrink-0 flex-col gap-px overflow-y-auto border-e border-line p-2.5 @min-[720px]:flex" aria-label={t('settings')}>
     {#each settingsGroups as group (group.label)}
       <div role="group" aria-label={t(group.label)} class="mb-2 grid gap-px">
-        <p class="px-2.5 pt-1.5 pb-1 text-[11.5px] font-medium text-muted" aria-hidden="true">{t(group.label)}</p>
+        <p class="px-2.5 pt-1.5 pb-1 text-caption font-medium text-muted" aria-hidden="true">{t(group.label)}</p>
       {#each group.pages as item (item.value)}
       <button
         class={cn(
-          'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-start text-[13px] outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
+          'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-start text-body outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
           part === item.value ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash hover:text-ink'
         )}
         aria-current={part === item.value ? 'page' : undefined}
@@ -284,7 +285,7 @@
       {#key `${sessionKey}:${part}`}<Page testid="settings-content">
         {#if part === 'session' && errors.account || part === 'browsers' && errors.pairings}
           <Notice tone="danger" testid="settings-read-error">{part === 'session' ? errors.account : errors.pairings}
-            {#snippet action()}<button class={buttonClass('secondary', 'xs')}
+            {#snippet action()}<button class={buttonClass('subtle', 'xs')}
               onclick={() => part === 'session' ? loadAccount('fresh') : loadPairings()}>{t('retry')}</button>{/snippet}
           </Notice>
         {/if}
@@ -302,7 +303,7 @@
           <ShortcutSettings />
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
-            <dl>
+            <Group>
               <Fact label={t('language')}>
                 <Select
                   value={applyingLanguage || locale()}
@@ -323,7 +324,7 @@
                   {/each}
                 </RadioGroup.Root>
               </Fact>
-            </dl>
+            </Group>
           </Section>
         {:else if part === 'about'}
           <About />
@@ -338,21 +339,21 @@
         {:else if part === 'session'}
           <Moved {status} {refresh} />
           <Section title={t('status')} icon="account">
-            <dl>
+            <Group>
               <Fact label={t('status')} testid="session-state">
                 <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
               </Fact>
               <Fact label={t('account')}>{#if status?.account}<Id id={status.account} full />{:else}-{/if}</Fact>
               <Fact label={t('syncState')} testid="settings-sync-state">
                 <span>{t(syncStatus.label, { n: syncStatus.pending })}</span>
-                <span class="w-full text-[12px] text-faint">{syncStatus.okAt ? t('syncLastSuccess', { time: when(syncStatus.okAt) }) : t('localOnlyNever')}</span>
-                {#if syncStatus.retryAt}<span class="w-full text-[12px] text-faint">{t('syncRetryAt', { time: when(syncStatus.retryAt) })}</span>{/if}
-                <span class="w-full text-[12px] text-muted">{t('syncScope')}</span>
+                <span class="w-full text-callout text-muted">{syncStatus.okAt ? t('syncLastSuccess', { time: when(syncStatus.okAt) }) : t('localOnlyNever')}</span>
+                {#if syncStatus.retryAt}<span class="w-full text-callout text-muted">{t('syncRetryAt', { time: when(syncStatus.retryAt) })}</span>{/if}
+                <span class="w-full text-callout text-muted">{t('syncScope')}</span>
               </Fact>
               {#if status?.login_expires_at}
                 <Fact label={t('loginExpiresAt')} testid="login-expires">{when(status.login_expires_at)}</Fact>
               {/if}
-            </dl>
+            </Group>
             <div class="mt-3 flex flex-wrap gap-1.5">
               {#if status?.state === 'locked'}
                 <button class={buttonClass('primary', 'sm')} disabled={$unlocking} aria-busy={$unlocking} onclick={() => unlock(status)}><Icon name={$unlocking ? 'pending' : 'unlock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : status.fast_unlock ? t('fastUnlock') : t('login')}</button>
@@ -365,18 +366,18 @@
               {/if}
             </div>
             <Collapsible class="mt-3" testid="session-details">
-              {#snippet title()}<span class="text-[12.5px] text-muted">{t('technicalDetails')}</span>{/snippet}
-              <dl>
+              {#snippet title()}<span class="text-callout text-muted">{t('technicalDetails')}</span>{/snippet}
+              <Group>
                 <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
                 <Fact label={t('formal')}>
-                  <span class="text-[12.5px] text-muted">
+                  <span class="text-callout text-muted">
                     {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
                   </span>
                 </Fact>
                 <Fact label={t('backgroundOnline')}>
                   {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
                 </Fact>
-              </dl>
+              </Group>
             </Collapsible>
           </Section>
         {:else if part === 'browsers'}
@@ -386,7 +387,7 @@
                 <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
                 {#if !invite || expired(invite, now)}<button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>{/if}
               </div>
-              {#if granted}<p class="px-5 pb-3 text-[13px] text-ok" role="status" data-testid="browser-connected">{granted} · {t('granted')}</p>{/if}
+              {#if granted}<p class="px-5 pb-3 text-body text-ok" role="status" data-testid="browser-connected">{granted} · {t('granted')}</p>{/if}
               {#if invite && expired(invite, now)}
                 <Notice tone="warn" testid="browser-expired">
                   {t('browserInviteExpired')}
@@ -396,14 +397,14 @@
                 <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
                   <button class={buttonClass('ghost', 'xs', 'justify-self-end')} disabled={pairingBusy} onclick={stopPairing} data-testid="browser-cancel">{t('cancel')}</button>
                   {#if pollError}<Notice tone="warn">{pollError}</Notice>{/if}
-                  {#if !candidates.length}<p class="text-[12.5px] text-muted" role="status">{t('waitingBrowser')}</p>{/if}
-                  {#if copiedUntil > now}<span class="text-[12px] text-ok" role="status" data-testid="browser-copied"><Icon name="check" class="inline size-3.5" /> {t('copiedText')}</span>{/if}
-                  <p class="text-[12px] text-muted">{t('expires')} · {when(invite.expires_at)}</p>
-                  <bdi dir="ltr" class="font-mono text-[11.5px] break-all text-faint">{invite.url}</bdi>
+                  {#if !candidates.length}<p class="text-callout text-muted" role="status">{t('waitingBrowser')}</p>{/if}
+                  {#if copiedUntil > now}<span class="text-callout text-ok" role="status" data-testid="browser-copied"><Icon name="check" class="inline size-3.5" /> {t('copiedText')}</span>{/if}
+                  <p class="text-callout text-muted">{t('expires')} · {when(invite.expires_at)}</p>
+                  <bdi dir="ltr" class="font-mono text-code break-all text-faint">{invite.url}</bdi>
                   {#each candidates as c (c.pairing_id)}
                     <div class="flex flex-wrap items-center gap-2 rounded-xl border border-forest/30 bg-pale px-3 py-2.5">
                       <Icon name="browser" class="text-forest" />
-                      <span class="min-w-0 flex-1 text-[13px]">{t('confirmBrowser')} <b>{c.label}</b> <span class="font-mono text-[11.5px] text-faint">{c.pairing_id.slice(0, 12)}</span></span>
+                      <span class="min-w-0 flex-1 text-body">{t('confirmBrowser')} <b>{c.label}</b> <span class="font-mono text-code text-faint">{c.pairing_id.slice(0, 12)}</span></span>
                       <button class={buttonClass('primary', 'sm')} disabled={pairingBusy} data-testid="browser-grant" onclick={() => grant(c)}>{t('connect')}</button>
                     </div>
                   {/each}
@@ -413,8 +414,8 @@
                 {#each pairings as p (p.pairing_id)}
                   <li class="flex flex-wrap items-center gap-2 px-5 py-3">
                     <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state === 'active' ? t('pairingActive') : p.state === 'revoked' ? t('pairingRevoked') : p.state}</Pill>
-                    <b class="text-[13px] font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
-                    <span class="min-w-0 flex-1 text-[12px] text-faint">
+                    <b class="text-body font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
+                    <span class="min-w-0 flex-1 text-callout text-muted">
                       {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === status?.device_id ? ` (${t('thisDevice')})` : ''}
                       · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
                     </span>
@@ -423,7 +424,7 @@
                     {/if}
                   </li>
                 {:else}
-                  <li class="px-5 py-3 text-[13px] text-faint">{!loaded.pairings ? t('loading') : errors.pairings ? '' : t('noBrowsers')}</li>
+                  <li class="px-5 py-3 text-body text-faint">{!loaded.pairings ? t('loading') : errors.pairings ? '' : t('noBrowsers')}</li>
                 {/each}
               </ul>
             </Section>

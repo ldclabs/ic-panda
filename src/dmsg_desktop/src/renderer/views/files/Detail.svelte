@@ -193,7 +193,7 @@
 </script>
 
 {#snippet row(label: string)}
-  <dt class="pt-2 text-[12px] text-faint @min-[440px]:pt-0">{label}</dt>
+  <dt class="pt-2 text-callout text-muted @min-[440px]:pt-0">{label}</dt>
 {/snippet}
 
 <section class="@container flex h-full min-w-0 flex-col" aria-label={file.name} data-testid="files-detail">
@@ -210,8 +210,8 @@
         <Icon name={fileIcon(file.mime)} />
       </span>
       <div class="min-w-0 flex-1">
-        <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="files-name">{file.name}</h2>
-        <div class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-faint">
+        <h2 class="text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="files-name">{file.name}</h2>
+        <div class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-callout text-muted">
           <span class="whitespace-nowrap">{size(file.size)}</span>
           <span>·</span>
           {#if trash}
@@ -226,7 +226,7 @@
     {#if unlocked}
       <div class="ms-auto flex max-w-full flex-wrap items-center gap-1">
         {#if trash}
-          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={onDiscard} data-testid="files-restore">
+          <button class={buttonClass('ghost', 'md')} disabled={busy} onclick={onDiscard} data-testid="files-restore">
             <Icon name="restore" />{t('restore')}
           </button>
         {:else}
@@ -239,12 +239,12 @@
           </Tooltip>
           <Tooltip content={t('openFileHint')}>
             {#snippet children(props)}
-              <button {...props} class={buttonClass('secondary', 'md')} disabled={busy || !canRead} onclick={() => onOpen(null)} data-testid="files-open">
+              <button {...props} class={buttonClass('ghost', 'md')} disabled={busy || !canRead} onclick={() => onOpen(null)} data-testid="files-open">
                 <Icon name="external" />{t('openFile')}
               </button>
             {/snippet}
           </Tooltip>
-          {#if !standalone}<button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'secondary', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
+          {#if !standalone}<button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'ghost', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
             <Icon name="cloud-up" />{t('backUp')}
           </button>{/if}
           <DropdownMenu.Root dir={localeDir(locale())}>
@@ -295,11 +295,11 @@
   </header>
 
   {#if trash}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-callout text-muted">
       <Icon name="trash" class="shrink-0" /><span>{t('inTrash')}</span>
     </div>
   {:else if status === 'cloud_only'}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted" data-testid="files-cloud-only">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-callout text-muted" data-testid="files-cloud-only">
       <Icon name="cloud-down" class="shrink-0 text-forest" /><span>{t('statusCloudOnly')} · {t('releaseLocalHint')}</span>
     </div>
   {/if}
@@ -308,16 +308,16 @@
     {#if preview}
       <div class="mb-3 overflow-hidden rounded-lg bg-surface-2" data-testid="files-preview">
         {#if previewing}
-          <div class="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[11.5px] text-muted" data-testid="files-preview-version">
+          <div class="flex items-center gap-2 border-b border-line px-3 py-1.5 text-caption text-muted" data-testid="files-preview-version">
             <span class="min-w-0 flex-1 truncate">{t('previewOf', { time: dateFormat.format(previewing.created_at) })}</span>
             <button class="shrink-0 text-forest hover:underline" onclick={() => (previewing = null)}>{t('backToCurrent')}</button>
           </div>
         {/if}
         {#if preview.kind === 'image'}
           <img src={preview.url} alt={file.name} class="mx-auto max-h-72 object-contain" />
-          {#if preview.thumbnail}<p class="px-3 py-1.5 text-[11px] text-faint">{t('thumbnail')}</p>{/if}
+          {#if preview.thumbnail}<p class="px-3 py-1.5 text-caption text-faint">{t('thumbnail')}</p>{/if}
         {:else}
-          <pre class="max-h-72 overflow-auto px-4 py-3 font-mono text-[12px] leading-relaxed whitespace-pre-wrap select-text">{preview.text}</pre>
+          <pre class="max-h-72 overflow-auto px-4 py-3 font-mono text-code leading-relaxed whitespace-pre-wrap select-text">{preview.text}</pre>
         {/if}
       </div>
     {/if}
@@ -334,7 +334,7 @@
       <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
         {@render row('SHA-256')}
         <dd class="flex min-w-0 items-center gap-1">
-          <span class="min-w-0 flex-1 truncate font-mono text-[12px] select-text" dir="ltr">{file.sha256}</span>
+          <span class="min-w-0 flex-1 truncate font-mono text-code select-text" dir="ltr">{file.sha256}</span>
           <button class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
         </dd>
       </div>
@@ -345,7 +345,7 @@
             <TagInput bind:tags={() => file.tags ?? [], (next) => void tags(next)} placeholder={t('tagsAdd')} testid="files-tags" />
           {:else}
             <div class="flex flex-wrap gap-1.5">
-              {#each file.tags ?? [] as tag, i (i)}<span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>{/each}
+              {#each file.tags ?? [] as tag, i (i)}<span class="rounded-md bg-wash px-1.5 py-px text-caption text-ink-2">#{tag}</span>{/each}
             </div>
           {/if}
         </dd>
@@ -355,13 +355,13 @@
         <dd class="min-w-0">
           {#if editingNote}
             <!-- svelte-ignore a11y_autofocus -->
-            <textarea bind:value={note} rows="3" class="text-[13px] text-ink" placeholder={t('notePlaceholder')} autofocus onkeydown={(event) => event.key === 'Escape' && (editingNote = false)} data-testid="files-note"></textarea>
+            <textarea bind:value={note} rows="3" class="text-body text-ink" placeholder={t('notePlaceholder')} autofocus onkeydown={(event) => event.key === 'Escape' && (editingNote = false)} data-testid="files-note"></textarea>
             <div class="mt-1.5 flex justify-end gap-2">
               <button class={buttonClass('ghost', 'sm')} onclick={() => (editingNote = false)}>{t('cancel')}</button>
               <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={saveNote} data-testid="files-note-save">{t('save')}</button>
             </div>
           {:else}
-            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-[13px] leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', !file.note && 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
+            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-body leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', !file.note && 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
               {file.note || (unlocked && !trash ? t('notePlaceholder') : '—')}
             </button>
           {/if}
@@ -370,23 +370,23 @@
       {#if checked}
         <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
           {@render row(t('verifyFile'))}
-          <dd class={cn('flex items-center gap-1 text-[12.5px]', checked.startsWith(t('error')) ? 'text-danger' : 'text-ok')} data-testid="files-checked"><Icon name="verified" class="size-3.5" />{checked}</dd>
+          <dd class={cn('flex items-center gap-1 text-callout', checked.startsWith(t('error')) ? 'text-danger' : 'text-ok')} data-testid="files-checked"><Icon name="verified" class="size-3.5" />{checked}</dd>
         </div>
       {/if}
     </dl>
 
     {#if !standalone && links.length}
       <div class="mt-5 mb-2 flex items-center justify-between">
-        <h3 class="text-[12px] font-medium text-faint">{t('shareLinks')} · {links.length}</h3>
-        {#if !standalone}<button class="text-[11.5px] text-forest hover:underline" disabled={busy || !unlocked} onclick={onRefreshLinks}>{t('refreshLinks')}</button>{/if}
+        <h3 class="text-callout font-medium text-muted">{t('shareLinks')} · {links.length}</h3>
+        {#if !standalone}<button class="text-caption text-forest hover:underline" disabled={busy || !unlocked} onclick={onRefreshLinks}>{t('refreshLinks')}</button>{/if}
       </div>
       <ul class="grid gap-1.5" data-testid="files-links">
         {#each links as link (link.share_id)}
-          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px]">
+          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-callout">
             <Icon name="link" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}{link.show_profile ? ` · ${t('publicProfile')}` : ''}</span>
-              <span class="block truncate text-[11px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</span>
+              <span class="block truncate text-caption text-faint">{t('linkExpires', { time: when(link.expires_at) })}</span>
             </span>
             {#if link.url && link.state === 'active'}
               <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} aria-label={t('linkCopy')}><Icon name="copy" /></button>
@@ -400,15 +400,15 @@
     {/if}
 
     {#if mine.length}
-      <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('fileStatements')} · {mine.length}</h3>
+      <h3 class="mt-5 mb-2 text-callout font-medium text-muted">{t('fileStatements')} · {mine.length}</h3>
       <ul class="grid gap-1.5" data-testid="files-statements">
         {#each mine as entry (entry.execution)}
           {@const version = versions.find((v) => v.sha256 === entry.statement.content.sha256)}
-          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px]">
+          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-callout">
             <Icon name="signature" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate">{entry.statement.content.text ?? entry.statement.profile}</span>
-              <span class="block truncate text-[11px] text-faint">{when(entry.created_at)}{version ? ` · ${t('versionOf', { time: dateFormat.format(version.created_at) })}` : ''}</span>
+              <span class="block truncate text-caption text-faint">{when(entry.created_at)}{version ? ` · ${t('versionOf', { time: dateFormat.format(version.created_at) })}` : ''}</span>
             </span>
             <Pill tone={entry.stage === 'complete' ? 'ok' : entry.error ? 'danger' : 'neutral'}>{entry.stage}</Pill>
             {#if entry.stage === 'complete'}
@@ -419,7 +419,7 @@
       </ul>
     {/if}
 
-    <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('versions')} · {versions.length}</h3>
+    <h3 class="mt-5 mb-2 text-callout font-medium text-muted">{t('versions')} · {versions.length}</h3>
     <ol class="divide-y divide-line" data-testid="files-versions">
       {#each [...versions].reverse() as version (version.id)}
         {@const vs = statusOf(version.status)}
@@ -428,19 +428,19 @@
             <Icon name={statusIcon[vs]} />
           </span>
           <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
+            <div class="flex flex-wrap items-center gap-1.5 text-body">
               <span title={when(version.created_at)}>{dateFormat.format(version.created_at)}</span>
               {#if version.current}<Pill tone="forest">{t('current')}</Pill>{/if}
               {#if previewing?.id === version.id}<Pill>{t('previewVersion')}</Pill>{/if}
             </div>
-            <div class="text-[11.5px] text-faint">
+            <div class="text-caption text-faint">
               {size(version.size)} · {t(originLabel[version.origin?.type] ?? 'originImported')} · {deviceName(version.device)} · {t(statusLabel[vs])}
               {#if version.backup}
                 · {t('statusBackedUp')} {ago(version.backup.backed_up_at)}
               {/if}
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="files-version-identity" data-version={version.id}>
-              <span class="text-[11.5px] text-faint">{t('versionId')}</span>
+              <span class="text-caption text-faint">{t('versionId')}</span>
               <Id id={version.id} copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-version" />
               <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${version.id}`)} data-testid="files-copy-version-reference"><Icon name="link" />{t('copyFileReference')}</button>
             </div>
@@ -499,7 +499,7 @@
       {/each}
     </ol>
 
-    <dl class="mt-5 grid gap-1 border-t border-line pt-3 text-[11.5px] text-faint" data-testid="files-identifiers">
+    <dl class="mt-5 grid gap-1 border-t border-line pt-3 text-caption text-faint" data-testid="files-identifiers">
       <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <dt>{t('fileId')}</dt>
         <dd class="min-w-0"><Id id={file.id} copyLabel={t('copyFileId')} disabled={!unlocked} testid="files-copy-id" /></dd>
@@ -514,7 +514,7 @@
     </dl>
   </div>
 
-  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
+  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-caption text-faint">
     <span class="inline-flex items-center gap-1.5"><Icon name="drive" class="size-3.5" />{t('createdAt')} {ago(file.created_at)}</span>
     {#if current?.backup}
       <span class="inline-flex items-center gap-1.5 text-ok"><Icon name="sync" class="size-3.5" />{t('backupGeneration')} {current.backup.generation}</span>
@@ -531,10 +531,10 @@
   testid="files-version-dialog"
 >
   {#if confirming?.kind === 'evict'}
-    <p class="text-[13.5px] leading-relaxed">{t('releaseLocalHint')}</p>
+    <p class="text-body leading-relaxed">{t('releaseLocalHint')}</p>
   {:else if confirming}
     {#if confirming.version.backup}
-      <p class="text-[13.5px] leading-relaxed">{t('deleteVersionHint')}</p>
+      <p class="text-body leading-relaxed">{t('deleteVersionHint')}</p>
     {:else}
       <Notice tone="warn">{t('deleteVersionUnbacked')}</Notice>
     {/if}
@@ -552,10 +552,10 @@
   {#if stating}
     <div class="grid gap-3">
       <Notice tone="info">{t('fileStatementHint')}</Notice>
-      <p class="truncate font-mono text-[11.5px] text-faint" dir="ltr">sha256 {stating.version.sha256}</p>
-      <label class="grid gap-1 text-[12px] text-faint">
+      <p class="truncate font-mono text-code text-faint" dir="ltr">sha256 {stating.version.sha256}</p>
+      <label class="grid gap-1 text-callout text-muted">
         {t('fileStatementText')}
-        <textarea bind:value={stating.text} rows="3" maxlength="4096" class="text-[13.5px] text-ink" data-testid="files-statement-text"></textarea>
+        <textarea bind:value={stating.text} rows="3" maxlength="4096" class="text-body text-ink" data-testid="files-statement-text"></textarea>
       </label>
     </div>
   {/if}

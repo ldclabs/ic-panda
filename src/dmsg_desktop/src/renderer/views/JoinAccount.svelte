@@ -148,7 +148,7 @@
         <p role="status">{t(status?.state === 'root_required' ? 'pairPreparingVault' : view.stage === 'waiting_login' ? 'joinWaitLogin' : 'joinWaitDevice')}</p>
       {/if}
     {/if}
-    {#if busy}<p class="text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
+    {#if busy}<p class="text-body text-muted" role="status">{t('loading')}</p>{/if}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{#if !expired && token.trim()}<button class={buttonClass('secondary')} disabled={busy} onclick={() => { paused = false; void check(retryContinuation) }}>{t('retry')}</button>{/if}{/if}
   </div>
 </Dialog>

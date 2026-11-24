@@ -92,11 +92,11 @@
     view={unlocked ? (element) => { trigger = element; viewing = true } : undefined}>
     {#if current && value}
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 py-1" dir="ltr">
-        <span class="font-mono text-[17px] font-semibold tracking-[0.08em] text-ink tabular-nums select-text" data-testid="vault-otp-code">{value}</span>
+        <span class="font-mono text-title-2 font-semibold tracking-[0.08em] text-ink tabular-nums select-text" data-testid="vault-otp-code">{value}</span>
         <span class="relative h-1 w-14 overflow-hidden rounded-full bg-wash" aria-label={t('otpLeft', { seconds: Math.ceil(left / 1000) })}>
           <span class="absolute inset-y-0 start-0 rounded-full {left < 5000 ? 'bg-warn' : 'bg-forest'}" style:width="{(left / current.period_ms) * 100}%"></span>
         </span>
-        <span class="text-[11.5px] text-faint tabular-nums">{Math.ceil(left / 1000)}s</span>
+        <span class="text-caption text-faint tabular-nums">{Math.ceil(left / 1000)}s</span>
       </div>
     {:else if error}
       <Notice tone="danger" class="min-w-0 flex-1">{t('error')}: {error}
@@ -113,7 +113,7 @@
     {#snippet footer()}
       {#if error}<Notice tone="danger" class="w-full">{t('error')}: {error}</Notice><button class={buttonClass('secondary', 'md')} onclick={() => retry++}>{t('retry')}</button>{/if}
       <button class={buttonClass('secondary', 'md')} disabled={copying || !value} onclick={copy} data-testid="vault-large-copy"><Icon name="copy" />{t('copyCode')}</button>
-      {#if value}<span class="text-[12.5px] text-muted">{t('otpLeft', { seconds: Math.ceil(left / 1000) })}</span>{/if}
+      {#if value}<span class="text-callout text-muted">{t('otpLeft', { seconds: Math.ceil(left / 1000) })}</span>{/if}
     {/snippet}
   </FieldViewer>
 {/if}

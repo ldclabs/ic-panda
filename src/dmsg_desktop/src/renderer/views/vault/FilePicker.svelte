@@ -40,11 +40,11 @@
     <ul class="grid max-h-80 gap-0.5 overflow-y-auto">
       {#each found.slice(0, limit) as file (file.id)}
         <li>
-          <button class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-[13px] hover:bg-wash" onclick={() => pick(file.id)} data-testid="file-picker-item">
+          <button class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-body hover:bg-wash" onclick={() => pick(file.id)} data-testid="file-picker-item">
             <Icon name="file" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1"><span class="block truncate">{file.name}</span>
-              <bdi class="block truncate text-[12px] text-muted">{file.path?.join(' / ') || t('library')}</bdi></span>
-            <span class="shrink-0 text-[11.5px] text-faint">{size(file.size)}</span>
+              <bdi class="block truncate text-callout text-muted">{file.path?.join(' / ') || t('library')}</bdi></span>
+            <span class="shrink-0 text-caption text-faint">{size(file.size)}</span>
           </button>
         </li>
       {:else}

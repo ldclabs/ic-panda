@@ -186,14 +186,14 @@
   {#if offer}
     <div class="grid gap-4">
       {#if !available}<Notice tone="warn" testid="checkout-offer-changed">{t('membershipRefreshHint')}
-        <button class={buttonClass('secondary','xs')} onclick={() => { offer = null; void onRefresh() }}>{t('refresh')}</button>
+        <button class={buttonClass('subtle', 'xs')} onclick={() => { offer = null; void onRefresh() }}>{t('refresh')}</button>
       </Notice>{/if}
       {#if method === 'Cash'}
         {#if offer.action === 'upgrade' || offer.kind === 'storage'}
-          <p class="text-[15px] font-semibold" data-testid="checkout-prorated">{t(offer.action === 'upgrade' ? 'upgradeProrated' : 'planStorageProrated')}</p>
-          <p class="text-[12.5px] text-muted">{t('planAnnualReference', { price: price(offer.price_cents) })} · {t('amountInApproval')}</p>
-        {:else}<p class="text-[13px]">
-          <b class="text-[20px] font-semibold tabular-nums">{price(offer.price_cents)}</b>
+          <p class="text-title-3 font-semibold" data-testid="checkout-prorated">{t(offer.action === 'upgrade' ? 'upgradeProrated' : 'planStorageProrated')}</p>
+          <p class="text-callout text-muted">{t('planAnnualReference', { price: price(offer.price_cents) })} · {t('amountInApproval')}</p>
+        {:else}<p class="text-body">
+          <b class="text-title-2 font-semibold tabular-nums">{price(offer.price_cents)}</b>
           <span class="text-muted">/ {t('year')} · {t('amountInApproval')}</span>
         </p>{/if}
       {/if}
@@ -204,20 +204,20 @@
         <Field label={t('wallet.asset')}>
           <Select bind:value={ledger} label={t('wallet.asset')} disabled={busy || loadingAssets} testid="plan-asset" placeholder={t('choose')} options={assets.map((a) => ({ value: a.ledger, label: a.asset }))} />
         </Field>
-        {#if loadingAssets}<p role="status" class="text-xs text-muted">{t('loading')}</p>
+        {#if loadingAssets}<p role="status" class="text-callout text-muted">{t('loading')}</p>
         {:else if assetError || !assets.length}<Notice tone="warn" testid="checkout-assets-error">{assetError || t('planNoAssets')}
-          <button class={buttonClass('secondary','xs')} onclick={readAssets}>{t('retry')}</button></Notice>{/if}
+          <button class={buttonClass('subtle', 'xs')} onclick={readAssets}>{t('retry')}</button></Notice>{/if}
       {:else if pandaError || !panda}
-        {#if loadingPanda}<p role="status" class="text-xs text-muted">{t('loading')}</p>
+        {#if loadingPanda}<p role="status" class="text-callout text-muted">{t('loading')}</p>
         {:else if pandaError}<Notice tone="warn" testid="checkout-panda-error">{pandaError}
-          <button class={buttonClass('secondary','xs')} onclick={readPanda}>{t('retry')}</button></Notice>{/if}
+          <button class={buttonClass('subtle', 'xs')} onclick={readPanda}>{t('retry')}</button></Notice>{/if}
       {:else}
         <div class="grid gap-3" data-testid="checkout-panda">
           {#if panda.paused}<Notice tone="warn" icon="warning">{t('pandaPaused')}</Notice>{/if}
           <Notice tone="info" icon="info">
             <p>{t('pandaHotkeyHint')}</p>
             <p class="mt-1"><Id id={panda.payer} full wrap testid="checkout-payer" /></p>
-            {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={() => copyText(panda.payer)}><Icon name="copy" />{t('copy')}</button>{/snippet}
+            {#snippet action()}<button class={buttonClass('subtle', 'xs')} onclick={() => copyText(panda.payer)}><Icon name="copy" />{t('copy')}</button>{/snippet}
           </Notice>
           <dl>
             <Fact label={t('stake')} testid="checkout-stake">{required != null ? `${units(required, 8)} PANDA` : t('pandaNoRate')}</Fact>
@@ -225,18 +225,18 @@
               <Fact label={t('lockRequirement')} testid="checkout-lock">{t('lockNotBefore', { time: when(lockUntil) })}</Fact>
             {/if}
           </dl>
-          <p class="text-[12px] text-muted">{t('pandaTermsHint')}</p>
+          <p class="text-callout text-muted">{t('pandaTermsHint')}</p>
           {#if panda.neurons_error}
             <Notice tone="danger">{t('error')}: {panda.neurons_error}</Notice>
           {:else if !panda.neurons?.length}
-            <p class="text-[12.5px] text-faint" data-testid="checkout-no-neurons">{t('noNeurons')}</p>
+            <p class="text-callout text-muted" data-testid="checkout-no-neurons">{t('noNeurons')}</p>
           {:else}
             <RadioGroup.Root bind:value={neuron} aria-label={t('neuron')}>
               <ul class="divide-y divide-line">
                 {#each panda.neurons as n (n.id)}
                   <li class={cn('px-3.5 py-2.5', neuron === n.id && 'bg-pale/60')}>
                     <Radio value={n.id} disabled={busy || loadingPanda || !canUseNeuron(n)} testid="checkout-neuron">
-                      <span class="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+                      <span class="flex flex-wrap items-center gap-1.5 text-callout">
                         <span class="font-mono">{n.id.slice(0, 12)}…</span>
                         <span class="tabular-nums">{units(n.stake_e8s, 8)} PANDA</span>
                         <span class="text-faint">{t('lockedUntil', { time: when(neuronUnlockAt(n)) })}</span>

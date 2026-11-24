@@ -2,7 +2,8 @@ import { mount } from 'svelte'
 import App from './App.svelte'
 import { showPendingButtons } from './components/pending'
 import { languageReady } from './i18n/index.svelte'
-import '@fontsource-variable/inter'
+// The optical-size axis tightens large titles and opens small text.
+import '@fontsource-variable/inter/opsz.css'
 import './app.css'
 
 // The main window on macOS shows the sidebar's material through a transparent

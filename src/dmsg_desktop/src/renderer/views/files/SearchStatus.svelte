@@ -14,9 +14,9 @@
   <Notice tone={failureTone(failure)} testid="file-search-error">
     <div class="flex flex-wrap items-start gap-x-2 gap-y-1.5 text-start">
       <p class="min-w-0 flex-[1_1_12rem]">{failure}</p>
-      <button class={buttonClass('secondary', 'xs')} onclick={search.retry}>{t('retry')}</button>
+      <button class={buttonClass('subtle', 'xs')} onclick={search.retry}>{t('retry')}</button>
     </div>
   </Notice>
 {:else}
-  <p class="text-center text-[12.5px] text-muted [overflow-wrap:anywhere]" role="status">{search.result.kind === 'loading' ? t('loading') : empty}</p>
+  <p class="text-center text-callout text-muted [overflow-wrap:anywhere]" role="status">{search.result.kind === 'loading' ? t('loading') : empty}</p>
 {/if}

@@ -69,7 +69,7 @@
   <div class="grid gap-3">
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#if !native}
-      <p class="text-muted text-[12px]" role="status">{w(error ? 'retry' : 'loading')}</p>
+      <p class="text-muted text-callout" role="status">{w(error ? 'retry' : 'loading')}</p>
     {:else if !native.created}
       {#if fingerprints}<Checkbox bind:checked={biometryOnly} disabled={busy}>{w('nativeBiometryOnly')}</Checkbox>{/if}
       <div
@@ -85,14 +85,14 @@
       <div class="flex flex-wrap items-center gap-2"
         ><Pill tone={native.protection === 'hardware' ? 'forest' : 'warn'}
           >{w(native.protection === 'hardware' ? 'nativeHardware' : 'nativeSoftware')}</Pill
-        ><span class="text-faint text-[12px]">{when(native.created_at)}</span></div
+        ><span class="text-muted text-callout">{when(native.created_at)}</span></div
       >
       {#if native.protection === 'hardware'}
         <ul class="divide-line grid divide-y" aria-label={w('nativeProtectors')}>
           {#each native.protectors as p (p.index)}<li class="flex flex-wrap items-center gap-2 py-2"
-              ><b class="text-[13px]">{t('wallet.nativeProtector', { n: p.index + 1 })}</b>{#if p.biometry_only}<Pill
+              ><b class="text-body">{t('wallet.nativeProtector', { n: p.index + 1 })}</b>{#if p.biometry_only}<Pill
                   >{w('nativeBiometryOnly')}</Pill
-                >{/if}<span class="text-faint min-w-0 flex-1 text-[12px]">{when(p.created_at)}</span
+                >{/if}<span class="text-muted min-w-0 flex-1 text-callout">{when(p.created_at)}</span
               ><button
                 class={buttonClass('ghost', 'xs')}
                 disabled={busy || native.protectors.length < 2}
@@ -111,7 +111,7 @@
         >
       {:else}<Notice tone="warn">{w('nativeSoftwareBody')}</Notice>{/if}
       <Collapsible
-        >{#snippet title()}<span class="text-[12px]">{w('nativeKey')}</span>{/snippet}<p class="font-mono text-[12px] break-all" dir="ltr"
+        >{#snippet title()}<span class="text-callout">{w('nativeKey')}</span>{/snippet}<p class="font-mono text-code break-all" dir="ltr"
           >{native.key?.public_key ?? w('nativeKeyNone')}</p
         ></Collapsible
       >

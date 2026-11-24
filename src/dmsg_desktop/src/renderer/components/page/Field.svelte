@@ -7,8 +7,8 @@
 </script>
 
 <svelte:element this={controlId ? 'div' : 'label'} class={cn('grid min-w-0 content-start gap-1.5', className)}>
-  {#if controlId}<label for={controlId} class={hideLabel ? 'sr-only' : 'text-[12px] text-muted'}>{label}</label>{:else}<span class="text-[12px] text-muted">{label}</span>{/if}
+  {#if controlId}<label for={controlId} class={hideLabel ? 'sr-only' : 'text-callout text-muted'}>{label}</label>{:else}<span class="text-callout text-muted">{label}</span>{/if}
   {@render children()}
-  {#if hint}<span id={hintId} class="text-[11.5px] text-faint">{hint}</span>{/if}
-  {#if error}<span id={errorId} class="text-[12px] text-danger" role="alert">{error}</span>{/if}
+  {#if hint}<span id={hintId} class="text-caption text-faint">{hint}</span>{/if}
+  {#if error}<span id={errorId} class="text-callout text-danger" role="alert">{error}</span>{/if}
 </svelte:element>

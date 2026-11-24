@@ -276,34 +276,34 @@
             bind:value={search}
             onkeydown={onInputKey}
             placeholder={detail ? detail.label : t('searchOrCommand')}
-            class="h-12 border-0 bg-transparent px-0 text-[15px] focus-visible:shadow-none"
+            class="h-12 border-0 bg-transparent px-0 text-title-3 focus-visible:shadow-none"
             data-testid="palette-input"
           />
-          <kbd class="rounded border border-line bg-surface-2 px-1.5 font-mono text-[10.5px] leading-[18px]">esc</kbd>
+          <kbd class="rounded border border-line bg-surface-2 px-1.5 font-mono text-caption leading-[18px]">esc</kbd>
         </div>
         <Command.List class="max-h-[min(400px,60vh)] overflow-y-auto p-1.5">
           <Command.Viewport>
             {#if fileSearch.result.kind !== 'failed'}
-              <Command.Empty class="py-10 text-center text-[13px] text-faint">{t(fileSearch.result.kind === 'loading' ? 'loading' : 'noResults')}</Command.Empty>
+              <Command.Empty class="py-10 text-center text-body text-faint">{t(fileSearch.result.kind === 'loading' ? 'loading' : 'noResults')}</Command.Empty>
             {/if}
             {#each groups as group (group.heading)}
               {#if group.entries.length}
                 <Command.Group>
-                  <Command.GroupHeading class="px-2.5 pt-2.5 pb-1 text-[11px] font-medium text-faint">{group.heading}</Command.GroupHeading>
+                  <Command.GroupHeading class="px-2.5 pt-2.5 pb-1 text-caption font-medium text-faint">{group.heading}</Command.GroupHeading>
                   <Command.GroupItems>
                     {#each group.entries as entry (entry.value ?? entry.label)}
                       <Command.Item
                         value={entry.value ?? entry.label}
                         keywords={entry.keywords}
                         onSelect={() => run(entry)}
-                        class="flex h-9 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] outline-none select-none data-selected:bg-pale"
+                        class="flex h-9 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-body outline-none select-none data-selected:bg-pale"
                       >
                         <span class="grid size-6 shrink-0 place-items-center text-faint [&_svg]:size-4.5">
                           <Icon name={entry.icon} class="size-3.5" />
                         </span>
                         <span {@attach visibleName(entry.sender)} class="min-w-0 flex-1 truncate">{entry.label}</span>
                         {#if entry.checked}<Icon name="check" class="size-3.5 text-forest" />{/if}
-                        {#if entry.hint}<kbd class="max-w-[40%] truncate font-mono text-[10.5px] text-faint">{entry.hint}</kbd>{/if}
+                        {#if entry.hint}<kbd class="max-w-[40%] truncate font-mono text-caption text-faint">{entry.hint}</kbd>{/if}
                         {#if entry.more}
                           <button
                             class={iconButtonClass('ghost', 'md', '-me-1.5 size-7')}
@@ -326,10 +326,10 @@
       {#if fileSearch.result.kind === 'failed'}
         <div class="px-3 py-2"><SearchStatus search={fileSearch} empty="" /></div>
       {/if}
-      <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-[11.5px] text-faint">
+      <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-caption text-faint">
         <span class="inline-flex items-center gap-1.5"><Icon name="arrows" class="size-3.5" />{t('paletteMove')}</span>
         <span class="inline-flex items-center gap-1.5"><Icon name="enter" class="size-3.5" />{t('paletteRun')}</span>
-        {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-[11px]">{rtl ? '←' : '→'}</kbd>{t('paletteMore')}</span>{/if}
+        {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-caption">{rtl ? '←' : '→'}</kbd>{t('paletteMore')}</span>{/if}
       </div>
     </Dialog.Content>
   </Dialog.Portal>

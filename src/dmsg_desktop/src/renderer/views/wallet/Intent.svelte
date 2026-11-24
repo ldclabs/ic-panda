@@ -39,26 +39,26 @@
   <p class="text-danger" role="alert">{w('unsupported')}</p>
 {:else}
   <div class="grid gap-2" data-testid="wallet-intent">
-    <h3 class="text-[14px] font-semibold">{w(intent.kind)}</h3>
+    <h3 class="text-title-3 font-semibold">{w(intent.kind)}</h3>
     {#if !compact && intent.kind === 'set_policy'}<PolicySummary policy={intent.policy} before={before?.policy} {metadata} />{/if}
     {#if asset}
-      <p class="text-muted text-[12px] break-all" dir="ltr">{assetIdentity(asset)}</p>
+      <p class="text-muted text-callout break-all" dir="ltr">{assetIdentity(asset)}</p>
       {#each intent.outputs ?? [] as output, i (i)}
         <div class="border-line bg-surface rounded-lg border px-3 py-2">
-          <b class="block text-[15px] tabular-nums">{amountText(output.amount, asset, w('atomic'))}</b>
-          <span class="block font-mono text-[12px] break-all select-all" dir="ltr">{output.to}</span>
+          <b class="block text-title-3 tabular-nums">{amountText(output.amount, asset, w('atomic'))}</b>
+          <span class="block font-mono text-code break-all select-all" dir="ltr">{output.to}</span>
         </div>
       {/each}
     {/if}
     {#if compact && !asset}
       {#if intent.kind === 'set_cosign'}
-        <p class="text-muted text-[12px]"
+        <p class="text-muted text-callout"
           >#{intent.address} · {intent.cosign
             ? `${w('threshold')}: ${intent.cosign.threshold} / ${intent.cosign.cosigners.length}`
             : w('cosignRemove')}</p
         >
       {:else}
-        <p class="text-muted text-[12px] break-all">{intentHeadline(intent, metadata).text}</p>
+        <p class="text-muted text-callout break-all">{intentHeadline(intent, metadata).text}</p>
       {/if}
     {/if}
     {#if !compact}
@@ -76,7 +76,7 @@
         {#if intent.kind === 'canister_call'}<p class="text-warn">{w('cosignCallHint')}</p>{/if}
         {#each requirements as a (a.id)}<CosignPolicy policy={a.cosign} wallet={before} address={a.id} />{/each}
       {/if}
-      <dl class="grid grid-cols-[minmax(7rem,1fr)_minmax(0,2fr)] gap-x-4 gap-y-2 text-[12.5px]">
+      <dl class="grid grid-cols-[minmax(7rem,1fr)_minmax(0,2fr)] gap-x-4 gap-y-2 text-callout">
         {#each intentFields(intent).filter((key) => !['asset', 'outputs', 'memo', 'curve', 'envelope', 'arg'].includes(key) && !['set_cosign', 'set_policy'].includes(intent.kind)) as key (key)}
           {#each leaves(intent[key], [key]) as row, i (`${key}-${i}`)}
             {@const prior = leaves(old[key], [key]).find((r) => r.path.join('.') === row.path.join('.'))?.value}
@@ -92,7 +92,7 @@
                 {amountText(String(intent.max_fee), intentFeeAsset(intent, metadata), w('atomic'))}
               {:else if key === 'from' && before}
                 {before.addresses.find((a) => a.id === intent.from)?.label} · #{intent.from}
-                <p class="font-mono text-[12px] break-all" dir="ltr">{before.addresses.find((a) => a.id === intent.from)?.text}</p>
+                <p class="font-mono text-code break-all" dir="ltr">{before.addresses.find((a) => a.id === intent.from)?.text}</p>
               {:else if key === 'icp_e8s'}{amountText(String(intent.icp_e8s), { asset: 'ICP', decimals: 8 }, w('atomic'))}
               {:else}
                 {#if old[key] !== undefined && prior !== row.value}<del class="text-danger me-2" aria-label={w('before')}
@@ -106,13 +106,13 @@
           {/each}
         {/each}
       </dl>
-      {#if intent.kind === 'set_cosign'}<p class="text-muted text-[12px]">{w('cosignBoundary')}</p>{/if}
+      {#if intent.kind === 'set_cosign'}<p class="text-muted text-callout">{w('cosignBoundary')}</p>{/if}
       {#if intent.kind !== 'set_policy'}<Collapsible>
-          {#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}
-          {#each ['memo', 'curve', 'envelope', 'arg'].filter((key) => intent[key] != null) as key}<p class="text-[12px] break-all"
+          {#snippet title()}<span class="text-callout">{w('technical')}</span>{/snippet}
+          {#each ['memo', 'curve', 'envelope', 'arg'].filter((key) => intent[key] != null) as key}<p class="text-callout break-all"
               >{w(key)}: {typeof intent[key] === 'object' ? JSON.stringify(intent[key]) : primitive(String(intent[key]), [key])}</p
             >{/each}
-          {#each intent.outputs ?? [] as output}<p class="text-[12px] break-all">{output.amount} {w('atomic')} → {output.to}</p>{/each}
+          {#each intent.outputs ?? [] as output}<p class="text-callout break-all">{output.amount} {w('atomic')} → {output.to}</p>{/each}
         </Collapsible>{/if}
     {/if}
   </div>

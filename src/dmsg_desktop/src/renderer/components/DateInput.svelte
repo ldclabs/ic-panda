@@ -78,7 +78,7 @@
 </script>
 
 <div class="grid min-w-0 gap-1.5">
-  <label for={id} class={hideLabel ? 'sr-only' : 'text-[12px] text-muted'}
+  <label for={id} class={hideLabel ? 'sr-only' : 'text-callout text-muted'}
     >{label}</label
   >
   <Popover.Root
@@ -105,7 +105,7 @@
         dir="ltr"
         aria-invalid={!!error}
         aria-describedby={`${id}-hint${error ? ` ${id}-error` : ''}`}
-        class={`${localeDir(locale()) === 'rtl' ? 'pl-16 pr-2.5' : 'pl-2.5 pr-16'} text-[12.5px] tabular-nums aria-invalid:border-danger`}
+        class={`${localeDir(locale()) === 'rtl' ? 'pl-16 pr-2.5' : 'pl-2.5 pr-16'} text-callout tabular-nums aria-invalid:border-danger`}
         data-testid={testid}
       />
       <div class="absolute end-0 top-0 flex h-8 items-center">
@@ -192,7 +192,7 @@
                 <Calendar.PrevButton title={t('previousMonth')} aria-label={t('previousMonth')} class={iconButtonClass()}
                   ><Icon name="back" /></Calendar.PrevButton
                 >
-                <Calendar.Heading class="text-[13px] font-medium" />
+                <Calendar.Heading class="text-body font-medium" />
                 <Calendar.NextButton title={t('nextMonth')} aria-label={t('nextMonth')} class={iconButtonClass()}
                   ><Icon name="forward" /></Calendar.NextButton
                 >
@@ -203,7 +203,7 @@
                   <Calendar.GridHead
                     ><Calendar.GridRow
                       >{#each weekdays as day}<Calendar.HeadCell
-                          class="h-7 text-[11px] font-normal text-muted"
+                          class="h-7 text-caption font-normal text-muted"
                           >{day}</Calendar.HeadCell
                         >{/each}</Calendar.GridRow
                     ></Calendar.GridHead
@@ -216,7 +216,7 @@
                             class="p-0.5"
                           >
                             <Calendar.Day
-                              class="grid size-8 cursor-pointer place-items-center rounded-lg text-[12.5px] outline-none hover:bg-wash focus-visible:ring-2 focus-visible:ring-focus data-selected:bg-forest data-selected:text-on-forest data-today:font-bold data-outside-month:text-faint data-disabled:pointer-events-none data-disabled:opacity-35"
+                              class="grid size-8 place-items-center rounded-lg text-callout outline-none hover:bg-wash focus-visible:ring-2 focus-visible:ring-focus data-selected:bg-forest data-selected:text-on-forest data-today:font-bold data-outside-month:text-muted data-disabled:pointer-events-none data-disabled:opacity-35"
                               data-date={day.toString()}>{day.day}</Calendar.Day
                             >
                           </Calendar.Cell>{/each}</Calendar.GridRow
@@ -229,12 +229,12 @@
       </Popover.Content></Popover.Portal
     >
   </Popover.Root>
-  <p id={`${id}-hint`} class="text-[11.5px] text-faint">
+  <p id={`${id}-hint`} class="text-caption text-faint">
     {t('dateFormatHint', { format })}{#if mode === 'datetime'}<span
         class="block">{t('localTimeZone', { zone })}</span
       >{/if}
   </p>
-  {#if error}<p id={`${id}-error`} class="text-[12px] text-danger" role="alert">
+  {#if error}<p id={`${id}-error`} class="text-callout text-danger" role="alert">
       {error}
     </p>{/if}
 </div>

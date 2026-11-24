@@ -38,7 +38,7 @@
 </script>
 
 <div class="grid min-w-0 gap-1.5">
-<label for={id} class={hideLabel ? 'sr-only' : 'text-[12px] text-muted'}>{label}</label>
+<label for={id} class={hideLabel ? 'sr-only' : 'text-callout text-muted'}>{label}</label>
 <div class="relative flex items-start">
   <textarea
     {id}
@@ -53,7 +53,7 @@
     spellcheck="false"
     wrap={multiline ? 'off' : 'soft'}
     class={cn(
-      'min-h-8 resize-none py-[5px] font-mono text-[12.5px] leading-[1.55] placeholder:font-sans placeholder:text-[13px]',
+      'min-h-8 resize-none py-[5px] font-mono text-code leading-[1.55] placeholder:font-sans placeholder:text-body',
       !shown && 'concealed',
       localeDir(locale()) === 'rtl' ? (generate ? 'ps-[112px] pe-2.5' : 'ps-9 pe-2.5') : (generate ? 'pe-[112px]' : 'pe-9')
     )}
@@ -74,7 +74,7 @@
     </Tooltip>
   </div>
 </div>
-{#if error}<p id={`${id}-error`} class="text-xs text-danger" role="alert">{error}</p>{:else if hint}<p id={`${id}-hint`} class="text-[11.5px] text-faint">{hint}</p>{/if}
+{#if error}<p id={`${id}-error`} class="text-callout text-danger" role="alert">{error}</p>{:else if hint}<p id={`${id}-hint`} class="text-caption text-faint">{hint}</p>{/if}
 </div>
 
 <style>

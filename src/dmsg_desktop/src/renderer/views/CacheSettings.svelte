@@ -41,10 +41,10 @@
 </script>
 <Section title={t('displayCache')} description={t('displayCacheHint')} icon="folder">
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <span class="text-sm text-muted" role="status">{bytes === null ? error ? '-' : t('loading') : size(bytes)}</span>
+    <span class="text-body text-muted" role="status">{bytes === null ? error ? '-' : t('loading') : size(bytes)}</span>
     <button class={buttonClass('secondary', 'sm')} disabled={busy || !bytes || !!error} onclick={clear} data-testid="cache-clear">{t('clearDisplayCache')}</button>
   </div>
   {#if error}<Notice failure={error} tone="danger">{error}
-    {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={load}>{t('retry')}</button>{/snippet}
+    {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={load}>{t('retry')}</button>{/snippet}
   </Notice>{/if}
 </Section>

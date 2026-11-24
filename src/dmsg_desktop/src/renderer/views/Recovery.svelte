@@ -8,6 +8,7 @@
   import Dialog from '../components/Dialog.svelte'
   import Segmented from '../components/Segmented.svelte'
   import Fact from '../components/page/Fact.svelte'
+  import Group from '../components/page/Group.svelte'
   import Field from '../components/page/Field.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -93,7 +94,7 @@
   {#if pending[group]}
     <Notice tone="info" testid={`security-pending-${group}`}>
       {t('securityApprovalPending')}
-      {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={blocked} onclick={() => ask(group)}>{t('securityViewApproval')}</button>{/snippet}
+      {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={blocked} onclick={() => ask(group)}>{t('securityViewApproval')}</button>{/snippet}
     </Notice>
   {/if}
 {/snippet}
@@ -101,7 +102,7 @@
 <DisplayNotice methods={['account/security']} />
 {#if loadError}
   <Notice failure={loadError} tone="danger">{loadError}
-    {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
+    {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
   </Notice>
 {/if}
 {#if error && !open}<Notice failure={error} tone="danger">{error}</Notice>{/if}
@@ -110,27 +111,27 @@
     {#snippet action()}<button class={buttonClass('primary', 'sm')} onclick={() => startLogin()}>{t('login')}</button>{/snippet}
   </Notice>
 {/if}
-{#if loading && !security}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
+{#if loading && !security}<p role="status" class="text-body text-muted">{t('loading')}</p>{/if}
 {#if security}
-  <p class="px-5 text-[12.5px] leading-relaxed text-muted" data-testid="recovery-preparation">{t('recoveryPreparation')}</p>
+  <p class="px-5 text-callout leading-relaxed text-muted" data-testid="recovery-preparation">{t('recoveryPreparation')}</p>
   <Section title={t('onChainRecovery')} description={t(security.recovery_enabled ? 'recoveryOnHint' : 'recoveryOffHint')} icon="recovery" testid="security-recovery">
     <Pill tone={security.recovery_enabled ? 'forest' : 'neutral'}>{t(security.recovery_enabled ? 'on' : 'off')}</Pill>
     {#if security.recovery_updating}<Notice tone="warn">{t('recoveryUpdating')}</Notice>{/if}
-    {#if security.recovery_enabled}<dl><Fact label={t('recoveryDays')}>{t('daysN', { n: security.recovery_delay_ms / 86_400_000 })}</Fact></dl>{/if}
+    {#if security.recovery_enabled}<Group><Fact label={t('recoveryDays')}>{t('daysN', { n: security.recovery_delay_ms / 86_400_000 })}</Fact></Group>{/if}
     <button class={buttonClass('secondary', 'sm', 'mt-3')} disabled={blocked || !!pending.recovery} aria-label={`${t('edit')} · ${t('recovery')}`} data-testid="security-recovery-edit" onclick={begin}>{t('edit')}</button>
     {@render receipt('recovery')}
   </Section>
   {#if security.pending_recovery}
     <Section title={t('pendingRecovery')} icon="recovery" testid="pending-recovery">
-      <dl>
+      <Group>
         <Fact label={t('loginPrincipal')}><Id id={security.pending_recovery.new_auth} full /></Fact>
         <Fact label={t('executeAfter')}>{when(security.pending_recovery.execute_after)}</Fact>
         {#if security.pending_recovery.expires_at}<Fact label={t('expires')}>{when(security.pending_recovery.expires_at)}</Fact>{/if}
-      </dl>
+      </Group>
       <button class={buttonClass('danger', 'sm', 'mt-3')} disabled={blocked || !!pending.cancel} data-testid="recovery-cancel" onclick={() => ask('cancel', 'recovery/dispute', {})}>{t('disputeRecovery')}</button>
       {@render receipt('cancel')}
     </Section>
-  {:else}<p class="text-[12.5px] text-faint" data-testid="recovery-empty">{t('noRecovery')}</p>{/if}
+  {:else}<p class="text-callout text-muted" data-testid="recovery-empty">{t('noRecovery')}</p>{/if}
 {/if}
 
 <Dialog bind:open={() => open, (value) => { open = value; if (!value) error = '' }} title={t('onChainRecovery')} description={t('securityApprovalHint')} icon="recovery" dismissible={!busy} testid="security-editor">
@@ -143,7 +144,7 @@
     {@render receipt('recovery')}
   </div>
   {#snippet footer()}
-    {#if !changed}<span class="text-[12px] text-faint" role="status">{t('securityUnchanged')}</span>{/if}
+    {#if !changed}<span class="text-callout text-muted" role="status">{t('securityUnchanged')}</span>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => { open = false; error = '' }}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={blocked || !changed || !!pending.recovery} data-testid="security-submit" onclick={submit}>{t('submit')}</button>

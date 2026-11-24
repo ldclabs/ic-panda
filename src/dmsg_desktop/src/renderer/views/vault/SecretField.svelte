@@ -160,7 +160,7 @@
 <FieldActions {name} {busy} copy={unlocked && copyable ? copy : undefined} copyTestid="copy-secret"
   {reference} {referenceDisabled} {referenceHint} beforeActions={revealButton}
   view={unlocked ? (element) => { trigger = element; viewing = true } : undefined}>
-  <span class={cn('min-w-0 flex-1 py-1 font-mono text-[12.5px] leading-[1.55]',
+  <span class={cn('min-w-0 flex-1 py-1 font-mono text-code leading-[1.55]',
     secret === null ? 'overflow-hidden tracking-[0.18em] whitespace-nowrap text-faint' : 'max-h-64 overflow-auto break-all whitespace-pre-wrap text-ink select-text')}
     dir="ltr" data-testid="vault-secret" data-field={field} data-shown={secret !== null}>{secret ?? '••••••••••••'}</span>
 </FieldActions>

@@ -185,10 +185,10 @@
   {@const referenceDisabled = !unlocked || conflict || copyingReference !== null}
   {@const referenceHint = conflict ? t('conflictItem') : t('fieldReferenceHint')}
   <div class="grid gap-x-4 gap-y-1 py-2 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start" data-testid="vault-field" data-field={field.id}>
-    <dt class="flex flex-wrap items-center gap-1 text-[12px] text-faint @min-[440px]:pt-1.5">
+    <dt class="flex flex-wrap items-center gap-1 text-callout text-muted @min-[440px]:pt-1.5">
       <span class="[overflow-wrap:anywhere]">{name}</span>
       {#each issues?.get(field.id) ?? [] as issue (issue)}
-        <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn" data-testid="vault-issue">{t(issueLabel[issue] ?? 'warning')}</span>
+        <span class="rounded bg-warn-pale px-1 text-caption font-medium text-warn" data-testid="vault-issue">{t(issueLabel[issue] ?? 'warning')}</span>
       {/each}
     </dt>
     <dd class="flex min-w-0 items-start">
@@ -217,14 +217,14 @@
       </span>
       <div class="min-w-0 flex-1">
         <div class="flex min-w-0 items-start gap-1.5">
-          <h2 class="min-w-0 text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
+          <h2 class="min-w-0 text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
           {#if item.favorite}<span class="pt-0.5 text-gem" role="img" aria-label={t('starred')} title={t('starred')}><Icon name="starred" class="size-4" /></span>{/if}
         </div>
-        <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
+        <div class="mt-1 flex flex-wrap items-center gap-1.5 text-callout text-muted">
           <span>{t(typeLabel[type])}</span>
-          {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-[11.5px] text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
+          {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-caption text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
           {#each item.tags as tag, i (i)}
-            <span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>
+            <span class="rounded-md bg-wash px-1.5 py-px text-caption text-ink-2">#{tag}</span>
           {/each}
         </div>
       </div>
@@ -232,14 +232,14 @@
     {#if unlocked && !editing}
       <div class="ms-auto flex max-w-full flex-wrap items-center gap-1">
         {#if trash}
-          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={onTrash} data-testid="vault-restore">
+          <button class={buttonClass('ghost', 'md')} disabled={busy} onclick={onTrash} data-testid="vault-restore">
             <Icon name="restore" />{t('restore')}
           </button>
         {:else if !managed}
-          {#if canShare}<button class={buttonClass('secondary', 'md')} disabled={busy || conflict} onclick={() => go(`/vault/sharing?item=${entry.id}`)} data-testid="vault-share">
+          {#if canShare}<button class={buttonClass('ghost', 'md')} disabled={busy || conflict} onclick={() => go(`/vault/sharing?item=${entry.id}`)} data-testid="vault-share">
             <Icon name="send" />{t('share')}
           </button>{/if}
-          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
+          <button class={buttonClass('ghost', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
             <Icon name="edit" />{t('edit')}
           </button>
         {/if}
@@ -283,20 +283,20 @@
   </header>
 
   {#if conflict && !editing}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-warn/35 bg-warn-pale px-3 py-2 text-[12.5px] text-ink-2" data-testid="vault-item-conflict">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-warn/35 bg-warn-pale px-3 py-2 text-callout text-ink-2" data-testid="vault-item-conflict">
       <Icon name="conflict" class="shrink-0 text-warn" />
       <span class="min-w-0 flex-1">{t('conflictItem')}</span>
-      <button class={buttonClass('secondary', 'xs')} onclick={onCompare}>{t('compare')}</button>
+      <button class={buttonClass('subtle', 'xs')} onclick={onCompare}>{t('compare')}</button>
     </div>
   {/if}
   {#if trash}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-callout text-muted">
       <Icon name="trash" class="shrink-0" />
       <span>{t('inTrashSince', { time: when(entry.at) })}</span>
     </div>
   {/if}
   {#if managed}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-callout text-muted">
       <Icon name="lock" class="shrink-0" />
       <span>{t('managedHint')}</span>
     </div>
@@ -317,7 +317,7 @@
       />
     {:else}
       {#each sections(shownFields) as section (section.title)}
-        {#if section.title}<h3 class="mt-3 mb-1 text-[11.5px] font-medium text-faint [overflow-wrap:anywhere]">{section.title}</h3>{/if}
+        {#if section.title}<h3 class="mt-3 mb-1 text-caption font-medium text-faint [overflow-wrap:anywhere]">{section.title}</h3>{/if}
         <dl class={cn('grid gap-1', !section.title && 'mb-3')} data-testid="vault-detail">
           {#each section.fields as field (field.id)}
             {@render fieldRow(field)}
@@ -326,21 +326,21 @@
       {/each}
       {#if item.notes}
         <div class="mt-3 py-3">
-          <div class="mb-1 text-[12px] text-faint">{t('notes')}</div>
-          <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-notes-text">{item.notes}</p>
+          <div class="mb-1 text-callout text-muted">{t('notes')}</div>
+          <p class="text-body leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-notes-text">{item.notes}</p>
         </div>
       {:else if !shownFields.length}
-        <p class="text-[13px] text-faint">{t('emptyBody')}</p>
+        <p class="text-body text-faint">{t('emptyBody')}</p>
       {/if}
       {#if item.files?.length}
         <div class="mt-3 grid gap-1.5" data-testid="vault-attachments">
-          <div class="text-[12px] text-faint">{t('attachments')}</div>
+          <div class="text-callout text-muted">{t('attachments')}</div>
           {#each item.files as id (id)}
-            <div class="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-[12.5px]">
+            <div class="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-callout">
               <Icon name="attach" class="shrink-0 text-faint" />
               {#if names[id]}
                 <span class="min-w-0 flex-1 truncate">{names[id].name}</span>
-                <span class="shrink-0 text-[11.5px] text-faint">{size(names[id].size)}</span>
+                <span class="shrink-0 text-caption text-faint">{size(names[id].size)}</span>
                 <button class={buttonClass('ghost', 'xs')} onclick={() => bridge(() => window.dmsg.filesOpen(id, null)).catch((e) => toast(() => errorText(e)))}>{t('openFile')}</button>
                 <button class={buttonClass('ghost', 'xs')} onclick={() => showFile(id)}>{t('showInFiles')}</button>
               {:else}
@@ -354,7 +354,7 @@
         <History id={entry.id} head={entry.revision} {device} {unlocked} {editable} onClose={() => (history = false)} />
       {/if}
     {/if}
-    <dl class="mt-5 border-t border-line pt-3 text-[11.5px] text-faint" data-testid="vault-identifiers">
+    <dl class="mt-5 border-t border-line pt-3 text-caption text-faint" data-testid="vault-identifiers">
       <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <dt>{t('vaultItemId')}</dt>
         <dd class="min-w-0"><Id id={entry.id} copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
@@ -362,7 +362,7 @@
     </dl>
   </div>
 
-  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
+  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-caption text-faint">
     <span class={cn('inline-flex items-center gap-1.5', !entry.synced && entry.save_state !== 'local_only' && 'text-warn')}>
       <Icon name={entry.save_state === 'local_only' ? 'device' : entry.synced ? 'sync' : 'time'} class="size-3.5" />{entry.save_state === 'local_only' ? t('savedOnDevice') : entry.synced ? t('itemSynced') : t('itemNotSynced')}
     </span>

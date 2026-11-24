@@ -105,7 +105,7 @@
     {/if}
   </div>
 {:else}
-  <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
+  <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-callout" data-testid="gate-rail">
     {#if step}
       <!-- Keep the state and action on separate rows in every language. -->
       <div class="grid min-w-0 gap-2">
@@ -135,7 +135,7 @@
         {/snippet}
       </Tooltip>
       {#if presentation.initial && !presentation.paused}
-        <div class="grid gap-1.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-initial">
+        <div class="grid gap-1.5 ps-6 text-caption text-faint" data-testid="gate-sync-initial">
           {#if syncing}
             <Progress value={presentation.progress?.total > 0 ? presentation.progress.entries : null} max={presentation.progress?.total || 100} label={t(presentation.stage)} testid="gate-sync-progress" />
           {/if}
@@ -144,7 +144,7 @@
         </div>
       {/if}
       {#if failed || showPending || retryText}
-        <div class="grid gap-0.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-detail">
+        <div class="grid gap-0.5 ps-6 text-caption text-faint" data-testid="gate-sync-detail">
           {#if showPending}<span data-testid="gate-sync-pending">{t('syncPending', { n: pending })}</span>{/if}
           {#if failed}<span data-testid="gate-sync-success">{lastSuccess}</span>{/if}
           {#if retryText}<span data-testid="gate-sync-retry">{retryText}</span>{/if}
@@ -168,7 +168,7 @@
     {#if unlocked}
       <button class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start')} onclick={lock} data-testid="gate-lock">
         <Icon name="lock" class="shrink-0 text-faint" /><span class="min-w-0 flex-1 truncate">{t('lock')}</span>
-        <kbd class="font-mono text-[10.5px] font-normal text-faint">{mod}L</kbd>
+        <kbd class="font-mono text-caption font-normal text-faint">{mod}L</kbd>
       </button>
     {/if}
   </div>

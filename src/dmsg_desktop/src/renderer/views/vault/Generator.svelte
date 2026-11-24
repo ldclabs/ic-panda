@@ -88,18 +88,18 @@
         class="w-full [&>*]:flex-1"
         testid="generator-mode"
       />
-      <div class="min-h-12 rounded-lg border border-line bg-surface-2 px-2.5 py-2 font-mono text-[13px] break-all select-text" data-testid="generator-secret">{secret}</div>
+      <div class="min-h-12 rounded-lg border border-line bg-surface-2 px-2.5 py-2 font-mono text-body break-all select-text" data-testid="generator-secret">{secret}</div>
       {#if options.mode === 'words'}
         <Slider label={t('genWordCount')} min={3} max={12} bind:value={options.words} testid="generator-words" />
-        <label class="flex items-center justify-between gap-2 text-[12px] text-faint">
+        <label class="flex items-center justify-between gap-2 text-callout text-muted">
           {t('genSeparator')}
-          <input bind:value={options.separator} maxlength="3" class="h-7 w-16 text-center font-mono text-[13px] text-ink" />
+          <input bind:value={options.separator} maxlength="3" class="h-7 w-16 text-center font-mono text-body text-ink" />
         </label>
       {:else}
         <Slider label={t('genLength')} min={options.mode === 'pin' ? 4 : 8} max={options.mode === 'pin' ? 12 : 64} bind:value={options.length} testid="generator-length" />
       {/if}
       {#if options.mode === 'random'}
-        <div class="grid grid-cols-2 gap-1.5 text-[12.5px]">
+        <div class="grid grid-cols-2 gap-1.5 text-callout">
           <Checkbox bind:checked={options.upper}>A–Z</Checkbox>
           <Checkbox bind:checked={options.lower}>a–z</Checkbox>
           <Checkbox bind:checked={options.digits}>0–9</Checkbox>
@@ -108,7 +108,7 @@
         </div>
       {/if}
       <div class="flex items-center gap-2">
-        <span class={cn('min-w-0 flex-1 text-[11.5px]', bits < 60 ? 'text-warn' : 'text-faint')}>{t('genBits', { bits })}</span>
+        <span class={cn('min-w-0 flex-1 text-caption', bits < 60 ? 'text-warn' : 'text-faint')}>{t('genBits', { bits })}</span>
         <button class={iconButtonClass('ghost', 'md')} aria-label={t('genAgain')} onclick={() => void refresh()}>
           <Icon name="sync-now" />
         </button>

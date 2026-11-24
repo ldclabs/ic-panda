@@ -131,7 +131,7 @@
   {#if relay?.last_fetch || relay?.rejected || error}
     <div class="grid gap-2 px-5 pb-3">
       {#if relay?.last_fetch}
-        <p class="text-[12px] text-faint">
+        <p class="text-callout text-muted">
           {t('lastFetch')} {when(relay.last_fetch.at)}{relay.last_fetch.error ? ` · ${t('error')} ${relay.last_fetch.error}` : ''}{relay.rejected ? ` · ${t('eventsRejected')} ${relay.rejected}` : ''}
         </p>
       {/if}
@@ -142,40 +142,40 @@
     {#each endpoints as endpoint (endpoint.endpoint_id)}
       <li class="grid gap-1.5 px-5 py-3">
         <div class="flex flex-wrap items-center gap-2">
-          <b class="text-[13px] font-medium">{endpoint.context?.label ?? endpoint.endpoint_id.slice(0, 12)}</b>
+          <b class="text-body font-medium">{endpoint.context?.label ?? endpoint.endpoint_id.slice(0, 12)}</b>
           <Pill tone={endpoint.state === 'active' ? 'ok' : 'neutral'}>{endpoint.state}</Pill>
-          <span class="text-[12px] text-faint">{labelOf(endpoint.agent ?? endpoint.context?.agent)} · {when(endpoint.created_at)}</span>
+          <span class="text-callout text-muted">{labelOf(endpoint.agent ?? endpoint.context?.agent)} · {when(endpoint.created_at)}</span>
           <span class="flex-1"></span>
           {#if endpoint.state === 'active' && unlocked}
-            <button class={buttonClass('secondary', 'xs')} id={'endpoint-rotate-' + endpoint.endpoint_id} disabled={busy} onclick={() => (rotating = endpoint)} data-testid="endpoint-rotate">{t('rotateSecret')}</button>
+            <button class={buttonClass('subtle', 'xs')} id={'endpoint-rotate-' + endpoint.endpoint_id} disabled={busy} onclick={() => (rotating = endpoint)} data-testid="endpoint-rotate">{t('rotateSecret')}</button>
             <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => (removing = endpoint)} data-testid="endpoint-remove">{t('remove')}</button>
           {/if}
         </div>
         <div class="flex items-center gap-1.5">
-          <bdi dir="ltr" class="min-w-0 truncate font-mono text-[11.5px] text-muted">{endpoint.url}</bdi>
+          <bdi dir="ltr" class="min-w-0 truncate font-mono text-code text-muted">{endpoint.url}</bdi>
           <button class={iconButtonClass('ghost', 'md')} aria-label={t('copy') + ' · ' + endpoint.url} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
         </div>
         {#if endpoint.binding?.server}
-          <p class="text-[12px] text-faint">{endpoint.binding.server}{endpoint.binding.refresh_before ? ` · ${t('refreshBefore')} ${when(endpoint.binding.refresh_before)}` : ''}</p>
+          <p class="text-callout text-muted">{endpoint.binding.server}{endpoint.binding.refresh_before ? ` · ${t('refreshBefore')} ${when(endpoint.binding.refresh_before)}` : ''}</p>
         {/if}
         {#if endpoint.relay}
-          <p class="text-[12px] text-faint">
+          <p class="text-callout text-muted">
             {endpoint.relay.state} · {t('eventsPending')} {endpoint.relay.pending ?? 0}{endpoint.relay.last_delivery_at ? ` · ${when(endpoint.relay.last_delivery_at)}` : ''}
           </p>
         {/if}
         {#if secret?.endpoint_id === endpoint.endpoint_id}
           <Notice tone="warn">
             <p>{t('secretOnce')}</p>
-            <pre class="mt-1.5 rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all whitespace-pre-wrap text-ink select-all" data-testid="endpoint-secret">{secret?.secret}</pre>
+            <pre class="mt-1.5 rounded-lg bg-surface px-2.5 py-2 font-mono text-code break-all whitespace-pre-wrap text-ink select-all" data-testid="endpoint-secret">{secret?.secret}</pre>
             {#snippet action()}
-              <button id="endpoint-credential" class={buttonClass('secondary', 'xs')} aria-label={t('copy') + ' · ' + (endpoint.context?.label ?? endpoint.endpoint_id)} onclick={() => secret && copyText(secret.secret)}><Icon name="copy" />{t('copy')}</button>
+              <button id="endpoint-credential" class={buttonClass('subtle', 'xs')} aria-label={t('copy') + ' · ' + (endpoint.context?.label ?? endpoint.endpoint_id)} onclick={() => secret && copyText(secret.secret)}><Icon name="copy" />{t('copy')}</button>
               <button class={buttonClass('ghost', 'xs')} onclick={async () => { secret = null; await tick(); document.getElementById('endpoint-rotate-' + endpoint.endpoint_id)?.focus() }}>{t('done')}</button>
             {/snippet}
           </Notice>
         {/if}
       </li>
     {:else}
-      {#if !loadErrors.list}<li class="px-5 py-3 text-[13px] text-faint"><span role="status">{listLoaded ? t('noEndpoints') : t('loading')}</span></li>{/if}
+      {#if !loadErrors.list}<li class="px-5 py-3 text-body text-faint"><span role="status">{listLoaded ? t('noEndpoints') : t('loading')}</span></li>{/if}
     {/each}
   </ul>
   {#if unlocked}

@@ -107,26 +107,26 @@
       >{path === 'l1' ? w('ncL1Hint') : t('wallet.ncL2Hint', { blocks: view?.from?.chain_key_after ?? '…' })}</Notice
     >
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-    {#if !view && !error}<p class="text-muted text-[12px]" role="status">{w('loading')}</p>{/if}
+    {#if !view && !error}<p class="text-muted text-callout" role="status">{w('loading')}</p>{/if}
     {#if view}
       <dl>
         <Fact label={w('ncFrom')}
-          ><b>{view.from.label || `#${view.from.id}`}</b><bdi dir="ltr" class="font-mono text-[12px] break-all">{view.from.text}</bdi></Fact
+          ><b>{view.from.label || `#${view.from.id}`}</b><bdi dir="ltr" class="font-mono text-code break-all">{view.from.text}</bdi></Fact
         >
         <Fact label={w('ncTo')}
-          >{#if view.to}<b>{view.to.label || `#${view.to.id}`}</b><bdi dir="ltr" class="font-mono text-[12px] break-all">{view.to.text}</bdi
+          >{#if view.to}<b>{view.to.label || `#${view.to.id}`}</b><bdi dir="ltr" class="font-mono text-code break-all">{view.to.text}</bdi
             >{:else}—{/if}</Fact
         >
       </dl>
       <ol class="grid gap-1" data-testid="wallet-nc-steps">
-        {#each checklist as step (step.key)}<li class="flex items-center gap-2 text-[13px]"
+        {#each checklist as step (step.key)}<li class="flex items-center gap-2 text-body"
             ><Icon name={step.done ? 'check' : 'pending'} class={cn('size-4', step.done ? 'text-ok' : 'text-faint')} />{w(LABELS[step.key])}</li
           >{/each}
       </ol>
-      <p class="text-[13px]" data-testid="wallet-nc-next">{w('ncNextStep')}: <b>{w(LABELS[view.next] ?? view.next)}</b></p>
+      <p class="text-body" data-testid="wallet-nc-next">{w('ncNextStep')}: <b>{w(LABELS[view.next] ?? view.next)}</b></p>
       {#if view.pending}<Notice
           >{t('wallet.ncPending', { id: view.pending.proposal, status: view.pending.status })}{#snippet action()}<button
-              class={buttonClass('secondary', 'xs')}
+              class={buttonClass('subtle', 'xs')}
               onclick={() => onShowProposal(view.pending.proposal)}>{w('details')}</button
             >{/snippet}</Notice
         >{/if}
@@ -134,15 +134,15 @@
       {#if view.next === 'root'}<Notice tone="warn">{w('ncNoRoot')}</Notice>{/if}
       {#if view.sweep}
         <div class="grid gap-2" data-testid="wallet-nc-sweep">
-          <p class="text-faint text-[12px]">{t('wallet.ncTip', { height: view.sweep.tip })} · {view.sweep.fee_rate} sat/vB</p>
+          <p class="text-muted text-callout">{t('wallet.ncTip', { height: view.sweep.tip })} · {view.sweep.fee_rate} sat/vB</p>
           <ul class="divide-line border-line divide-y rounded-xl border">
-            {#each view.sweep.utxos as u (`${u.txid}:${u.vout}`)}<li class="flex flex-wrap items-center gap-2 px-3 py-2 text-[12px]"
+            {#each view.sweep.utxos as u (`${u.txid}:${u.vout}`)}<li class="flex flex-wrap items-center gap-2 px-3 py-2 text-callout"
                 ><bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono" title={`${u.txid}:${u.vout}`}>{u.txid.slice(0, 16)}…:{u.vout}</bdi
                 ><b class="tabular-nums">{btc(u.value)}</b>{#if path === 'l1' || spendable(u)}<Pill tone="ok">{w('ncSpendableNow')}</Pill
                   >{:else if u.spendable_at == null}<Pill>{w('ncUnconfirmed')}</Pill>{:else}<Pill tone="warn"
                     >{t('wallet.ncSpendableAt', { height: u.spendable_at })}</Pill
                   >{/if}</li
-              >{:else}<li class="text-faint px-3 py-2 text-[12px]">{w('ncEmpty')}</li>{/each}
+              >{:else}<li class="text-muted px-3 py-2 text-callout">{w('ncEmpty')}</li>{/each}
           </ul>
           {#if !view.sweep.empty}<dl>
               <Fact label={w('ncInputs')}>{view.sweep.inputs} · {btc(view.sweep.total)}</Fact>

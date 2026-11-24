@@ -72,21 +72,21 @@
 <section class="flex h-full min-w-0 flex-col" data-testid="files-cloud">
   <header class="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
     <div class="min-w-0 flex-1">
-      <h2 class="text-[15px] font-semibold">{t('cloudBackups')}</h2>
+      <h2 class="text-title-3 font-semibold">{t('cloudBackups')}</h2>
       {#if usage}
-        <p class="text-[12px] text-faint">
+        <p class="text-callout text-muted">
           {t('cloudUsageLine', { backups: usage.backups, bytes: size(usage.backup_bytes) })}
           {#if usage.storage_limit}· {t('cloudRoom', { used: size(usage.reserved + usage.committed), limit: size(usage.storage_limit) })}{/if}
         </p>
         {#if usage.status === 'over_limit'}
-          <p class="mt-0.5 text-[12px] text-warn" data-testid="files-cloud-over">
+          <p class="mt-0.5 text-callout text-warn" data-testid="files-cloud-over">
             {t('overLimit')} <a class="font-medium underline underline-offset-2" href="#/plan">{t('openPlan')}</a>
           </p>
         {/if}
       {/if}
     </div>
     {#if picked.length}
-      <span class="text-[12px] text-faint">{t('selectedCount', { n: picked.length })}</span>
+      <span class="text-callout text-muted">{t('selectedCount', { n: picked.length })}</span>
       <button class={buttonClass('danger', 'md')} disabled={busy || !unlocked} onclick={() => onDelete(picked)} data-testid="files-cloud-delete">
         <Icon name="cloud-off" />{t('deleteCloudCopy')}
       </button>
@@ -105,19 +105,19 @@
     {/if}
     {#if !visible.length}
       {#if query.trim() && entries.length}
-        <p class="px-4 py-10 text-center text-sm text-muted" role="status">{t('noFilesMatch', { query })}</p>
+        <p class="px-4 py-10 text-center text-body text-muted" role="status">{t('noFilesMatch', { query })}</p>
       {:else if loaded && !error}
         <div class="grid justify-items-center gap-2 px-4 py-14 text-center" data-testid="files-cloud-empty">
           <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="cloud-down" /></span>
-          <b class="text-[13.5px] font-semibold">{t('cloudEmpty')}</b>
-          <p class="max-w-sm text-[12.5px] text-muted">{t('cloudEmptyHint')}</p>
+          <b class="text-body font-semibold">{t('cloudEmpty')}</b>
+          <p class="max-w-sm text-callout text-muted">{t('cloudEmptyHint')}</p>
         </div>
       {/if}
     {:else}
       <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         {#each groups as [path, list] (path)}
           <div>
-            <h3 class="mb-1.5 flex items-center gap-1.5 px-1 text-[12px] font-medium text-faint"><Icon name="folder" class="size-3.5" />{path === '/' ? t('library') : path}</h3>
+            <h3 class="mb-1.5 flex items-center gap-1.5 px-1 text-callout font-medium text-muted"><Icon name="folder" class="size-3.5" />{path === '/' ? t('library') : path}</h3>
             <ul class="min-w-0 divide-y divide-line">
               {#each list as entry (entry.upload_id)}
                 <li class="flex items-center gap-3 px-3 py-2.5" data-upload={entry.upload_id}>
@@ -125,11 +125,11 @@
                   <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={entry.needs_root ? 'cloud-off' : fileIcon(entry.mime)} /></span>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="min-w-0 max-w-full truncate text-[13.5px] font-medium" title={entry.name}>{entry.name ?? entry.upload_id.slice(0, 12) + '…'}</span>
+                      <span class="min-w-0 max-w-full truncate text-body font-medium" title={entry.name}>{entry.name ?? entry.upload_id.slice(0, 12) + '…'}</span>
                       {#if entry.local}<Pill tone="ok"><Icon name="drive" />{t('hereToo')}</Pill>{/if}
                       {#if entry.needs_root}<Pill tone="warn"><Icon name="warning" />{t('needsRoot')}</Pill>{/if}
                     </div>
-                    <div class="truncate text-[11.5px] text-faint" title={when(entry.committed_at)}>
+                    <div class="truncate text-caption text-faint" title={when(entry.committed_at)}>
                       {entry.size != null ? `${size(entry.size)} · ` : ''}{size(entry.bytes)} · {t('fromDevice', { device: String(entry.device).slice(0, 8) })} · {entry.committed_at ? dateFormat.format(entry.committed_at) : ago(entry.created_at)}
                       {#if entry.tags?.length}· {entry.tags.map((tag: string) => `#${tag}`).join(' ')}{/if}
                     </div>

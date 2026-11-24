@@ -41,5 +41,5 @@
 
 <Field label={`${label} · ${asset.symbol || asset.asset}${asset.decimals == null ? ` (${w('atomic')})` : ''}`}>
   <input value={shown} oninput={(e) => update(e.currentTarget.value)} inputmode="decimal" dir="ltr" aria-invalid={invalid} />
-  {#if invalid}<span class="text-danger text-[12px]" role="alert">{w('invalidAmount')}</span>{/if}
+  {#if invalid}<span class="text-danger text-callout" role="alert">{w('invalidAmount')}</span>{/if}
 </Field>

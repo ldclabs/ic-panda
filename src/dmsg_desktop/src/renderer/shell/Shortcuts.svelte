@@ -66,8 +66,8 @@
 
 <Dialog bind:open title={t('shortcutsTitle')} icon="info" testid="shortcuts">
   <section class="mb-4 grid gap-2">
-    <h3 class="text-[11.5px] font-medium text-faint">{t('globalShortcuts')}</h3>
-    <dl class="grid gap-1 text-[12.5px]">
+    <h3 class="text-caption font-medium text-faint">{t('globalShortcuts')}</h3>
+    <dl class="grid gap-1 text-callout">
       {#each ['open', 'lock'] as action}
         {@const key = action as 'open' | 'lock'}
         <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -81,12 +81,12 @@
   <div class="grid gap-4 sm:grid-cols-2">
     {#each groups as group (group.label)}
       <section>
-        <h3 class="pb-1 text-[11.5px] font-medium text-faint">{t(group.label)}</h3>
+        <h3 class="pb-1 text-caption font-medium text-faint">{t(group.label)}</h3>
         <dl class="grid gap-1">
           {#each group.rows as [label, key] (label)}
-            <div class="flex items-baseline justify-between gap-3 text-[12.5px]">
+            <div class="flex items-baseline justify-between gap-3 text-callout">
               <dt class="min-w-0 text-ink-2">{t(label)}</dt>
-              <dd><kbd class="font-mono text-[11.5px] whitespace-nowrap text-muted" dir="ltr">{key}</kbd></dd>
+              <dd><kbd class="font-mono text-caption whitespace-nowrap text-muted" dir="ltr">{key}</kbd></dd>
             </div>
           {/each}
         </dl>

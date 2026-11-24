@@ -47,11 +47,11 @@
 <section class="flex h-full min-w-0 flex-col" data-testid="files-trash">
   <header class="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
     <div class="min-w-0 flex-1">
-      <h2 class="text-[15px] font-semibold">{t('trash')}</h2>
-      <p class="text-[12px] text-faint">{t('trashHint', { days })}</p>
+      <h2 class="text-title-3 font-semibold">{t('trash')}</h2>
+      <p class="text-callout text-muted">{t('trashHint', { days })}</p>
     </div>
     {#if unlocked && picked.length}
-      <span class="text-[12px] text-faint">{t('selectedCount', { n: picked.length })}</span>
+      <span class="text-callout text-muted">{t('selectedCount', { n: picked.length })}</span>
       <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={() => onRestore(picked)} data-testid="files-trash-restore-picked"><Icon name="restore" />{t('restore')}</button>
       <button class={buttonClass('danger', 'md')} disabled={busy} onclick={() => onPurge(picked)} data-testid="files-trash-purge-picked"><Icon name="trash" />{t('deleteForever')}</button>
     {:else if rows.length && unlocked}
@@ -63,7 +63,7 @@
   <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
     {#if !rows.length}
       {#if listing}
-        <p class="py-14 text-center text-[13px] text-muted">{t('emptyTrash')}</p>
+        <p class="py-14 text-center text-body text-muted">{t('emptyTrash')}</p>
       {/if}
     {:else}
       <ul class="divide-y divide-line">
@@ -80,8 +80,8 @@
             >
               <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={row.kind === 'folder' ? 'folder' : fileIcon(row.mime)} /></span>
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-[13.5px] font-medium">{row.name}</span>
-                <span class="block truncate text-[11.5px] text-faint">
+                <span class="block truncate text-body font-medium">{row.name}</span>
+                <span class="block truncate text-caption text-faint">
                   {row.kind === 'file' ? `${size(row.size)} · ` : ''}<span dir="ltr">/{(row.path ?? []).join('/')}</span> · {t('moveToTrash')} {ago(row.trashed_at)}
                 </span>
               </span>

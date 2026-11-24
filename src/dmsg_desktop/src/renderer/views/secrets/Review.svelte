@@ -10,7 +10,7 @@
 </script>
 
 <div
-  class="space-y-3 rounded-xl border border-line bg-paper p-4 text-sm"
+  class="space-y-3 rounded-xl border border-line bg-paper p-4 text-body"
   data-testid="secret-review"
 >
   {#if ['secret_mount_config', 'secret_mount_read', 'secret_share', 'secret_package_import', 'secret_discovery_import'].includes(request.type)}
@@ -27,7 +27,7 @@
       {#if d.grant_lifetime_ms}<p>
           {w('window')}: {d.grant_lifetime_ms / 1000}
         </p>{/if}
-      <p class="text-xs text-muted">
+      <p class="text-callout text-muted">
         {w(
           request.type === 'secret_mount_config'
             ? 'exclude'
@@ -57,22 +57,22 @@
     {:else}<p class="text-warn">{w('scanHint')}</p>{/if}
     <ReviewDetails {request} />
     <details>
-      <summary class="cursor-pointer text-xs text-forest"
+      <summary class="text-callout text-forest"
         >{ux('details')}</summary
       >
       <pre
-        class="max-h-96 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(
+        class="max-h-96 overflow-auto whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{JSON.stringify(
           d,
           null,
           2
         )}</pre>
     </details>
     {#if request.delivery_report}<details>
-        <summary class="cursor-pointer text-xs text-forest"
+        <summary class="text-callout text-forest"
           >{ux('details')}</summary
         >
         <pre
-          class="max-h-64 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(
+          class="max-h-64 overflow-auto whitespace-pre-wrap select-text break-all">{JSON.stringify(
             request.delivery_report,
             null,
             2
@@ -94,11 +94,11 @@
       </p>{/if}
     <ReviewDetails {request} />
     <details>
-      <summary class="cursor-pointer text-xs text-forest"
+      <summary class="text-callout text-forest"
         >{ux('details')}</summary
       >
       <pre
-        class="max-h-96 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(
+        class="max-h-96 overflow-auto whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{JSON.stringify(
           d,
           null,
           2
@@ -114,7 +114,7 @@
       <div>
         <dt>{ux('program')}</dt>
         <dd>{d.executable?.path}</dd>
-        <dd class="font-mono text-xs">{d.executable?.sha256}</dd>
+        <dd class="font-mono text-code">{d.executable?.sha256}</dd>
       </div>
       <div>
         <dt>{ux('cwd')}</dt>
@@ -140,63 +140,63 @@
             ? `${source.resolved.item_title} / ${source.resolved.field_label}`
             : source.file_id}
         </p>
-        <p class="break-all text-xs text-muted">
+        <p class="break-all text-callout text-muted">
           {source.resolved?.item_revision ?? source.version_id}
         </p>
       </div>{/each}
-    <p class="text-xs text-muted">{w('processReceipt')}</p>
+    <p class="text-callout text-muted">{w('processReceipt')}</p>
   {:else if request.type === 'secret_use'}
     <p class="rounded-lg bg-warn-pale p-3 text-warn">{s('effect')}</p>
     <dl class="space-y-2 break-all">
       <div>
-        <dt class="text-xs text-faint">{ux('accountDevice')}</dt>
+        <dt class="text-callout text-muted">{ux('accountDevice')}</dt>
         <dd>{d.account_id} / {d.device_id}</dd>
       </div>
       <div>
-        <dt class="text-xs text-faint">Agent ID</dt>
+        <dt class="text-callout text-muted">Agent ID</dt>
         <dd>{d.actor}</dd>
       </div>
       <div>
-        <dt class="text-xs text-faint">{s('name')}</dt>
+        <dt class="text-callout text-muted">{s('name')}</dt>
         <dd>{d.policy_name} · {s('version')} {d.policy_version}</dd>
       </div>
       <div>
-        <dt class="text-xs text-faint">{s('repo')}</dt>
+        <dt class="text-callout text-muted">{s('repo')}</dt>
         <dd data-testid="secret-review-target">
           {d.target?.api_origin}/repos/{d.target?.owner}/{d.target?.repo}/issues
         </dd>
       </div>
       <div>
-        <dt class="text-xs text-faint">{s('field')}</dt>
+        <dt class="text-callout text-muted">{s('field')}</dt>
         <dd>{d.resolved?.item_title} / {d.resolved?.field_label}</dd>
-        <dd class="font-mono text-xs">
+        <dd class="font-mono text-code">
           {d.resolved?.reference?.item_id} / {d.resolved?.reference?.field_id} · {d
             .resolved?.item_revision}
         </dd>
       </div>
     </dl>
     {#if d.reason}<div>
-        <p class="text-xs text-faint">{s('reason')}</p>
+        <p class="text-callout text-muted">{s('reason')}</p>
         <p
-          class="whitespace-pre-wrap [overflow-wrap:anywhere]"
+          class="whitespace-pre-wrap select-text [overflow-wrap:anywhere]"
           data-testid="secret-review-reason"
         >
           {d.reason}
         </p>
       </div>{/if}
     <h3
-      class="whitespace-pre-wrap font-semibold [overflow-wrap:anywhere]"
+      class="whitespace-pre-wrap select-text font-semibold [overflow-wrap:anywhere]"
       data-testid="secret-review-title"
     >
       {d.arguments?.title}
     </h3>
     <div>
-      <p class="mb-1 text-xs text-faint">{s('body')}</p>
+      <p class="mb-1 text-callout text-muted">{s('body')}</p>
       <pre
-        class="max-h-80 overflow-auto whitespace-pre-wrap font-sans [overflow-wrap:anywhere]"
+        class="max-h-80 overflow-auto whitespace-pre-wrap select-text font-sans [overflow-wrap:anywhere]"
         data-testid="secret-review-body">{d.arguments?.body ?? ''}</pre>
     </div>
-    <p class="text-xs text-muted">{s('single')}</p>
+    <p class="text-callout text-muted">{s('single')}</p>
     {#if request.result}<p class="break-all" data-testid="secret-review-result">
         #{request.result.number} · {request.result.html_url}
       </p>{/if}
@@ -209,7 +209,7 @@
   {:else}
     <p class="text-warn">{s('config')}</p>
     <p class="break-all">{d.account_id} / {d.device_id}</p>
-    <p class="font-mono text-xs">
+    <p class="font-mono text-code">
       {d.id} · {s('version')}
       {d.base_version ?? 0}
     </p>
@@ -221,15 +221,15 @@
         {policy.target?.api_origin}/repos/{policy.target?.owner}/{policy.target
           ?.repo}/issues · issue.create
       </p>
-      <p class="font-mono text-xs break-all">
+      <p class="font-mono text-code break-all">
         {s('reference')}: dmsg-secret://{policy.credential?.account_id}/{policy
           .credential?.item_id}/{policy.credential?.field_id}
       </p>
       {#if d.grant_to}<p class="break-all">
           Agent ID: {d.grant_to} · secret.use:{d.id}
         </p>
-        <p class="text-xs text-muted">{s('grantLifetime')}</p>{/if}
-      <p class="text-xs text-muted">{s('scope')}</p>
+        <p class="text-callout text-muted">{s('grantLifetime')}</p>{/if}
+      <p class="text-callout text-muted">{s('scope')}</p>
     {:else}<p>{s('delete')}</p>{/if}
   {/if}
 </div>

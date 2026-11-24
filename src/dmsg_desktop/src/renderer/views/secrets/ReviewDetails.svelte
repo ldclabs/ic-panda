@@ -26,11 +26,11 @@
 </script>
 
 <dl
-  class="grid gap-4 text-sm sm:grid-cols-2"
+  class="grid gap-4 text-body sm:grid-cols-2"
   data-testid="secret-review-summary"
 >
   {#if d.account_id || d.device_id}<div class="min-w-0">
-      <dt class="text-xs text-muted">{ux('accountDevice')}</dt>
+      <dt class="text-callout text-muted">{ux('accountDevice')}</dt>
       <dd class="mt-1 space-y-1">
         {#if d.account_id}<Id
             id={d.account_id}
@@ -41,14 +41,14 @@
     </div>{/if}
   {#if request.type.startsWith('secret_mount')}
     <div class="min-w-0">
-      <dt class="text-xs text-muted">{ux('destination')}</dt>
+      <dt class="text-callout text-muted">{ux('destination')}</dt>
       <dd class="mt-1 break-all">
         {mounting?.project_label ?? d.entry?.relative_path}<br
         />{mounting?.project_directory ?? ''}<br />{mounting?.mount_point ?? ''}
       </dd>
     </div>
     <div>
-      <dt class="text-xs text-muted">{ux('scope')}</dt>
+      <dt class="text-callout text-muted">{ux('scope')}</dt>
       <dd class="mt-1">
         {w('window')}: {(d.scope?.window_ms ??
           d.mode?.window_ms ??
@@ -59,7 +59,7 @@
     {#each mountEntries as entry}{@const raw =
         entry.source?.source ?? entry.source}
       <div class="min-w-0">
-        <dt class="text-xs text-muted">{entry.relative_path}</dt>
+        <dt class="text-callout text-muted">{entry.relative_path}</dt>
         <dd class="mt-1 break-all">
           <p>
             {raw?.resolved?.item_title ?? raw?.reference ?? raw?.file_id ?? ''}
@@ -78,11 +78,11 @@
       </div>{/each}
   {:else if request.type === 'secret_share' || request.type === 'secret_package_import'}
     <div>
-      <dt class="text-xs text-muted">{ux('source')}</dt>
+      <dt class="text-callout text-muted">{ux('source')}</dt>
       <dd class="mt-1 font-medium">{d.title ?? d.preview?.title}</dd>
     </div>
     <div class="min-w-0">
-      <dt class="text-xs text-muted">{ux('destination')}</dt>
+      <dt class="text-callout text-muted">{ux('destination')}</dt>
       <dd class="mt-1 break-all">
         {request.type === 'secret_package_import'
           ? ux('openVault')
@@ -92,7 +92,7 @@
       </dd>
     </div>
     <div>
-      <dt class="text-xs text-muted">{ux('selected')}</dt>
+      <dt class="text-callout text-muted">{ux('selected')}</dt>
       <dd class="mt-1 space-y-1">
         {#each selectedFields as field}<p>
             {snapshotFieldName(field, t)}
@@ -105,7 +105,7 @@
       </dd>
     </div>
     {#if request.type === 'secret_share' && !d.channel}<div>
-        <dt class="text-xs text-muted">{ux('scope')}</dt>
+        <dt class="text-callout text-muted">{ux('scope')}</dt>
         <dd class="mt-1">
           {when(d.expires_at)}<br />{w('sessions')}: {d.max_download_sessions}<br
           />{w('password')}: {d.password ? '✓' : '—'}
@@ -113,11 +113,11 @@
       </div>{/if}
   {:else if request.type === 'secret_discovery_import'}
     <div class="min-w-0">
-      <dt class="text-xs text-muted">{ux('source')}</dt>
+      <dt class="text-callout text-muted">{ux('source')}</dt>
       <dd class="mt-1 break-all">{d.scan?.root}</dd>
     </div>
     <div>
-      <dt class="text-xs text-muted">{ux('selected')}</dt>
+      <dt class="text-callout text-muted">{ux('selected')}</dt>
       <dd class="mt-1 space-y-1">
         {#each d.scan?.report?.candidates?.filter( (c: any) => d.candidate_ids?.includes(c.id) ) ?? [] as candidate}<p
           >
@@ -127,20 +127,20 @@
     </div>
   {:else if request.type.startsWith('secret_ssh')}
     <div>
-      <dt class="text-xs text-muted">{ux('source')}</dt>
+      <dt class="text-callout text-muted">{ux('source')}</dt>
       <dd class="mt-1">
         {d.resolved?.item_title ?? d.binding?.resolved?.item_title}<br />{d
           .resolved?.field_label ?? d.binding?.resolved?.field_label}
       </dd>
     </div>
     <div class="min-w-0">
-      <dt class="text-xs text-muted">{ux('fingerprint')}</dt>
+      <dt class="text-callout text-muted">{ux('fingerprint')}</dt>
       <dd class="mt-1">
         <Id id={d.fingerprint ?? d.binding?.fingerprint ?? ''} full wrap />
       </dd>
     </div>
     <div>
-      <dt class="text-xs text-muted">{ux('scope')}</dt>
+      <dt class="text-callout text-muted">{ux('scope')}</dt>
       <dd class="mt-1">
         {d.purpose
           ? term(d.purpose.kind)

@@ -108,7 +108,7 @@
 
 <Section title={t('agentIds')} description={t('agentIdsHint')} icon="agents" flush>
   {#if quota}
-    <p class="px-5 py-2 text-[12px] text-muted" data-testid="agent-account-quota">{t('account')} · {t('hostedAgentIds')} · <bdi dir="ltr">{quota.used} / {quota.limit ?? '—'}</bdi></p>
+    <p class="px-5 py-2 text-callout text-muted" data-testid="agent-account-quota">{t('account')} · {t('hostedAgentIds')} · <bdi dir="ltr">{quota.used} / {quota.limit ?? '—'}</bdi></p>
   {/if}
   <ul class="divide-y divide-line" data-testid="agent-ids">
     {#each hosted.agents as a (a.agent_id)}
@@ -118,13 +118,13 @@
           <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-pale text-forest"><Icon name="agents" /></span>
           <div class="min-w-[min(100%,10rem)] flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
-              <b class="min-w-0 text-[13.5px] font-semibold [overflow-wrap:anywhere]">{a.label}</b>
+              <b class="min-w-0 text-body font-semibold [overflow-wrap:anywhere]">{a.label}</b>
               {#if hosted.active === a.agent_id}<Pill tone="forest">{t('active')}</Pill>{/if}
               {#if a.resident}<Pill tone="gem"><Icon name="background" />{t('resident')}</Pill>{/if}
               {#if a.paused}<Pill tone="warn" testid="agent-paused">{t('paused')}</Pill>{/if}
             </div>
             <div class="mt-1"><Id id={a.agent_id} /></div>
-            <p class="mt-1 text-[11.5px] text-faint">
+            <p class="mt-1 text-caption text-faint">
               {a.credential ? t('credentialIssued', { at: when(a.credential_at) }) : t('noCredential')}
               {#if a.sessions?.length}· {t('sessionsLine', { n: a.sessions.length, at: ago(a.sessions[0].updated_at) })}{/if}
             </p>
@@ -159,39 +159,39 @@
         {#if shown}
           <div id={'agent-profile-' + a.label} class="mt-3 grid min-w-0 gap-2 sm:ms-12" data-testid="agent-profile-view">
             {#if shown.loading}
-              <p class="text-[12px] text-faint">{t('loading')}</p>
+              <p class="text-callout text-muted">{t('loading')}</p>
             {:else if shown.error}
               <Notice tone="danger">{shown.error}
                 {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={() => profile(a.agent_id)}>{t('retry')}</button>{/snippet}
               </Notice>
             {:else if !shown.profiles?.length}
-              <p class="text-[12px] text-faint">{t('noProfileServices')}</p>
+              <p class="text-callout text-muted">{t('noProfileServices')}</p>
             {:else}
               {#each shown.profiles as entry (entry.service)}
-                <div class="rounded-lg bg-surface-2 p-3 text-[12.5px]">
-                  <p class="font-mono text-[11.5px] text-faint">{entry.service}</p>
+                <div class="rounded-lg bg-surface-2 p-3 text-callout">
+                  <p class="font-mono text-code text-faint">{entry.service}</p>
                   {#if entry.error}
                     <p class="mt-1 text-danger">{t('error')}: {entry.error.code}</p>
-                    <button class={buttonClass('secondary', 'xs')} onclick={() => profile(a.agent_id)}>{t('retry')}</button>
+                    <button class={buttonClass('subtle', 'xs')} onclick={() => profile(a.agent_id)}>{t('retry')}</button>
                   {:else if !entry.profile}
                     <p class="mt-1 text-faint">{t('noProfile')}</p>
                   {:else}
                     {@const p = entry.profile}
                     <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                      <b class="text-[13px] font-semibold">{p.name}</b>
+                      <b class="text-body font-semibold">{p.name}</b>
                       {#if p.provider}<span class="text-faint">· {p.provider}</span>{/if}
                       <Pill tone="ok"><Icon name="verified" />{t('signatureChecked')}</Pill>
                     </div>
-                    {#if p.description}<p class="mt-1 whitespace-pre-wrap text-muted">{p.description}</p>{/if}
+                    {#if p.description}<p class="mt-1 whitespace-pre-wrap select-text text-muted">{p.description}</p>{/if}
                     {#if p.capabilities?.length}
                       <div class="mt-1.5 flex flex-wrap gap-1">{#each p.capabilities as c (c)}<Pill class="font-mono font-normal">{c}</Pill>{/each}</div>
                     {/if}
-                    {#each p.service_endpoints ?? [] as e (e.url)}<p class="mt-1 font-mono text-[11.5px] text-muted">{e.kind} · {e.url}</p>{/each}
-                    {#each p.links ?? [] as l (l.url)}<p class="mt-1 text-[11.5px] text-muted">{l.name} ({l.rel}) · <span class="font-mono">{l.url}</span></p>{/each}
+                    {#each p.service_endpoints ?? [] as e (e.url)}<p class="mt-1 font-mono text-code text-muted">{e.kind} · {e.url}</p>{/each}
+                    {#each p.links ?? [] as l (l.url)}<p class="mt-1 text-caption text-muted">{l.name} ({l.rel}) · <span class="font-mono">{l.url}</span></p>{/each}
                     {#each p.delegations ?? [] as d, i (i)}
-                      <p class="mt-1 text-[11.5px] text-muted">{t('delegationHintLine')}: <span class="font-mono">{d.principal.id}</span>{d.scopes ? ` · ${d.scopes.join(', ')}` : ''}</p>
+                      <p class="mt-1 text-caption text-muted">{t('delegationHintLine')}: <span class="font-mono">{d.principal.id}</span>{d.scopes ? ` · ${d.scopes.join(', ')}` : ''}</p>
                     {/each}
-                    <p class="mt-1.5 text-[11px] text-faint">{t('selfDescribed')} · {when(p.updated_at)}</p>
+                    <p class="mt-1.5 text-caption text-faint">{t('selfDescribed')} · {when(p.updated_at)}</p>
                   {/if}
                 </div>
               {/each}
@@ -200,7 +200,7 @@
         {/if}
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('noAgents')}</li>
+      <li class="px-5 py-3 text-body text-faint">{t('noAgents')}</li>
     {/each}
   </ul>
   {#if unlocked}
@@ -211,7 +211,7 @@
           class="min-w-40 max-w-xs flex-1" data-testid="agent-label" />
         <button class={buttonClass('primary', 'md', 'mt-5')} type="submit" disabled={busy || !name} data-testid="agent-create">{existing ? t('open') : t('create')}</button>
       </div>
-      <p role="status" class="text-[12px] text-muted empty:hidden">{created ? t('created') + ' · ' + created : ''}</p>
+      <p role="status" class="text-callout text-muted empty:hidden">{created ? t('created') + ' · ' + created : ''}</p>
     </form>
   {/if}
 </Section>
@@ -219,13 +219,13 @@
 <Section title={t('hosts')} description={t('hostsHint')} icon="website">
   <ul class="flex flex-wrap gap-1.5">
     {#each hosted.hosts as h (h.host)}
-      <li class="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1 text-[12px]">
+      <li class="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1 text-callout">
         <Icon name="lock" class="size-3 text-faint" />
         <bdi dir="ltr" class="font-mono">{h.host}</bdi>
         {#if h.label}<span class="text-faint">· {h.label}</span>{/if}
       </li>
     {:else}
-      <li class="text-[13px] text-faint">{t('noRecords')}</li>
+      <li class="text-body text-faint">{t('noRecords')}</li>
     {/each}
   </ul>
 </Section>
@@ -233,10 +233,10 @@
 {#snippet block(title: string, value: string, testid: string)}
   <div class="grid gap-1">
     <div class="flex items-center justify-between gap-2">
-      <h3 class="text-[12px] font-medium text-faint">{title}</h3>
+      <h3 class="text-callout font-medium text-muted">{title}</h3>
       <button class={buttonClass('ghost', 'xs')} aria-label={t('copy') + ' · ' + title} onclick={() => copyText(value)}><Icon name="copy" />{t('copy')}</button>
     </div>
-    <pre class="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-[11.5px] break-all whitespace-pre-wrap text-ink select-all" data-testid={testid}>{value}</pre>
+    <pre class="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-code break-all whitespace-pre-wrap text-ink select-all" data-testid={testid}>{value}</pre>
   </div>
 {/snippet}
 
@@ -246,23 +246,23 @@
       <Segmented bind:value={client} options={clients} label={t('connectAgent')} testid="agent-client" class="w-fit max-w-full flex-wrap" />
       {#if client === 'codex'}
         {@render block(t('connectCodexCommand'), issued.codexCommand, 'agent-connect-codex-command')}
-        <details><summary class="cursor-pointer text-[12.5px] text-forest">{t('connectCodexConfig')}</summary>
+        <details><summary class="text-callout text-forest">{t('connectCodexConfig')}</summary>
           {@render block(t('connectCodexConfig'), issued.codexConfig, 'agent-connect-codex-config')}
         </details>
-        <p class="text-[12px] text-muted">{t('connectCodexHint')}</p>
+        <p class="text-callout text-muted">{t('connectCodexHint')}</p>
       {:else if client === 'claude'}
         {@render block(t('connectClaudeCode'), issued.command, 'agent-connect-command')}
-        <details><summary class="cursor-pointer text-[12.5px] text-forest">{t('connectConfig')}</summary>
+        <details><summary class="text-callout text-forest">{t('connectConfig')}</summary>
           {@render block(t('connectConfig'), issued.config, 'agent-connect-config')}
         </details>
       {:else if client === 'anda'}
         {@render block(t('connectAndaConfig'), issued.andaConfig, 'agent-connect-anda-config')}
-        <p class="text-[12px] text-muted">{t('connectAndaHint')}</p>
+        <p class="text-callout text-muted">{t('connectAndaHint')}</p>
       {:else}
         {@render block('DMSG_AGENT_TOKEN', issued.credential, 'agent-credential')}
       {/if}
-      <p class="text-[12px] text-muted">{t('connectNext')}</p>
-      <p class="text-[12px] text-warn">{t('connectStored')}</p>
+      <p class="text-callout text-muted">{t('connectNext')}</p>
+      <p class="text-callout text-warn">{t('connectStored')}</p>
     </div>
   {/if}
   {#snippet footer()}

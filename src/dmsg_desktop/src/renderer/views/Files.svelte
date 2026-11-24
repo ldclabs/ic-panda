@@ -804,30 +804,30 @@
 {#snippet readFailure()}
   <Notice tone="warn" class="m-3" testid="files-list-error">
     <p>{error}</p>
-    <button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={() => attempt(reload)} disabled={busy}>{t('retry')}</button>
+    <button class={buttonClass('subtle', 'xs', 'mt-2')} onclick={() => attempt(reload)} disabled={busy}>{t('retry')}</button>
   </Notice>
 {/snippet}
 
 {#snippet places()}
       <Tree {standalone} {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
       {#if usage}
-        <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint">
+        <div class="border-t border-line px-3.5 py-2 text-caption text-faint">
           <p>{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
           {#if unlocked}
             <button class="mt-0.5 text-forest hover:underline disabled:opacity-50" disabled={busy} onclick={verifyAll} data-testid="files-verify-all">{t('verifyAll')}</button>
           {/if}
         </div>
         {#if usage.last_check && usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length > 0}
-          <p class="flex items-start gap-1.5 px-3.5 pb-2 text-[11px] text-warn" data-testid="files-check-warning"><Icon name="warning" class="mt-px size-3.5 shrink-0" />{t('selfCheckDamage', { n: usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length })}</p>
+          <p class="flex items-start gap-1.5 px-3.5 pb-2 text-caption text-warn" data-testid="files-check-warning"><Icon name="warning" class="mt-px size-3.5 shrink-0" />{t('selfCheckDamage', { n: usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length })}</p>
         {/if}
         {#if usage.open_copies > 0 && unlocked}
-          <button class="flex items-center gap-1.5 border-t border-line px-3.5 py-2 text-start text-[11px] text-warn hover:underline" onclick={() => (copiesOpen = true)} data-testid="files-open-copies-open">
+          <button class="flex items-center gap-1.5 border-t border-line px-3.5 py-2 text-start text-caption text-warn hover:underline" onclick={() => (copiesOpen = true)} data-testid="files-open-copies-open">
             <Icon name="external" class="size-3.5 shrink-0" />{t('openCopies', { n: usage.open_copies })}
           </button>
         {/if}
       {/if}
       {#if mount?.supported}
-        <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint" data-testid="files-mount">
+        <div class="border-t border-line px-3.5 py-2 text-caption text-faint" data-testid="files-mount">
           {#if mount.mounted}
             <p class="truncate" title={mount.mount_point ?? mount.url}>{t('mountedAt', { point: mount.mount_point ?? mount.url })}</p>
             <button class="mt-1 text-forest hover:underline disabled:opacity-50" disabled={busy} onclick={unmountDisk} data-testid="files-unmount">{t('unmountDisk')}</button>
@@ -853,7 +853,7 @@
   data-testid="files"
 >
   {#if !unlocked || error === 'LOCKED'}
-    <div class="flex flex-1 flex-col items-center justify-center gap-3"><Locked {status} testid="files-locked" /><p class="max-w-lg px-6 text-center text-[12.5px] text-muted">{t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p></div>
+    <div class="flex flex-1 flex-col items-center justify-center gap-3"><Locked {status} testid="files-locked" /><p class="max-w-lg px-6 text-center text-callout text-muted">{t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p></div>
   {:else}
     <div class="border-b border-line px-3 py-2 @min-[800px]:hidden">
       <button class={buttonClass('ghost', 'sm')} onclick={() => (placesOpen = true)} data-testid="files-places-open"><Icon name="folder" />{t('files')}</button>
@@ -957,14 +957,14 @@
                     <DropdownMenu.Separator class="my-1 h-px bg-line" />
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => newFolderIn(scope)} data-testid="files-new-folder-menu">
                       <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('newFolder')}</span>
-                      <kbd class="font-sans text-[11px] text-faint">{mod}N</kbd>
+                      <kbd class="font-sans text-caption text-faint">{mod}N</kbd>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             {/if}
           </div>
-          <div class="flex min-w-0 items-center gap-1 px-0.5 text-[11.5px] text-faint" data-testid="files-path">
+          <div class="flex min-w-0 items-center gap-1 px-0.5 text-caption text-faint" data-testid="files-path">
             <button class="shrink-0 truncate hover:text-ink" onclick={() => pick(ROOT)}>{t('library')}</button>
             {#if folderScope}
               {#each ancestors as folder, i (folder.id)}
@@ -985,7 +985,7 @@
         </div>
 
         {#if selected.length > 1 && unlocked}
-          <div class="mx-3 mb-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5 text-[12px] text-ink-2" data-testid="files-selection">
+          <div class="mx-3 mb-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5 text-callout text-ink-2" data-testid="files-selection">
             <span class="basis-full font-medium">{t('selectedCount', { n: selected.length })}</span>
             {#if !standalone}<Tooltip content={t('backUp')}>
               {#snippet children(props)}
@@ -1021,7 +1021,7 @@
         {/if}
 
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-        <ul bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('files')} onkeydown={onListKey} data-testid="files-list">
+        <ul data-list bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('files')} onkeydown={onListKey} data-testid="files-list">
           {#each shown as row (row.id)}
             <Row {standalone}
               entry={row}
@@ -1054,23 +1054,23 @@
                 {#if query.trim()}
                   <SearchStatus search={searchResults} empty={t('noFilesMatch', { query })} />
                 {:else if !folderScope}
-                  <p class="text-[13px] text-muted">{t('noItems')}</p>
+                  <p class="text-body text-muted">{t('noItems')}</p>
                 {:else}
                   <span class="grid size-11 place-items-center justify-self-center text-faint [&_svg]:size-6"><Icon name="folder-open" /></span>
-                  <b class="text-[13.5px] font-semibold">{scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')}</b>
-                  <p class="text-[12.5px] text-muted">{t('emptyFolderHint')}</p>
+                  <b class="text-body font-semibold">{scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')}</b>
+                  <p class="text-callout text-muted">{t('emptyFolderHint')}</p>
                 {/if}
               </li>
             {:else}
               <!-- The daemon may answer late, busy with other work: never an empty library before it does. -->
-              <li class="px-4 py-10 text-center" data-testid="files-loading"><p class="shimmer text-[13px] text-muted">{t('loading')}</p></li>
+              <li class="px-4 py-10 text-center" data-testid="files-loading"><p class="shimmer text-body text-muted">{t('loading')}</p></li>
             {/if}
           {/each}
           {#if shown.length && (searchResults.result.kind === 'failed' || searchResults.result.kind === 'loading')}
             <li class="px-3 py-2"><SearchStatus search={searchResults} empty="" /></li>
           {/if}
           {#if rows.length > shown.length}
-            <li bind:this={sentinel} class="py-3 text-center text-[11.5px] text-faint" data-testid="files-more-rows">{t('moreRows', { n: rows.length - shown.length })}</li>
+            <li bind:this={sentinel} class="py-3 text-center text-caption text-faint" data-testid="files-more-rows">{t('moreRows', { n: rows.length - shown.length })}</li>
           {/if}
         </ul>
         <Jobs {nameOf} onCancel={cancelBackup} onRetry={retryTransfer} onCancelImport={cancelImport} />
@@ -1117,7 +1117,7 @@
             onDiscard={() => trash([currentFolder.id])}
           />
         {:else if loaded}
-          <div class="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
+          <div class="grid h-full place-items-center p-8 text-center text-body text-faint">
             <p>{selected.length > 1 ? t('selectedCount', { n: selected.length }) : rows.length ? t('selectFile') : ''}</p>
           </div>
         {/if}
@@ -1130,15 +1130,15 @@
     <div class="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-2xl border-2 border-dashed border-forest/60 bg-pale/85 text-forest backdrop-blur-[1px] animate-in fade-in-0">
       <div class="grid justify-items-center gap-2">
         <Icon name="add" class="size-7" />
-        <b class="text-[14px] font-semibold">{t('dropToAdd')}</b>
-        <span class="text-[12px] text-muted">{t('dropFilesDetail')}</span>
+        <b class="text-title-3 font-semibold">{t('dropToAdd')}</b>
+        <span class="text-callout text-muted">{t('dropFilesDetail')}</span>
       </div>
     </div>
   {/if}
 </div>
 
 <Dialog bind:open={() => !!program, (next) => !next && (program = null)} title={t('openProgramTitle')} description={program?.name} icon="warning" tone="warn" testid="files-open-program">
-  <p class="text-[13px] text-muted">{t('openProgramHint')}</p>
+  <p class="text-body text-muted">{t('openProgramHint')}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (program = null)}>{t('cancel')}</button>
@@ -1194,7 +1194,7 @@
   tone="danger"
   testid="files-purge-dialog"
 >
-  <p class="text-[13.5px] leading-relaxed">{t('purgeHint')}</p>
+  <p class="text-body leading-relaxed">{t('purgeHint')}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (purging = null)}>{t('cancel')}</button>
@@ -1204,7 +1204,7 @@
 
 <Dialog bind:open={() => !!backing, (next) => !next && (backupState = { kind: 'idle' })} title={t('backupTitle')} icon="cloud-up" testid="files-backup-dialog">
   {#if backing}
-    <p class="text-[13.5px] leading-relaxed">{t('backupHint', { n: backing.count, size: size(backing.bytes) })} {t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p>
+    <p class="text-body leading-relaxed">{t('backupHint', { n: backing.count, size: size(backing.bytes) })} {t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p>
     <Notice tone={backing.usage?.storage_limit && backing.usage.reserved + backing.usage.committed + backing.bytes > backing.usage.storage_limit ? 'warn' : 'info'} class="mt-3" icon="sync">
       {backing.usage?.storage_limit ? t('cloudRoom', { used: size(backing.usage.reserved + backing.usage.committed), limit: size(backing.usage.storage_limit) }) : t('cloudRoomUnknown')}
     </Notice>
@@ -1218,19 +1218,19 @@
 
 {#snippet costQuote()}
   {#if quoteError}<Notice failure={quoteError} tone="danger">{quoteError}</Notice>{/if}
-  {#if quoting}<p class="text-[12px] text-faint">{t('loading')}</p>{:else if quote}
+  {#if quoting}<p class="text-callout text-muted">{t('loading')}</p>{:else if quote}
     <Notice tone="info">{t('storageQuote',{bytes:size(quote.estimated_bytes),payer:quote.payer === status?.account ? t('storageMe') : quote.payer})}</Notice>
-    {#if quote.existing?.length}<p class="mt-2 text-[12px] text-muted">{t('storageExisting',{n:quote.existing.length})}</p>{/if}
+    {#if quote.existing?.length}<p class="mt-2 text-callout text-muted">{t('storageExisting',{n:quote.existing.length})}</p>{/if}
   {/if}
 {/snippet}
 
 <Dialog bind:open={() => !!linking, (next) => !next && (linking = null)} title={t('linkTitle')} description={linking?.name} icon="link" testid="files-link-dialog">
   {#if linkResult}
     <div class="grid gap-3">
-      <p class="text-[13.5px] leading-relaxed">{t('linkReady')}</p>
+      <p class="text-body leading-relaxed">{t('linkReady')}</p>
       <div class="flex min-w-0 items-start gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
-        <code class="min-w-0 flex-1 whitespace-normal font-mono text-[12px] leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linkResult.url}</code>
-        <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(linkResult.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
+        <code class="min-w-0 flex-1 whitespace-normal font-mono text-code leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linkResult.url}</code>
+        <button class={buttonClass('subtle', 'xs')} onclick={() => copyText(linkResult.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
       </div>
       <Notice tone="info">{linkResult.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
     </div>
@@ -1244,18 +1244,18 @@
       {#if linking.remote}<Notice tone="info" icon="cloud-down" testid="files-link-remote">{t('linkFromCloud')}</Notice>{/if}
       {@render costQuote()}
       <fieldset disabled={busy} class="grid min-w-0 gap-3">
-      <div class="grid gap-1 text-[12px] text-faint">
+      <div class="grid gap-1 text-callout text-muted">
         {t('linkDays')}
         <Select bind:value={() => String(linking?.days ?? 7), (next) => linking && (linking.days = Number(next))} options={[{ value: '1', label: t('days1') }, { value: '7', label: t('days7') }, { value: '30', label: t('days30') }]} label={t('linkDays')} testid="files-link-days" class="w-full" />
       </div>
-      <label class="grid gap-1 text-[12px] text-faint">
+      <label class="grid gap-1 text-callout text-muted">
         {t('linkMaxDownloads')}
-        <input type="number" min="0" max="1000000" bind:value={linking.maxDownloads} class="text-[13.5px] text-ink" data-testid="files-link-max" />
+        <input type="number" min="0" max="1000000" bind:value={linking.maxDownloads} class="text-body text-ink" data-testid="files-link-max" />
       </label>
       <SecretInput disabled={busy} label={t('linkPassword')} hint={t('linkPasswordHint')} bind:value={linking.password} testid="files-link-password" />
       <div class="grid gap-1.5">
         <Checkbox bind:checked={linking.showProfile} disabled={busy} descriptionId="files-link-profile-hint" testid="files-link-profile">{t('linkShowProfile')}</Checkbox>
-        <p id="files-link-profile-hint" class="text-[12px] text-muted">{t('linkShowProfileHint')}</p>
+        <p id="files-link-profile-hint" class="text-callout text-muted">{t('linkShowProfileHint')}</p>
       </div>
       </fieldset>
       {#if linkError}<Notice tone="danger">{linkError}</Notice>{/if}
@@ -1273,7 +1273,7 @@
 </Dialog>
 
 <Dialog bind:open={mounting} title={t('mountTitle')} icon="drive" testid="files-mount-dialog">
-  <p class="text-[13.5px] leading-relaxed">{t('mountHint')}</p>
+  <p class="text-body leading-relaxed">{t('mountHint')}</p>
   {#if mount?.os === 'macos' || mount?.os === 'windows' || mount?.os === 'linux'}
     <Notice tone="warn" class="mt-3">{t(mount.os === 'macos' ? 'mountNoteMacos' : mount.os === 'windows' ? 'mountNoteWindows' : 'mountNoteLinux')}</Notice>
   {/if}
@@ -1289,11 +1289,11 @@
     <div class="grid gap-3">
       <Notice tone="info">{t('shareHint')}</Notice>
       {@render costQuote()}
-      <div class="grid gap-1 text-[12px] text-faint">
+      <div class="grid gap-1 text-callout text-muted">
         {t('chooseChannel')}
         <Select bind:value={sharing.channel} options={sharing.channels.map((c) => ({ value: c.id, label: c.name }))} placeholder={t('pickChannel')} label={t('chooseChannel')} testid="files-share-channel" class="w-full" />
       </div>
-      <label class="grid gap-1 text-[12px] text-faint">{t('body')}<textarea bind:value={sharing.text} rows="3" class="text-[13.5px] text-ink"></textarea></label>
+      <label class="grid gap-1 text-callout text-muted">{t('body')}<textarea bind:value={sharing.text} rows="3" class="text-body text-ink"></textarea></label>
     </div>
   {/if}
   {#snippet footer()}
@@ -1304,7 +1304,7 @@
 </Dialog>
 
 <Dialog bind:open={() => !!deletingCloud, (next) => !next && (deletingCloud = null)} title={t('deleteCloudTitle', { n: deletingCloud?.length ?? 0 })} icon="cloud-off" tone="danger" testid="files-cloud-delete-dialog">
-  <p class="text-[13.5px] leading-relaxed">{t('storageConfirmHint')}</p>
+  <p class="text-body leading-relaxed">{t('storageConfirmHint')}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (deletingCloud = null)}>{t('cancel')}</button>
@@ -1313,7 +1313,7 @@
 </Dialog>
 
 <Dialog bind:open={() => !!changedCopy, (next) => !next && (changedCopy = null)} title={t('copyChanged', { name: changedCopy?.name ?? '' })} description={t('copyChangedHint')} icon="edit" tone="warn" testid="files-copy-changed">
-  <p class="truncate font-mono text-[12px] text-faint" dir="ltr">{changedCopy?.path}</p>
+  <p class="truncate font-mono text-code text-faint" dir="ltr">{changedCopy?.path}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} disabled={busy} onclick={() => settleCopy(false)}>{t('discardChange')}</button>

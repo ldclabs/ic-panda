@@ -228,21 +228,21 @@
   {#if p && available}
     <div class="grid gap-4">
       <div class="flex flex-wrap items-center gap-2"
-        ><Pill>{w(resultState(p, now))}</Pill><span class="text-[12px]"
+        ><Pill>{w(resultState(p, now))}</Pill><span class="text-callout"
           >{approvalCount(p, wallet.members)} / {p.requirement.approvals} · {w(p.requirement.admin ? 'Admin' : 'Approver')}</span
         >{#if available.voted}<Pill>{w('voted')}</Pill>{/if}</div
       >
       {#if resultState(p, now) === 'partialPayment'}<Notice tone="warn">{w('partialNext')}</Notice>
       {:else if resultState(p, now) === 'resultUnknown'}<Notice tone="warn">{w('unknownCallNext')}</Notice>
       {:else if resultState(p, now) === 'waitingResult' && ['ICP', 'ICRC'].includes(p.intent.asset?.asset)}<Notice tone="warn">{w('ledgerUnknown')}</Notice>{/if}
-      {#if available.rebroadcast}<p class="text-muted text-[12px]">{w('confirmationNext')}</p>{/if}
-      {#if resultState(p, now) === 'chainReported'}<p class="text-muted text-[12px]">{w('chainReportHint')}</p>{/if}
-      {#if queueKind(p, wallet, now) !== 'history'}<p class="text-[13px] font-medium" role="status"
+      {#if available.rebroadcast}<p class="text-muted text-callout">{w('confirmationNext')}</p>{/if}
+      {#if resultState(p, now) === 'chainReported'}<p class="text-muted text-callout">{w('chainReportHint')}</p>{/if}
+      {#if queueKind(p, wallet, now) !== 'history'}<p class="text-body font-medium" role="status"
           >{w('nextStep')}: {w(queueKind(p, wallet, now))}{p.ready_at && p.ready_at > now
             ? ` · ${durationText(Math.ceil((p.ready_at - now) / 60000) * 60000, locale())}`
             : ''}</p
         >{/if}
-      {#if available.state === 'Open'}<p class="text-muted text-[12px]"
+      {#if available.state === 'Open'}<p class="text-muted text-callout"
           >{w('remainingVoters')}: {wallet.members
             .filter(
               (m) =>
@@ -255,8 +255,8 @@
         >{/if}
       <Intent intent={p.intent} {metadata} before={wallet} />
       <Collapsible
-        >{#snippet title()}<span class="text-[13px]">{w('technical')}</span>{/snippet}
-        <dl class="border-line grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border-t pt-4 text-[12px]">
+        >{#snippet title()}<span class="text-body">{w('technical')}</span>{/snippet}
+        <dl class="border-line grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border-t pt-4 text-callout">
           <dt>{w('Proposer')}</dt><dd class="font-mono break-all">{p.proposer}</dd>
           {#if p.via_agent}<dt>Agent ID</dt><dd class="font-mono break-all">{p.via_agent}</dd>{/if}
           <dt>{t('created')}</dt><dd>{when(p.created_at)}</dd><dt>{t('expires')}</dt><dd>{when(p.expires_at)}</dd>
@@ -265,19 +265,19 @@
         </dl></Collapsible
       >
       <section
-        ><h3 class="mb-2 text-[13px] font-semibold">{w('votes')}</h3>{#each p.votes as v, i (i)}<p class="mb-1 text-[12px] break-all"
+        ><h3 class="mb-2 text-body font-semibold">{w('votes')}</h3>{#each p.votes as v, i (i)}<p class="mb-1 text-callout break-all"
             >{wallet.members.find((m) => m.id === v.member)?.label || v.member} · {v.decision === 'Approve'
               ? t('approve')
               : v.decision === 'Reject'
                 ? t('reject')
                 : t('twVeto')} · {when(v.at)}</p
-          >{:else}<p class="text-faint text-[12px]">{w('none')}</p>{/each}</section
+          >{:else}<p class="text-muted text-callout">{w('none')}</p>{/each}</section
       >
       {#if p.failure}<Notice failure={p.failure} tone="danger">{p.failure}</Notice>{/if}
       {#if p.status === 'Executing' && ['ICP', 'ICRC'].includes(p.intent.asset?.asset)}
         <section class="border-line grid gap-3 rounded-lg border p-3" data-testid="wallet-ledger-reconcile">
           <Notice>{w('ledgerUnknown')}</Notice>
-          <p class="text-[13px]">{w('ledgerLookupHint')}</p><p class="text-[12px] break-all">{p.ledger} · {p.source_account}</p>
+          <p class="text-body">{w('ledgerLookupHint')}</p><p class="text-callout break-all">{p.ledger} · {p.source_account}</p>
           {#if ledgerLink}<button
               class={buttonClass('ghost', 'sm', 'justify-self-start')}
               onclick={() => bridge(() => window.dmsg.openUrl(ledgerLink))}>{w('ledgerLookup')}</button
@@ -302,7 +302,7 @@
       {/if}
       {#if available.rebroadcast && p.intent.kind === 'transfer' && ['ETH', 'ERC20'].includes(p.intent.asset?.asset) && signedNonce != null}
         <Collapsible
-          >{#snippet title()}<span class="text-[13px]">{w('advancedRecovery')}</span>{/snippet}
+          >{#snippet title()}<span class="text-body">{w('advancedRecovery')}</span>{/snippet}
           <div class="flex flex-wrap gap-2">
             <button class={buttonClass('secondary', 'sm')} disabled={disabled || wallet.frozen} onclick={() => (nonceAction = 'cancel_nonce')}
               >{w('cancel_evm_nonce')}</button
@@ -321,9 +321,9 @@
         >
       {/if}
       {#if p.outcome}<Collapsible
-          >{#snippet title()}<span class="text-[13px]">{w('details')}</span>{/snippet}<section class="border-line rounded-lg border p-3"
-            ><h3 class="text-[13px] font-semibold">{w('details')}</h3>{#each leaves(p.outcome) as row, i (i)}<p
-                class="text-[12px] break-all">{row.path.map(w).join(' · ')}: {w(row.value)}</p
+          >{#snippet title()}<span class="text-body">{w('details')}</span>{/snippet}<section class="border-line rounded-lg border p-3"
+            ><h3 class="text-body font-semibold">{w('details')}</h3>{#each leaves(p.outcome) as row, i (i)}<p
+                class="text-callout break-all">{row.path.map(w).join(' · ')}: {w(row.value)}</p
               >{/each}<button class={buttonClass('ghost', 'xs')} onclick={() => copyText(JSON.stringify(p!.outcome, null, 2))}
               >{t('copy')}</button
             ></section
@@ -331,29 +331,29 @@
         >{/if}
       {#each p.plan_details ?? [] as detail, i (i)}
         <section class="border-line rounded-lg border p-3"
-          ><h3 class="text-[13px] font-semibold">{w('plan')} #{detail.seq} · {detail.chain}</h3><p class="text-[12px]"
+          ><h3 class="text-body font-semibold">{w('plan')} #{detail.seq} · {detail.chain}</h3><p class="text-callout"
             >{w('fee')}: {amountText(detail.fee, intentFeeAsset(p.intent, metadata), w('atomic'))} · {t('expires')}: {when(
               detail.expires_at
             )} · {durationText(Math.max(0, Math.ceil((detail.expires_at - now) / 60000)) * 60000, locale())}</p
-          ><p class="font-mono text-[11px] break-all">{detail.from}</p></section
+          ><p class="font-mono text-code break-all">{detail.from}</p></section
         >
       {/each}
       {#each p.signed as signed (signed.plan)}
         {@const link = p.intent.asset ? explorerUrl(p.intent.asset, signed.txid, wallet.environment) : null}
         {#if link}<button class={buttonClass('ghost', 'xs', 'justify-self-start')} onclick={() => bridge(() => window.dmsg.openUrl(link))}
             >{link}</button
-          >{/if}<p class="flex gap-2 font-mono text-[11px] break-all"
+          >{/if}<p class="flex gap-2 font-mono text-code break-all"
           >#{signed.plan} · {signed.txid}<button
             class={buttonClass('ghost', 'xs')}
             aria-label={t('copy')}
             onclick={() => copyText(signed.txid)}>{t('copy')}</button
           ></p
         >{/each}
-      {#each p.broadcasts ?? [] as b, i (i)}<p class="text-[12px] break-all">{when(b.at)} · {w(b.outcome)} · {b.member} · {b.note}</p
+      {#each p.broadcasts ?? [] as b, i (i)}<p class="text-callout break-all">{when(b.at)} · {w(b.outcome)} · {b.member} · {b.note}</p
         >{/each}
       {#if required.length && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(available.state)}
         <section class="border-line bg-surface-2 grid gap-3 rounded-xl border p-4" data-testid="wallet-cosign-collection">
-          <h3 class="text-[13px] font-semibold">{w('cosigners')} · {w('plan')} #{plan}</h3><p class="text-muted text-[12px]"
+          <h3 class="text-body font-semibold">{w('cosigners')} · {w('plan')} #{plan}</h3><p class="text-muted text-callout"
             >{w('collectHint')}</p
           >
           {#if external && livePlans.length > 1}<Field label={w('plan')}
@@ -384,18 +384,18 @@
                     .join(', ')
                 })}</Notice
               >{/if}
-            {#if collection.can_cosign === false}<p class="text-muted text-[12px]">{w('cosignNoLocalKey')}</p>{/if}
+            {#if collection.can_cosign === false}<p class="text-muted text-callout">{w('cosignNoLocalKey')}</p>{/if}
           {/if}
           {#if collectionError}<Notice failure={collectionError} tone="danger"
               >{collectionError}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice
             >{/if}
           <Collapsible
-            >{#snippet title()}<span class="text-[13px]">{w('packet')} · {w('technical')}</span>{/snippet}
+            >{#snippet title()}<span class="text-body">{w('packet')} · {w('technical')}</span>{/snippet}
             {#if collection}<button class={buttonClass('secondary', 'sm')} onclick={() => copyText(collection.packet)}
                 >{w('copyPacket')}</button
               >{/if}
             <Field label={w('packet')}
-              ><textarea bind:value={packet} rows="3" spellcheck="false" class="font-mono text-[11px]" dir="ltr"></textarea></Field
+              ><textarea bind:value={packet} rows="3" spellcheck="false" class="font-mono text-code" dir="ltr"></textarea></Field
             >
             <div class="flex flex-wrap gap-2">
               <button
@@ -428,7 +428,7 @@
         {#if noteError}<Notice tone="danger">{noteError}{#if !noteLoaded}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button>{/if}</Notice>{/if}
         <Field label={w('privateNote')} hint={w('privateNoteHint')} hintId={noteHintId}><textarea aria-label={w('privateNote')} aria-describedby={noteHintId} disabled={!noteLoaded || noteSaving} bind:value={note} oninput={() => { noteSaved = false; noteError = '' }} maxlength="500" rows="2"></textarea></Field>
         <button class={buttonClass('ghost', 'sm', 'justify-self-start')} disabled={!noteLoaded || noteSaving || savedNote === note} onclick={saveNote}>{w('save')}</button>
-        {#if noteSaved && note === savedNote}<p class="text-ok text-[12px]" role="status">{w('saved')}</p>{/if}
+        {#if noteSaved && note === savedNote}<p class="text-ok text-callout" role="status">{w('saved')}</p>{/if}
       </section>
       {#if replace}<Notice tone="warn"
           >{w('resignHint')}<button

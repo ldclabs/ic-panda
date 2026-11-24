@@ -115,7 +115,7 @@
     <ul class="mt-3 divide-y divide-line" data-testid="request-created-list">
       {#each created as link (link.request_id)}
         <li class="flex min-w-0 items-center gap-3 py-2">
-          <p class="min-w-0 flex-1 break-words text-[13px]">
+          <p class="min-w-0 flex-1 break-words text-body">
             <bdi dir="auto">{link.label || link.title}</bdi>
           </p>
           <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} data-testid="request-copy"
@@ -191,7 +191,7 @@
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if working}
-      <p class="me-auto text-[12px] text-muted" role="status">
+      <p class="me-auto text-callout text-muted" role="status">
         {t('requestCreating', { done: progress.done, total: progress.total })}
       </p>
     {/if}

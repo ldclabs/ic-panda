@@ -80,8 +80,8 @@
 
 {#snippet handOver(packet: any)}
   <div class="grid gap-1.5 rounded-xl border border-line bg-surface p-2.5" data-testid="channel-invitation-box">
-    <p class="text-[11.5px] text-muted">{t('invitationHint')}</p>
-    <input readonly value={invitationLink(packet)} class="font-mono text-[11px]" data-testid="channel-invitation-link" />
+    <p class="text-caption text-muted">{t('invitationHint')}</p>
+    <input readonly value={invitationLink(packet)} class="font-mono text-code" data-testid="channel-invitation-link" />
     <textarea readonly class="hidden" data-testid="channel-invitation">{JSON.stringify(packet)}</textarea>
     <div class="flex gap-1.5">
       <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(invitationLink(packet))} data-testid="invitation-copy-link"><Icon name="link" />{t('copyLink')}</button>
@@ -93,8 +93,8 @@
 <div class="flex h-full min-h-0 flex-col" data-testid="channel-members">
   <header class="flex h-12 shrink-0 items-center gap-2 border-b border-line ps-4 pe-2">
     <Icon name="members" class="text-faint" />
-    <b class="flex-1 text-[13px] font-semibold">{t('members')} <span class="font-normal text-faint">{members.length}</span></b>
-    <span class="inline-flex shrink-0 items-center gap-1 text-[11px] text-faint" data-testid="channel-epoch"><Icon name="epoch" class="size-3" />{t('epochN', { n: ledger.epoch })}</span>
+    <b class="flex-1 text-body font-semibold">{t('members')} <span class="font-normal text-faint">{members.length}</span></b>
+    <span class="inline-flex shrink-0 items-center gap-1 text-caption text-faint" data-testid="channel-epoch"><Icon name="epoch" class="size-3" />{t('epochN', { n: ledger.epoch })}</span>
     <button class={iconButtonClass('ghost', 'lg')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
   </header>
   <ul class="min-h-0 flex-1 overflow-y-auto p-2">
@@ -106,24 +106,24 @@
           <div class="flex min-w-0 items-center gap-1.5">
             <Tooltip content={member.account}>
               {#snippet children(props)}
-                <button {...props} class="min-w-0 truncate text-[13px] font-medium outline-none hover:text-forest focus-visible:underline" onclick={() => copyText(member.account)}>
+                <button {...props} class="min-w-0 truncate text-body font-medium outline-none hover:text-forest focus-visible:underline" onclick={() => copyText(member.account)}>
                   <bdi>{label(member.account, false)}</bdi>
                 </button>
               {/snippet}
             </Tooltip>
-            {#if member.account === me}<span class="rounded bg-wash px-1 text-[10.5px] text-muted">{t('you')}</span>{/if}
+            {#if member.account === me}<span class="rounded bg-wash px-1 text-caption text-muted">{t('you')}</span>{/if}
           </div>
-          <p class="mt-0.5 text-[11.5px] text-faint">
+          <p class="mt-0.5 text-caption text-faint">
             <span class={cn(member.role === 'owner' && 'font-medium text-forest')}>{t(roleLabel[member.role] ?? 'roleMember')}</span>
             · {t('joinedEpoch', { epoch: member.joined_epoch })}
           </p>
           {#if mayRotate(ledger, member.account) || member.history.length}
             <div class="mt-1 flex flex-wrap gap-1">
               {#if mayRotate(ledger, member.account)}
-                <span class="inline-flex items-center gap-1 rounded bg-wash px-1.5 text-[10.5px] leading-[18px] text-ink-2"><Icon name="epoch" class="size-3" />{t('canRotate')}</span>
+                <span class="inline-flex items-center gap-1 rounded bg-wash px-1.5 text-caption leading-[18px] text-ink-2"><Icon name="epoch" class="size-3" />{t('canRotate')}</span>
               {/if}
               {#if member.history.length}
-                <span class="rounded bg-wash px-1.5 text-[10.5px] leading-[18px] text-ink-2">
+                <span class="rounded bg-wash px-1.5 text-caption leading-[18px] text-ink-2">
                   {t('history')} {member.history.map((h: number[]) => `${h[0]}–${h[1]}`).join(', ')}
                 </span>
               {/if}
@@ -142,7 +142,7 @@
                     value={member.role}
                     onValueChange={(role) => role !== member.role && onControl({ type: 'role', account: member.account, role, can_rotate: member.can_rotate })}
                   >
-                    <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('role')}</DropdownMenu.GroupHeading>
+                    <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-caption font-medium text-faint">{t('role')}</DropdownMenu.GroupHeading>
                     {#each roles as role (role)}
                       <DropdownMenu.RadioItem value={role} class={menuItemClass} data-value={role}>
                         {#snippet children({ checked })}
@@ -183,13 +183,13 @@
       </li>
     {/each}
     {#if open.length}
-      <li class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('openInvitations')}</li>
+      <li class="px-2 pt-3 pb-1 text-caption font-medium text-faint">{t('openInvitations')}</li>
       {#each open as item (item.id)}
         <li class="flex items-center gap-2.5 rounded-lg px-2 py-1.5" data-testid="open-invitation">
           <ParticipantAvatar account={item.account} size="sm" />
           <div class="min-w-0 flex-1">
-            <p class="truncate text-[12.5px]"><bdi>{label(item.account, false)}</bdi></p>
-            <p class="text-[11px] text-faint">{t(roleLabel[item.role] ?? 'roleMember')} · {t('expires')} {when(item.expires_at)}</p>
+            <p class="truncate text-callout"><bdi>{label(item.account, false)}</bdi></p>
+            <p class="text-caption text-faint">{t(roleLabel[item.role] ?? 'roleMember')} · {t('expires')} {when(item.expires_at)}</p>
           </div>
           {#if item.packet}
             <Tooltip content={t('copyLink')}>
@@ -219,7 +219,7 @@
   {#if manages && ledger.status !== 'archived'}
     <div class="grid gap-2 border-t border-line p-3">
       <div class="flex gap-1.5">
-        <input bind:value={target} placeholder={t('accountOrName')} class="min-w-0 font-mono text-[12px] placeholder:font-sans" spellcheck="false" data-testid="invite-account" />
+        <input bind:value={target} placeholder={t('accountOrName')} class="min-w-0 font-mono text-code placeholder:font-sans" spellcheck="false" data-testid="invite-account" />
         <button class={buttonClass('secondary')} disabled={busy || !target.trim()} onclick={invite} data-testid="invite-submit">{t('invite')}</button>
       </div>
       <Segmented
@@ -232,10 +232,10 @@
         testid="invite-role"
       />
       {#if ledger.status === 'active'}
-        <p class="text-[11.5px] text-faint" data-testid="invite-reads">{t('inviteReads', { epoch: rekey ? ledger.epoch + 1 : ledger.epoch })}</p>
-        {#if rotates}<Checkbox bind:checked={rekey} class="text-[12px]" testid="invite-rekey">{t('inviteRekey')}</Checkbox>{/if}
+        <p class="text-caption text-faint" data-testid="invite-reads">{t('inviteReads', { epoch: rekey ? ledger.epoch + 1 : ledger.epoch })}</p>
+        {#if rotates}<Checkbox bind:checked={rekey} class="text-callout" testid="invite-rekey">{t('inviteRekey')}</Checkbox>{/if}
       {:else}
-        <p class="text-[11.5px] text-faint" data-testid="invite-reads">{t('inviteNext')}</p>
+        <p class="text-caption text-faint" data-testid="invite-reads">{t('inviteNext')}</p>
       {/if}
       {#if invitation}{@render handOver(invitation)}{/if}
     </div>
@@ -251,7 +251,7 @@
     tone="danger"
     testid="member-remove-dialog"
   >
-    <p class="font-mono text-[11.5px] text-faint">{shortId(removing.account)}</p>
+    <p class="font-mono text-code text-faint">{shortId(removing.account)}</p>
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (removing = null)}>{t('cancel')}</button>

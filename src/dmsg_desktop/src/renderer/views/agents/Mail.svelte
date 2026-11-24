@@ -250,7 +250,7 @@
     <div class="grid grid-cols-1 gap-4">
       <div class="flex items-start gap-3 rounded-xl bg-surface-2 px-4 py-3">
         <Icon name="lock" class="mt-0.5 shrink-0 text-forest" />
-        <div class="text-[12.5px] leading-relaxed text-muted">
+        <div class="text-callout leading-relaxed text-muted">
           <p class="font-medium text-ink">{t('mailExplained')}</p>
           <p class="mt-1">{t('mailOwnerRole')}</p>
         </div>
@@ -261,8 +261,8 @@
       {#if error}<Notice failure={error} tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
       <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3" data-testid="mail-push">
-        <div class="min-w-0 flex-1"><p class="text-[13px] font-medium">{t('mailPushTitle')}</p><p class="text-[12px] text-muted">{t('mailPushHint')}</p>
-          {#if push?.enabled}<p class="mt-1 text-[12px] text-muted">{push.last_error ? t('mailPushFallback') : push.subscriptions?.some((s: any) => s.id && s.refresh_before > Date.now()) ? t('mailPushReady') : t('mailPushStarting')}</p>{/if}
+        <div class="min-w-0 flex-1"><p class="text-body font-medium">{t('mailPushTitle')}</p><p class="text-callout text-muted">{t('mailPushHint')}</p>
+          {#if push?.enabled}<p class="mt-1 text-callout text-muted">{push.last_error ? t('mailPushFallback') : push.subscriptions?.some((s: any) => s.id && s.refresh_before > Date.now()) ? t('mailPushReady') : t('mailPushStarting')}</p>{/if}
         </div>
         <button class={buttonClass('secondary','sm')} disabled={busy || !push} aria-pressed={push?.enabled ?? false} onclick={togglePush} data-testid="mail-push-toggle">{push?.enabled ? t('mailPushDisable') : t('mailPushEnable')}</button>
         <button class={buttonClass('ghost','sm')} onclick={manage}>{t('tabCapabilities')}</button>
@@ -282,7 +282,7 @@
         <span class="flex-1"></span>
         <button class={buttonClass('secondary', 'sm')} disabled={busy || syncing} data-testid="mail-sync" onclick={() => loadMail()}><Icon name="cloud-down" />{t('reload')}</button>
       </div>
-      {#if synced}<p class="text-[12px] text-muted" role="status">{synced}</p>{/if}
+      {#if synced}<p class="text-callout text-muted" role="status">{synced}</p>{/if}
       {#if messages?.length}
         <div class="grid min-h-80 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
           <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">
@@ -298,12 +298,12 @@
                     onclick={() => (selected = keyOf(message))}
                   >
                     <span class="flex items-center gap-2">
-                      <span class="min-w-0 flex-1 truncate text-[13px] font-medium">{message.subject || t('mailNoSubject')}</span>
+                      <span class="min-w-0 flex-1 truncate text-body font-medium">{message.subject || t('mailNoSubject')}</span>
                       {#if message.read === false}<span class="size-1.5 shrink-0 rounded-full bg-forest" title={t('mailAgentUnread')}></span>{/if}
                     </span>
-                    <span class="truncate text-[11.5px] text-muted">{labelOf(message.direction === 'received' ? message.from : message.to)}</span>
-                    <span class="truncate text-[12px] text-faint">{textOf(message) || t('attachments')}</span>
-                    <span class="text-[11px] text-faint">{ago(message.received_at ?? message.created_at)}</span>
+                    <span class="truncate text-caption text-muted">{labelOf(message.direction === 'received' ? message.from : message.to)}</span>
+                    <span class="truncate text-callout text-muted">{textOf(message) || t('attachments')}</span>
+                    <span class="text-caption text-faint">{ago(message.received_at ?? message.created_at)}</span>
                   </button>
                 </li>
               {/each}
@@ -321,9 +321,9 @@
                     >{current.delivery.status === 'queued' ? t('mailQueued') : t('mailDelivered')}</Pill
                   >{/if}
               </div>
-              {#if current.delivery?.status === 'delivered'}<p class="mb-3 text-[11.5px] text-muted">{t('mailDeliveryHint')}</p>{/if}
-              <h3 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{current.subject || t('mailNoSubject')}</h3>
-              <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 text-[12px]">
+              {#if current.delivery?.status === 'delivered'}<p class="mb-3 text-caption text-muted">{t('mailDeliveryHint')}</p>{/if}
+              <h3 class="text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]">{current.subject || t('mailNoSubject')}</h3>
+              <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 text-callout">
                 <dt class="text-faint">{t('from')}</dt>
                 <dd><Id id={current.from} /></dd>
                 <dt class="text-faint">{t('to')}</dt>
@@ -331,23 +331,23 @@
                 <dt class="text-faint">{t('createdAt')}</dt>
                 <dd>{when(current.created_at)}</dd>
               </dl>
-              <div class="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed">
+              <div class="mt-5 border-t border-line pt-4 text-body leading-relaxed">
                 {#each current.parts as part}
-                  {#if part.text}<p class="mb-3 whitespace-pre-wrap [overflow-wrap:anywhere]">{part.text}</p>
-                  {:else}<div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 p-2.5 text-[12px]">
+                  {#if part.text}<p class="mb-3 whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{part.text}</p>
+                  {:else}<div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 p-2.5 text-callout">
                       <Icon name="attach" /><span class="min-w-0 break-all">{part.name ?? part.media_type} · {part.size} B</span>
                     </div>{/if}
                 {/each}
               </div>
               {#if current.delivery?.last_error}<Notice tone="warn">{current.delivery.last_error.code}: {current.delivery.last_error.message}</Notice>{/if}
-              <details class="mt-4 text-[11.5px] text-muted">
-                <summary class="cursor-pointer">{t('agentTechnicalDetails')}</summary>
+              <details class="mt-4 text-caption text-muted">
+                <summary>{t('agentTechnicalDetails')}</summary>
                 <div class="mt-2 grid gap-2"><Id id={current.message_id} /><Id id={current.thread_id} /><span>{t('expires')} {when(current.expires_at)}</span></div>
               </details>
             {:else}
               <div class="grid min-h-64 place-content-center gap-3 text-center">
                 <Icon name="mail" class="mx-auto size-7 text-faint" />
-                <p class="text-[13px] text-muted">{t('mailSelect')}</p>
+                <p class="text-body text-muted">{t('mailSelect')}</p>
               </div>
             {/if}
           </div>
@@ -355,17 +355,17 @@
       {:else if messages || (!error && !loadError)}
         <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="mail-empty">
           <Icon name="mail" class="size-8 text-faint" />
-          <h3 class="text-[14px] font-medium">{busy ? t('loading') : error ? t('agentLoadFailed') : t('noLetters')}</h3>
-          <p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('mailEmptyHint')}</p>
+          <h3 class="text-body font-medium">{busy ? t('loading') : error ? t('agentLoadFailed') : t('noLetters')}</h3>
+          <p class="max-w-md text-callout leading-relaxed text-muted">{t('mailEmptyHint')}</p>
         </div>
       {/if}
-      <p class="text-[11.5px] text-faint">{t('mailReadHint')}</p>
+      <p class="text-caption text-faint">{t('mailReadHint')}</p>
       <details class="rounded-xl border border-line" data-testid="mailbox-settings">
-        <summary class="cursor-pointer px-4 py-3 text-[12.5px] font-medium">{t('mailboxManagement')}{boxesLoaded ? ' · ' + mailboxes.length : ''}</summary>
+        <summary class="px-4 py-3 text-callout font-medium">{t('mailboxManagement')}{boxesLoaded ? ' · ' + mailboxes.length : ''}</summary>
         <div class="grid grid-cols-1 gap-3 border-t border-line p-4">
           <ul class="grid grid-cols-1 gap-2" data-testid="mailboxes">
             {#each mailboxes as box (box.mailbox_id)}
-              <li class="grid grid-cols-1 gap-2 rounded-lg bg-surface-2 p-3 text-[12px]">
+              <li class="grid grid-cols-1 gap-2 rounded-lg bg-surface-2 p-3 text-callout">
                 <div class="flex items-center gap-2">
                   <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi><button
                     class={buttonClass('ghost', 'xs')}
@@ -380,7 +380,7 @@
                 {#if box.pending_routes?.length}<p class="text-muted">{t('mailboxPublicationPending')}: {box.pending_routes.join(', ')}</p>{/if}
                 <div class="flex flex-wrap gap-2">
                   {#if box.status !== 'closed'}
-                    <button class={buttonClass('secondary', 'xs')} disabled={busy || box.key_available === false} onclick={() => attempt(() => replace(box, {}, t('mailboxRenewed')))} data-testid="mailbox-renew"
+                    <button class={buttonClass('subtle', 'xs')} disabled={busy || box.key_available === false} onclick={() => attempt(() => replace(box, {}, t('mailboxRenewed')))} data-testid="mailbox-renew"
                       >{t('renew')}</button
                     >
                     <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => attempt(() => replace(box, { rotate_key: true }, t('mailboxRotated')))} data-testid="mailbox-rotate"
@@ -392,7 +392,7 @@
                   {/if}
                 </div>
               </li>
-            {:else}<li class="text-[12.5px] text-muted">{boxesLoaded ? t('noMailboxes') : loadError ? '' : t('loading')}</li>{/each}
+            {:else}<li class="text-callout text-muted">{boxesLoaded ? t('noMailboxes') : loadError ? '' : t('loading')}</li>{/each}
           </ul>
           <div class="flex flex-wrap gap-2">
             <input class="min-w-48 flex-1" aria-label={t('mailRoutes')} placeholder={t('mailRoutes')} bind:value={routes} data-testid="mail-routes" /><button
@@ -402,17 +402,17 @@
             >
             <button class={buttonClass('secondary')} disabled={busy || !routes.trim()} onclick={recover} data-testid="mailbox-recover">{t('recoverMailboxes')}</button>
           </div>
-          <details class="text-[12px] text-muted" data-testid="mail-blocked">
-            <summary class="cursor-pointer">{t('blockedSenders', { n: blocked.length })}</summary>
+          <details class="text-callout text-muted" data-testid="mail-blocked">
+            <summary>{t('blockedSenders', { n: blocked.length })}</summary>
             <p class="mt-2">{t('blockedSendersHint')}</p>
-            <ul class="mt-2 grid gap-1 font-mono text-[11.5px]">
+            <ul class="mt-2 grid gap-1 font-mono text-code">
               {#each blocked as sender (sender)}<li class="break-all">{sender}</li>{/each}
             </ul>
           </details>
         </div>
       </details>
       <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-        <span class="text-[12px] text-muted">{t('agentPermissionsHint')}</span><button class={buttonClass('ghost', 'sm')} onclick={manage}
+        <span class="text-callout text-muted">{t('agentPermissionsHint')}</span><button class={buttonClass('ghost', 'sm')} onclick={manage}
           ><Icon name="security" />{t('tabCapabilities')}</button
         >
       </div>

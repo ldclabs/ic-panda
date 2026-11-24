@@ -15,6 +15,7 @@
   import TextField from '../components/TextField.svelte'
   import TextArea from '../components/TextArea.svelte'
   import Fact from '../components/page/Fact.svelte'
+  import Group from '../components/page/Group.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
@@ -201,7 +202,7 @@
     <Notice tone="info" testid={`security-pending-${group}`}>
       {t('securityApprovalPending')}
       {#snippet action()}
-        <button class={buttonClass('secondary', 'xs')} disabled={blocked} onclick={() => showPending(group)}>{t('securityViewApproval')}</button>
+        <button class={buttonClass('subtle', 'xs')} disabled={blocked} onclick={() => showPending(group)}>{t('securityViewApproval')}</button>
       {/snippet}
     </Notice>
   {/if}
@@ -210,7 +211,7 @@
 <DisplayNotice methods={['account/security']} />
 {#if loadError}
   <Notice failure={loadError} tone="danger">{loadError}
-    {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
+    {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
   </Notice>
 {/if}
 {#if error && !open}<Notice failure={error} tone="danger">{error}</Notice>{/if}
@@ -222,7 +223,7 @@
     {/snippet}
   </Notice>
 {/if}
-{#if loading && !security}<p class="px-5 text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
+{#if loading && !security}<p class="px-5 text-body text-muted" role="status">{t('loading')}</p>{/if}
 <NoticeSetup {status} {go} />
 {#if security}
   <Section title={t('logins')} description={t('bindLoginHint')} icon="login" flush testid="security">
@@ -235,7 +236,7 @@
             <button class={buttonClass('danger', 'xs', 'ms-auto')} disabled={blocked} onclick={() => ask('account/unbind', { principal: login.principal })}>{t('remove')}</button>
           {/if}
         </li>
-      {:else}<li class="px-5 py-2 text-[13px] text-muted">{t('securityNoLogins')}</li>{/each}
+      {:else}<li class="px-5 py-2 text-body text-muted">{t('securityNoLogins')}</li>{/each}
     </ul>
     <div class="mt-3 flex flex-wrap gap-2 px-5">
       {#if status?.passkey_available}
@@ -247,17 +248,17 @@
     {#if status?.login_renewable}
       <div class="mt-3 grid justify-items-start gap-2 px-5">
         <button class={buttonClass('danger', 'sm')} disabled={busy} data-testid="logout-all-logins" onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'logout_all')}>{t('logoutAllLogins')}</button>
-        <p class="text-[12.5px] text-muted">{t('logoutAllLoginsHint')}</p>
+        <p class="text-callout text-muted">{t('logoutAllLoginsHint')}</p>
       </div>
     {/if}
   </Section>
 
   <Section title={t('signingPolicy')} description={t('signingPolicyHint')} icon="signature" testid="security-policy">
     <div class="mb-2"><Pill tone={security.policy.frozen ? 'warn' : 'ok'}>{security.policy.frozen ? t('frozen') : t('policyOpen')}</Pill></div>
-    <dl>
+    <Group>
       <Fact label={t('dailyExecutions')} testid="security-policy-daily">{security.policy.daily_executions}</Fact>
       <Fact label={t('purposes')}>{security.policy.allowed_purposes.map((p: string) => t(purposeLabels[p])).join(', ') || t('nothingRequired')}</Fact>
-    </dl>
+    </Group>
     <div class="mt-3 flex flex-wrap gap-2">
       <button class={buttonClass('secondary', 'sm')} disabled={blocked || !!pending.policy} aria-label={`${t('edit')} · ${t('signingPolicy')}`} data-testid="security-policy-edit" onclick={() => begin('policy')}>{t('edit')}</button>
       <button class={buttonClass(security.policy.frozen ? 'secondary' : 'danger', 'sm')} disabled={blocked || !!pending.policy} data-testid="security-policy-freeze" onclick={() => ask('account/policy', { frozen: !security.policy.frozen }, 'policy')}>
@@ -273,14 +274,14 @@
 
   {#if keyError}
     <Notice failure={keyError} tone="danger" testid="security-key-error">{keyError}
-      {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
+      {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
     </Notice>
   {/if}
   {#if keys}
     <Section title={t('approvalKeys')} description={t('approvalKeysHint')} icon="key" testid="approval-keys">
       <div class="mb-2"><Pill tone={required ? 'forest' : 'neutral'}>{required ? t('keysRequired') : t('keysNotRequired')}</Pill></div>
       {#if !keys.available}<Notice testid="approval-keys-unavailable">{t('approvalKeysUnavailable')}</Notice>{/if}
-      <dl>
+      <Group>
         <Fact label={t('thisDevice')} testid="approval-key-own">
           {#if own?.fingerprints_changed}<Pill tone="danger">{t('fingerprintsChanged')}</Pill>
           {:else if own?.here}<Pill tone="ok">{t('keyRegistered')}</Pill>{#if own.biometry_only}<Pill tone="neutral">{t('touchIdOnly')}</Pill>{/if}
@@ -288,7 +289,7 @@
           {:else}<Pill tone="neutral">{t('keyNotRegistered')}</Pill>{/if}
         </Fact>
         <Fact label={t('approvalKeysRequiredFor')}>{required ? purposeText(keys.policy) : t('nothingRequired')}</Fact>
-      </dl>
+      </Group>
       <div class="mt-3 flex flex-wrap gap-2">
         {#if keys.available && (!required || own?.here && !own.fingerprints_changed)}<button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError || !!pending.key} data-testid="security-key-edit" onclick={() => begin('key')}>{own ? t('replaceKey') : t('registerKey')}</button>{/if}
         {#if keys.available && required && (!own?.here || own.fingerprints_changed)}<button class={buttonClass('primary', 'sm')} disabled={blocked || !!keyError} onclick={() => begin('key-request')}>{t('pairEnableApprovals')}</button>{/if}
@@ -297,10 +298,10 @@
       </div>
       {@render receipt('key')}
       {@render receipt('hardware')}
-      {#if required && missing.length}<p class="mt-3 text-[12px] text-faint" data-testid="approval-keys-missing">{t('devicesWithoutKeysHint', { n: missing.length })}</p>{/if}
+      {#if required && missing.length}<p class="mt-3 text-callout text-muted" data-testid="approval-keys-missing">{t('devicesWithoutKeysHint', { n: missing.length })}</p>{/if}
       <Collapsible class="mt-3" testid="security-key-transfer">
-        {#snippet title()}<span class="text-[12.5px]">{t('securityKeyTransfer')}</span>{/snippet}
-        <p class="py-2 text-[12px] text-muted">{t('keyRequestHint')}</p>
+        {#snippet title()}<span class="text-callout">{t('securityKeyTransfer')}</span>{/snippet}
+        <p class="py-2 text-callout text-muted">{t('keyRequestHint')}</p>
         <div class="flex flex-wrap gap-2">
           {#if keys.available}<button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError} data-testid="security-key-request" onclick={() => begin('key-request')}>{t('keyRequest')}</button>{/if}
           <DeviceAuthorization enrollmentOnly disabled={blocked || !!keyError} />
@@ -330,7 +331,7 @@
     {#if editor === 'policy'}
       <TextField label={t('dailyExecutions')} bind:value={daily} inputmode="numeric" disabled={blocked || !!pending.policy} hint={t('securityDailyHint')} error={dailyLimit(daily) === null ? t('securityDailyRange') : ''} data-testid="daily-executions" />
       <fieldset class="grid gap-2" disabled={blocked || !!pending.policy}>
-        <legend class="mb-2 text-[12px] text-muted">{t('purposes')}</legend>
+        <legend class="mb-2 text-callout text-muted">{t('purposes')}</legend>
         {#each ['FileAttestation', 'Statement', 'AppAction'] as p (p)}
           <Checkbox checked={purposes.includes(p)} disabled={blocked || !!pending.policy} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))} testid={`security-purpose-${p}`}>{t(purposeLabels[p])}</Checkbox>
         {/each}
@@ -338,7 +339,7 @@
       {#if dailyLimit(daily) === 0 || !purposes.length}<Notice tone="warn">{t('securityNoSigning')}</Notice>{/if}
       {@render receipt('policy')}
     {:else if editor === 'hardware'}
-      <p class="text-[12.5px] text-muted">{t('keysRequiredFor')}: {purposeText(CONTROL)}</p>
+      <p class="text-callout text-muted">{t('keysRequiredFor')}: {purposeText(CONTROL)}</p>
       {#each OPTIONAL as p (p)}<Checkbox checked={extra.includes(p)} disabled={blocked || !!pending.hardware} onCheckedChange={(on) => (extra = on ? [...extra, p] : extra.filter((x) => x !== p))} testid={`security-hardware-${p}`}>{t(hardwarePurposeLabels[p])}</Checkbox>{/each}
       {#if missing.length}<Notice tone="warn">{t('devicesWithoutKeysHint', { n: missing.length })}</Notice>{/if}
       {@render receipt('hardware')}
@@ -363,7 +364,7 @@
     {/if}
   </div>
   {#snippet footer()}
-    {#if unchanged}<span class="text-[12px] text-faint" role="status" data-testid="security-unchanged">{t('securityUnchanged')}</span>{/if}
+    {#if unchanged}<span class="text-callout text-muted" role="status" data-testid="security-unchanged">{t('securityUnchanged')}</span>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => setOpen(false)}>{made ? t('close') : t('cancel')}</button>
     {#if !(editor === 'key-request' && made)}

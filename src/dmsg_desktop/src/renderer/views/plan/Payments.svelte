@@ -285,12 +285,12 @@
           </Fact>
         {/each}
       </dl>
-      <p class="mt-3 text-[12px] text-faint">{t('topUpHint')}</p>
-    {:else if !errors.payer}<p class="text-xs text-muted" role="status">{t('loading')}</p>{/if}
+      <p class="mt-3 text-callout text-muted">{t('topUpHint')}</p>
+    {:else if !errors.payer}<p class="text-callout text-muted" role="status">{t('loading')}</p>{/if}
     {#if fundingOrder}
-      <p class="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+      <p class="mt-3 flex flex-wrap items-center gap-2 text-callout text-muted">
         <span>{t('order')} · {title(fundingOrder)} · {amount(fundingOrder)}</span>
-        <button class={buttonClass('secondary', 'xs')} aria-controls={'plan-order-' + fundingOrder.id} data-testid="payer-open-order"
+        <button class={buttonClass('subtle', 'xs')} aria-controls={'plan-order-' + fundingOrder.id} data-testid="payer-open-order"
           onclick={() => document.getElementById('plan-order-' + fundingOrder.id)?.focus()}>{t('openOrders')}</button>
       </p>
     {/if}
@@ -309,7 +309,7 @@
     {/if}
     {#if errors.status || errors.catalog}<div class="px-5 pb-3"><Notice tone="warn">{errors.status || errors.catalog}</Notice></div>{/if}
     {#if checkouts && !checkouts.length && !errors.orders}
-      <p class="px-5 pb-4 text-[12.5px] text-faint" data-testid="no-orders">{t('noOrders')}</p>
+      <p class="px-5 pb-4 text-callout text-muted" data-testid="no-orders">{t('noOrders')}</p>
     {:else if checkouts}
       <ul class="divide-y divide-line" data-testid="checkouts">
         {#each checkouts as job (job.id)}
@@ -320,11 +320,11 @@
           {@const deadline = draft ? quoteDeadline(job) : deadlineOf(job)}
           <li id={'plan-order-' + job.id} tabindex="-1" class="grid gap-1 px-5 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-forest" data-testid="order">
             <div class="flex flex-wrap items-center gap-2">
-              <b class="text-[13px] font-medium" data-testid="order-title">{title(job)}</b>
+              <b class="text-body font-medium" data-testid="order-title">{title(job)}</b>
               {#if renewal(job)}<Pill>{t('renewal')}</Pill>{/if}
               <Pill tone={state.tone} testid="order-state">{t(state.label)}</Pill>
               <span class="flex-1"></span>
-              {#if expired}<button class={buttonClass('secondary', 'xs')} onclick={onMembership} data-testid="order-view-plans">{t('plans')}</button>{/if}
+              {#if expired}<button class={buttonClass('subtle', 'xs')} onclick={onMembership} data-testid="order-view-plans">{t('plans')}</button>{/if}
               {#each orderActions(job, order, now, refundable) as action (action)}
                 <button
                   class={buttonClass(action === 'pay' || action === 'advance' ? 'primary' : action === 'cancel' || action === 'refund' ? 'danger' : 'secondary', 'xs')}
@@ -337,9 +337,9 @@
             </div>
             {#if remoteErrors[job.id] || actionErrors[job.id]}<Notice tone={remoteErrors[job.id] || unknown[job.id] ? 'warn' : 'danger'} testid="order-error">
               {actionErrors[job.id] || `${t('planOrderReadFailed')} · ${remoteErrors[job.id]}`}
-              {#if remoteErrors[job.id] || unknown[job.id]}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => checkOrder(job.id)}>{t('confirmCheckStatus')}</button>{/if}
+              {#if remoteErrors[job.id] || unknown[job.id]}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => checkOrder(job.id)}>{t('confirmCheckStatus')}</button>{/if}
             </Notice>{/if}
-            <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-muted tabular-nums">
+            <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-callout text-muted tabular-nums">
               <span data-testid="order-amount">{amount(job)}</span>
               <span data-testid="order-period">{t('servicePeriod', { from: when(order?.starts_at_ms ?? job.starts_at_ms), to: when(order?.expires_at_ms ?? job.expires_at_ms) })}</span>
               {#if deadline && awaiting(job, order)}
@@ -350,13 +350,13 @@
           </li>
         {/each}
       </ul>
-    {:else if !checkouts && !errors.orders}<p class="px-5 text-xs text-muted" role="status">{t('loading')}</p>{/if}
+    {:else if !checkouts && !errors.orders}<p class="px-5 text-callout text-muted" role="status">{t('loading')}</p>{/if}
   </Section>
 
   {#if !walletFirst}{@render walletPanel()}{/if}
 
   <Collapsible testid="plan-advanced" class="px-1">
-    {#snippet title()}<span class="text-[12.5px] font-medium text-muted">{t('advanced')}</span>{/snippet}
+    {#snippet title()}<span class="text-callout font-medium text-muted">{t('advanced')}</span>{/snippet}
     <div class="pt-2"><Operations /></div>
   </Collapsible>
 </Page>

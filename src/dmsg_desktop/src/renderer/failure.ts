@@ -19,6 +19,15 @@ export function failureLabel(code: string): Label | undefined {
 
 const temporary = new Set<string>()
 const network = new Set<string>()
+/** The texts `errorText` has given, so a notice that shows one marks it as a failure. */
+const failures = new Set<string>()
+
+export function failureText(text: string) {
+  if (text) failures.add(text)
+  return text
+}
+
+export const isFailure = (message: string) => failures.has(message)
 
 /** A language this window has shown: what it stored in that language still reads as what it is. */
 export function rememberFailures({ messages }: Catalog) {

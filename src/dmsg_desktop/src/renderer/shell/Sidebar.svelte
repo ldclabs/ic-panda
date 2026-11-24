@@ -9,6 +9,7 @@
   import AccountSwitcher from './AccountSwitcher.svelte'
   import GateRail from './GateRail.svelte'
   import { entryOf, groups, views, type View } from './nav'
+  import { filled } from '../components/glyphs'
 
   /**
    * The main window's sidebar: the window's buttons in the title bar's line,
@@ -53,7 +54,7 @@
       <button
         {...props}
         class={cn(
-          'flex items-center gap-2.5 rounded-lg text-start text-[13.5px] leading-snug text-ink-2 outline-none transition-colors duration-150 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35',
+          'flex items-center gap-2.5 rounded-lg text-start text-body leading-snug text-ink-2 outline-none transition-colors duration-150 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35',
           collapsed ? 'relative size-9 justify-center' : 'min-h-8 px-2.5 py-1.5',
           active && 'bg-pale font-semibold text-ink hover:bg-pale'
         )}
@@ -61,13 +62,13 @@
         aria-label={collapsed ? t(view.label) : undefined}
         onclick={() => enter(view.path)}
       >
-        <Icon name={view.icon} class={cn('size-4.5', active ? 'text-forest' : 'text-faint')} />
+        <Icon name={active ? (filled[view.icon] ?? view.icon) : view.icon} class="size-4.5 text-forest" />
         {#if !collapsed}<span class="min-w-0 flex-1">{t(view.label)}</span>{/if}
         {#if view === views.channels && status?.channels_unread}
           <span
             class={cn(
-              'min-w-4.5 rounded-full bg-forest px-1.5 text-center text-[10.5px] leading-[18px] font-semibold text-on-forest tabular-nums',
-              collapsed && 'absolute -end-1 -top-1 min-w-4 px-1 text-[9.5px] leading-4'
+              'min-w-4.5 rounded-full bg-forest px-1.5 text-center text-caption leading-[18px] font-semibold text-on-forest tabular-nums',
+              collapsed && 'absolute -end-1 -top-1 min-w-4 px-1 text-caption leading-4'
             )}
             data-testid="channels-unread">{status.channels_unread > 99 ? '99+' : status.channels_unread}</span
           >
@@ -75,8 +76,8 @@
         {#if view === views.approvals && status?.approvals_waiting}
           <span
             class={cn(
-              'inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-gem tabular-nums',
-              collapsed && 'absolute end-0.5 top-0.5 gap-1 text-[10px] leading-none'
+              'inline-flex items-center gap-1.5 text-caption font-semibold text-gem tabular-nums',
+              collapsed && 'absolute end-0.5 top-0.5 gap-1 text-caption leading-none'
             )}
             data-testid="waiting-count"><i class="size-[7px] rotate-45 rounded-[1px] bg-gem"></i>{status.approvals_waiting}</span
           >
@@ -89,7 +90,8 @@
 <aside
   class={cn(
     'flex min-h-0 shrink-0 flex-col border-e border-line px-2.5 pb-2.5 transition-[width] duration-200 ease-calm',
-    inset ? 'bg-paper-dim/55' : 'bg-paper-dim',
+    // macOS shows its sidebar material through; small text keeps the stronger ink on it.
+    inset ? '[--faint:var(--muted)]' : 'bg-paper-dim',
     collapsed ? 'w-16 items-center' : 'w-[236px]'
   )}
   data-testid="sidebar"
@@ -101,14 +103,14 @@
     {#if !collapsed}
       {#if !inset}
         <Brand />
-        <span class="me-auto text-lg leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+        <span class="me-auto text-title-2 leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
       {/if}
       {@render windowNav()}
     {/if}
   </div>
   <AccountSwitcher {status} {collapsed} {reminderAccounts} />
   {#if legacyNotice && !collapsed}
-    <div class="mt-2 grid gap-1.5 rounded-xl bg-warn-pale p-2.5 text-[12.5px] text-warn" data-testid="legacy-notice">
+    <div class="mt-2 grid gap-1.5 rounded-xl bg-warn-pale p-2.5 text-callout text-warn" data-testid="legacy-notice">
       <div class="flex items-start gap-2">
         <Icon name="legacy" class="mt-0.5" />
         <span class="min-w-0 flex-1">{t('legacyNotice')}</span>
@@ -116,10 +118,10 @@
           <Icon name="close" />
         </button>
       </div>
-      <button class={buttonClass('secondary', 'xs', 'justify-self-start border-transparent')} onclick={() => go(views.legacy.path)}>{t('open')}</button>
+      <button class={buttonClass('subtle', 'xs', 'justify-self-start')} onclick={() => go(views.legacy.path)}>{t('open')}</button>
     </div>
   {/if}
-  <nav class={cn('-mx-2.5 mt-1 flex min-h-0 flex-col gap-0.5 self-stretch overflow-x-hidden overflow-y-auto px-2.5', collapsed && 'items-center')} aria-label={t('views')}>
+  <nav data-list class={cn('-mx-2.5 mt-1 flex min-h-0 flex-col gap-0.5 self-stretch overflow-x-hidden overflow-y-auto px-2.5', collapsed && 'items-center')} aria-label={t('views')}>
     {#if status?.account_kind === 'local'}
       {@render item(views.vault)}{@render item(views.files)}
     {:else}
@@ -127,7 +129,7 @@
       {#if collapsed}
         <div class="mx-auto my-2 h-px w-6 bg-line"></div>
       {:else}
-        <div class="px-2.5 pt-3.5 pb-1 text-[11px] font-medium text-faint">{t(group.label)}</div>
+        <div class="px-2.5 pt-3.5 pb-1 text-caption font-medium text-faint">{t(group.label)}</div>
       {/if}
       {#each group.views as view (view.path)}{@render item(view)}{/each}
     {/each}
@@ -137,6 +139,6 @@
   </nav>
   <div class={cn('mt-auto shrink-0 pt-3', collapsed ? 'w-full' : '')}>
     {#if status?.account_kind !== 'local'}<GateRail {status} {collapsed} {mod} />
-    {:else if !collapsed}<span class="px-2 text-xs text-muted">{t('savedOnDevice')}</span>{/if}
+    {:else if !collapsed}<span class="px-2 text-callout text-muted">{t('savedOnDevice')}</span>{/if}
   </div>
 </aside>

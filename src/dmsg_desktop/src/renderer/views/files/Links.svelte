@@ -77,7 +77,7 @@
 
 <section class="flex h-full min-w-0 flex-col" data-testid="files-links-page">
   <header class="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
-    <div class="min-w-0 flex-1"><h2 class="text-[15px] font-semibold">{t('shareLinks')}</h2><p class="mt-0.5 text-[12px] text-faint">{t('linksSubtitle')}</p></div>
+    <div class="min-w-0 flex-1"><h2 class="text-title-3 font-semibold">{t('shareLinks')}</h2><p class="mt-0.5 text-callout text-muted">{t('linksSubtitle')}</p></div>
     <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={refresh} data-testid="links-refresh"><Icon name="sync" />{t('refreshLinks')}</button>
   </header>
   <div class="min-h-0 flex-1 overflow-y-auto p-5">
@@ -89,9 +89,9 @@
           <li class="flex min-w-0 flex-wrap items-center gap-3 py-3" data-share={link.share_id}>
             <Icon name="link" class="shrink-0 text-faint" />
             <div class="min-w-0 basis-48 flex-1">
-              {#if link.name}<p class="break-words text-[13px] font-medium"><bdi dir="auto">{link.name}</bdi></p>{:else}<Id id={link.share_id} />{/if}
-              <p class="mt-0.5 text-[11.5px] text-faint" data-testid="link-state">{t(states[link.state] ?? 'linkStateActive')} · {t('linkDownloads', { n: link.downloads ?? 0 })}{link.size != null ? ` · ${size(link.size)}` : ''}{link.show_profile ? ` · ${t('publicProfile')}` : ''}</p>
-              <p class="mt-0.5 text-[11.5px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
+              {#if link.name}<p class="break-words text-body font-medium"><bdi dir="auto">{link.name}</bdi></p>{:else}<Id id={link.share_id} />{/if}
+              <p class="mt-0.5 text-caption text-faint" data-testid="link-state">{t(states[link.state] ?? 'linkStateActive')} · {t('linkDownloads', { n: link.downloads ?? 0 })}{link.size != null ? ` · ${size(link.size)}` : ''}{link.show_profile ? ` · ${t('publicProfile')}` : ''}</p>
+              <p class="mt-0.5 text-caption text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
             </div>
             <div class="flex flex-wrap gap-1">
               {#if link.url && link.state === 'active'}<button class={buttonClass('ghost', 'xs')} onclick={() => link.source?.type === 'vault_snapshot' ? copyShareLink(link.url) : copyText(link.url)} data-testid="links-copy">{t('linkCopy')}</button>{/if}
@@ -101,14 +101,14 @@
         {/each}
       </ul>
       {#if shown.length < rows.length}<button class={buttonClass('secondary', 'sm', 'mt-3')} onclick={() => limit += 300}>{t('moreRows', { n: rows.length - shown.length })}</button>{/if}
-      {#if !rows.length}<p class="py-12 text-center text-[13px] text-faint" data-testid="links-empty">{t('linksEmpty')}</p>{/if}
-    {:else if busy}<p class="py-12 text-center text-[13px] text-faint">{t('loading')}</p>{/if}
+      {#if !rows.length}<p class="py-12 text-center text-body text-faint" data-testid="links-empty">{t('linksEmpty')}</p>{/if}
+    {:else if busy}<p class="py-12 text-center text-body text-faint">{t('loading')}</p>{/if}
   </div>
 </section>
 
 <Dialog bind:open={() => !!confirmation, next => !next && (confirmation = null)} title={t('linkRevoke')} icon="link" tone="danger" testid="links-confirm">
-  <p class="break-words text-[13px] font-medium"><bdi dir="auto">{confirmation?.name ?? confirmation?.share_id}</bdi></p>
-  <p class="mt-2 text-[13px] text-muted">{t('linkRevokeHint')}</p>
+  <p class="break-words text-body font-medium"><bdi dir="auto">{confirmation?.name ?? confirmation?.share_id}</bdi></p>
+  <p class="mt-2 text-body text-muted">{t('linkRevokeHint')}</p>
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}<button class={buttonClass('ghost')} onclick={() => confirmation = null}>{t('cancel')}</button><button class={buttonClass('danger')} disabled={busy || !unlocked} onclick={revoke} data-testid="links-confirm-revoke">{t('linkRevoke')}</button>{/snippet}
 </Dialog>

@@ -210,17 +210,17 @@
   {/snippet}
   {#if error}<div class="px-5 pb-3"><Notice failure={error} tone="danger">{error}</Notice></div>{/if}
   {#if notice}<div class="px-5 pb-3"><Notice tone="ok" testid="succession-notice">{notice}
-    {#snippet action()}{#if go}<button class={buttonClass('secondary', 'xs')} onclick={() => go('/approvals')}>{t('approvals')}</button>{/if}{/snippet}
+    {#snippet action()}{#if go}<button class={buttonClass('subtle', 'xs')} onclick={() => go('/approvals')}>{t('approvals')}</button>{/if}{/snippet}
   </Notice></div>{/if}
-  {#if !loaded}<p class="px-5 pb-3 text-[12.5px] text-muted" role="status">{t('loading')}</p>{/if}
+  {#if !loaded}<p class="px-5 pb-3 text-callout text-muted" role="status">{t('loading')}</p>{/if}
   <ul class="divide-y divide-line">
     {#each tasks as task (task.id)}
       <li class={cn('grid gap-2 px-5 py-3.5', task.cancelled_at && 'opacity-70')} data-testid="succession-task">
         <div class="flex flex-wrap items-center gap-1.5">
-          <span class="text-[13px] font-medium">{t(task.side === 'successor' ? 'successionReplacing' : 'successionReplacedBy')}</span>
+          <span class="text-body font-medium">{t(task.side === 'successor' ? 'successionReplacing' : 'successionReplacedBy')}</span>
           <Id id={task.side === 'successor' ? task.predecessor : task.successor} />
           {#if task.cancelled_at}<Pill tone="warn">{t('successionStopped')}</Pill>{/if}
-          <span class="min-w-0 flex-1 text-[12px] text-faint">{when(task.created_at)}</span>
+          <span class="min-w-0 flex-1 text-callout text-muted">{when(task.created_at)}</span>
           {#if !task.cancelled_at && !finished(task)}
             <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (stopping = task)}>{t('successionStop')}</button>
           {/if}
@@ -231,19 +231,19 @@
             <li class={cn('rounded-xl border px-3 py-2', shownState === 'ready' ? 'border-forest/35 bg-pale/60' : 'border-line')} data-testid={`succession-step-${s.step}`}>
               <div class="flex flex-wrap items-center gap-2">
                 <Icon name={shownState === 'done' ? 'check' : shownState === 'left' ? 'leave' : shownState === 'ready' ? 'enter' : 'pending'} class={cn('size-4 shrink-0', shownState === 'done' ? 'text-ok' : shownState === 'left' ? 'text-warn' : shownState === 'ready' ? 'text-forest' : 'text-faint')} />
-                <span class="min-w-0 flex-1 text-[13px]">{t(STEPS[s.step].label)}</span>
+                <span class="min-w-0 flex-1 text-body">{t(STEPS[s.step].label)}</span>
                 <Pill tone={shownState === 'done' ? 'ok' : shownState === 'left' ? 'warn' : shownState === 'ready' ? 'forest' : 'neutral'}>
                   {shownState === 'done' ? t('done') : shownState === 'left' ? t('successionLeft') : shownState === 'ready' ? t('successionReady') : t('successionWaiting')}
                 </Pill>
               </div>
               {#if shownState === 'ready'}
-                <p class="mt-1 text-[12px] text-muted">{t(STEPS[s.step].hint)}</p>
+                <p class="mt-1 text-callout text-muted">{t(STEPS[s.step].hint)}</p>
                 <div class="mt-2 flex flex-wrap gap-1.5">
                   {#if s.step === 'content'}
                     {#if task.side === 'successor'}
                       <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => onTransfer('receive', task)} data-testid="succession-receive">{t('deviceTransferReceive')}</button>
                       {#each copiesOf(task) as copy (copy.id)}
-                        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => importCopy(task, copy)} data-testid="succession-import">{t('successionImport')}</button>
+                        <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => importCopy(task, copy)} data-testid="succession-import">{t('successionImport')}</button>
                       {/each}
                     {:else}
                       <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => onTransfer('send', task)} data-testid="succession-send">{t('deviceTransferSend')}</button>
@@ -263,15 +263,15 @@
                 {#if s.step === 'native_addresses' && found[task.id]?.length}
                   <ul class="mt-2 grid gap-1" data-testid="succession-addresses">
                     {#each found[task.id] as a (`${a.wallet}:${a.from}`)}
-                      <li class="flex flex-wrap items-center gap-2 text-[12px]">
+                      <li class="flex flex-wrap items-center gap-2 text-callout">
                         <Id id={a.wallet} /><span class="text-faint">#{a.from}</span>
-                        {#if go}<button class={buttonClass('secondary', 'xs')} onclick={() => go(`${walletRoute(a.wallet)}?move=${a.from}`)}>{t('wallet.nativeMove')}</button>{/if}
+                        {#if go}<button class={buttonClass('subtle', 'xs')} onclick={() => go(`${walletRoute(a.wallet)}?move=${a.from}`)}>{t('wallet.nativeMove')}</button>{/if}
                       </li>
                     {/each}
                   </ul>
                 {/if}
               {:else if shownState === 'left' && s.skipped.length}
-                <p class="mt-1 text-[12px] break-all text-faint">{s.skipped.map((item: string) => (item === 'library' ? t('files') : item)).join(' · ')}</p>
+                <p class="mt-1 text-callout break-all text-muted">{s.skipped.map((item: string) => (item === 'library' ? t('files') : item)).join(' · ')}</p>
               {/if}
             </li>
           {/each}
@@ -279,7 +279,7 @@
         {#if finished(task)}<Notice tone="ok" icon="check">{t('successionFinished')}</Notice>{/if}
       </li>
     {:else}
-      {#if loaded && !error}<li class="px-5 py-3 text-[12.5px] text-faint">{t('successionNone')}</li>{/if}
+      {#if loaded && !error}<li class="px-5 py-3 text-callout text-muted">{t('successionNone')}</li>{/if}
     {/each}
   </ul>
 </Section>
@@ -354,8 +354,8 @@
 >
   {#snippet body()}
     {#if revoking && leftBehind(revoking).length}
-      <p class="text-[12.5px] font-medium">{t('successionLeft')}</p>
-      <ul class="mt-1 list-disc ps-5 text-[12.5px] break-all text-muted">{#each leftBehind(revoking) as item (item)}<li>{item}</li>{/each}</ul>
+      <p class="text-callout font-medium">{t('successionLeft')}</p>
+      <ul class="mt-1 list-disc ps-5 text-callout break-all text-muted">{#each leftBehind(revoking) as item (item)}<li>{item}</li>{/each}</ul>
     {/if}
   {/snippet}
 </Confirm>

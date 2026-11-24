@@ -91,7 +91,7 @@
 {/snippet}
 
 {#snippet manage(href: string, section: string, label = t('manage'))}
-  <a class="inline-flex items-center gap-1 text-[12.5px] text-forest hover:underline" {href} aria-label={t('manage') + ' · ' + section}>{label}<Icon name="chevron-end" class="size-3.5" /></a>
+  <a class="inline-flex items-center gap-1 text-callout text-forest hover:underline" {href} aria-label={t('manage') + ' · ' + section}>{label}<Icon name="chevron-end" class="size-3.5" /></a>
 {/snippet}
 
 <Section title={t('formalDevices')} description={t('formalDevicesHint')} icon="device" flush testid="grants-devices">
@@ -99,13 +99,13 @@
   {#if errors.devices}{@render readFailure(errors.devices, readDevices)}{/if}
   <ul class="divide-y divide-line">
     {#each devices as d (d.device_id)}
-      <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
+      <li class="flex items-center gap-2 px-5 py-2.5 text-body">
         <Id id={d.device_id} />
         {#if d.current}<Pill tone="forest">{t('thisDevice')}</Pill>{/if}
-        <span class="ms-auto text-[11.5px] text-faint">{when(d.added_at)}</span>
+        <span class="ms-auto text-caption text-faint">{when(d.added_at)}</span>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{loaded.devices ? (errors.devices ? '' : t('noFormalDevices')) : t('loading')}</li>
+      <li class="px-5 py-3 text-body text-faint">{loaded.devices ? (errors.devices ? '' : t('noFormalDevices')) : t('loading')}</li>
     {/each}
   </ul>
 </Section>
@@ -115,12 +115,12 @@
   {#if errors.browsers}{@render readFailure(errors.browsers, readBrowsers)}{/if}
   <ul class="divide-y divide-line">
     {#each activeBrowsers as p (p.pairing_id)}
-      <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
+      <li class="flex items-center gap-2 px-5 py-2.5 text-body">
         <b class="font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
-        <span class="ms-auto text-[11.5px] text-faint">{t('lastUsed')} {when(p.last_used_at)} · {t('expires')} {when(p.expires_at)}</span>
+        <span class="ms-auto text-caption text-faint">{t('lastUsed')} {when(p.last_used_at)} · {t('expires')} {when(p.expires_at)}</span>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{loaded.browsers ? (errors.browsers ? '' : t('noPairedBrowsers')) : t('loading')}</li>
+      <li class="px-5 py-3 text-body text-faint">{loaded.browsers ? (errors.browsers ? '' : t('noPairedBrowsers')) : t('loading')}</li>
     {/each}
   </ul>
 </Section>
@@ -129,13 +129,13 @@
   {#if error}{@render readFailure(error, retry)}{/if}
   <ul class="divide-y divide-line">
     {#each sessions as r (r.id)}
-      <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
+      <li class="flex items-center gap-2 px-5 py-2.5 text-body">
         <b class="font-medium">{r.detail.app_id}</b>
-        <bdi dir="ltr" class="font-mono text-[12px] text-muted">{r.detail.origin}</bdi>
-        <span class="ms-auto text-[11.5px] text-faint">{t('expires')} {when(r.detail.content.expires_at)}</span>
+        <bdi dir="ltr" class="font-mono text-code text-muted">{r.detail.origin}</bdi>
+        <span class="ms-auto text-caption text-faint">{t('expires')} {when(r.detail.content.expires_at)}</span>
       </li>
     {:else}
-      {#if !error}<li class="px-5 py-3 text-[13px] text-faint">{requestsLoaded ? t('noWebSessions') : t('loading')}</li>{/if}
+      {#if !error}<li class="px-5 py-3 text-body text-faint">{requestsLoaded ? t('noWebSessions') : t('loading')}</li>{/if}
     {/each}
   </ul>
 </Section>
@@ -155,22 +155,22 @@
   <ul class="divide-y divide-line">
     {#each activeGrants as g (g.id)}
       <li class="px-5 py-2.5">
-        <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
+        <div class="flex flex-wrap items-center gap-1.5 text-body">
           <b class="font-medium">{agentName(g.grantee)}</b>
-          {#if g.expires_at}<span class="text-[11.5px] text-faint">{t('expires')} {when(g.expires_at)}</span>{/if}
+          {#if g.expires_at}<span class="text-caption text-faint">{t('expires')} {when(g.expires_at)}</span>{/if}
         </div>
         <div class="mt-1 flex flex-wrap gap-1">{#each g.capabilities as capability, i (i)}<Pill class="font-mono font-normal">{capability}</Pill>{/each}</div>
       </li>
     {/each}
     {#each activeCredentials as c (c.id)}
       <li class="px-5 py-2.5">
-        <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
+        <div class="flex flex-wrap items-center gap-1.5 text-body">
           <b class="font-medium">{agentName(c.subject)}</b><Pill tone="forest">{t('credentials')}</Pill>
-          {#if c.expires_at}<span class="text-[11.5px] text-faint">{t('expires')} {when(c.expires_at)}</span>{/if}
+          {#if c.expires_at}<span class="text-caption text-faint">{t('expires')} {when(c.expires_at)}</span>{/if}
         </div>
         <div class="mt-1 flex flex-wrap gap-1">{#each c.scopes as scope (scope)}<Pill class="font-mono font-normal">{scope}</Pill>{/each}</div>
       </li>
     {/each}
-    {#if !activeGrants.length && !activeCredentials.length}<li class="px-5 py-3 text-[13px] text-faint">{!loaded.grants || !loaded.credentials ? t('loading') : errors.grants || errors.credentials ? '' : t('noAgentGrants')}</li>{/if}
+    {#if !activeGrants.length && !activeCredentials.length}<li class="px-5 py-3 text-body text-faint">{!loaded.grants || !loaded.credentials ? t('loading') : errors.grants || errors.credentials ? '' : t('noAgentGrants')}</li>{/if}
   </ul>
 </Section>

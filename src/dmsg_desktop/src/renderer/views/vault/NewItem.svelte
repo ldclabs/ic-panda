@@ -110,7 +110,7 @@
       {#each types as option (option)}
         <RadioGroup.Item
           value={option}
-          class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-line bg-surface px-1 py-2 text-[11.5px] text-muted outline-none transition-colors duration-150 hover:border-edge-soft hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=checked]:border-forest data-[state=checked]:bg-pale data-[state=checked]:text-forest"
+          class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-line bg-surface px-1 py-2 text-caption text-muted outline-none transition-colors duration-150 hover:border-edge-soft hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=checked]:border-forest data-[state=checked]:bg-pale data-[state=checked]:text-forest"
           data-testid={`vault-type-${option}`}
         >
           <Icon name={typeIcon[option]} class="size-5" />
@@ -123,22 +123,22 @@
         <ItemForm bind:this={form} bind:dirty bind:valid kind={type} {initial} {busy} {mod} footer={false} onSubmit={save} onCancel={() => close(false)} />
       {/key}
     {:else if templateError}
-      <Notice tone="warn"><p>{templateError}</p><button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={retryTemplates}>{t('retry')}</button></Notice>
+      <Notice tone="warn"><p>{templateError}</p><button class={buttonClass('subtle', 'xs', 'mt-2')} onclick={retryTemplates}>{t('retry')}</button></Notice>
     {:else}
-      <p class="shimmer text-[13px]">{t('loading')}</p>
+      <p class="shimmer text-body">{t('loading')}</p>
     {/if}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </fieldset>
   {#snippet footer()}
     {#if discardTo}
-      <span class="min-w-0 flex-1 text-[12.5px] text-warn" role="status" data-testid="vault-new-leave">{t('discardNew')}{#if discardTo !== 'close'} · {t(typeLabel[type])} <Icon name="chevron-end" class="inline size-3" /> {t(typeLabel[discardTo])}{/if}</span>
+      <span class="min-w-0 flex-1 text-callout text-warn" role="status" data-testid="vault-new-leave">{t('discardNew')}{#if discardTo !== 'close'} · {t(typeLabel[type])} <Icon name="chevron-end" class="inline size-3" /> {t(typeLabel[discardTo])}{/if}</span>
       <button bind:this={keepButton} class={buttonClass('secondary')} onclick={() => finishDiscard(false)}>{t('keepEditing')}</button>
       <button class={buttonClass('danger')} onclick={() => finishDiscard(true)} data-testid="vault-new-discard">{t('discard')}</button>
     {:else}
       <span class="min-w-0 flex-1"></span>
       <button class={buttonClass('ghost')} disabled={busy} onclick={() => close(false)}>{t('cancel')}</button>
       <button class={buttonClass('primary')} disabled={busy || !templates || !valid} onclick={() => form?.submit()} data-testid="vault-add">
-        {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
+        {t('save')}<kbd class="font-mono text-caption opacity-75">{mod}↵</kbd>
       </button>
     {/if}
   {/snippet}

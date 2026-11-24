@@ -53,8 +53,8 @@
     ></div
   >
   <section class="border-line grid gap-2 rounded-xl border p-3">
-    <h4 class="text-[13px] font-semibold">{w('spendable_assets')}</h4>
-    {#each options as a (a.value)}<div class="flex items-center gap-2 text-[12px]"
+    <h4 class="text-body font-semibold">{w('spendable_assets')}</h4>
+    {#each options as a (a.value)}<div class="flex items-center gap-2 text-callout"
         ><span class="min-w-0 flex-1 break-all">{a.label}</span><button
           class={buttonClass('ghost', 'xs')}
           aria-label={`${w('remove')} ${a.label}`}
@@ -100,7 +100,7 @@
       class="font-mono"></textarea></Field
   >
   <section class="grid gap-2">
-    <h4 class="text-[13px] font-semibold">{w('tiers')}</h4>
+    <h4 class="text-body font-semibold">{w('tiers')}</h4>
     {#each value.tiers as row, i (i)}
       <div class="border-line grid gap-2 rounded-xl border p-3 sm:grid-cols-2">
         <Field label={w('asset')}><Select bind:value={row.asset} {options} /></Field>
@@ -116,7 +116,7 @@
       </div>
     {/each}
     <button
-      class={buttonClass('secondary', 'xs', 'justify-self-start')}
+      class={buttonClass('subtle', 'xs', 'justify-self-start')}
       disabled={!options.length}
       onclick={() =>
         (value.tiers = [
@@ -126,8 +126,8 @@
     >
   </section>
   <section class="grid gap-2">
-    <h4 class="text-[13px] font-semibold">{w('daily_limits')}</h4>
-    <p class="text-[12px] text-muted">{w('policyLimitsHint')}</p>
+    <h4 class="text-body font-semibold">{w('daily_limits')}</h4>
+    <p class="text-callout text-muted">{w('policyLimitsHint')}</p>
     {#each value.daily_limits as row, i (i)}
       <div class="flex flex-wrap items-end gap-2">
         <Field label={w('asset')}><Select bind:value={row.asset} {options} /></Field>
@@ -140,7 +140,7 @@
       </div>
     {/each}
     <button
-      class={buttonClass('secondary', 'xs', 'justify-self-start')}
+      class={buttonClass('subtle', 'xs', 'justify-self-start')}
       disabled={!options.length}
       onclick={() => (value.daily_limits = [...value.daily_limits, { asset: options[0].value, amount: '0' }])}>+ {w('daily_limits')}</button
     >
@@ -158,7 +158,7 @@
         <Field label={w('max_per_day')}><input type="number" min="1" max="24" bind:value={value.refuel.max_per_day} /></Field>
       </div>
       {#if /^\d+$/.test(value.refuel.icp_e8s) && Number.isSafeInteger(value.refuel.max_per_day)}
-        <p class="text-[12px]"
+        <p class="text-callout"
           >{w('dailyTopupMax')}: {decimal(
             Number(value.refuel.max_per_day) > 0 ? (BigInt(value.refuel.icp_e8s) * BigInt(value.refuel.max_per_day)).toString() : '0',
             8

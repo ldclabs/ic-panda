@@ -35,11 +35,24 @@
   --ok-pale: #ecf7ef;
   --warn: #92400e;
   --warn-pale: #fcf4e4;
+  /* People's fallback avatars, the iOS palette's: tints with their own ink, never a state color. */
+  --avatar-forest: #c0ecd7;
+  --avatar-forest-ink: #264e3e;
+  --avatar-sage: #d2e8db;
+  --avatar-sage-ink: #384b42;
+  --avatar-amber: #ffdbca;
+  --avatar-amber-ink: #763300;
   --pop-shadow: 0 14px 34px -10px rgb(16 37 31 / 25%), 0 0 0 1px rgb(16 37 31 / 5%);
+  /* A list's selected row: neutral while the list has no focus, Forest while it has. */
+  --select: #dde6dd;
+  --select-strong: #145c45;
+  --on-select-strong: #ffffff;
+  /* A push button's edge: a hairline and a soft drop. */
+  --control-shadow: 0 0 0 1px rgb(16 37 31 / 13%), 0 1px 2px rgb(16 37 31 / 8%);
 }
 @media (prefers-color-scheme: light) {
   /* Small secondary text on tinted surfaces needs the stronger existing ink. */
-  :where(.bg-pale, .bg-paper-dim, .bg-paper-dim\/55, .bg-surface-2, .bg-wash) {
+  :where(.bg-pale, .bg-paper-dim, .bg-surface-2, .bg-wash) {
     --faint: var(--muted);
   }
 }
@@ -70,7 +83,17 @@
     --ok-pale: #13261b;
     --warn: #f0b84a;
     --warn-pale: #2a2210;
+    --avatar-forest: #264e3e;
+    --avatar-forest-ink: #c0ecd7;
+    --avatar-sage: #384b42;
+    --avatar-sage-ink: #d2e8db;
+    --avatar-amber: #763300;
+    --avatar-amber-ink: #ffdbca;
     --pop-shadow: 0 14px 34px -10px rgb(0 0 0 / 60%), 0 0 0 1px rgb(229 238 232 / 6%);
+    --control-shadow: 0 0 0 1px rgb(229 238 232 / 12%), 0 1px 2px rgb(0 0 0 / 40%);
+    --select: #22332b;
+    --select-strong: #1f6b52;
+    --on-select-strong: #ffffff;
   }
 }
 
@@ -104,7 +127,14 @@
   --color-ok-pale: var(--ok-pale);
   --color-warn: var(--warn);
   --color-warn-pale: var(--warn-pale);
+  --color-avatar-forest: var(--avatar-forest);
+  --color-avatar-forest-ink: var(--avatar-forest-ink);
+  --color-avatar-sage: var(--avatar-sage);
+  --color-avatar-sage-ink: var(--avatar-sage-ink);
+  --color-avatar-amber: var(--avatar-amber);
+  --color-avatar-amber-ink: var(--avatar-amber-ink);
   --shadow-pop: var(--pop-shadow);
+  --shadow-control: var(--control-shadow);
   --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -135,6 +165,27 @@
   );
   --ease-spring-soft: linear(0, 0.097, 0.298, 0.514, 0.7, 0.839, 0.933, 0.989, 1.017, 1.027, 1.023, 1.011, 1.003, 1);
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The type scale (DESIGN.md, Typography): seven sizes and nothing between
+ * them. Tailwind's own sizes are removed so a stray `text-sm` renders
+ * nothing; tests/ui-typography.test.ts rejects arbitrary sizes.
+ */
+@theme {
+  --text-*: initial;
+  --text-title-1: 26px;
+  --text-title-1--line-height: 32px;
+  --text-title-1--letter-spacing: -0.012em;
+  --text-title-2: 20px;
+  --text-title-2--line-height: 26px;
+  --text-title-2--letter-spacing: -0.008em;
+  --text-title-3: 15px;
+  --text-title-3--line-height: 20px;
+  --text-body: 13.5px;
+  --text-callout: 12.5px;
+  --text-caption: 11.5px;
+  --text-code: 12px;
 }
 
 /* Keep the shared type scale while selecting the matching CJK script. */
@@ -169,8 +220,17 @@ html[lang='ur'] {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  button:not(:disabled),
-  [role='button']:not([aria-disabled='true']) {
+  /* A desktop window: controls keep the arrow (only links point), and the
+     interface's own words are not text to select; content is. */
+  html {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  :where(input, textarea, [contenteditable], pre, code, dd, .font-mono, [role='alert']) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  a[href] {
     cursor: pointer;
   }
   /* Text fields; every other control is a bits-ui component. */
@@ -233,6 +293,26 @@ html[lang='ur'] {
   html[dir='rtl'] :is(dd, div, p, textarea, input).font-mono {
     text-align: right;
   }
+}
+
+/*
+ * A selected row, as the system lists select (DESIGN.md, Selecting): the
+ * current or chosen rows inside a `data-list` take the neutral Select; while
+ * the list holds the focus they take Forest, and every ink inside follows.
+ */
+[data-list] :is([aria-current]:not([aria-current='false']), [data-chosen='true']) {
+  background-color: var(--select);
+  --faint: var(--muted);
+}
+[data-list]:focus-within :is([aria-current]:not([aria-current='false']), [data-chosen='true']) {
+  background-color: var(--select-strong);
+  color: var(--on-select-strong);
+  --ink: var(--on-select-strong);
+  --ink-2: var(--on-select-strong);
+  --forest: var(--on-select-strong);
+  --on-forest: var(--select-strong);
+  --muted: color-mix(in srgb, var(--on-select-strong) 82%, transparent);
+  --faint: color-mix(in srgb, var(--on-select-strong) 72%, transparent);
 }
 
 /* The approval window's Approve fills while its delay runs. */

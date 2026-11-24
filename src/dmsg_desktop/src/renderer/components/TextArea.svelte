@@ -46,7 +46,7 @@
     aria-describedby={describedBy}
     aria-invalid={!!error || rest['aria-invalid']}
     class={cn(
-      'text-[13px] aria-invalid:border-danger read-only:bg-surface-2 read-only:text-muted',
-      mono && 'font-mono text-[12.5px]'
+      'text-body aria-invalid:border-danger read-only:bg-surface-2 read-only:text-muted',
+      mono && 'font-mono text-code'
     )}></textarea>
 </Field>

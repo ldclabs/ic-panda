@@ -80,24 +80,24 @@
 <Dialog bind:open title={t('channelAccess')} description={t('channelAccessHint')} icon="agents" wide testid="channel-access">
   <div class="grid gap-4">
     <section class="grid gap-2">
-      <h3 class="text-[12px] font-medium text-faint">{t('agentAccess')}</h3>
+      <h3 class="text-callout font-medium text-muted">{t('agentAccess')}</h3>
       <ul class="divide-y divide-line rounded-xl border border-line" data-testid="channel-access-agents">
         {#each reaching as g (g.id)}
           <li class="flex items-start gap-3 px-3 py-2">
             <div class="min-w-0 flex-1">
-              <b class="text-[13px] font-medium">{labelOf(g.grantee)}</b>
+              <b class="text-body font-medium">{labelOf(g.grantee)}</b>
               <div class="mt-1 flex flex-wrap gap-1">
                 {#each g.capabilities as capability (capability)}
                   <Pill class={cn('font-mono font-normal', !g.here.includes(capability) && 'opacity-50')}>{capability}</Pill>
                 {/each}
               </div>
-              {#if g.expires_at}<p class="mt-1 text-[11px] text-faint">{t('expires')} {when(g.expires_at)}</p>{/if}
-              {#if g.capabilities.length > g.here.length}<p class="mt-1 text-[11px] text-faint">{t('revokeAllOfGrant')}</p>{/if}
+              {#if g.expires_at}<p class="mt-1 text-caption text-faint">{t('expires')} {when(g.expires_at)}</p>{/if}
+              {#if g.capabilities.length > g.here.length}<p class="mt-1 text-caption text-faint">{t('revokeAllOfGrant')}</p>{/if}
             </div>
             <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })} data-testid="access-revoke">{t('revoke')}</button>
           </li>
         {:else}
-          <li class="px-3 py-2.5 text-[12.5px] text-faint">{t('noAgentAccess')}</li>
+          <li class="px-3 py-2.5 text-callout text-muted">{t('noAgentAccess')}</li>
         {/each}
       </ul>
       {#if agents.length}
@@ -114,19 +114,19 @@
           <button class={buttonClass('primary', 'sm')} disabled={busy || !agent || !(reads || writes)} onclick={grant} data-testid="access-grant">{t('grant')}</button>
         </div>
       {:else}
-        <p class="text-[12px] text-faint">{t('noAgentIds')}</p>
+        <p class="text-callout text-muted">{t('noAgentIds')}</p>
       {/if}
     </section>
     {#if apps.length}
       <section class="grid gap-2">
-        <h3 class="text-[12px] font-medium text-faint">{t('appAccess')}</h3>
+        <h3 class="text-callout font-medium text-muted">{t('appAccess')}</h3>
         <ul class="divide-y divide-line rounded-xl border border-line">
           {#each apps as g (g.grant_id)}
             <li class="flex items-center gap-3 px-3 py-2">
               <Icon name="website" class="shrink-0 text-faint" />
               <div class="min-w-0 flex-1">
-                <p class="truncate font-mono text-[12px]">{g.origin}</p>
-                <p class="text-[11px] text-faint">{g.actions.join(', ')} · {t('epochRange', { from: g.epoch_min, to: g.epoch_max })} · {t('expires')} {when(g.expires_at)}</p>
+                <p class="truncate font-mono text-code">{g.origin}</p>
+                <p class="text-caption text-faint">{g.actions.join(', ')} · {t('epochRange', { from: g.epoch_min, to: g.epoch_max })} · {t('expires')} {when(g.expires_at)}</p>
               </div>
               {#if manages}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => onControl({ type: 'revoke_grant', grant_id: g.grant_id })}>{t('revoke')}</button>

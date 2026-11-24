@@ -107,16 +107,16 @@
 <DisplayNotice methods={['account/show']} />
 
 {#if loadError}<Notice failure={loadError} tone="danger">{loadError}
-  {#snippet action()}<button class={buttonClass('secondary','xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
+  {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
 </Notice>{/if}
 {#if error && !editing}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-{#if !view && !loadError}<p class="px-5 text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
+{#if !view && !loadError}<p class="px-5 text-body text-muted" role="status">{t('loading')}</p>{/if}
 {#if view}
   <Section title={t('devices')} description={t('devicesRevokeHint')} icon="device" flush testid="devices">
     {#if status?.state === 'unlocked'}
       <div class="px-5 pb-4"><DeviceAuthorization account={status?.account} disabled={busy || !!loadError} canInvite={view.devices.some((device: any) => device.current && !device.revoked_at && device.role === 'Administrator' && device.capabilities.includes('RootManage'))} /></div>
     {/if}
-    <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-[12px] text-faint" data-testid="security-snapshot">
+    <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-callout text-muted" data-testid="security-snapshot">
       <span class="inline-flex items-center gap-1"><Icon name="verified" class="size-3.5 text-ok" />{t('snapshotChecked')}</span>
       <span>{t('accountVersion')} {view.account_version}</span>
       <span>{t('securityEpoch')} {view.security_epoch}</span>
@@ -137,15 +137,15 @@
                 {#if device.revoked_at}<Pill tone="danger">{t('revokedAt')} {when(device.revoked_at)}</Pill>{/if}
               </div>
               <div class="mt-1.5 flex flex-wrap gap-1">
-                {#each device.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{deviceCapabilityName(capability, t)}</Pill>{:else}<span class="text-[12px] text-faint">-</span>{/each}
+                {#each device.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{deviceCapabilityName(capability, t)}</Pill>{:else}<span class="text-callout text-muted">-</span>{/each}
               </div>
-              <p class="mt-1 text-[11.5px] text-faint">
+              <p class="mt-1 text-caption text-faint">
                 {t('addedAt')} {when(device.added_at)}{device.added_by ? ` · ${t('addedBy')} ${device.added_by.slice(0, 12)}` : ''}
               </p>
             </div>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <div class="flex shrink-0 gap-1.5">
-                <button class={buttonClass('secondary', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-label={`${t('capabilities')} · ${device.current ? t('thisDevice') : deviceRoleName(device.role, t)} · ${device.device_id.slice(0, 12)}`} aria-haspopup="dialog"  onclick={() => edit(device)} data-testid="device-capabilities">
+                <button class={buttonClass('subtle', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-label={`${t('capabilities')} · ${device.current ? t('thisDevice') : deviceRoleName(device.role, t)} · ${device.device_id.slice(0, 12)}`} aria-haspopup="dialog"  onclick={() => edit(device)} data-testid="device-capabilities">
                   {t('capabilities')}
                 </button>
                 {#if !device.current}
@@ -158,7 +158,7 @@
           </div>
           {#if pending[device.device_id]}
             <Notice>{t('securityApprovalPending')}
-              {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => showPending(device.device_id)}>{t('securityViewApproval')}</button>{/snippet}
+              {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => showPending(device.device_id)}>{t('securityViewApproval')}</button>{/snippet}
             </Notice>
           {/if}
         </li>
@@ -188,7 +188,7 @@
     {/each}
   </div>
   {#snippet footer()}
-    {#if !changed}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
+    {#if !changed}<span class="text-callout text-muted">{t('securityUnchanged')}</span>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => { editing = null; error = '' }}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={!canSubmit} data-testid="capabilities-submit" onclick={() => ask('device/capabilities', { device: editing!, capabilities: chosen })}>{t('submit')}</button>

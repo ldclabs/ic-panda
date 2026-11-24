@@ -22,8 +22,8 @@
 </script>
 
 <Dialog bind:open={() => leaving.url !== null, (open) => !open && close()} title={t('openLinkTitle')} icon="external" testid="link-confirm">
-  <p class="text-[15px] font-semibold [overflow-wrap:anywhere]" dir="ltr" data-testid="link-host">{leaving.host}</p>
-  <p class="mt-1 text-[12px] text-muted [overflow-wrap:anywhere]" dir="ltr">{leaving.url}</p>
+  <p class="text-title-3 font-semibold [overflow-wrap:anywhere]" dir="ltr" data-testid="link-host">{leaving.host}</p>
+  <p class="mt-1 text-callout text-muted [overflow-wrap:anywhere]" dir="ltr">{leaving.url}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={close}>{t('cancel')}</button>

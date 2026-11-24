@@ -7,6 +7,7 @@
   import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Page from '../components/page/Page.svelte'
+  import TabBar from '../components/page/TabBar.svelte'
   import PaneHandle from '../components/PaneHandle.svelte'
   import Select from '../components/Select.svelte'
   import TagInput from '../components/TagInput.svelte'
@@ -42,6 +43,7 @@
     types,
     valueOf,
     vaultWorkflows,
+    workflowIcon,
     type Scope,
     type Sort,
     type Templates
@@ -128,6 +130,11 @@
   const workflow = $derived.by(() => {
     const part = route.split('?')[0].split('/')[2]
     return workflows.includes(part) ? part : null
+  })
+  /** The part of credential use opened last, where the filters' entry returns. */
+  let lastWorkflow = $state<string | null>(null)
+  $effect(() => {
+    if (workflow) lastWorkflow = workflow
   })
   /** What the actions on many reach: dMsg's own items stay out of them. */
   const picked = $derived(shown.filter((e) => chosen.has(e.id) && !isManaged(e.item)).map((e) => e.id))
@@ -632,13 +639,16 @@
     <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
-      <Filters {workflows} {scope} {workflow} onScope={pickScope} onWorkflow={(name) => pickScope('workflow:' + name)} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
+      <Filters {workflows} {scope} {workflow} onScope={pickScope} onWorkflow={() => pickScope('workflow:' + (lastWorkflow && workflows.includes(lastWorkflow) ? lastWorkflow : workflows[0]))} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
     </aside>
 
     {#if workflow}
       <div class="flex min-w-0 flex-1 flex-col">
         <div class="border-b border-line p-3 @min-[860px]:hidden">
           <Select bind:value={() => `workflow:${workflow}`, pickScope} options={scopes} label={t('vaultFilters')} testid="vault-scope" />
+        </div>
+        <div class="hidden @min-[860px]:block">
+          <TabBar value={workflow} items={workflows.map((name) => ({ value: name, label: workflowText(name), icon: workflowIcon[name] }))} label={t('secretUses')} testid="workflow-tab" onPick={(name) => pickScope('workflow:' + name)} />
         </div>
         <div class="min-h-0 flex-1">
           {#if unlocked}
@@ -697,21 +707,21 @@
       </div>
 
       {#if conflicts.length && !trash}
-        <div class="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-warn/35 bg-warn-pale px-2.5 py-2 text-[12px] text-ink-2" data-testid="vault-conflicts">
+        <div class="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-warn/35 bg-warn-pale px-2.5 py-2 text-callout text-ink-2" data-testid="vault-conflicts">
           <Icon name="conflict" class="shrink-0 text-warn" />
           <span class="min-w-0 flex-1">{t('conflictBanner', { n: conflicts.length })}</span>
-          <button class={buttonClass('secondary', 'xs')} onclick={() => compare()} data-testid="vault-conflicts-review">{t('review')}</button>
+          <button class={buttonClass('subtle', 'xs')} onclick={() => compare()} data-testid="vault-conflicts-review">{t('review')}</button>
         </div>
       {/if}
 
       <TargetMenu find={rowAt} testid="vault-row-menu">
         {#snippet menu(entry)}{@render rowMenu(entry)}{/snippet}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <ul bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('vault')} onkeydown={onListKey} data-testid="vault-list">
+      <ul data-list bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('vault')} onkeydown={onListKey} data-testid="vault-list">
         {#if (trash ? trashError : error) || scope === 'health' && healthStatus === 'error'}
           <li class="py-2"><Notice tone="warn" testid="vault-list-error">
             <p>{(trash ? trashError : error) || t('loadFailed')}</p>
-            <button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={() => trash ? loadTrash() : error ? reload() : checkHealth()}>{t('retry')}</button>
+            <button class={buttonClass('subtle', 'xs', 'mt-2')} onclick={() => trash ? loadTrash() : error ? reload() : checkHealth()}>{t('retry')}</button>
           </Notice></li>
         {/if}
         {#each listed as entry (entry.id)}
@@ -732,30 +742,30 @@
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center" data-testid="vault-empty">
               {#if status?.account_kind !== 'local' && status?.sync_initialized === false && unlocked && !trash}
                 <Icon name="sync" class="text-faint" />
-                <b class="text-[13.5px] font-semibold" data-testid="vault-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</b>
-                <p class="text-[12.5px] text-muted">{t('syncInitialHint')}</p>
+                <b class="text-body font-semibold" data-testid="vault-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</b>
+                <p class="text-callout text-muted">{t('syncInitialHint')}</p>
               {:else if query}
-                <p class="text-[13px] text-muted [overflow-wrap:anywhere]">{t('noMatch', { query })}</p>
+                <p class="text-body text-muted [overflow-wrap:anywhere]">{t('noMatch', { query })}</p>
                 <button class={buttonClass('secondary', 'sm')} onclick={() => { query = ''; search?.focus() }}>{t('clearSearch')}</button>
               {:else if trash}
-                <p class="text-[13px] text-muted">{t('emptyTrash')}</p>
+                <p class="text-body text-muted">{t('emptyTrash')}</p>
               {:else if scope === 'health'}
-                <p class="text-[13px] text-muted">{t(healthStatus === 'ready' ? 'healthClear' : healthStatus === 'error' ? 'error' : 'loading')}</p>
+                <p class="text-body text-muted">{t(healthStatus === 'ready' ? 'healthClear' : healthStatus === 'error' ? 'error' : 'loading')}</p>
               {:else if scope === 'all'}
                 <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="vault" /></span>
-                <b class="text-[13.5px] font-semibold">{t('emptyVault')}</b>
-                {#if status?.account_kind !== 'local'}<p class="text-[12.5px] text-muted">{t('emptyVaultHint')}</p>{/if}
+                <b class="text-body font-semibold">{t('emptyVault')}</b>
+                {#if status?.account_kind !== 'local'}<p class="text-callout text-muted">{t('emptyVaultHint')}</p>{/if}
                 {#if unlocked}
                   <button class={buttonClass('primary', 'sm')} onclick={() => (creating = true)}>{t('add')}</button>
                   <button class={buttonClass('secondary', 'sm')} onclick={() => (backingUp = true)}>{t('vaultBackupImport')}</button>
                   <button class={buttonClass('secondary', 'sm')} onclick={() => (importing = true)}><Icon name="import" />{t('importTitle')}</button>
                 {/if}
               {:else}
-                <p class="text-[13px] text-muted">{t('noItems')}</p>
+                <p class="text-body text-muted">{t('noItems')}</p>
               {/if}
             </li>
           {:else}
-            <li class="py-10 text-center text-sm text-muted" data-testid="vault-loading">{t('loading')}</li>
+            <li class="py-10 text-center text-body text-muted" data-testid="vault-loading">{t('loading')}</li>
           {/if}
           {/if}
         {/each}
@@ -765,14 +775,14 @@
 
       {#if picked.length > 1}
         <div class="absolute inset-x-2 bottom-2 grid gap-1.5 rounded-xl border border-line bg-surface p-2 shadow-pop" data-testid="vault-batch">
-          <div class="flex items-center gap-1.5 text-[12.5px]">
+          <div class="flex items-center gap-1.5 text-callout">
             <span class="min-w-0 flex-1 text-muted">{t('nSelected', { n: picked.length })}</span>
             <button class={buttonClass('ghost', 'xs')} onclick={() => choose(shown.map(e => e.id))}>{t('selectAll')}</button>
             <button class={buttonClass('ghost', 'xs')} onclick={() => (chosen = new Set())} data-testid="vault-batch-done">{t('done')}</button>
           </div>
           <div class="flex flex-wrap gap-1">
-            <button class={buttonClass('secondary', 'xs')} onclick={() => (tagging = 'add')} data-testid="vault-batch-tag"><Icon name="tag" />{t('addTags')}</button>
-            <button class={buttonClass('secondary', 'xs')} onclick={() => (tagging = 'remove')}><Icon name="tag" />{t('removeTags')}</button>
+            <button class={buttonClass('subtle', 'xs')} onclick={() => (tagging = 'add')} data-testid="vault-batch-tag"><Icon name="tag" />{t('addTags')}</button>
+            <button class={buttonClass('subtle', 'xs')} onclick={() => (tagging = 'remove')}><Icon name="tag" />{t('removeTags')}</button>
             <button class={buttonClass('danger', 'xs')} onclick={trashChosen} data-testid="vault-batch-trash"><Icon name="trash" />{t('moveToTrash')}</button>
           </div>
         </div>
@@ -782,7 +792,7 @@
 
     <div class="min-w-0 flex-1">
       {#if picked.length > 1}
-        <div class="grid h-full place-items-center p-8 text-sm text-muted">{t('nSelected', { n: picked.length })}</div>
+        <div class="grid h-full place-items-center p-8 text-body text-muted">{t('nSelected', { n: picked.length })}</div>
       {:else if current}
         {#key current.id}
           <Inspector
@@ -805,7 +815,7 @@
           />
         {/key}
       {:else if loaded}
-        <div class="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
+        <div class="grid h-full place-items-center p-8 text-center text-body text-faint">
           <p>{shown.length ? t('selectItem') : ''}</p>
         </div>
       {/if}
@@ -822,7 +832,7 @@
 <Dialog bind:open={() => leaving !== null, (next) => { if (!next) keepEditing() }} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"
   onOpenAutoFocus={(event) => { if (keepEditButton) { event.preventDefault(); keepEditButton.focus() } }}
   onCloseAutoFocus={(event) => { if (editing) { event.preventDefault(); (lastEditField?.isConnected ? lastEditField : document.querySelector<HTMLElement>('[data-testid="vault-title"]'))?.focus() } lastEditField = null }}>
-  <p class="text-[13px] text-muted">{t('unsavedBody')}</p>
+  <p class="text-body text-muted">{t('unsavedBody')}</p>
   {#snippet footer()}
     <span class="min-w-0 flex-1"></span>
     <button bind:this={keepEditButton} class={buttonClass('secondary')} onclick={keepEditing}>{t('keepEditing')}</button>

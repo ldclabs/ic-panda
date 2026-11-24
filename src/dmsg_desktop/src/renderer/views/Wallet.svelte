@@ -730,7 +730,7 @@
           options={wallets.map((a) => ({ value: a.wallet, label: `${a.name} · ${a.wallet.slice(0, 5)}` }))}
           label={t('twWallet')}
           testid="wallet-select"
-        /><p data-testid="wallet-identity" class="text-muted mt-1 text-[11px]">{w(member?.role ?? 'unknown')} · <bdi class="break-all select-all" dir="ltr">{wallet.wallet}</bdi></p></div
+        /><p data-testid="wallet-identity" class="text-muted mt-1 text-caption">{w(member?.role ?? 'unknown')} · <bdi class="break-all select-all" dir="ltr">{wallet.wallet}</bdi></p></div
       >
       <button
         class={iconButtonClass()}
@@ -759,7 +759,7 @@
           data-testid="wallet-transfer-open"><Icon name="send" />{w('proposePayment')}</button
         >{/if}
     </div>
-    {#if WALLET_CREATION_PAUSED}<p id="wallet-creation-status" class="px-3 pb-2 text-[12px] text-muted sm:px-6" data-testid="wallet-creation-paused"
+    {#if WALLET_CREATION_PAUSED}<p id="wallet-creation-status" class="px-3 pb-2 text-callout text-muted sm:px-6" data-testid="wallet-creation-paused"
         >{w('creationPausedHint')}</p
       >{/if}
     <TabBar
@@ -779,7 +779,7 @@
         {#if error}<Notice failure={error} tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}
-        {#if loading && !wallet}<p class="text-faint text-[12px]" role="status" data-testid="wallet-loading">{w('loading')}</p>{/if}
+        {#if loading && !wallet}<p class="text-muted text-callout" role="status" data-testid="wallet-loading">{w('loading')}</p>{/if}
         {#if pending}<Notice testid="wallet-pending"
             ><span
               >{activation &&
@@ -788,10 +788,10 @@
                 ? w(`activation_${activation.stage}`)
                 : stateLabel(pending.state)}</span
             >{#if pending.state === 'awaiting_user'}<button
-                class={buttonClass('secondary', 'xs', 'ms-3')}
+                class={buttonClass('subtle', 'xs', 'ms-3')}
                 onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}>{w('openApproval')}</button
               >{/if}{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
-                class={buttonClass('secondary', 'xs', 'ms-2')}
+                class={buttonClass('subtle', 'xs', 'ms-2')}
                 disabled={busy}
                 onclick={() => run('wallet/activation_continue', { request: pending.id })}>{w('continue')}</button
               >{/if}
@@ -838,20 +838,20 @@
               {#if queueError}<Notice failure={queueError} tone="danger"
                   >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={() => readQueue()}>{w('retry')}</button></Notice
                 >{/if}
-              {#if queueBusy}<p class="px-5 py-3 text-muted text-[12px]" role="status">{w('queueLoading')}</p>{/if}
+              {#if queueBusy}<p class="px-5 py-3 text-muted text-callout" role="status">{w('queueLoading')}</p>{/if}
               {#each tasks.filter((p) => queueKind(p, wallet!, now) !== 'history').slice(0, 5) as p (p.id)}
                 {@const summary = intentHeadline(p.intent, metadata)}
                 <button
                   class="border-line flex w-full flex-wrap items-center gap-3 border-t px-5 py-3 text-start hover:bg-wash"
                   onclick={() => showProposal(p.id)}
                 >
-                  <Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-[13px] break-all">{w(summary.kind)}{summary.text ? ` · ${summary.text}` : ''}</span><Pill
+                  <Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-body break-all">{w(summary.kind)}{summary.text ? ` · ${summary.text}` : ''}</span><Pill
                     >{w(resultState(p, now))}</Pill
                   >
                 </button>
-              {:else}{#if !queueBusy && !queueError}<p class="px-5 py-4 text-muted text-[13px]">{w('noPending')}</p>{/if}{/each}
+              {:else}{#if !queueBusy && !queueError}<p class="px-5 py-4 text-muted text-body">{w('noPending')}</p>{/if}{/each}
             </Section>
-            <div class="flex flex-wrap items-center gap-3 text-[13px]">
+            <div class="flex flex-wrap items-center gap-3 text-body">
               <span data-testid="wallet-cycles">{w('runningHealth')}: {cyclesText(wallet.stats?.cycles ?? '0')} T</span>
               <button class={buttonClass('ghost', 'sm')} onclick={() => show('settings')}>{w('settings')}</button>
               <span>{w('approvals')}: {wallet.policy.approver_threshold}</span>
@@ -890,12 +890,12 @@
                     data-testid="wallet-proposal"
                     ><Pill>#{p.id}</Pill><div class="min-w-0 flex-1"
                       ><div class="mb-2 flex flex-wrap gap-2"
-                        ><Pill>{w(resultState(p, now))}</Pill><span class="text-[12px]"
+                        ><Pill>{w(resultState(p, now))}</Pill><span class="text-callout"
                           >{approvalCount(p, wallet.members)} / {p.requirement.approvals} · {w(
                             p.requirement.admin ? 'Admin' : 'Approver'
                           )}</span
                         >{#if actions(p, wallet, now).voted}<Pill>{w('voted')}</Pill>{/if}</div
-                      ><Intent intent={p.intent} {metadata} compact /><p class="text-faint mt-2 text-[11px]"
+                      ><Intent intent={p.intent} {metadata} compact /><p class="text-faint mt-2 text-caption"
                         >{when(p.created_at)} · {p.via_agent ?? p.proposer}</p
                       ></div
                     ><button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showProposal(p.id)}
@@ -926,14 +926,14 @@
               {#each wallet.addresses as a (a.id)}
                 <div class="border-line grid gap-2 border-t px-5 py-4" data-testid={`wallet-address-${a.id}`}
                   ><div class="flex flex-wrap items-center gap-2"
-                    ><b class="text-[14px]">{a.label || a.chain}</b><Pill
+                    ><b class="text-body">{a.label || a.chain}</b><Pill
                       >{a.chain === 'Icp' ? 'ICP' : a.chain === 'Evm' ? 'EVM' : a.chain}</Pill
                     ><Pill tone={a.verified ? 'ok' : 'danger'}>{a.verified ? w('addressVerified') : t('twUnverified')}</Pill
                     >{#if a.cosign}<Pill>{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill>{/if}{#if a.archived}<Pill
                         >{w('archived')}</Pill
                       >{/if}<span class="flex-1"
                     ></span>{#if movable(a)}<button
-                        class={buttonClass('secondary', 'xs')}
+                        class={buttonClass('subtle', 'xs')}
                         disabled={!usable || wallet.frozen}
                         onclick={() => (moving = a.id)}
                         data-testid="wallet-nc-move">{w('nativeMove')}</button
@@ -942,11 +942,11 @@
                       aria-label={`${t('copy')} ${a.label || a.chain}`}
                       onclick={() => copyText(a.text)}><Icon name="copy" /></button
                     ><button
-                      class={buttonClass('secondary', 'xs')}
+                      class={buttonClass('subtle', 'xs')}
                       disabled={!usable || !a.verified}
                       onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
                     >{#if mayPropose && a.chain === 'Solana' && !a.sol_nonce}<button
-                        class={buttonClass('secondary', 'xs')}
+                        class={buttonClass('subtle', 'xs')}
                         disabled={!usable || wallet.frozen}
                         onclick={() => showManage('sol_nonce', a)}>{w('init_sol_nonce')}</button
                       >{/if}{#if mayPropose && a.control !== 'taproot_2of2'}<button
@@ -954,8 +954,8 @@
                         disabled={!usable}
                         onclick={() => showManage('cosign', a)}>{w('bindCosign')}</button
                       >{/if}</div
-                  ><p class="font-mono text-[12px] break-all select-all" dir="ltr">{a.text}</p>
-                  <p class="text-muted text-[12px]">{w('addressVerifyHint')}</p></div
+                  ><p class="font-mono text-code break-all select-all" dir="ltr">{a.text}</p>
+                  <p class="text-muted text-callout">{w('addressVerifyHint')}</p></div
                 >
               {/each}
             </Section>
@@ -968,7 +968,7 @@
               {#if bookError}<Notice failure={bookError} tone="danger">{bookError}</Notice>{/if}
               {#each book as b, i (i)}<div class="border-line flex flex-wrap items-center gap-2 border-t px-5 py-3"
                   ><div class="min-w-0 flex-1"
-                    ><b class="text-[13px]">{b.label}</b><p class="font-mono text-[12px] break-all">{b.destination}</p><small
+                    ><b class="text-body">{b.label}</b><p class="font-mono text-code break-all">{b.destination}</p><small
                       class="text-faint">{w('cooldown')}: {when(b.added_at + wallet.policy.address_book_cooldown_ms)}</small
                     ></div
                   ><button class={buttonClass('ghost', 'xs')} onclick={() => copyText(b.destination)}>{t('copy')}</button
@@ -977,7 +977,7 @@
                       disabled={!usable}
                       onclick={() => showManage('book_remove', b)}>{w('remove')}</button
                     >{/if}</div
-                >{:else}{#if !bookError}<p class="text-faint px-5 py-4 text-[12px]" role="status">{w(bookBusy ? 'loading' : 'none')}</p>{/if}{/each}
+                >{:else}{#if !bookError}<p class="text-muted px-5 py-4 text-callout" role="status">{w(bookBusy ? 'loading' : 'none')}</p>{/if}{/each}
               {#if bookNext}<button
                   class={buttonClass('secondary', 'sm', 'm-4')}
                   disabled={!usable || bookBusy}
@@ -998,15 +998,15 @@
                     ><div class="flex flex-wrap items-center gap-2"
                       ><b>{m.id === member?.id ? t('you') : m.label || m.id}</b><Pill>{w(m.role)}</Pill><Pill>{m.kind === 'principal' ? 'Principal' : t('account')}</Pill
                       ><Pill tone={m.status === 'Active' ? 'ok' : 'warn'}>{w(m.status)}</Pill></div
-                    ><Id id={m.id} full />{#if m.principals?.length}<p class="text-faint mt-2 font-mono text-[11px] break-all"
+                    ><Id id={m.id} full />{#if m.principals?.length}<p class="text-faint mt-2 font-mono text-code break-all"
                         >{w('principals')}: {m.principals.join(', ')}</p
-                      >{/if}{#if m.agent_ids?.length}<p class="mt-1 text-[12px] break-all">{w('agent_ids')}: {m.agent_ids.join(', ')}</p
+                      >{/if}{#if m.agent_ids?.length}<p class="mt-1 text-callout break-all">{w('agent_ids')}: {m.agent_ids.join(', ')}</p
                       >{/if}</div
                   >{#if m.status === 'Invited'}<button
-                      class={buttonClass('secondary', 'xs')}
+                      class={buttonClass('subtle', 'xs')}
                       onclick={() => copyText(`dmsg://wallet/${wallet!.wallet}`)}>{w('invite')}</button
                     >{/if}{#if mayMembers}<button
-                      class={buttonClass('secondary', 'xs')}
+                      class={buttonClass('subtle', 'xs')}
                       disabled={!usable}
                       onclick={() => showManage('member', m)}>{w('editMember')}</button
                     ><button
@@ -1043,10 +1043,10 @@
                     >{w('export')}</button
                   >{/if}{/snippet}
               {#if auditError}<Notice tone="danger">{auditError}</Notice>{/if}
-              {#if audit}<p class="text-ok px-5 py-3 text-[12px]" data-testid="wallet-audit"
+              {#if audit}<p class="text-ok px-5 py-3 text-callout" data-testid="wallet-audit"
                   >{t('twAuditOk', { n: audit.events })} · {when(audit.read_at)}</p
-                ><p class="text-faint px-5 pb-3 font-mono text-[11px] break-all">{audit.head}</p>{#each audit.recent as e (e.seq)}<div
-                    class="border-line flex flex-wrap gap-3 border-t px-5 py-3 text-[12px]"
+                ><p class="text-faint px-5 pb-3 font-mono text-code break-all">{audit.head}</p>{#each audit.recent as e (e.seq)}<div
+                    class="border-line flex flex-wrap gap-3 border-t px-5 py-3 text-callout"
                     ><span>#{e.seq}</span><div class="min-w-0 flex-1"
                       ><b
                         >{w(
@@ -1076,7 +1076,7 @@
                 onProposed={proposed}
               />{/key}{/if}
         {:else if listLoading && !listRead && !selected}
-          <p class="text-muted text-[13px]" role="status">{w('loading')}</p>
+          <p class="text-muted text-body" role="status">{w('loading')}</p>
         {:else if !loading && wallets.length}
           <Section title={t('twNav')} icon="coins" testid="wallet-empty">
             <div class="flex flex-wrap gap-2">
@@ -1109,7 +1109,7 @@
                 class="border-line flex flex-wrap items-center gap-3 border-t px-5 py-3"
                 data-testid="wallet-deposit"
                 ><div class="min-w-0 flex-1"
-                  ><Id id={d.quote_id} /><p>{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</p><p class="text-faint text-[12px]"
+                  ><Id id={d.quote_id} /><p>{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</p><p class="text-muted text-callout"
                     >{['surplus', 'creating', 'installing'].includes(d.state)
                       ? w(`deposit_${d.state}`)
                       : d.state === 'failed'
@@ -1117,7 +1117,7 @@
                         : d.state === 'expired'
                           ? t('twDepositExpired')
                           : t('twDepositUnused', { time: when(d.expires_at) })}</p
-                  >{#if d.reason}<p class="text-danger text-[12px] break-all">{d.reason}</p>{/if}</div
+                  >{#if d.reason}<p class="text-danger text-callout break-all">{d.reason}</p>{/if}</div
                 >{#if d.abortable}<button
                     class={buttonClass('danger', 'sm')}
                     disabled={busy || abortBusy}
@@ -1249,12 +1249,12 @@
                 options={(receive.networks ?? wallet.policy.evm_chains).map((chain_id: number) => ({
                   value: String(chain_id), label: networkName({ asset: 'ETH', chain_id })
                 }))} />
-            </Field><p class="text-muted text-[13px]">{w('networkHint')}</p>
-          {:else}<p class="font-medium text-[13px]">{receive.chain === 'Icp' ? 'Internet Computer' : receive.chain} {receive.network}</p>{/if}
+            </Field><p class="text-muted text-body">{w('networkHint')}</p>
+          {:else}<p class="font-medium text-body">{receive.chain === 'Icp' ? 'Internet Computer' : receive.chain} {receive.network}</p>{/if}
           {#if receive.qr}<img src={receive.qr} alt={w('receive')} class="size-48" />{/if}
-          <p class="font-mono text-[13px] break-all select-all" dir="ltr">{receive.text}</p>
+          <p class="font-mono text-body break-all select-all" dir="ltr">{receive.text}</p>
           <button class={buttonClass('primary', 'sm')} onclick={() => copyText(receive.text)}>{t('copy')}</button
-          >{#if receive.owner}<dl class="grid w-full gap-2 text-[12px] break-all"
+          >{#if receive.owner}<dl class="grid w-full gap-2 text-callout break-all"
               ><dt>Owner</dt><dd class="font-mono">{receive.owner}</dd><dt>Subaccount</dt><dd class="font-mono">{receive.subaccount}</dd><dt
                 >AccountIdentifier</dt
               ><dd class="font-mono">{receive.account_identifier}</dd></dl

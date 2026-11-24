@@ -143,7 +143,7 @@
         class={card}
       >
         <h3 class="font-medium">{ux('setup')}</h3>
-        <p class="max-w-2xl text-sm leading-relaxed text-muted">
+        <p class="max-w-2xl text-body leading-relaxed text-muted">
           {ux('policySteps')}
         </p>
         <button class={buttonClass('secondary')} onclick={() => openVault()}
@@ -158,7 +158,7 @@
         class={card}
         data-testid="secret-policy-form"
       >
-        <p class="text-sm text-muted">{s('scope')}</p>
+        <p class="text-body text-muted">{s('scope')}</p>
         <Field label={s('name')}
           ><input bind:value={name} required maxlength="100" /></Field
         >
@@ -257,12 +257,12 @@
       >
         <div class="flex flex-wrap justify-between gap-2">
           <h3 class="font-semibold">{p.policy.name}</h3>
-          <span class="text-xs text-muted"
+          <span class="text-callout text-muted"
             >{p.policy.enabled ? s('enabled') : s('disabled')} · {s('version')}
             {p.version}</span
           >
         </div>
-        <p class="text-sm">
+        <p class="text-body">
           GitHub · {p.policy.target.owner}/{p.policy.target.repo}
         </p>
         <button
@@ -272,19 +272,19 @@
             ux('openSource')} · {p.policy.credential.field_id}</button
         >
         <div>
-          <p class="text-xs text-muted">{ux('requesters')}</p>
-          {#each permitted(p.id) as grant}<p class="text-sm break-all">
+          <p class="text-callout text-muted">{ux('requesters')}</p>
+          {#each permitted(p.id) as grant}<p class="text-body break-all">
               {agents.find((a) => a.agent_id === grant.grantee)?.label ??
                 grant.grantee}
-            </p>{:else}<p class="text-sm text-muted">
+            </p>{:else}<p class="text-body text-muted">
               {model.state.errors.grants ? ux('unknown') : s('none')}
             </p>{/each}
         </div>
         <details>
-          <summary class="cursor-pointer text-sm text-forest"
+          <summary class="text-body text-forest"
             >{ux('setup')}</summary
           >
-          <p class="my-2 text-sm text-muted">{ux('requestHelp')}</p>
+          <p class="my-2 text-body text-muted">{ux('requestHelp')}</p>
           <Id id={p.id} full wrap copyLabel={t('copy')} />
         </details>
         <div class="flex flex-wrap gap-2">
@@ -316,10 +316,10 @@
           >
         </div>
       </article>{/each}
-    <p class="text-xs text-muted">{s('revokeHint')}</p>
+    <p class="text-callout text-muted">{s('revokeHint')}</p>
     <div class="border-t border-line pt-4">
       <h3 class="font-semibold">{s('history')}</h3>
-      <p class="my-2 text-xs text-muted">{ux('policyHistory')}</p>
+      <p class="my-2 text-callout text-muted">{ux('policyHistory')}</p>
     </div>
     {#each uses as use (use.request_id)}<article
         class={card}
@@ -327,19 +327,19 @@
       >
         <div class="flex flex-wrap justify-between gap-2">
           <strong>{use.approval?.detail?.policy_name}</strong><span
-            class="text-sm">{stateLabel(use.state)}</span
+            class="text-body">{stateLabel(use.state)}</span
           >
         </div>
-        <p class="text-xs text-muted">
+        <p class="text-callout text-muted">
           {agents.find((a) => a.agent_id === use.approval?.detail?.actor)
             ?.label ?? use.approval?.detail?.actor} · {when(use.created_at)}
         </p>
-        <p class="whitespace-pre-wrap break-words text-sm">
+        <p class="whitespace-pre-wrap select-text break-words text-body">
           {use.approval?.detail?.arguments?.title}
         </p>
-        {#if use.result}<p class="break-all text-sm">
+        {#if use.result}<p class="break-all text-body">
             #{use.result.number} · {use.result.html_url}
-          </p>{/if}{#if use.state === 'lost'}<p class="text-sm text-warn">
+          </p>{/if}{#if use.state === 'lost'}<p class="text-body text-warn">
             {s('unknown')}
           </p>{/if}
         <div class="flex flex-wrap gap-2">
@@ -364,11 +364,11 @@
                 )}>{s('mark')}</button
             >{/if}
         </div>
-        {#if use.reviewed_at}<p class="text-xs text-muted">
+        {#if use.reviewed_at}<p class="text-callout text-muted">
             {s('reviewed')} · {when(use.reviewed_at)}
           </p>{/if}
       </article>{:else}{#if model.state.loaded && !model.state.errors.history}<p
-          class="text-sm text-muted"
+          class="text-body text-muted"
         >
           {s('noHistory')}
         </p>{/if}{/each}
@@ -380,7 +380,7 @@
           page--
           void model.refresh()
         }}>{ux('previous')}</button
-      ><span class="self-center text-sm tabular-nums">{page + 1}</span><button
+      ><span class="self-center text-body tabular-nums">{page + 1}</span><button
         class={buttonClass('secondary')}
         disabled={!next || model.state.loading}
         onclick={() => {

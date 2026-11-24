@@ -38,7 +38,7 @@
     <p class="font-medium text-ink-2">{t('noticeSetupTitle')}</p>
     <p class="mt-0.5">{t('noticeSetupBody')}</p>
     <div class="mt-2 flex flex-wrap gap-2">
-      <button class={buttonClass('secondary', 'xs')} onclick={() => go('/settings/notifications')} data-testid="notice-setup-open">{t('noticeSetupOpen')}</button>
+      <button class={buttonClass('subtle', 'xs')} onclick={() => go('/settings/notifications')} data-testid="notice-setup-open">{t('noticeSetupOpen')}</button>
       <button class={buttonClass('ghost', 'xs')} onclick={() => dismissSetup(account)} data-testid="notice-setup-later">{t('noticeSetupLater')}</button>
     </div>
   </Notice>

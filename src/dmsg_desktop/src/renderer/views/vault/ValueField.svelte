@@ -31,7 +31,7 @@
 <FieldActions {name} copy={unlocked ? copy : undefined} {reference} {referenceDisabled} {referenceHint}
   openWebsite={unlocked ? openWebsite : undefined} view={unlocked ? (element) => { trigger = element; viewing = true } : undefined}>
   <span class={cn('min-w-0 flex-1 py-1 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] select-text',
-    isMultiline(field) && 'max-h-64 overflow-auto', mono && 'font-mono text-[12.5px]', field.type === 'url' && 'text-forest')}
+    isMultiline(field) && 'max-h-64 overflow-auto', mono && 'font-mono text-code', field.type === 'url' && 'text-forest')}
     dir={ltr ? 'ltr' : 'auto'} data-testid="vault-field-value">{formatted}</span>
 </FieldActions>
 

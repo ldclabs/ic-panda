@@ -22,7 +22,7 @@
 </script>
 
 <div class="grid min-w-0 gap-1" data-testid={testid}>
-  <div class="flex justify-between gap-3 text-[12px] text-muted">
+  <div class="flex justify-between gap-3 text-callout text-muted">
     <span>{label}</span><span class="font-medium tabular-nums text-ink"
       >{value}</span
     >

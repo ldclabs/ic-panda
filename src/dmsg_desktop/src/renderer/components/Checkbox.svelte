@@ -26,7 +26,7 @@
   } = $props()
 </script>
 
-<label class={cn('inline-flex items-center gap-2 select-none', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer', className)}>
+<label class={cn('inline-flex items-center gap-2 select-none', disabled && 'cursor-not-allowed opacity-60', className)}>
   <Checkbox.Root
     bind:checked
     {disabled}

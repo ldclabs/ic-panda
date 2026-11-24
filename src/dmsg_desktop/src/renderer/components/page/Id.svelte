@@ -20,7 +20,7 @@
     <button
       {...props}
       class={cn(
-        'inline-flex max-w-full min-w-0 items-center gap-2 rounded-md bg-wash px-1.5 font-mono text-[11.5px] leading-5 text-ink-2 outline-none transition-colors duration-100 hover:not-disabled:bg-paper-dim hover:not-disabled:text-ink focus-visible:ring-2 focus-visible:ring-focus/35 disabled:opacity-50',
+        'inline-flex max-w-full min-w-0 items-center gap-2 rounded-md bg-wash px-1.5 font-mono text-code leading-5 text-ink-2 outline-none transition-colors duration-100 hover:not-disabled:bg-paper-dim hover:not-disabled:text-ink focus-visible:ring-2 focus-visible:ring-focus/35 disabled:opacity-50',
         copyLabel && 'min-h-8 py-1',
         className
       )}

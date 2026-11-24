@@ -244,9 +244,9 @@
       <div class="grid justify-items-center gap-2" data-testid="device-invitation">
         {#if account}<Fact label={t('account')}><Id id={account} full wrap /></Fact>{/if}
         <img src={invitation.qr} alt={t('authorizeDevice')} width="224" height="224" class="size-[min(224px,calc(100vh-340px))] min-h-40 min-w-40 max-w-full rounded-lg bg-white p-2 [image-rendering:pixelated]" data-testid="device-invitation-qr" />
-        <p class="text-center text-[13px] text-muted" role="status">{t('pairInvitationWaiting')}</p>
-        <p class="text-[12px] text-faint">{t('expires')}: {when(invitation.expires_at)}</p>
-        <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(invitation!.token)} data-testid="device-invitation-copy"><Icon name="copy" />{t('copy')}</button>
+        <p class="text-center text-body text-muted" role="status">{t('pairInvitationWaiting')}</p>
+        <p class="text-callout text-muted">{t('expires')}: {when(invitation.expires_at)}</p>
+        <button class={buttonClass('subtle', 'xs')} onclick={() => copyText(invitation!.token)} data-testid="device-invitation-copy"><Icon name="copy" />{t('copy')}</button>
       </div>
     {:else if busy === 'invite'}
       <p class="py-12 text-center text-muted" role="status">{t('loading')}</p>
@@ -259,7 +259,7 @@
         {#if candidate.code}<Fact label={t('joinCode')}><b dir="ltr">{candidate.code}</b></Fact>{/if}
         {#if !handoff}
         {#if candidate.principal}<Fact label={t('approveLogin')}><Id id={candidate.principal} full wrap /></Fact>{/if}
-        {#if candidate.device_id}<div class="grid min-w-0 gap-1.5"><p class="text-[12px] text-muted">{t('deviceShown')}</p><Id id={candidate.device_id} full wrap /></div>{/if}
+        {#if candidate.device_id}<div class="grid min-w-0 gap-1.5"><p class="text-callout text-muted">{t('deviceShown')}</p><Id id={candidate.device_id} full wrap /></div>{/if}
         <dl>
           {#if candidate.key_id}<Fact label={t('approvalKey')}><Id id={candidate.key_id} full wrap /></Fact>{/if}
           {#if candidate.role}<Fact label={t('role')}>{deviceRoleName(candidate.role, t)}</Fact>{/if}

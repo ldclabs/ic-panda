@@ -66,7 +66,7 @@
   <DropdownMenu.Trigger
     {id}
     class={cn(
-      'group inline-flex h-8 max-w-full shrink-0 items-center justify-between gap-2 rounded-lg border border-edge bg-surface ps-2.5 pe-2 text-start text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:not-disabled:border-forest/60 focus-visible:border-forest focus-visible:ring-3 focus-visible:ring-forest/18 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-forest',
+      'group inline-flex h-8 max-w-full shrink-0 items-center justify-between gap-2 rounded-lg border border-edge bg-surface ps-2.5 pe-2 text-start text-body text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:not-disabled:border-forest/60 focus-visible:border-forest focus-visible:ring-3 focus-visible:ring-forest/18 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-forest',
       className
     )}
     disabled={disabled || !options.length}
@@ -75,7 +75,7 @@
     aria-invalid={invalid}
     data-testid={testid}
   >
-    <span class={cn('max-w-[260px] truncate', chosen?.mono && 'font-mono text-xs', !chosen && 'text-faint')}>{chosen?.label ?? placeholder}</span>
+    <span class={cn('max-w-[260px] truncate', chosen?.mono && 'font-mono text-code', !chosen && 'text-faint')}>{chosen?.label ?? placeholder}</span>
     <Icon name="chevron-down" class="text-faint transition-transform duration-150 group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
@@ -92,7 +92,7 @@
         {#each options as option (option.value)}
           <DropdownMenu.RadioItem value={option.value} textValue={option.label} class={menuItemClass} data-value={option.value}>
             {#snippet children({ checked })}
-              <span class={option.mono ? 'font-mono text-xs' : ''}>{option.label}</span>
+              <span class={option.mono ? 'font-mono text-code' : ''}>{option.label}</span>
               {#if checked}<Icon name="check" class="size-3.5" />{/if}
             {/snippet}
           </DropdownMenu.RadioItem>

@@ -47,18 +47,18 @@
     tabindex={focusable ? 0 : -1}
     onclick={onClick}
   >
-    <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected || chosen ? 'text-forest' : 'text-faint')}>
+    <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-forest/12 text-forest [&_svg]:size-[18px]">
       <Icon name={typeIcon[type]} />
     </span>
     <span class="min-w-0">
-      <span class="block truncate text-[13.5px] leading-snug font-medium text-ink">{item.title}</span>
-      <span class="block truncate text-[12px] leading-snug text-faint">{subtitle}</span>
+      <span class="block truncate text-body leading-snug font-medium text-ink">{item.title}</span>
+      <span class="block truncate text-callout leading-snug text-muted">{subtitle}</span>
     </span>
-    <span class="flex flex-col items-end gap-1 text-[11px] text-faint">
+    <span class="flex flex-col items-end gap-1 text-caption text-faint">
       <span class="whitespace-nowrap">{ago(trash ? entry.at : item.updatedAt)}</span>
       <span class="flex items-center gap-1">
         {#if conflict}
-          <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn">{t('conflict')}</span>
+          <span class="rounded bg-warn-pale px-1 text-caption font-medium text-warn">{t('conflict')}</span>
         {:else if !entry.synced && entry.save_state !== 'local_only'}
           <span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}><span class="sr-only">{t('notSynced')}</span></span>
         {/if}

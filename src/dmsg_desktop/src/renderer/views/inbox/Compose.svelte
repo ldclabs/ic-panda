@@ -111,14 +111,14 @@
   <div class="grid gap-3" onkeydown={onKey}>
     <TextField label={t('to')} hint={replyRecipient ? undefined : t('accountOrName')} dir="ltr" readonly={!!replyRecipient} disabled={busy} bind:value={recipient} placeholder="panda / @panda" spellcheck={false} data-testid="letter-recipient" />
     <TextArea label={t('message')} hint={used >= maxBytes * 0.8 && used <= maxBytes ? counter : undefined} error={used > maxBytes ? counter : undefined} disabled={busy} bind:value={text} rows={7} data-testid="letter-text" />
-    <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
+    <Checkbox disabled={busy} bind:checked={pay} class="text-callout text-ink-2">{t('paidLetterHint')}</Checkbox>
     {#if error}<Notice failure={error} tone="danger" testid="letter-send-error">{error}</Notice>{/if}
   </div>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={!canSend} onclick={send} data-testid="letter-send">
-      {t('send')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
+      {t('send')}<kbd class="font-mono text-caption opacity-75">{mod}↵</kbd>
     </button>
   {/snippet}
 </Dialog>

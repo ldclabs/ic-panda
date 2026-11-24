@@ -101,20 +101,20 @@
     ondrop={drop}
     data-testid="verify-drop"
   >
-    <p class="text-[12.5px] text-muted">{t('dropBundle')}</p>
+    <p class="text-callout text-muted">{t('dropBundle')}</p>
     <div class="flex flex-wrap justify-center gap-2">
       <button class={buttonClass('secondary')} disabled={busy} onclick={() => verify(false)}><Icon name="upload" />{t('verifyBundle')}</button>
       <button class={buttonClass('secondary')} disabled={busy} onclick={() => verify(true)}><Icon name="file" />{t('verifyWithFile')}</button>
     </div>
   </div>
   {#if verifying}
-    <p class="mt-3 text-[13px] text-muted" role="status">{t('loading')}</p>
+    <p class="mt-3 text-body text-muted" role="status">{t('loading')}</p>
   {:else if verifyError || report}
     <div bind:this={resultArea} tabindex="-1" role="region" aria-labelledby={verifyError ? 'bundle-failure' : 'bundle-verdict'} data-testid="bundle-result" class="mt-3 rounded-xl focus-visible:outline-2 focus-visible:outline-forest">
       {#if verifyError}<Notice id="bundle-failure" tone="danger" testid="bundle-verify-error">{verifyError}</Notice>{:else}<Report {report} {save} />{/if}
     </div>
   {/if}
-  <p class="mt-3 text-[12px] text-faint" data-testid="verify-online">{t('verifyOnline', { url: 'dmsg.net/_/verify' })}</p>
+  <p class="mt-3 text-callout text-muted" data-testid="verify-online">{t('verifyOnline', { url: 'dmsg.net/_/verify' })}</p>
 </Section>
 
 {#if unlocked}
@@ -129,11 +129,11 @@
             <div class="flex flex-wrap items-center gap-1.5">
               <Pill tone={tone(entry.stage)}>{t(stages[entry.stage] ?? 'stageUnknown')}</Pill>
               <Pill>{entry.this_device ? t('thisDevice') : t('otherDevice')}</Pill>
-              <span class="text-[11.5px] text-faint">{when(entry.created_at)}</span>
+              <span class="text-caption text-faint">{when(entry.created_at)}</span>
             </div>
-            <p class="mt-1 text-[13px] [overflow-wrap:anywhere]">{summary(entry.statement)}</p>
-            {#if entry.error}<p class="text-[12px] text-warn">{reasonLabels[entry.error] ? t(reasonLabels[entry.error]) : entry.error}</p>{/if}
-            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-faint">
+            <p class="mt-1 text-body [overflow-wrap:anywhere]">{summary(entry.statement)}</p>
+            {#if entry.error}<p class="text-callout text-warn">{reasonLabels[entry.error] ? t(reasonLabels[entry.error]) : entry.error}</p>{/if}
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-faint">
               <bdi dir="ltr" class="font-mono">{entry.origin}</bdi><Id id={entry.execution} />
               {#if known.has(entry.approval)}<button class="text-forest hover:underline" onclick={() => open(entry.approval)}>{t('openRequest')}</button>{/if}
             </div>
@@ -146,7 +146,7 @@
           {/if}
         </li>
       {:else}
-        {#if !historyError}<li class="px-5 py-3 text-[13px] text-faint"><span role="status">{historyLoaded ? t('noRecords') : t('loading')}</span></li>{/if}
+        {#if !historyError}<li class="px-5 py-3 text-body text-faint"><span role="status">{historyLoaded ? t('noRecords') : t('loading')}</span></li>{/if}
       {/each}
     </ul>
   </Section>

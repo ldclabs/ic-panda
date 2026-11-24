@@ -55,7 +55,7 @@
 </script>
 
 {#snippet heading(title: string)}
-  <h3 class="border-t border-line bg-surface-2/60 px-5 py-1.5 text-[11.5px] font-medium text-faint">{title}</h3>
+  <h3 class="border-t border-line bg-surface-2/60 px-5 py-1.5 text-caption font-medium text-faint">{title}</h3>
 {/snippet}
 
 <Section title={t('operations')} description={t('operationsHint')} icon="transfer" flush testid="operations">
@@ -73,18 +73,18 @@
       {#each orders.orders as o (o.order_id)}
         <li class="grid gap-1 px-5 py-2.5">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="min-w-0 flex-1 text-[13px]">{o.product_id} · {o.sku}</span>
+            <span class="min-w-0 flex-1 text-body">{o.product_id} · {o.sku}</span>
             <Pill>{o.status}</Pill>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('ops/reconcile_order', { id: o.order_id })}>{t('reconcile')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => act('ops/reconcile_order', { id: o.order_id })}>{t('reconcile')}</button>
           </div>
           {#each o.balances as b (b.ledger)}
-            <p class="font-mono text-[11.5px] text-faint">
+            <p class="font-mono text-code text-faint">
               {b.ledger}: {t('opsBalances', { incoming: b.incoming, refundable: b.refundable, reserve: b.service_reserve, fee: b.fee_reserve, outgoing: b.outgoing })}
             </p>
           {/each}
         </li>
       {:else}
-        <li class="px-5 py-2.5 text-[12.5px] text-faint">-</li>
+        <li class="px-5 py-2.5 text-callout text-muted">-</li>
       {/each}
     </ul>
     {#if orders.next}<div class="px-5 py-2"><button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => page('ops/orders', orders.next)}>{t('more')}</button></div>{/if}
@@ -96,20 +96,20 @@
         <li class="grid gap-1 px-5 py-2.5">
           <div class="flex flex-wrap items-center gap-2">
             <Pill tone={finished(x.status) ? 'ok' : 'warn'}>{x.status}</Pill>
-            <span class="min-w-0 flex-1 truncate text-[13px] tabular-nums">{x.amount} → <bdi dir="ltr" class="font-mono text-[12px]">{x.to}</bdi></span>
+            <span class="min-w-0 flex-1 truncate text-body tabular-nums">{x.amount} → <bdi dir="ltr" class="font-mono text-code">{x.to}</bdi></span>
             {#if !finished(x.status)}
-              <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('ops/process_transfer', { id: x.transfer_id })}>{t('retry')}</button>
+              <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => act('ops/process_transfer', { id: x.transfer_id })}>{t('retry')}</button>
             {/if}
             {#if x.revisable}
-              <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('ops/revise_transfer', { id: x.transfer_id, fee: x.expected_fee })}>{t('revise')}</button>
+              <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => act('ops/revise_transfer', { id: x.transfer_id, fee: x.expected_fee })}>{t('revise')}</button>
             {/if}
           </div>
-          <p class="font-mono text-[11.5px] text-faint">
+          <p class="font-mono text-code text-faint">
             {x.ledger} · {t('opsFee', { fee: x.fee, max: x.max_fee })}{x.expected_fee ? ` · ${t('ledgerAsks', { fee: x.expected_fee })}` : ''}{x.error_code ? ` · ${x.error_code}` : ''}
           </p>
         </li>
       {:else}
-        <li class="px-5 py-2.5 text-[12.5px] text-faint">-</li>
+        <li class="px-5 py-2.5 text-callout text-muted">-</li>
       {/each}
     </ul>
     {#if transfers.next}<div class="px-5 py-2"><button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => page('ops/transfers', transfers.next)}>{t('more')}</button></div>{/if}
@@ -118,21 +118,21 @@
     {@render heading(t('claims'))}
     <ul class="divide-y divide-line">
       {#each claims.claims as c (c.claim_id)}
-        <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-[13px]">
+        <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-body">
           <span class="min-w-0 flex-1">{c.product_id} · {c.sku} · {c.eligibility} · {t('validUntil')} {when(c.valid_until_ms)}</span>
           <Pill>{c.status}</Pill>
-          <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('ops/claim', { id: c.claim_id, refresh: c.refreshable })}>
+          <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => act('ops/claim', { id: c.claim_id, refresh: c.refreshable })}>
             {c.refreshable ? t('refreshClaim') : t('reconcile')}
           </button>
         </li>
       {:else}
-        <li class="px-5 py-2.5 text-[12.5px] text-faint">-</li>
+        <li class="px-5 py-2.5 text-callout text-muted">-</li>
       {/each}
     </ul>
     <div class="flex gap-2 border-t border-line px-5 py-2.5">
       {#if claims.next}<button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => page('ops/claims', claims.next)}>{t('more')}</button>{/if}
       <span class="flex-1"></span>
-      <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('ops/sweep', {})}>{t('sweep')}</button>
+      <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => act('ops/sweep', {})}>{t('sweep')}</button>
     </div>
   {/if}
 </Section>

@@ -175,22 +175,22 @@
     {#if failed}
       <div class="grid w-[min(460px,100%)] gap-3 [-webkit-app-region:no-drag]" data-testid="daemon-failed">
         <span class="text-danger [&_svg]:size-6"><Icon name="warning" /></span>
-        <h1 class="text-[15px] font-semibold">{t('daemonFailed')}</h1>
-        <p class="text-[13px] text-muted">{t('daemonFailedHint')}</p>
+        <h1 class="text-title-3 font-semibold">{t('daemonFailed')}</h1>
+        <p class="text-body text-muted">{t('daemonFailedHint')}</p>
         <div class="flex flex-wrap gap-2">
           <button class={buttonClass('primary')} disabled={reconnecting} aria-busy={reconnecting} onclick={reconnect} data-testid="daemon-retry">{t('retry')}</button>
           <button class={buttonClass('ghost')} onclick={() => void window.dmsg.quit()} data-testid="daemon-quit">{t('quitApp')}</button>
         </div>
         <Collapsible testid="daemon-details">
-          {#snippet title()}<span class="text-[12.5px] text-muted">{t('technicalDetails')}</span>{/snippet}
-          <pre class="max-h-48 overflow-auto rounded-lg bg-surface-2 p-3 font-mono text-[11.5px] break-words whitespace-pre-wrap select-text" dir="ltr">{connectionError}</pre>
+          {#snippet title()}<span class="text-callout text-muted">{t('technicalDetails')}</span>{/snippet}
+          <pre class="max-h-48 overflow-auto rounded-lg bg-surface-2 p-3 font-mono text-code break-words whitespace-pre-wrap select-text" dir="ltr">{connectionError}</pre>
         </Collapsible>
       </div>
     {:else if showProgress}
       <div class="grid w-52 max-w-full gap-4" data-testid="daemon-connecting">
         <div class="flex items-center gap-2.5" aria-hidden="true">
           <Brand class="h-8 w-7" />
-          <span class="text-xl leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+          <span class="text-title-2 leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
         </div>
         <Progress label={lastStatus ? t('daemonDisconnected') : t('desktopStarting')} />
       </div>

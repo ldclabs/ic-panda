@@ -74,7 +74,7 @@
       {@const current = steps.findIndex((s) => !s.done) === i}
       <li class="grid gap-1.5">
         <span class={cn('h-1 rounded-full', step.done ? 'bg-forest' : current ? 'bg-forest/40' : 'bg-line')}></span>
-        <span class={cn('flex items-center gap-1 text-[11.5px]', step.done || current ? 'text-ink-2' : 'text-faint')}>
+        <span class={cn('flex items-center gap-1 text-caption', step.done || current ? 'text-ink-2' : 'text-faint')}>
           {#if step.done}<Icon name="check" class="size-3 text-forest" />{:else}<span class="font-mono">{i + 1}</span>{/if}
           {step.label}
         </span>
@@ -82,24 +82,24 @@
     {/each}
   </ol>
   {#if !packet}
-    <label class="grid gap-1 text-[12px] text-faint">
+    <label class="grid gap-1 text-callout text-muted">
       {t('targetMember')}
       <Suggest
         bind:value={target}
         testid="transfer-target"
-        class="font-mono text-[12px]"
+        class="font-mono text-code"
         suggestions={Object.keys(channel.ledger?.members ?? {})
           .filter((account) => account !== me)
           .map((account) => ({ value: account, hint: label(account, 'search') }))}
       />
     </label>
-    <p class="mt-3 text-[12.5px] text-muted">{t(inChannel ? 'transferInChannel' : 'transferHintOwner')}</p>
+    <p class="mt-3 text-callout text-muted">{t(inChannel ? 'transferInChannel' : 'transferHintOwner')}</p>
     {#if !inChannel}<Notice tone="warn" class="mt-3">{t('sponsorPauses')}</Notice>{/if}
   {:else}
     <div class="grid gap-2">
-      <p class="text-[12.5px] text-ink-2">{t(inChannel ? 'transferSent' : 'handPacket')}</p>
-      <textarea readonly class="min-h-24 font-mono text-[11px]" data-testid="channel-handed">{JSON.stringify(packet)}</textarea>
-      {#if !inChannel}<p class="text-[12px] text-faint">{t('transferNext')}</p>{/if}
+      <p class="text-callout text-ink-2">{t(inChannel ? 'transferSent' : 'handPacket')}</p>
+      <textarea readonly class="min-h-24 font-mono text-code" data-testid="channel-handed">{JSON.stringify(packet)}</textarea>
+      {#if !inChannel}<p class="text-callout text-muted">{t('transferNext')}</p>{/if}
     </div>
   {/if}
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}

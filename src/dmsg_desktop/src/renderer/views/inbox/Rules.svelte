@@ -70,8 +70,8 @@
           <Icon name={option.icon} />
         </span>
         <span class="min-w-0 flex-1">
-          <span class="block text-[13.5px] font-medium">{t(option.label)}</span>
-          <span class="block text-[12px] text-muted">{t(option.hint)}</span>
+          <span class="block text-body font-medium">{t(option.label)}</span>
+          <span class="block text-callout text-muted">{t(option.hint)}</span>
         </span>
         <span class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border border-edge group-data-[state=checked]:border-forest">
           <span class="size-2 scale-0 rounded-full bg-forest transition-transform duration-200 ease-spring group-data-[state=checked]:scale-100"></span>
@@ -80,7 +80,7 @@
     {/each}
   </RadioGroup.Root>
   {#if mode === 'paid'}
-    <label class="mt-3 grid gap-1 text-[12px] text-faint">
+    <label class="mt-3 grid gap-1 text-callout text-muted">
       {t('priceUnits')}
       <input bind:value={price} inputmode="numeric" class={cn('font-mono text-ink tabular-nums', price && !valid && 'border-danger')} data-testid="rules-price" />
     </label>

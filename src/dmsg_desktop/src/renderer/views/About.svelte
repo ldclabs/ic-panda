@@ -4,6 +4,7 @@
   import Icon from '../components/Icon.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Fact from '../components/page/Fact.svelte'
+  import Group from '../components/page/Group.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
@@ -83,13 +84,13 @@
   <button class={buttonClass('ghost', 'xs')} onclick={reload}>{t('retry')}</button></Notice>{/if}
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 <Section title={t('aboutApp')} description={t('productCategory')} icon="info" testid="about-product">
-  <p class="text-[13px] leading-relaxed text-muted">{t('productSummary')}</p>
-  <p class="mt-2 text-[12.5px] text-muted">{t('productMaker')}</p>
+  <p class="text-body leading-relaxed text-muted">{t('productSummary')}</p>
+  <p class="mt-2 text-callout text-muted">{t('productMaker')}</p>
   <div class="mt-3 flex flex-wrap gap-2">
     <button class={buttonClass('secondary', 'sm')} onclick={() => openWebsite('https://dmsg.net/')} data-testid="about-website"><Icon name="external" />{t('productWebsite')}</button>
     <button class={buttonClass('secondary', 'sm')} onclick={() => openWebsite('https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai')} data-testid="about-governance"><Icon name="external" />{t('productGovernanceLink')}</button>
   </div>
-  <p class="mt-3 text-[12.5px] leading-relaxed text-muted">{t('productGovernance')}</p>
+  <p class="mt-3 text-callout leading-relaxed text-muted">{t('productGovernance')}</p>
 </Section>
 <Section title={t('updates')} description={t('aboutHint')} icon="info" testid="about">
   <div class="mb-3 flex flex-wrap gap-2">
@@ -108,7 +109,7 @@
       </button>
     {/if}
   </div>
-  <dl>
+  <Group>
     {#if info}<Fact label={t('appVersion')} testid="app-version"><bdi dir="ltr">{info?.version ?? '-'}</bdi></Fact>
     <Fact label={t('updateChannel')} testid="update-channel">{info ? (info.channel === 'beta' ? 'Beta' : t('updateStable')) : '-'}</Fact>
     <Fact label={t('updates')} testid="update-state">
@@ -133,15 +134,15 @@
       {/if}
     </Fact>
     {/if}
-  </dl>
-  {#if !info && !readError}<p role="status" class="text-xs text-muted">{t('loading')}</p>{/if}
+  </Group>
+  {#if !info && !readError}<p role="status" class="text-callout text-muted">{t('loading')}</p>{/if}
   <div class="mt-4 grid gap-2" aria-busy={changing}>
     <Checkbox checked={beta} label={t('betaUpdates')} descriptionId="beta-updates-hint" testid="beta-updates"
       disabled={!info || changing || info.applying || (info.homebrew && !beta)}
       onCheckedChange={(next) => { beta = next; channelDirty = true; void saveChannel() }}>
       {t('betaUpdates')}
     </Checkbox>
-    <p id="beta-updates-hint" class="text-xs text-muted">{t('betaUpdatesHint')}</p>
+    <p id="beta-updates-hint" class="text-callout text-muted">{t('betaUpdatesHint')}</p>
     {#if channelError}
       <Notice failure={channelError} tone="danger" testid="update-channel-error">{channelError}</Notice>
       <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={changing} onclick={() => void saveChannel()} data-testid="retry-update-channel">{t('retry')}</button>

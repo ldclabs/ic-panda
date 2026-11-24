@@ -111,12 +111,12 @@
         {#if avatar}
           <img src={avatar} alt="" class="size-8 shrink-0 rounded-[9px] object-cover" />
         {:else}
-          <span class="grid size-8 shrink-0 place-items-center rounded-[9px] bg-forest text-[13px] font-semibold text-on-forest">{initial}</span>
+          <span class="grid size-8 shrink-0 place-items-center rounded-[9px] bg-forest text-body font-semibold text-on-forest">{initial}</span>
         {/if}
         {#if !collapsed}
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[13.5px] font-semibold">{status?.account_kind === 'local' ? t('offlineAccount') : name || t('account')}</span>
-            <span class="block truncate font-mono text-[11px] text-faint"
+            <span class="block truncate text-body font-semibold">{status?.account_kind === 'local' ? t('offlineAccount') : name || t('account')}</span>
+            <span class="block truncate font-mono text-code text-faint"
               >{#if status?.account_kind === 'local'}{t('useOnDevice')}{:else if account}<bdi dir="ltr">{shortId(account)}</bdi>{:else}{sessionLabel(status?.state ?? '')}{/if}</span
             >
           </span>
@@ -128,7 +128,7 @@
   <DropdownMenu.Portal>
     <DropdownMenu.Content bind:ref={content} class={cn(menuContentClass, 'w-72')} align="start" sideOffset={6} collisionPadding={8} data-testid="account-menu">
       <DropdownMenu.Group>
-        <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
+        <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-caption font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
           {@const accountName = a.account_kind === 'local' ? t('offlineAccount') : (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account, false) : null)}
           {@const counts = reminderAccounts.find((entry) => entry.account === a.account)?.counts}
@@ -140,17 +140,17 @@
             data-value={a.account}
           >
             <span class="min-w-0 flex-1" {@attach visibleName(a.account_kind !== 'local' && unlockedAccount && !(a.account === unlockedAccount && name) ? a.account : undefined)}>
-              {#if accountName}<span class="block truncate text-[13px] font-medium" title={accountName}>{accountName}</span>{/if}
-              <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{a.account_kind === 'local' ? t('useOnDevice') : shortId(a.account)}</bdi></span>
-              {#if !a.bound}<span class="block text-[11.5px] text-faint">{t('waitingDevice')}</span>{/if}
+              {#if accountName}<span class="block truncate text-body font-medium" title={accountName}>{accountName}</span>{/if}
+              <span class={cn('block truncate font-mono text-code', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{a.account_kind === 'local' ? t('useOnDevice') : shortId(a.account)}</bdi></span>
+              {#if !a.bound}<span class="block text-caption text-faint">{t('waitingDevice')}</span>{/if}
             </span>
             {#if reminders > 0}
-              <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gem-pale px-1.5 py-0.5 text-[11px] font-semibold text-gem" role="img" aria-label={`${t('noticeTitle')} (${reminders})`} title={`${t('noticeTitle')} (${reminders})`} data-testid="account-reminders">
+              <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gem-pale px-1.5 py-0.5 text-caption font-semibold text-gem" role="img" aria-label={`${t('noticeTitle')} (${reminders})`} title={`${t('noticeTitle')} (${reminders})`} data-testid="account-reminders">
                 <Icon name="bell" class="size-3.5" />
                 <bdi dir="ltr">{reminders > 99 ? '99+' : reminders}</bdi>
               </span>
             {/if}
-            {#if a.current}<Icon name="check" class="size-3.5 shrink-0 text-forest" />{:else if a.fast_unlock}<span class="shrink-0 text-[11.5px] text-faint">{t('fastUnlock')}</span>{/if}
+            {#if a.current}<Icon name="check" class="size-3.5 shrink-0 text-forest" />{:else if a.fast_unlock}<span class="shrink-0 text-caption text-faint">{t('fastUnlock')}</span>{/if}
           </DropdownMenu.Item>
         {/each}
       </DropdownMenu.Group>

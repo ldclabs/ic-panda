@@ -21,7 +21,7 @@
 </script>
 
 {#if network.state !== 'idle'}
-  <div class="flex shrink-0 items-center gap-2 border-b border-line bg-warn-pale px-6 py-2 text-[12.5px] text-ink-2" role="status" data-testid="network-recovery">
+  <div class="flex shrink-0 items-center gap-2 border-b border-line bg-warn-pale px-6 py-2 text-callout text-ink-2" role="status" data-testid="network-recovery">
     <Icon name={network.state === 'recovering' ? 'pending' : 'sync'} class={network.state === 'recovering' ? 'motion-safe:animate-spin' : ''} />
     <span>{t(network.state === 'recovering' ? 'networkReconnecting' : 'networkUnavailable')}</span>
   </div>

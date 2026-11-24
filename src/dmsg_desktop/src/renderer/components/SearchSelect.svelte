@@ -70,7 +70,7 @@
       {placeholder}
       autocomplete="off"
       onclick={() => (open = true)}
-      class="pe-9 text-[13px]"
+      class="pe-9 text-body"
       oninput={(e) => {
         query = e.currentTarget.value
         open = true
@@ -99,10 +99,10 @@
           data-value={option.value}
           ><span class="min-w-0"
             ><span class="block">{option.label}</span>{#if option.hint}<span
-                class="block text-xs text-muted">{option.hint}</span
+                class="block text-callout text-muted">{option.hint}</span
               >{/if}</span
           >{#if value === option.value}<Icon name="check" />{/if}</Combobox.Item
-        >{:else}<p class="px-3 py-2 text-sm text-muted" role="status">
+        >{:else}<p class="px-3 py-2 text-body text-muted" role="status">
           {empty ?? t('noResults')}
         </p>{/each}
     </Combobox.Content></Combobox.Portal

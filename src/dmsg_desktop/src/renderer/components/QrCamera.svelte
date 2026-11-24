@@ -60,7 +60,7 @@
 
 <div class="grid gap-3" data-testid="qr-camera">
   {#if error}<Notice tone="danger" testid="qr-camera-error">{error}</Notice>{/if}
-  {#if loading}<p role="status" class="text-[12.5px] text-muted">{t('loading')}</p>{/if}
+  {#if loading}<p role="status" class="text-callout text-muted">{t('loading')}</p>{/if}
   <video bind:this={video} muted playsinline aria-label={t('scanQrCamera')} class="max-h-[min(240px,calc(100vh-300px))] w-full rounded-xl bg-paper-dim object-contain" data-testid="qr-camera-video"></video>
   <div class="flex flex-wrap gap-2">
     {#if error}<button class={buttonClass('secondary', 'sm')} onclick={start}>{t('retry')}</button>{/if}

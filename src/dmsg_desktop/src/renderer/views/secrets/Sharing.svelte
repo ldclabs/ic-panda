@@ -200,7 +200,7 @@
       testid="snapshot-source"
     />{:else if model.state.loaded && !chosen}<Notice tone="warn">{ux('noSources')}</Notice>{/if}
     {#if chosen}<fieldset class="space-y-2" disabled={model.state.busy || chosen.blocked}>
-        <legend class="mb-2 text-xs font-medium text-muted"
+        <legend class="mb-2 text-callout font-medium text-muted"
           >{t('content')}</legend
         >{#each shareFields as field}<div><Checkbox
             checked={fields.includes(field.id)}
@@ -213,7 +213,7 @@
             >{w('notes')}</Checkbox
           >
         </div>{/if}
-        {#if !shareFields.length && !chosen.hasNotes && !chosen.files.length}<p class="text-sm text-muted">{t('noItems')}</p>{/if}
+        {#if !shareFields.length && !chosen.hasNotes && !chosen.files.length}<p class="text-body text-muted">{t('noItems')}</p>{/if}
         {#each chosen.files as id}
           {@const file = details[id]?.file}
           {@const available = file?.current && file.local && file.trashed_at == null}
@@ -226,7 +226,7 @@
               }}
               disabled={!available}
               >{file?.name ?? ux('file')}</Checkbox
-            >{#if !available}<p class="text-xs text-warn">
+            >{#if !available}<p class="text-callout text-warn">
                 {file?.trashed_at ? t('fileMissing') : file ? ux('notLocal') : ux('unknown')}
               </p>{/if}
           </div>{/each}
@@ -278,12 +278,12 @@
   {#each shares as share}<article class={card}>
       <div class="flex flex-wrap justify-between gap-2">
         <h3 class="font-semibold">{share.plan.title}</h3>
-        <span class="text-sm">{term(share.state)}</span>
+        <span class="text-body">{term(share.state)}</span>
       </div>
-      <p class="text-xs text-muted">
+      <p class="text-callout text-muted">
         {share.plan.channel?.name ?? when(share.plan.expires_at)}
       </p>
-      {#if share.plan.channel}<p class="text-xs text-muted">
+      {#if share.plan.channel}<p class="text-callout text-muted">
           {w('channelWarning')}
         </p>{/if}{#if share.total_chunks || ['uploading', 'publishing'].includes(share.state)}<Progress value={share.uploaded_chunks} max={share.total_chunks} label={term(share.state)} testid="share-upload-progress" />{/if}{#if share.error}<Notice tone="warn"
           >{ux('unknown')}</Notice
@@ -336,7 +336,7 @@
 
 <Dialog bind:open={() => !!revokeTarget, (next) => !next && (revokeTarget = null)} title={revokeTarget?.plan.channel ? t('cancel') : w('revokeShare')} tone="danger">
   <p class="break-words">{revokeTarget?.plan.title}</p>
-  {#if !revokeTarget?.plan.channel}<p class="mt-2 text-sm text-muted">{t('linkRevokeHint')}</p>{/if}
+  {#if !revokeTarget?.plan.channel}<p class="mt-2 text-body text-muted">{t('linkRevokeHint')}</p>{/if}
   {#if model.state.errors.action}<Notice tone="danger">{model.state.errors.action}</Notice>{/if}
   {#snippet footer()}
     <button class={buttonClass('ghost')} onclick={() => (revokeTarget = null)}>{t('back')}</button>

@@ -30,12 +30,12 @@
 
 <section data-testid="wallet-balances" class="grid gap-3" aria-busy={busy}>
   <div class="flex flex-wrap items-center justify-between gap-2">
-    <h3 class="text-[15px] font-semibold">{w('holdings')}</h3>
+    <h3 class="text-title-3 font-semibold">{w('holdings')}</h3>
     <button class={buttonClass('ghost', 'sm')} disabled={busy} aria-label={`${t('refresh')} ${w('holdings')}`} onclick={onRefresh}
       >{t('refresh')}</button
     >
   </div>
-  <p class="text-[12px] text-muted" role="status"
+  <p class="text-callout text-muted" role="status"
     >{balances ? `${w('readAt')}: ${when(balances.read_at)}` : busy ? w('loading') : error ? '' : w('noBalance')}{balances && (busy || error)
       ? ` · ${w('cachedBalance')}`
       : ''}</p
@@ -50,13 +50,13 @@
         {@const asset = balance.metadata ?? balance}
         <div class="flex flex-wrap items-center gap-3 py-3" data-testid="wallet-balance-row">
           <div class="min-w-0 flex-1"
-            ><p class="text-[13px] break-all">{assetIdentity(asset)}</p><p class="text-muted text-[12px]"
+            ><p class="text-body break-all">{assetIdentity(asset)}</p><p class="text-muted text-callout"
               >{address.label || address.chain} · #{address.id}</p
             ></div
           >
           <div class="text-end">
-            {#if balance.balance?.Err}<p class="text-danger text-[12px]" role="status">{balance.balance.Err}</p>
-            {:else}<b class="text-[20px] tabular-nums"
+            {#if balance.balance?.Err}<p class="text-danger text-callout" role="status">{balance.balance.Err}</p>
+            {:else}<b class="text-title-2 tabular-nums"
                 >{balance.balance?.Ok != null ? amountText(String(balance.balance.Ok), asset, w('atomic')) : '—'}</b
               >{/if}
           </div>
@@ -77,8 +77,8 @@
     {/each}
   </div>
   {#if balances}<Collapsible
-      >{#snippet title()}<span class="text-[12px]">{w('source')}</span>{/snippet}
-      {#each balances.addresses ?? [] as row}{#each row.balances ?? [] as b}<p class="text-muted text-[12px] break-all"
+      >{#snippet title()}<span class="text-callout">{w('source')}</span>{/snippet}
+      {#each balances.addresses ?? [] as row}{#each row.balances ?? [] as b}<p class="text-muted text-callout break-all"
             >{assetIdentity(b.metadata ?? b)} · {b.source ?? '—'}</p
           >{/each}{/each}
     </Collapsible>{/if}

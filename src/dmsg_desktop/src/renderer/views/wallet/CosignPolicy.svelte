@@ -5,7 +5,7 @@
   const source = $derived(wallet?.addresses.find((a) => a.id === address))
 </script>
 
-<section class="border-line grid content-start gap-2 rounded-lg border p-3 text-[12px]" data-testid="wallet-cosign-policy">
+<section class="border-line grid content-start gap-2 rounded-lg border p-3 text-callout" data-testid="wallet-cosign-policy">
   {#if title}<h4 class="font-semibold">{title}</h4>{/if}
   {#if address !== undefined}
     <p>#{address} · {source?.label || source?.chain || w('address')}</p>
@@ -17,7 +17,7 @@
       {@const key = wallet?.cosigners.find((c) => c.id === id)}
       <div class="grid gap-1">
         <p>#{id}{#if key} · {key.label} · {key.hardware ? w('hardware') : w('softwareKey')}{/if}</p>
-        {#if key}<p class="text-muted break-all">{key.member}</p><p class="font-mono text-[11px] break-all" dir="ltr">{key.public_key}</p>{/if}
+        {#if key}<p class="text-muted break-all">{key.member}</p><p class="font-mono text-code break-all" dir="ltr">{key.public_key}</p>{/if}
       </div>
     {/each}
   {:else}<p class="font-semibold">{w(source?.control === 'taproot_2of2' ? 'nativeCosign' : 'cosignDisabled')}</p>{/if}

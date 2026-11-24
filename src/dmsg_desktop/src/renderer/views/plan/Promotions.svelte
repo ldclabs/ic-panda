@@ -210,7 +210,7 @@
   testid="promo-dialog"
 >
   <div class="grid min-w-0 gap-3">
-    <p class="text-sm break-all">{t('account')} · <bdi dir="ltr">{account}</bdi></p>
+    <p class="text-body break-all">{t('account')} · <bdi dir="ltr">{account}</bdi></p>
     {#if mode === 'redeem'}
       <TextField
         label={t('promoCode')}
@@ -236,7 +236,7 @@
           }).format(preview.duration_days!)} · {t('expires')}
           {when(preview.expires_at_ms!)}<br />{t('promoNoCharge')}</p
         >
-        {#if preview.minimum_versions}<p class="text-muted text-sm"
+        {#if preview.minimum_versions}<p class="text-muted text-body"
             >{preview.minimum_versions}</p
           >{/if}
       {:else if preview}<Notice tone="warn"

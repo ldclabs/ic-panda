@@ -55,30 +55,30 @@
     <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
       <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5"><Icon name="folder" /></span>
       <div class="min-w-0 flex-1">
-        <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{folder.name}</h2>
-        <p class="mt-1 truncate text-[12px] text-faint" dir="ltr">/{[...(folder.path ?? []), folder.name].join('/')}</p>
+        <h2 class="text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]">{folder.name}</h2>
+        <p class="mt-1 truncate text-callout text-muted" dir="ltr">/{[...(folder.path ?? []), folder.name].join('/')}</p>
       </div>
     </div>
     <div class="ms-auto flex shrink-0 flex-wrap items-center gap-1">
-      <button class={buttonClass('secondary', 'md')} onclick={onOpen} data-testid="files-folder-open"><Icon name="folder-open" />{t('open')}</button>
+      <button class={buttonClass('ghost', 'md')} onclick={onOpen} data-testid="files-folder-open"><Icon name="folder-open" />{t('open')}</button>
       {#if unlocked}
-        {#if !standalone}<button class={buttonClass('secondary', 'md')} disabled={!files?.length} onclick={onBackup}><Icon name="cloud-up" />{t('backUp')}</button>{/if}
+        {#if !standalone}<button class={buttonClass('ghost', 'md')} disabled={!files?.length} onclick={onBackup}><Icon name="cloud-up" />{t('backUp')}</button>{/if}
       {/if}
     </div>
   </header>
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
     <dl class="grid gap-1" data-testid="files-folder-facts">
       <div class="grid grid-cols-[112px_1fr] items-center gap-x-4 py-1.5">
-        <dt class="text-[12px] text-faint">{t('folderContents')}</dt>
+        <dt class="text-callout text-muted">{t('folderContents')}</dt>
         <dd class="min-w-0">{#if files}{t('folderCounts', { files: files.length, folders: subfolders, bytes: size(bytes) })}{:else}<SearchStatus {search} empty={t('loading')} />{/if}</dd>
       </div>
       <div class="grid grid-cols-[112px_1fr] items-center gap-x-4 py-1.5">
-        <dt class="text-[12px] text-faint">{t('modified')}</dt>
+        <dt class="text-callout text-muted">{t('modified')}</dt>
         <dd title={when(folder.updated_at)}>{ago(folder.updated_at)}</dd>
       </div>
       {#if counts.length}
         <div class="grid grid-cols-[112px_1fr] items-start gap-x-4 py-2">
-          <dt class="text-[12px] text-faint">{t('backupState')}</dt>
+          <dt class="text-callout text-muted">{t('backupState')}</dt>
           <dd class="flex flex-wrap gap-1.5">
             {#each counts as count (count.status)}
               <Pill tone={statusTone[count.status]}><Icon name={statusIcon[count.status]} />{t(statusLabel[count.status])} · {count.n}</Pill>
@@ -96,7 +96,7 @@
       </div>
     {/if}
   </div>
-  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
+  <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-caption text-faint">
     <span class="inline-flex items-center gap-1.5"><Icon name="folder" class="size-3.5" />{t('createdAt')} {ago(folder.created_at)}</span>
     <Id id={folder.id} />
   </footer>

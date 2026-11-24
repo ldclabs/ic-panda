@@ -103,8 +103,8 @@
   <Section title={t('movedTitle')} icon="warning" testid="moved">
     <div class="grid gap-3 px-5">
       <Notice tone="warn" icon="device">{t('movedBody')}</Notice>
-      <p class="text-[12.5px] text-muted">{t('movedSetAsideHint')}</p>
-      <p class="text-[12.5px] text-muted">{t('movedReplaceHint')}</p>
+      <p class="text-callout text-muted">{t('movedSetAsideHint')}</p>
+      <p class="text-callout text-muted">{t('movedReplaceHint')}</p>
       <div>
         <button class={buttonClass('primary', 'sm')} disabled={busy} aria-busy={busy} onclick={setAside} data-testid="moved-set-aside">
           <Icon name="device" />{t('movedSetAside')}
@@ -126,11 +126,11 @@
         <li class="flex flex-wrap items-center gap-2 px-5 py-3">
           {#if copy.account}<Id id={copy.account} />{/if}
           <Id id={copy.device_id} />
-          <span class="min-w-0 flex-1 text-[12px] text-faint">{when(copy.moved_at)}</span>
+          <span class="min-w-0 flex-1 text-callout text-muted">{when(copy.moved_at)}</span>
           {#if ours(copy) && status?.state === 'pairing_required'}
             <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => replace(copy)} data-testid="moved-replace">{t('movedReplace')}</button>
           {:else if ours(copy) && status?.state === 'unlocked'}
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => importFiles(copy)} data-testid="moved-import">{t('movedImport')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => importFiles(copy)} data-testid="moved-import">{t('movedImport')}</button>
           {/if}
           <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => ask(copy)} data-testid="moved-discard">{t('movedDelete')}</button>
         </li>

@@ -74,7 +74,7 @@
 </script>
 
 <Section title={t('feedbackTitle')} description={t('feedbackHint')}>
-  <p class="text-[12px] text-muted">{t('to')}: <bdi class="select-text font-mono" dir="ltr">{feedbackRecipient}</bdi></p>
+  <p class="text-callout text-muted">{t('to')}: <bdi class="select-text font-mono" dir="ltr">{feedbackRecipient}</bdi></p>
   {#if status.state !== 'unlocked'}
     <Notice>{t('feedbackLocked')}</Notice>
   {:else}
@@ -82,29 +82,29 @@
     <div class="mt-4 grid gap-4" onpaste={paste} onkeydown={key} data-testid="feedback-form">
       {#if !form.loaded}
         {#if form.failure && !form.busy}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={load}>{t('retry')}</button>
-        {:else}<p class="text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
+        {:else}<p class="text-body text-muted" role="status">{t('loading')}</p>{/if}
       {:else}
         <div class="grid gap-1">
           <TextArea label={t('message')} value={form.text} oninput={(e) => form.update(e.currentTarget.value)} readonly={!!form.record && form.record.state !== 'draft'} disabled={form.busy} dir="auto"
             rows={6} aria-describedby="feedback-count" error={bytes > 4500 ? t('feedbackLimit') : undefined} data-testid="feedback-text" />
-          <p id="feedback-count" class="text-[12px] text-muted"><bdi dir="ltr">{bytes} / 4500 B</bdi></p>
+          <p id="feedback-count" class="text-callout text-muted"><bdi dir="ltr">{bytes} / 4500 B</bdi></p>
         </div>
         <div class="grid gap-2">
-          <p class="text-[12.5px] font-medium">{t('feedbackScreenshots')}</p>
-          <p class="text-[12px] text-muted">{t('feedbackImageHint')}</p>
+          <p class="text-callout font-medium">{t('feedbackScreenshots')}</p>
+          <p class="text-callout text-muted">{t('feedbackImageHint')}</p>
           <div class="flex flex-wrap gap-2">
             {#each form.screenshots as screenshot (screenshot.file)}
               <div class="grid w-36 gap-1.5 rounded-lg border border-line p-2" data-testid="feedback-screenshot">
                 {#if images[screenshot.file]}<img src={images[screenshot.file]} alt={screenshot.name} class="h-24 w-full rounded object-contain" />{:else}<Icon name="file" class="h-24 w-full text-faint" />{/if}
-                <span class="break-all text-[11px]">{screenshot.name}</span>
+                <span class="break-all text-caption">{screenshot.name}</span>
                 {#if !frozen}<button class={buttonClass('ghost', 'xs')} onclick={() => form.update(form.text, form.screenshots.filter(s => s.file !== screenshot.file))}>{t('remove')}</button>{/if}
               </div>
             {/each}
           </div>
           <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={frozen || form.screenshots.length >= 3} onclick={() => add()} data-testid="feedback-attach"><Icon name="attach" />{t('feedbackAttach')}</button>
         </div>
-        <p class="break-words text-[12px] text-muted" data-testid="feedback-context">{form.context}</p>
-        <p class="text-[12px] text-muted" role="status">{saveLabel ? t(saveLabel) : ''}</p>
+        <p class="break-words text-callout text-muted" data-testid="feedback-context">{form.context}</p>
+        <p class="text-callout text-muted" role="status">{saveLabel ? t(saveLabel) : ''}</p>
         <div class="flex flex-wrap justify-end gap-2">
           {#if form.record?.state === 'sent'}
             <button class={buttonClass('primary')} onclick={() => form.clear()} data-testid="feedback-new">{t('feedbackNew')}</button>
@@ -120,7 +120,7 @@
   {/if}
 </Section>
 <Dialog bind:open={discarding} dismissible={!form.busy} testid="feedback-discard-dialog" title={t('discard')} description={t('feedbackDiscardHint')}>
-  <p class="text-[13px]">{t('feedbackDiscardTitle')}</p>
+  <p class="text-body">{t('feedbackDiscardTitle')}</p>
   {#if form.failure}<Notice tone="danger">{errorText(new CallError(form.failure))}</Notice>{/if}
   {#snippet footer()}<button class={buttonClass('ghost')} disabled={form.busy} onclick={() => discarding = false}>{t('cancel')}</button><button class={buttonClass('danger')} disabled={form.busy} aria-busy={form.busy} onclick={async () => { await form.clear(); if (!form.failure) discarding = false }}>{t('discard')}</button>{/snippet}
 </Dialog>

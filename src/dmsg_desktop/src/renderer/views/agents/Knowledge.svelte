@@ -169,13 +169,13 @@
     <div class="grid gap-4">
       <div class="flex items-start gap-3 rounded-xl bg-surface-2 px-4 py-3">
         <Icon name="website" class="mt-0.5 shrink-0 text-forest" />
-        <div class="text-[12.5px] leading-relaxed text-muted">
+        <div class="text-callout leading-relaxed text-muted">
           <p class="font-medium text-ink">{t('knowledgeExplained')}</p>
           <p class="mt-1">{t('knowledgeOwnerRole')}</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[12px] text-muted">{t('knowledgeService')}</span>
+        <span class="text-callout text-muted">{t('knowledgeService')}</span>
         <Select
           bind:value={service}
           label={t('knowledgeService')}
@@ -219,8 +219,8 @@
           />
           <button class={buttonClass('secondary')} disabled={busy || !service || !text.trim()} data-testid="knowledge-look"><Icon name="search" />{t('knowledgeSearch')}</button>
         </form>
-        <p class="text-[11.5px] text-faint">{t('rankingNote')}</p>
-      {:else}<p class="text-[12px] text-muted">{t('knowledgeAgentScope', { agent: labelOf(agent) })}</p>{/if}
+        <p class="text-caption text-faint">{t('rankingNote')}</p>
+      {:else}<p class="text-callout text-muted">{t('knowledgeAgentScope', { agent: labelOf(agent) })}</p>{/if}
       {#if error}<Notice tone="danger" testid="knowledge-error">{error}
         {#snippet action()}{#if retry}<button class={buttonClass('secondary', 'sm')} onclick={retry}>{t('retry')}</button>{/if}{/snippet}
       </Notice>{/if}
@@ -238,10 +238,10 @@
                     aria-pressed={found?.id === item.id}
                     onclick={() => get(item.id)}
                   >
-                    <span class="text-[11px] text-forest">{kindOf(item)}</span>
-                    <span class="line-clamp-2 text-[13px] leading-relaxed font-medium [overflow-wrap:anywhere]">{titleOf(item)}</span>
-                    <span class="truncate text-[11.5px] text-muted">{labelOf(item.actor)}</span>
-                    <span class="text-[11px] text-faint">{when(item.created_at)}</span>
+                    <span class="text-caption text-forest">{kindOf(item)}</span>
+                    <span class="line-clamp-2 text-body leading-relaxed font-medium [overflow-wrap:anywhere]">{titleOf(item)}</span>
+                    <span class="truncate text-caption text-muted">{labelOf(item.actor)}</span>
+                    <span class="text-caption text-faint">{when(item.created_at)}</span>
                   </button>
                 </li>
               {/each}
@@ -256,20 +256,20 @@
                     >{lifecycle?.complete ? (lifecycle.status === 'retracted' ? t('knowledgeRetracted') : t('knowledgeActive')) : t('knowledgeStatusIncomplete')}</Pill
                   >
                 </div>
-                <h3 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{titleOf(found)}</h3>
-                <div class="flex flex-wrap items-center gap-2 text-[11.5px] text-muted"><Id id={found.actor} /><span>{when(found.created_at)}</span></div>
-                {#if found.payload.statement}<p class="text-[13px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{found.payload.statement}</p>{/if}
-                {#if found.payload.target}<div class="flex flex-wrap items-center gap-2 text-[12px]">
-                    <span class="text-muted">{t('knowledgeTarget')}</span><button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => get(found.payload.target)}
+                <h3 class="text-title-2 leading-snug font-semibold [overflow-wrap:anywhere]">{titleOf(found)}</h3>
+                <div class="flex flex-wrap items-center gap-2 text-caption text-muted"><Id id={found.actor} /><span>{when(found.created_at)}</span></div>
+                {#if found.payload.statement}<p class="text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{found.payload.statement}</p>{/if}
+                {#if found.payload.target}<div class="flex flex-wrap items-center gap-2 text-callout">
+                    <span class="text-muted">{t('knowledgeTarget')}</span><button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => get(found.payload.target)}
                       >{t('open')}</button
                     ><Id id={found.payload.target} />
                   </div>{/if}
-                {#if found.payload.verdict}<p class="text-[12px]">{t('knowledgeVerdict')}: {found.payload.verdict}</p>{/if}
+                {#if found.payload.verdict}<p class="text-callout">{t('knowledgeVerdict')}: {found.payload.verdict}</p>{/if}
                 {#if found.payload.context}
-                  <div class="grid gap-3 rounded-lg bg-surface-2 p-3 text-[12.5px] leading-relaxed">
+                  <div class="grid gap-3 rounded-lg bg-surface-2 p-3 text-callout leading-relaxed">
                     <div>
                       <h4 class="mb-1 font-medium">{t('knowledgeScope')}</h4>
-                      <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">{found.payload.context.scope}</p>
+                      <p class="whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{found.payload.context.scope}</p>
                     </div>
                     {#each [{ key: 'conditions', label: t('knowledgeConditions') }, { key: 'limitations', label: t('knowledgeLimitations') }] as field}
                       <div>
@@ -282,21 +282,21 @@
                   </div>
                 {/if}
                 {#if found.payload.basis}<div>
-                    <h4 class="mb-1 text-[12px] font-medium">{t('knowledgeBasis')}</h4>
-                    <p class="text-[12.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{found.payload.basis}</p>
+                    <h4 class="mb-1 text-callout font-medium">{t('knowledgeBasis')}</h4>
+                    <p class="text-callout leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{found.payload.basis}</p>
                   </div>{/if}
                 {#if found.payload.evidence?.length}
                   <div class="grid gap-2">
-                    <h4 class="text-[12px] font-medium">{t('knowledgeEvidence')}</h4>
-                    {#each found.payload.evidence as evidence}<div class="grid gap-1 border-s-2 border-line ps-3 text-[12px]">
+                    <h4 class="text-callout font-medium">{t('knowledgeEvidence')}</h4>
+                    {#each found.payload.evidence as evidence}<div class="grid gap-1 border-s-2 border-line ps-3 text-callout">
                         <p class="[overflow-wrap:anywhere]">{evidence.description}</p>
                         <Id id={evidence.url} full wrap /><span class="text-faint">{t('knowledgeEvidenceUnchecked')}</span>
                       </div>{/each}
                   </div>
                 {/if}
                 {#if found.payload.relations?.length}
-                  <details class="text-[12px]">
-                    <summary class="cursor-pointer">{t('knowledgeRelations')} · {found.payload.relations.length}</summary>
+                  <details class="text-callout">
+                    <summary>{t('knowledgeRelations')} · {found.payload.relations.length}</summary>
                     <ul class="mt-2 grid gap-2">
                       {#each found.payload.relations as relation}<li class="flex flex-wrap items-center gap-2">
                           <span>{relation.relation}</span><Id id={relation.target} /><button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => get(relation.target)}
@@ -307,29 +307,29 @@
                   </details>
                 {/if}
                 <div class="grid gap-2 border-t border-line pt-3">
-                  <h4 class="text-[12px] font-medium">{t('assessments', { n: lifecycle?.assessments.length ?? 0 })}</h4>
+                  <h4 class="text-callout font-medium">{t('assessments', { n: lifecycle?.assessments.length ?? 0 })}</h4>
                   {#each assessments as assessment (assessment.id)}
                     <button
-                      class="grid gap-1 rounded-lg bg-surface-2 p-3 text-start text-[12px] outline-none hover:bg-wash focus-visible:ring-2 focus-visible:ring-forest"
+                      class="grid gap-1 rounded-lg bg-surface-2 p-3 text-start text-callout outline-none hover:bg-wash focus-visible:ring-2 focus-visible:ring-forest"
                       onclick={() => get(assessment.id)}
                       ><span class="font-medium [overflow-wrap:anywhere]">{assessment.payload.summary}</span><span class="truncate text-muted"
                         >{labelOf(assessment.actor)} · {assessment.payload.verdict}</span
                       ></button
                     >
-                  {:else}<p class="text-[12px] text-muted">{t('knowledgeNoAssessments')}</p>{/each}
-                  {#if lifecycle?.assessments.length > assessments.length}<p class="text-[11.5px] text-muted">{t('knowledgeAssessmentLimit')}</p>{/if}
+                  {:else}<p class="text-callout text-muted">{t('knowledgeNoAssessments')}</p>{/each}
+                  {#if lifecycle?.assessments.length > assessments.length}<p class="text-caption text-muted">{t('knowledgeAssessmentLimit')}</p>{/if}
                 </div>
                 {#each [{ ids: lifecycle?.successors ?? [], label: t('knowledgeSuccessors') }, { ids: lifecycle?.retractions ?? [], label: t('knowledgeRetractionsTab') }] as group}
                   {#if group.ids.length}<div class="grid gap-2">
-                      <h4 class="text-[12px] font-medium">{group.label}</h4>
+                      <h4 class="text-callout font-medium">{group.label}</h4>
                       {#each group.ids as id}<div class="flex items-center gap-2">
                           <Id {id} /><button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => get(id)}>{t('open')}</button>
                         </div>{/each}
                     </div>{/if}
                 {/each}
-                <p class="text-[11.5px] leading-relaxed text-faint">{t('knowledgeStatusScope')} {lifecycle?.service} · {when(lifecycle?.as_of)}</p>
-                <details class="text-[11.5px] text-muted">
-                  <summary class="cursor-pointer">{t('agentTechnicalDetails')}</summary>
+                <p class="text-caption leading-relaxed text-faint">{t('knowledgeStatusScope')} {lifecycle?.service} · {when(lifecycle?.as_of)}</p>
+                <details class="text-caption text-muted">
+                  <summary>{t('agentTechnicalDetails')}</summary>
                   <div class="mt-2 grid gap-2">
                     <Id id={found.id} full wrap />{#if found.payload.license}<Id id={found.payload.license} full wrap />{/if}
                     <pre class="max-h-80 overflow-auto rounded-lg bg-surface-2 p-3 font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(
@@ -342,27 +342,27 @@
               </article>
             {:else}<div class="grid min-h-80 place-content-center gap-3 text-center">
                 <Icon name="knowledge" class="mx-auto size-7 text-faint" />
-                <p class="text-[13px] text-muted">{busy ? t('loading') : t('knowledgeSelect')}</p>
+                <p class="text-body text-muted">{busy ? t('loading') : t('knowledgeSelect')}</p>
               </div>{/if}
           </div>
         </div>
       {:else if !error}
         <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="knowledge-empty">
           <Icon name="knowledge" class="size-8 text-faint" />
-          <h3 class="text-[14px] font-medium">
+          <h3 class="text-body font-medium">
             {busy ? t('loading') : !service ? t('knowledgeNoService') : mode === 'search' ? (items ? t('noResults') : t('knowledgeSearchText')) : t('knowledgeEmpty')}
           </h3>
           {#if mode === 'search' && items}
             <button class={buttonClass('ghost', 'sm')} onclick={() => { text = ''; editSearch(); document.querySelector<HTMLInputElement>('[data-testid="knowledge-text"]')?.focus() }}>{t('clearSearch')}</button>
-          {:else if items && !busy}<p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('knowledgeEmptyHint')}</p>{/if}
+          {:else if items && !busy}<p class="max-w-md text-callout leading-relaxed text-muted">{t('knowledgeEmptyHint')}</p>{/if}
         </div>
       {/if}
-      {#if scope}<p class="text-[11.5px] text-faint [overflow-wrap:anywhere]">
+      {#if scope}<p class="text-caption text-faint [overflow-wrap:anywhere]">
           {t('knowledgeStatusScope')}
           {scope.service} · {when(scope.as_of)} · checkpoint {scope.checkpoint}
         </p>{/if}
-      <details class="text-[12px] text-muted">
-        <summary class="cursor-pointer">{t('knowledgeLookup')}</summary>
+      <details class="text-callout text-muted">
+        <summary>{t('knowledgeLookup')}</summary>
         <form
           class="mt-2 flex gap-2"
           onsubmit={(event) => {
@@ -377,7 +377,7 @@
         </form>
       </details>
       <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-        <span class="text-[12px] text-muted">{t('agentPermissionsHint')}</span><button class={buttonClass('ghost', 'sm')} onclick={manage}
+        <span class="text-callout text-muted">{t('agentPermissionsHint')}</span><button class={buttonClass('ghost', 'sm')} onclick={manage}
           ><Icon name="security" />{t('tabCapabilities')}</button
         >
       </div>

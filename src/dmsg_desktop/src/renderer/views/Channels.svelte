@@ -778,31 +778,31 @@
       <Avatar id={entry.id} name={entry.name} />
       <span class="min-w-0">
         <span class="flex min-w-0 items-center gap-1">
-          <span class={cn('truncate text-[13.5px] leading-snug', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
+          <span class={cn('truncate text-body leading-snug', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
           {#if entry.muted}<Icon name="eye-off" class="size-3 shrink-0 text-faint" />{/if}
           {#if pins.includes(entry.id)}<Icon name="pin" class="size-3 shrink-0 text-faint" label={t('pinned')} />{/if}
         </span>
         {#if draft}
-          <span class="block truncate text-[12px] leading-snug text-warn">{t('draft')}: {draft}</span>
+          <span class="block truncate text-callout leading-snug text-warn">{t('draft')}: {draft}</span>
         {:else if entry.last}
-          <span {@attach visibleName(entry.last.account === me ? undefined : entry.last.account)} class="block truncate text-[12px] leading-snug text-faint" data-testid="channel-preview">
+          <span {@attach visibleName(entry.last.account === me ? undefined : entry.last.account)} class="block truncate text-callout leading-snug text-muted" data-testid="channel-preview">
             {entry.last.account === me ? t('you') : label(entry.last.account, false)}: {entry.last.text || '…'}
           </span>
         {:else}
-          <span class="block truncate text-[12px] leading-snug text-faint">
+          <span class="block truncate text-callout leading-snug text-muted">
             {entry.ledger ? `${t(kindLabel[entry.ledger.type] ?? 'collaboration')} · ${t('memberCount', { n: Object.keys(entry.ledger.members).length })}` : '…'}
           </span>
         {/if}
       </span>
       <span class="grid justify-items-end gap-0.5">
-        {#if at}<span class="text-[10.5px] text-faint tabular-nums">{listTime(at, Date.now(), locale())}</span>{/if}
+        {#if at}<span class="text-caption text-faint tabular-nums">{listTime(at, Date.now(), locale())}</span>{/if}
         {#if entry.ledger && entry.ledger.status !== 'active'}
-          <span class={cn('rounded px-1 text-[10.5px] font-medium', entry.ledger.status === 'archived' ? 'bg-wash text-muted' : 'bg-warn-pale text-warn')}>
+          <span class={cn('rounded px-1 text-caption font-medium', entry.ledger.status === 'archived' ? 'bg-wash text-muted' : 'bg-warn-pale text-warn')}>
             {t(statusLabel[entry.ledger.status] ?? 'channelArchived')}
           </span>
         {:else if entry.unread}
           <span
-            class={cn('min-w-4.5 rounded-full px-1.5 text-center text-[10.5px] leading-[18px] font-semibold tabular-nums', entry.muted ? 'bg-wash text-muted' : 'bg-forest text-on-forest')}
+            class={cn('min-w-4.5 rounded-full px-1.5 text-center text-caption leading-[18px] font-semibold tabular-nums', entry.muted ? 'bg-wash text-muted' : 'bg-forest text-on-forest')}
             data-testid="channel-unread">{entry.unread > 99 ? '99+' : entry.unread}</span
           >
         {:else if entry.news && selected !== entry.id}
@@ -855,7 +855,7 @@
       {#if error}<Notice failure={error} tone="danger" testid="channel-error">{error}</Notice>{/if}
       <TargetMenu find={channelOf} testid="channel-menu">
         {#snippet menu(entry)}{@render channelMenu(entry)}{/snippet}
-      <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
+      <ul data-list class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
         {#each listed.live as entry (entry.id)}
           {@render item(entry)}
         {:else}
@@ -863,10 +863,10 @@
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
               <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
               {#if status?.sync_initialized === false && unlocked}
-                <p class="text-[13px] text-muted" data-testid="channels-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</p>
-                <p class="text-[12.5px] text-muted">{t('syncInitialHint')}</p>
+                <p class="text-body text-muted" data-testid="channels-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</p>
+                <p class="text-callout text-muted">{t('syncInitialHint')}</p>
               {:else}
-                <p class="text-[13px] text-muted">{query.trim() ? t('noMatch', { query }) : onlyUnread ? t('noResults') : t('noChannels')}</p>
+                <p class="text-body text-muted">{query.trim() ? t('noMatch', { query }) : onlyUnread ? t('noResults') : t('noChannels')}</p>
               {/if}
               {#if unlocked && !query.trim() && !onlyUnread && status?.sync_initialized !== false}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
@@ -876,7 +876,7 @@
         {/each}
         {#if listed.other.length}
           <li class="px-2 pt-3">
-            <button class="flex w-full items-center gap-1 text-[11.5px] font-medium text-faint hover:text-ink" onclick={() => (showOther = !showOther)} data-testid="channel-other-toggle">
+            <button class="flex w-full items-center gap-1 text-caption font-medium text-faint hover:text-ink" onclick={() => (showOther = !showOther)} data-testid="channel-other-toggle">
               <Icon name={showOther ? 'chevron-down' : 'chevron-end'} class="size-3.5" />{t('otherChannels', { n: listed.other.length })}
             </button>
           </li>
@@ -888,7 +888,7 @@
         {/if}
         {#if oldChannels.length}
           <li class="px-2 pt-4 pb-1">
-            <button class="flex w-full items-center gap-1 text-[11.5px] font-medium text-faint hover:text-ink" aria-expanded={showLegacy} onclick={() => (showLegacy = !showLegacy)} data-testid="legacy-channel-toggle">
+            <button class="flex w-full items-center gap-1 text-caption font-medium text-faint hover:text-ink" aria-expanded={showLegacy} onclick={() => (showLegacy = !showLegacy)} data-testid="legacy-channel-toggle">
               <Icon name={showLegacy ? 'chevron-down' : 'chevron-end'} class="size-3.5" />{t('legacyHistory')} · {oldChannels.length}
             </button>
           </li>
@@ -898,15 +898,15 @@
                 <button class={cn('flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-wash', legacySelected?.archive === entry.archive && legacySelected?.source === entry.source && 'bg-pale')} onclick={() => pickLegacy(entry)} data-testid="legacy-channel-item">
                   <Icon name="legacy" class="shrink-0 text-faint" />
                   <span class="min-w-0">
-                    <b class="block truncate text-[13px] font-medium">{entry.name || entry.source}</b>
-                    <span class="block text-[11px] text-faint">{t('legacyReadable', { n: entry.messages })}{entry.unreadable ? ` · ${t('legacyUnreadable', { n: entry.unreadable })}` : ''}</span>
+                    <b class="block truncate text-body font-medium">{entry.name || entry.source}</b>
+                    <span class="block text-caption text-faint">{t('legacyReadable', { n: entry.messages })}{entry.unreadable ? ` · ${t('legacyUnreadable', { n: entry.unreadable })}` : ''}</span>
                   </span>
                 </button>
               </li>
             {/each}
           {/if}
         {/if}
-        {#if legacyError}<li class="px-2 py-2 text-[12px] text-danger">{legacyError}</li>{/if}
+        {#if legacyError}<li class="px-2 py-2 text-callout text-danger">{legacyError}</li>{/if}
       </ul>
       </TargetMenu>
     </section>
@@ -922,11 +922,11 @@
           <Avatar id={channel.id} name={channel.name} size="lg" class="hidden @min-[420px]/conversation:grid" />
           <div class="min-w-0 flex-1 basis-full @min-[420px]/conversation:basis-auto">
             <div class="flex min-w-0 items-center gap-2">
-              <h2 class="truncate text-[15px] leading-snug font-semibold" data-testid="channel-title">{channel.name}</h2>
+              <h2 class="truncate text-title-3 leading-snug font-semibold" data-testid="channel-title">{channel.name}</h2>
               {#if channel.muted}<Icon name="eye-off" class="size-3.5 shrink-0 text-faint" />{/if}
             </div>
             {#if ledger}
-              <p class="truncate text-[12px] text-faint">
+              <p class="truncate text-callout text-muted">
                 {t(kindLabel[ledger.type] ?? 'collaboration')} · {t('memberCount', { n: Object.keys(ledger.members).length })}{me && ledger.members[me]
                   ? ` · ${t(roleLabel[ledger.members[me].role] ?? 'roleMember')}`
                   : ''}{channel.billing?.billing_account && channel.billing.billing_account !== ledger.owner ? ` · ${t('paidBy', { name: label(channel.billing.billing_account) })}` : ''}
@@ -1072,20 +1072,20 @@
               />
               <button class={iconButtonClass('secondary', 'md')} aria-label={t('searchMessages')} disabled={!search.query.trim() || search.busy} onclick={find} data-testid="channel-search-submit"><Icon name="search" /></button>
             </div>
-            {#if search.busy}<p class="mt-1.5 text-[12px] text-muted" role="status">{t('loading')}</p>{/if}
+            {#if search.busy}<p class="mt-1.5 text-callout text-muted" role="status">{t('loading')}</p>{/if}
             {#if search.error}<Notice tone="danger" failure={search.error}>{search.error}</Notice>{/if}
             {#if search.results}
               <ul class="mt-1.5 max-h-56 overflow-y-auto" data-testid="channel-search-results">
                 {#each search.results as hit (hit.seq)}
                   <li>
-                    <button class="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-start text-[12.5px] hover:bg-wash" onclick={() => jump(hit.seq)}>
+                    <button class="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-start text-callout hover:bg-wash" onclick={() => jump(hit.seq)}>
                       <span {@attach visibleName(hit.account === me ? undefined : hit.account)} class="shrink-0 font-medium">{hit.account === me ? t('you') : label(hit.account, false)}</span>
                       <span class="min-w-0 flex-1 truncate text-muted">{hit.text || hit.file?.name}</span>
-                      <span class="shrink-0 text-[11px] text-faint">{shortDay.format(hit.stored_at)}</span>
+                      <span class="shrink-0 text-caption text-faint">{shortDay.format(hit.stored_at)}</span>
                     </button>
                   </li>
                 {:else}
-                  <li class="px-2 py-1.5 text-[12.5px] text-faint">{t('noMatch', { query: search.query })}</li>
+                  <li class="px-2 py-1.5 text-callout text-muted">{t('noMatch', { query: search.query })}</li>
                 {/each}
               </ul>
             {/if}
@@ -1093,32 +1093,32 @@
         {/if}
 
         {#if transferring}
-          <div class="flex items-center gap-2.5 border-b border-warn/30 bg-warn-pale px-5 py-2 text-[12.5px] text-ink-2" data-testid="channel-transferring">
+          <div class="flex items-center gap-2.5 border-b border-warn/30 bg-warn-pale px-5 py-2 text-callout text-ink-2" data-testid="channel-transferring">
             <Icon name="coins" class="shrink-0 text-warn" />
             <span class="min-w-0 flex-1">{t('sponsorUnderway', { name: label(channel.billing?.transition?.to_payer) })}</span>
-            {#if can.owner && unlocked}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={cancelSponsor} data-testid="sponsor-cancel">{t('cancelTransfer')}</button>{/if}
+            {#if can.owner && unlocked}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={cancelSponsor} data-testid="sponsor-cancel">{t('cancelTransfer')}</button>{/if}
           </div>
         {/if}
         {#if ledger?.status === 'rotation_required'}
-          <div class="flex items-center gap-2.5 border-b border-warn/30 bg-warn-pale px-5 py-2 text-[12.5px] text-ink-2">
+          <div class="flex items-center gap-2.5 border-b border-warn/30 bg-warn-pale px-5 py-2 text-callout text-ink-2">
             <Icon name="epoch" class="shrink-0 text-warn" />
             <span class="min-w-0 flex-1" data-testid="channel-rotation">{t(can.rotates ? 'rotationRequired' : 'rotationWaiting')}</span>
-            {#if unlocked && can.rotates}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={rotate}>{t('rotate')}</button>{/if}
+            {#if unlocked && can.rotates}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={rotate}>{t('rotate')}</button>{/if}
           </div>
         {:else if ledger?.status === 'archived'}
-          <div class="flex items-center gap-2.5 border-b border-line bg-surface-2 px-5 py-2 text-[12.5px] text-muted">
+          <div class="flex items-center gap-2.5 border-b border-line bg-surface-2 px-5 py-2 text-callout text-muted">
             <Icon name="archive" class="shrink-0" />
             <span class="min-w-0 flex-1">{t('archivedChannel')}</span>
             {#if can.owner && unlocked}
-              <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={reactivate} data-testid="channel-reactivate">
+              <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={reactivate} data-testid="channel-reactivate">
                 <Icon name="unarchive" />{t('reactivate')}
               </button>
             {/if}
           </div>
         {:else if ledger && !can.member}
-          <div class="flex items-center gap-2.5 border-b border-line bg-surface-2 px-5 py-2 text-[12.5px] text-muted">
+          <div class="flex items-center gap-2.5 border-b border-line bg-surface-2 px-5 py-2 text-callout text-muted">
             <Icon name="leave" class="shrink-0" /><span class="min-w-0 flex-1">{t('notMember')}</span>
-            {#if unlocked && !channel.hidden}<button class={buttonClass('secondary', 'xs')} onclick={() => settings({ hidden: true })}>{t('hideFromList')}</button>{/if}
+            {#if unlocked && !channel.hidden}<button class={buttonClass('subtle', 'xs')} onclick={() => settings({ hidden: true })}>{t('hideFromList')}</button>{/if}
           </div>
         {/if}
 
@@ -1161,7 +1161,7 @@
         />
         {/key}
       {:else}
-        <div class="grid flex-1 place-items-center p-8 text-center text-[13px] text-faint">
+        <div class="grid flex-1 place-items-center p-8 text-center text-body text-faint">
           <p>{channels.length ? t('pickChannel') : ''}</p>
         </div>
       {/if}
@@ -1197,7 +1197,7 @@
   <Transfer bind:open={transfer.open} kind={transfer.kind} {channel} {me} onSent={reload} />
   <Access bind:open={access} {channel} manages={unlocked && can.manages} onControl={control} />
   <Dialog bind:open={leaving} title={t('leaveTitle', { name: channel.name })} description={t('leaveHint')} icon="leave" tone="danger" testid="channel-leave-dialog">
-    <p class="text-[13px] text-muted">{t('leaveBody')}</p>
+    <p class="text-body text-muted">{t('leaveBody')}</p>
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (leaving = false)}>{t('cancel')}</button>
@@ -1205,7 +1205,7 @@
     {/snippet}
   </Dialog>
   <Dialog bind:open={archiving} title={t('archiveTitle', { name: channel.name })} description={t('archiveHint')} icon="archive" tone="danger" testid="channel-archive-dialog">
-    <p class="text-[13px] text-muted">{t('archiveBody')}</p>
+    <p class="text-body text-muted">{t('archiveBody')}</p>
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (archiving = false)}>{t('cancel')}</button>
@@ -1221,7 +1221,7 @@
     {/snippet}
   </Dialog>
   <Dialog bind:open={renaming.open} title={t('renameChannel')} description={t('renameHint')} icon="edit" testid="channel-rename-dialog">
-    <TextField bind:value={renaming.name} label={t('channelName')} hideLabel class="text-[13.5px]" data-testid="channel-rename-input" />
+    <TextField bind:value={renaming.name} label={t('channelName')} hideLabel class="text-body" data-testid="channel-rename-input" />
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (renaming.open = false)}>{t('cancel')}</button>
@@ -1239,7 +1239,7 @@
 {/if}
 {#if retracting}
   <Dialog bind:open={() => !!retracting, (open) => !open && (retracting = null)} title={t('retractTitle')} description={t('retractHint')} icon="restore" tone="danger" testid="message-retract-dialog">
-    <p class="line-clamp-3 text-[13px] text-muted">{retracting.text || retracting.file?.name}</p>
+    <p class="line-clamp-3 text-body text-muted">{retracting.text || retracting.file?.name}</p>
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (retracting = null)}>{t('cancel')}</button>
@@ -1248,7 +1248,7 @@
   </Dialog>
 {/if}
 <Dialog bind:open={deletingLegacyDraft} title={t('legacyDeleteDraft')} icon="trash" tone="danger" testid="legacy-draft-delete-dialog">
-  <p class="text-[13px] text-muted">{t('legacyDeleteDraftHint', { name: channel?.name ?? '' })}</p>
+  <p class="text-body text-muted">{t('legacyDeleteDraftHint', { name: channel?.name ?? '' })}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} disabled={busy} onclick={() => (deletingLegacyDraft = false)}>{t('cancel')}</button>

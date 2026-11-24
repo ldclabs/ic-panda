@@ -87,27 +87,27 @@
   </Notice>{/if}
   <div data-testid="audit-entries">
     {#each groups as group (group.day)}
-      <h3 class="sticky top-0 bg-surface py-1.5 text-[11.5px] font-medium text-faint">{dayFormat.format(group.at)}</h3>
+      <h3 class="sticky top-0 bg-surface py-1.5 text-caption font-medium text-faint">{dayFormat.format(group.at)}</h3>
       <ol class="relative ms-1.5 border-s border-line ps-5">
         {#each [...group.messages].reverse() as e (e.seq)}
           {@const tone = outcomeTone(e.outcome)}
           <li class="relative pb-3.5">
             <span class={cn('absolute -start-[25px] top-1.5 size-2.5 rounded-full ring-3 ring-surface', dots[tone])}></span>
             <div class="flex flex-wrap items-center gap-1.5">
-              <b class="font-mono text-[12.5px] font-medium">{e.action}</b>
+              <b class="font-mono text-code font-medium">{e.action}</b>
               <Pill tone={tone}>{e.outcome}</Pill>
-              <span class="text-[12px] text-muted">{labelOf(e.actor)}</span>
+              <span class="text-callout text-muted">{labelOf(e.actor)}</span>
               <Pill>{e.via}</Pill>
-              <time class="ms-auto text-[11.5px] text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
+              <time class="ms-auto text-caption text-faint" title={when(e.at)}>{timeFormat.format(e.at)}</time>
             </div>
             {#if e.target || e.detail}
-              <p class="mt-0.5 font-mono text-[11.5px] break-all text-faint">{[e.target, e.detail].filter(Boolean).join(' · ')}</p>
+              <p class="mt-0.5 font-mono text-code break-all text-faint">{[e.target, e.detail].filter(Boolean).join(' · ')}</p>
             {/if}
           </li>
         {/each}
       </ol>
     {:else}
-      {#if !error}<div class="flex items-center gap-2 text-[13px] text-muted">
+      {#if !error}<div class="flex items-center gap-2 text-body text-muted">
         <span role="status">{!loaded ? t('loading') : actor ? t('noResults') : t('noAudit')}</span>
         {#if loaded && actor}<button class={buttonClass('ghost', 'sm')} onclick={() => { actor = ''; void load() }}>{t('everyone')}</button>{/if}
       </div>{/if}

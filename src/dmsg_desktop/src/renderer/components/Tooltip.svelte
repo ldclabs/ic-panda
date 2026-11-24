@@ -29,7 +29,7 @@
       {side}
       sideOffset={8}
       collisionPadding={8}
-      class="z-50 max-w-xs rounded-md bg-ink px-2 py-1 text-xs text-paper shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0"
+      class="z-50 max-w-xs rounded-md bg-ink px-2 py-1 text-callout text-paper shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0"
     >
       {content}
     </Tooltip.Content>

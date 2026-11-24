@@ -199,9 +199,9 @@
         /></Field
       >
       <Field label={w('label')}><input bind:value={label} /></Field>
-      <p class="text-muted text-[13px]">{w(`role${role}Hint`)}</p>
+      <p class="text-muted text-body">{w(`role${role}Hint`)}</p>
       <Collapsible open={!!agents}
-        >{#snippet title()}<span class="text-[12px]">{t('advanced')}</span>{/snippet}<Field label={w('agent_ids')}
+        >{#snippet title()}<span class="text-callout">{t('advanced')}</span>{/snippet}<Field label={w('agent_ids')}
           ><textarea bind:value={agents} rows="3" dir="ltr" class="font-mono"></textarea></Field
         ></Collapsible
       >
@@ -246,8 +246,8 @@
       {#if chain === 'Bitcoin'}<Checkbox bind:checked={segwit}>Segwit · P2WPKH</Checkbox>{/if}
     {:else if kind === 'cosign'}
       <Notice>{w('cosignBoundary')}</Notice>
-      <p class="text-[12px]">#{target.id} · {target.label} · {target.chain}</p>
-      <p class="font-mono text-[12px] break-all" dir="ltr">{target.text}</p>
+      <p class="text-callout">#{target.id} · {target.label} · {target.chain}</p>
+      <p class="font-mono text-code break-all" dir="ltr">{target.text}</p>
       {#if target.cosign}<Checkbox bind:checked={removeCosign}>{w('cosignRemove')}</Checkbox>{/if}
       {#if removeCosign}<Notice tone="warn">{w('cosignRemoveHint')}</Notice>
       {:else if !wallet.cosigners.length}<Notice
@@ -262,7 +262,7 @@
             >#{c.id} · {c.label} · {c.member} · {c.hardware ? w('hardware') : w('softwareWarning')}</Checkbox
           >{/each}
         <Field label={w('threshold')}><input type="number" min="1" max={selected.length || 1} bind:value={threshold} /></Field>
-        <p class="text-faint text-[12px]">{w(unchanged ? 'cosignUnchanged' : 'cosignSelect')}</p>
+        <p class="text-muted text-callout">{w(unchanged ? 'cosignUnchanged' : 'cosignSelect')}</p>
       {/if}
     {:else if kind === 'refuel'}
       <Field label={w('from')}
@@ -271,18 +271,18 @@
           options={wallet.addresses.filter((a) => a.chain === 'Icp').map((a) => ({ value: String(a.id), label: `#${a.id} · ${a.label}` }))}
         /></Field
       >
-      <p class="text-[13px]" role="status"
+      <p class="text-body" role="status"
         >{w('sourceBalance')}: {icpBalance?.balance?.Ok != null ? `${decimal(icpBalance.balance.Ok, 8)} ICP` : w('noBalance')}</p
       >
       <Field label={`${w('amount')} · ICP`}><input bind:value={amount} inputmode="decimal" dir="ltr" /></Field>
     {:else if kind === 'sol_nonce'}
-      <p class="font-mono text-[12px] break-all">{target.text}</p>
-      <Notice>{w('noncePurposeHint')}</Notice><p class="text-[13px]">{w('nonceHint')}</p>
+      <p class="font-mono text-code break-all">{target.text}</p>
+      <Notice>{w('noncePurposeHint')}</Notice><p class="text-body">{w('nonceHint')}</p>
       <Field label={`${w('fee')} · SOL`}><input bind:value={nonceFee} inputmode="decimal" dir="ltr" /></Field>
     {:else if kind === 'lock_code'}
       <Notice tone="danger">{w('lockHint')}</Notice><Checkbox bind:checked={confirmed}>{w('lockCode')}</Checkbox>
     {:else if kind === 'unfreeze'}<Notice>{w('freezeBoundary')}</Notice>
-    {:else}<p class="font-mono text-[12px] break-all">{target?.label} · {target?.id}</p>{/if}
+    {:else}<p class="font-mono text-code break-all">{target?.label} · {target?.id}</p>{/if}
     {#if utf8Length(label) > 64}<Notice tone="danger">{w('nameBytes')}</Notice>{/if}
     {#if references.length}<Notice tone="warn"
         >{w('cosignBound')}

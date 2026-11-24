@@ -88,6 +88,9 @@
   const messageDeliveries = new MessageDeliveries((rows) => { deliveries = rows }, () => verified && status?.state === 'unlocked')
   let palette = $state(false)
   let helping = $state(false)
+  /** Content has scrolled under the title bar, which then draws its rule. */
+  let scrolled = $state(false)
+  let mainArea = $state<HTMLElement>()
   let foldedByChoice = $state(stored(SIDEBAR_KEY) === 'collapsed')
   let compact = $state(narrowWindow.matches)
   /** A narrow window's own unfolding, until the width changes again. */
@@ -104,6 +107,18 @@
   const view = $derived(local && entryOf(route) === views.settings ? views.settings
     : local && ![views.files, views.settings, views.vault].some(v => v === viewOf(route)) ? views.vault : viewOf(route))
   const page = $derived(view === views.legacy ? views.settings.path : view.path)
+  $effect(() => {
+    void page
+    scrolled = false
+  })
+
+  /** A scroll area that starts at the title bar decides whether its rule shows. */
+  function underTitle(event: Event) {
+    const area = event.target
+    if (!(area instanceof Element) || !mainArea) return
+    if (area.getBoundingClientRect().top - mainArea.getBoundingClientRect().top > 1) return
+    scrolled = area.scrollTop > 0
+  }
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
   const setup = $derived(!!status && setupStates.includes(status.state))
@@ -339,10 +354,10 @@
     />
     <div class="flex min-w-0 flex-1 flex-col bg-paper">
       {#key viewSession}
-        <Header {view} {mod} {collapsed} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
+        <Header {view} {mod} {collapsed} {scrolled} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
       {/key}
       {#if !local}{#key viewSession}<RecoveryBanner />{/key}{/if}
-      <main class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page}>
+      <main bind:this={mainArea} class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page} onscrollcapture={underTitle}>
         {#key viewSession}
           <!-- A session change ended every view; the next status opens one. -->
           {#if local && status?.state === 'moved'}

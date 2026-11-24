@@ -297,15 +297,15 @@
     {#if errors.mine}
       <Notice failure={errors.mine} tone="danger">{errors.mine} <button class={buttonClass('ghost', 'xs')} onclick={() => readMine('fresh')}>{t('retry')}</button></Notice>
     {/if}
-    {#if !mine && !errors.mine}<p class="text-xs text-muted" role="status">{t('loading')}</p>
+    {#if !mine && !errors.mine}<p class="text-callout text-muted" role="status">{t('loading')}</p>
     {:else if mine && !mine.length && !errors.mine}
-      <p class="text-[12.5px] text-faint" data-testid="no-names">{t('noNames')}</p>
+      <p class="text-callout text-muted" data-testid="no-names">{t('noNames')}</p>
     {:else if mine}
       <ul class="divide-y divide-line">
         {#each mine as owned (owned.name)}
           <li class="flex items-center gap-3 px-4 py-2.5" data-testid="my-name">
-            <b class="min-w-0 flex-1 truncate text-[14px] font-semibold">@{owned.display_handle ?? owned.name}</b>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} aria-label={`${t('moveName')} @${owned.display_handle ?? owned.name}`} onclick={() => startTransfer(owned.display_handle ?? owned.name)} data-testid="name-transfer">
+            <b class="min-w-0 flex-1 truncate text-title-3 font-semibold">@{owned.display_handle ?? owned.name}</b>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy} aria-label={`${t('moveName')} @${owned.display_handle ?? owned.name}`} onclick={() => startTransfer(owned.display_handle ?? owned.name)} data-testid="name-transfer">
               <Icon name="transfer" />{t('moveName')}
             </button>
           </li>
@@ -323,13 +323,13 @@
         <button class={buttonClass('secondary')} disabled={busy || looking || !wanted || !!problem} aria-busy={looking} type="submit" data-testid="handle-lookup"><Icon name={looking ? 'pending' : 'search'} class={looking ? 'motion-safe:animate-spin' : ''} />{t('lookUp')}</button>
       </form>
       {#if problem}
-        <p id="handle-problem" class="text-[12px] text-danger" role="alert" data-testid="handle-problem">{t(problem)}</p>
+        <p id="handle-problem" class="text-callout text-danger" role="alert" data-testid="handle-problem">{t(problem)}</p>
       {:else if wanted}
-        <p id="handle-tier" class="text-[12px] text-faint" data-testid="handle-tier">{t('namePriceHint', { n: wanted.length, price: panda(namePrice(wanted.length)) })}</p>
+        <p id="handle-tier" class="text-callout text-muted" data-testid="handle-tier">{t('namePriceHint', { n: wanted.length, price: panda(namePrice(wanted.length)) })}</p>
       {/if}
       {#if errors.lookup}<Notice failure={errors.lookup} tone="danger" testid="handle-lookup-error">{errors.lookup}</Notice>{/if}
       <Collapsible testid="name-prices">
-        {#snippet title()}<span class="text-[12px] text-muted">{t('namePrices')}</span>{/snippet}
+        {#snippet title()}<span class="text-callout text-muted">{t('namePrices')}</span>{/snippet}
         <dl>
           {#each PRICE_TIERS as tier (tier.lengths)}
             <Fact label={t('nameLength', { lengths: tier.lengths })}>{panda(tier.panda)} PANDA</Fact>
@@ -340,7 +340,7 @@
       {#if found}
         <div class="grid gap-3 rounded-lg bg-surface-2 px-4 py-3" data-testid="handle-state">
           <div class="flex flex-wrap items-center gap-2">
-            <b class="text-[15px] font-semibold">@{found.display_handle ?? found.name}</b>
+            <b class="text-title-3 font-semibold">@{found.display_handle ?? found.name}</b>
             {#if found.owner && found.owner === status?.account}
               <Pill tone="forest" testid="handle-yours">{t('yourName')}</Pill>
             {:else if found.owner}
@@ -372,12 +372,12 @@
             {#if payerLoading || enough === null || errors.payer}
               <Notice tone={payerLoading ? 'info' : 'warn'} testid="handle-balance-status">
                 {payerLoading ? t('loading') : errors.payer || t('planBalanceUnknown')}
-                {#if !payerLoading}<button class={buttonClass('secondary','xs')} onclick={readPayer}>{t('retry')}</button>{/if}
+                {#if !payerLoading}<button class={buttonClass('subtle', 'xs')} onclick={readPayer}>{t('retry')}</button>{/if}
               </Notice>
             {:else if enough === false}
               <Notice tone="warn" icon="warning" testid="handle-short">
                 {t('pandaShort')}
-                {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={openPayer}>{t('openWallet')}</button>{/snippet}
+                {#snippet action()}<button class={buttonClass('subtle', 'xs')} onclick={openPayer}>{t('openWallet')}</button>{/snippet}
               </Notice>
             {/if}
           {:else if !found.owner && found.claim?.quarantined}
@@ -390,7 +390,7 @@
               </ul>
               {#if !holderBound}
                 <div class="mt-2 flex flex-wrap gap-1.5">
-                  <button class={buttonClass('secondary', 'xs')} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login"><Icon name="login" />{t('loginPandaFans')}</button>
+                  <button class={buttonClass('subtle', 'xs')} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login"><Icon name="login" />{t('loginPandaFans')}</button>
                   <button class={buttonClass('ghost', 'xs')} onclick={() => startLogin(true, 'https://panda.fans')} data-testid="handle-bind">{t('bindPandaFans')}</button>
                 </div>
               {/if}
@@ -410,24 +410,24 @@
       </Notice></div>
     {/if}
     {#if !operations && !errors.operations}
-      <p class="px-5 pb-4 text-xs text-muted" role="status">{t('loading')}</p>
+      <p class="px-5 pb-4 text-callout text-muted" role="status">{t('loading')}</p>
     {:else if operations && !operations.length && !errors.operations}
-      <p class="px-5 pb-4 text-[12.5px] text-faint">{t('noNameOperations')}</p>
+      <p class="px-5 pb-4 text-callout text-muted">{t('noNameOperations')}</p>
     {:else if operations}
       <ul class="divide-y divide-line" data-testid="name-operations">
         {#each operations as op (op.id)}
           {@const state = nameState(op, now)}
           <li class="grid gap-1.5 px-5 py-3" data-testid="name-operation">
             <div class="flex flex-wrap items-center gap-2">
-              <b class="text-[13px] font-medium">@{op.name}</b>
-              <span class="text-[12.5px] text-muted">{label(nameActionLabels, op.action)}</span>
+              <b class="text-body font-medium">@{op.name}</b>
+              <span class="text-callout text-muted">{label(nameActionLabels, op.action)}</span>
               <Pill tone={nameStateLabels[state][1]} testid="name-state">{t(nameStateLabels[state][0])}</Pill>
               <span class="flex-1"></span>
               {#if state === 'committable'}
                 <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => complete(op)} data-testid="name-complete">{t('commit')}</button>
               {/if}
               {#if op.token && (state === 'offered' || state === 'committable')}
-                {#if op.to && state === 'offered'}<button class={buttonClass('secondary', 'xs')} onclick={() => composeTransfer(op.to, op.token)} data-testid="name-compose"><Icon name="channels" />{t('planComposeTransfer')}</button>{/if}
+                {#if op.to && state === 'offered'}<button class={buttonClass('subtle', 'xs')} onclick={() => composeTransfer(op.to, op.token)} data-testid="name-compose"><Icon name="channels" />{t('planComposeTransfer')}</button>{/if}
                 <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(op.token)} data-testid="name-copy-token"><Icon name="copy" />{t('copyToken')}</button>
                 <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(acceptLink(op.token))} data-testid="name-copy-link"><Icon name="link" />{t('copyLink')}</button>
               {/if}
@@ -437,7 +437,7 @@
                 </button>
               {/if}
             </div>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-callout text-muted">
               {#if op.from && op.to}<Id id={op.from} /><span aria-hidden="true">→</span><Id id={op.to} />{/if}
               {#if op.total}<span class="tabular-nums">{units(op.total, 8)} PANDA</span>{/if}
               <span>{label(callerLabels, op.caller_role)}</span>
@@ -445,12 +445,12 @@
             </div>
             {#if errors[op.id]}<Notice tone="danger">{errors[op.id]}</Notice>{/if}
             {#if state === 'offered'}
-              <p class="text-[12px] text-faint">{t('offeredHint')}</p>
+              <p class="text-callout text-muted">{t('offeredHint')}</p>
             {:else if state === 'committable'}
-              <p class="text-[12px] text-forest" data-testid="name-deadline">{t('completeBefore', { time: when(op.accepted_until_ms) })}</p>
+              <p class="text-callout text-forest" data-testid="name-deadline">{t('completeBefore', { time: when(op.accepted_until_ms) })}</p>
             {:else if state === 'waiting'}
               <div class="flex flex-wrap items-center gap-2">
-                <p class="text-[12px] text-faint" data-testid="name-waiting">{t('waitingOwner', { time: when(op.until_ms) })}</p>
+                <p class="text-callout text-muted" data-testid="name-waiting">{t('waitingOwner', { time: when(op.until_ms) })}</p>
                 {#if op.from}
                   <!-- The owner learns of the acceptance in a conversation, not only on this page. -->
                   <button class={buttonClass('ghost', 'xs')} onclick={() => message(op.from)} data-testid="name-tell-owner"><Icon name="channels" />{t('sendMessage')}</button>
@@ -460,7 +460,7 @@
               <form class="flex flex-wrap items-end gap-2" onsubmit={event => { event.preventDefault(); void settle(op) }}>
                 <TextField class="w-44" inputmode="numeric" label={t('block')} bind:value={() => blocks[op.id] ?? '', value => blocks[op.id] = value}
                   error={blocks[op.id] && ledgerBlock(blocks[op.id]) === null ? t('wholeNumber') : undefined} data-testid="name-block" />
-                <button type="submit" class={buttonClass('secondary', 'xs')} disabled={busy || ledgerBlock(blocks[op.id]) === null}>{t('reconcile')}</button>
+                <button type="submit" class={buttonClass('subtle', 'xs')} disabled={busy || ledgerBlock(blocks[op.id]) === null}>{t('reconcile')}</button>
               </form>
             {/if}
           </li>
@@ -495,8 +495,8 @@
         <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(acceptLink(moving!.token!))} data-testid="transfer-link"><Icon name="link" />{t('copyLink')}</button>
       </div>
       <Collapsible testid="transfer-token-details">
-        {#snippet title()}<span class="text-[12px]">{t('token')}</span>{/snippet}
-        <p class="my-2 rounded-lg bg-surface-2 p-2.5 font-mono text-[11.5px] break-all select-all" dir="ltr" data-testid="transfer-token">{moving.token}</p>
+        {#snippet title()}<span class="text-callout">{t('token')}</span>{/snippet}
+        <p class="my-2 rounded-lg bg-surface-2 p-2.5 font-mono text-code break-all select-all" dir="ltr" data-testid="transfer-token">{moving.token}</p>
         <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(moving!.token!)} data-testid="transfer-copy"><Icon name="copy" />{t('copyToken')}</button>
       </Collapsible>
     </div>

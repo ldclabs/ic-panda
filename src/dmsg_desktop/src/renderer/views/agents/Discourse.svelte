@@ -112,12 +112,12 @@
       {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={load}>{t('retry')}</button>{/snippet}
     </Notice>{/if}
     {#if !rooms}
-      {#if !error}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
+      {#if !error}<p role="status" class="text-body text-muted">{t('loading')}</p>{/if}
     {:else}
     <div class="grid gap-4 lg:grid-cols-[minmax(220px,300px)_1fr]">
       <div class="grid content-start gap-3">
         <div>
-          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('rooms')}</h3>
+          <h3 class="mb-1.5 text-callout font-medium text-muted">{t('rooms')}</h3>
           <ul class="grid gap-1" data-testid="discourse-rooms">
             {#each rooms ?? [] as r (`${r.host} ${r.room_id}`)}
               <li>
@@ -127,42 +127,42 @@
                   onclick={() => choose(r.room_id)}
                 >
                   <span class="flex items-center gap-1.5">
-                    <b class="min-w-0 flex-1 truncate text-[13px] font-medium">{r.topic ?? r.room_id}</b>
+                    <b class="min-w-0 flex-1 truncate text-body font-medium">{r.topic ?? r.room_id}</b>
                     {#if r.unread_count}<Pill tone="forest">{r.unread_count}</Pill>{/if}
                   </span>
-                  <span class="truncate font-mono text-[11px] text-faint">{r.host} · {r.status}{r.role ? ` · ${r.role}` : ''}</span>
+                  <span class="truncate font-mono text-code text-faint">{r.host} · {r.status}{r.role ? ` · ${r.role}` : ''}</span>
                 </button>
               </li>
             {:else}
-              <li class="text-[12.5px] text-faint">{rooms ? t('noRooms') : t('loading')}</li>
+              <li class="text-callout text-muted">{rooms ? t('noRooms') : t('loading')}</li>
             {/each}
           </ul>
         </div>
         <div>
-          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('heldDrafts')}</h3>
+          <h3 class="mb-1.5 text-callout font-medium text-muted">{t('heldDrafts')}</h3>
           <ul class="grid gap-1" data-testid="discourse-drafts">
             {#each drafts as d (d.id)}
-              <li class="rounded-lg border border-warn/40 bg-warn/5 px-3 py-2 text-[12px]">
+              <li class="rounded-lg border border-warn/40 bg-warn/5 px-3 py-2 text-callout">
                 <p class="font-medium">{d.kind} · <span class="font-mono">{d.room_id}</span></p>
                 <p class="mt-0.5 text-muted">{d.reason}</p>
-                <p class="mt-0.5 text-[11px] text-faint">{ago(d.created_at)}</p>
+                <p class="mt-0.5 text-caption text-faint">{ago(d.created_at)}</p>
               </li>
             {:else}
-              <li class="text-[12.5px] text-faint">{t('noHeldDrafts')}</li>
+              <li class="text-callout text-muted">{t('noHeldDrafts')}</li>
             {/each}
           </ul>
         </div>
         <div>
-          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('pendingInbox')}</h3>
+          <h3 class="mb-1.5 text-callout font-medium text-muted">{t('pendingInbox')}</h3>
           <ul class="grid gap-1" data-testid="discourse-inbox">
             {#each inbox as item (item.id)}
-              <li class="border-b border-line px-3 py-2 text-[12px] last:border-b-0">
+              <li class="border-b border-line px-3 py-2 text-callout last:border-b-0">
                 <p class="flex items-center gap-1.5"><Pill>{item.kind}</Pill>{#if item.requires_response}<Pill tone="warn">{t('needsResponse')}</Pill>{/if}</p>
                 <p class="mt-0.5 text-muted">{item.reason}</p>
-                <p class="mt-0.5 text-[11px] text-faint">{labelOf(item.actor)} · {ago(item.created_at)}</p>
+                <p class="mt-0.5 text-caption text-faint">{labelOf(item.actor)} · {ago(item.created_at)}</p>
               </li>
             {:else}
-              <li class="text-[12.5px] text-faint">{t('inboxEmpty')}</li>
+              <li class="text-callout text-muted">{t('inboxEmpty')}</li>
             {/each}
           </ul>
         </div>
@@ -172,47 +172,47 @@
           <div class="grid gap-3" data-testid="discourse-room">
             <div class="rounded-lg bg-surface-2 p-3">
               <div class="flex flex-wrap items-center gap-1.5">
-                <b class="text-[14px] font-semibold">{state_.topic ?? state_.room_id}</b>
+                <b class="text-title-3 font-semibold">{state_.topic ?? state_.room_id}</b>
                 <Pill>{state_.status}</Pill>
                 {#if state_.visibility}<Pill>{state_.visibility}</Pill>{/if}
               </div>
-              <p class="mt-0.5 font-mono text-[11.5px] text-faint">{state_.host} · {state_.room_id}</p>
-              {#if state_.agenda}<p class="mt-1.5 text-[12.5px] whitespace-pre-wrap text-muted">{state_.agenda}</p>{/if}
+              <p class="mt-0.5 font-mono text-code text-faint">{state_.host} · {state_.room_id}</p>
+              {#if state_.agenda}<p class="mt-1.5 text-callout whitespace-pre-wrap select-text text-muted">{state_.agenda}</p>{/if}
             </div>
             <div>
-              <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('members')} · {members.length}</h3>
+              <h3 class="mb-1.5 text-callout font-medium text-muted">{t('members')} · {members.length}</h3>
               <ul class="flex flex-wrap gap-1.5" data-testid="discourse-members">
                 {#each members as m (m.agent_id)}
-                  <li class="inline-flex items-center gap-1.5 rounded-lg bg-wash px-2 py-1 text-[12px]">
+                  <li class="inline-flex items-center gap-1.5 rounded-lg bg-wash px-2 py-1 text-callout">
                     <span class={cn(m.status === 'active' ? 'text-ink' : 'text-faint')}>{m.profile?.name ?? labelOf(m.agent_id)}</span>
-                    <span class="text-[11px] text-faint">{m.role}{m.is_creator ? ' · ★' : ''}</span>
+                    <span class="text-caption text-faint">{m.role}{m.is_creator ? ' · ★' : ''}</span>
                   </li>
                 {/each}
               </ul>
             </div>
             <div>
-              <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('latestRecords')}</h3>
+              <h3 class="mb-1.5 text-callout font-medium text-muted">{t('latestRecords')}</h3>
               <ol class="divide-y divide-line" data-testid="discourse-timeline">
                 {#each timeline as item (item.seq)}
                   <li class="grid gap-0.5 px-3 py-2">
-                    <div class="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+                    <div class="flex flex-wrap items-center gap-1.5 text-caption">
                       <span class="font-mono text-faint">#{item.seq}</span>
                       <span class="font-medium">{labelOf(item.actor)}</span>
                       <Pill class="font-mono font-normal">{item.type}</Pill>
                       <time class="ms-auto text-faint" title={when(item.accepted_at)}>{ago(item.accepted_at)}</time>
                     </div>
-                    <p class="text-[12.5px] whitespace-pre-wrap [overflow-wrap:anywhere]">{item.summary}</p>
+                    <p class="text-callout whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{item.summary}</p>
                   </li>
                 {:else}
-                  <li class="px-3 py-2 text-[12.5px] text-faint">{t('noRecords')}</li>
+                  <li class="px-3 py-2 text-callout text-muted">{t('noRecords')}</li>
                 {/each}
               </ol>
             </div>
           </div>
         {:else}
-          <p class="text-[12.5px] text-faint">{room && busy ? t('loading') : room && error ? t('agentLoadFailed') : t('pickRoom')}</p>
+          <p class="text-callout text-muted">{room && busy ? t('loading') : room && error ? t('agentLoadFailed') : t('pickRoom')}</p>
         {/if}
-        <p class="mt-3 text-[11.5px] text-faint">{t('discourseLocal')}</p>
+        <p class="mt-3 text-caption text-faint">{t('discourseLocal')}</p>
       </div>
     </div>
     {/if}

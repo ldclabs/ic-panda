@@ -145,7 +145,7 @@
     <dl>
       <Fact label={t('login')}>
         {#if readiness.login}<Pill tone="ok">{t('loggedIn')}</Pill>{:else}<Pill tone="warn">{t('reasonAuthRequired')}</Pill>
-          <button class={buttonClass('secondary', 'xs')} onclick={() => startLogin()}>{t('login')}</button>{/if}
+          <button class={buttonClass('subtle', 'xs')} onclick={() => startLogin()}>{t('login')}</button>{/if}
       </Fact>
       <Fact label={t('formal')} testid="readiness-formal">
         {#if readiness.formal_approve === true}
@@ -153,7 +153,7 @@
           <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => formal(false)} data-testid="formal-off">{t('disable')}</button>
         {:else if readiness.formal_approve === false}
           <Pill tone="warn">{t('formalOff')}</Pill>
-          <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => formal(true)} data-testid="formal-on">{t('enable')}</button>
+          <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => formal(true)} data-testid="formal-on">{t('enable')}</button>
         {:else}
           <span class="text-faint">-</span>
         {/if}
@@ -161,15 +161,15 @@
       {#if readiness.policy}
         <Fact label={t('signingPolicy')}>
           <Pill tone={readiness.policy.frozen ? 'warn' : 'ok'}>{readiness.policy.frozen ? t('frozen') : t('policyOpen')}</Pill>
-          <span class="text-[12.5px] text-muted">{purposes(readiness.policy.allowed_purposes)} · {t('perDay', { n: readiness.policy.daily_executions })}</span>
-          <a class="text-[12.5px] text-forest hover:underline" href="#/settings/security">{t('openSecurity')}</a>
+          <span class="text-callout text-muted">{purposes(readiness.policy.allowed_purposes)} · {t('perDay', { n: readiness.policy.daily_executions })}</span>
+          <a class="text-callout text-forest hover:underline" href="#/settings/security">{t('openSecurity')}</a>
         </Fact>
       {/if}
     </dl>
   {:else if readinessError}
     <Notice failure={readinessError} tone="danger">{readinessError}<button class={buttonClass('secondary', 'sm')} onclick={reloadReadiness}>{t('retry')}</button></Notice>
   {:else}
-    <p class="shimmer text-[13px]">{t('loading')}</p>
+    <p class="shimmer text-body">{t('loading')}</p>
   {/if}
 </Section>
 
@@ -179,22 +179,22 @@
     {#if needsText}
       <Field label={t('statement')}>
         <textarea placeholder={t('statement')} bind:value={text} rows="4" aria-describedby="statement-bytes" aria-invalid={bytes > MAX_TEXT} data-testid="statement-text"></textarea>
-        <span id="statement-bytes" class={cn('justify-self-end text-[11.5px] tabular-nums', bytes > MAX_TEXT ? 'text-danger' : 'text-faint')} data-testid="statement-bytes">{bytes} / {byteFormat.format(MAX_TEXT)} (UTF-8)</span>
+        <span id="statement-bytes" class={cn('justify-self-end text-caption tabular-nums', bytes > MAX_TEXT ? 'text-danger' : 'text-faint')} data-testid="statement-bytes">{bytes} / {byteFormat.format(MAX_TEXT)} (UTF-8)</span>
       </Field>
     {/if}
     <div class="grid gap-3 sm:grid-cols-2">
       <Field label={t('subject')}><input bind:value={subject} placeholder={t('subjectHint')} data-testid="statement-subject" /></Field>
       {#if profile !== 'text'}
-        <Field label={t('contentType')}><input bind:value={contentType} placeholder="application/pdf" class="font-mono text-[12.5px]" /></Field>
-        <Field label={t('location')}><input bind:value={location} placeholder="https://" class="font-mono text-[12.5px]" /></Field>
+        <Field label={t('contentType')}><input bind:value={contentType} placeholder="application/pdf" class="font-mono text-code" /></Field>
+        <Field label={t('location')}><input bind:value={location} placeholder="https://" class="font-mono text-code" /></Field>
       {/if}
       {#if profile === 'digest'}
-        <Field label="SHA-256"><input bind:value={sha256} onblur={() => (digestTouched = true)} aria-invalid={digestTouched && !!sha256.trim() && !hex} aria-describedby="statement-digest-hint" class="font-mono text-[12.5px]" data-testid="statement-sha256" />
+        <Field label="SHA-256"><input bind:value={sha256} onblur={() => (digestTouched = true)} aria-invalid={digestTouched && !!sha256.trim() && !hex} aria-describedby="statement-digest-hint" class="font-mono text-code" data-testid="statement-sha256" />
           <span id="statement-digest-hint" class={digestTouched && sha256.trim() && !hex ? 'text-danger' : 'text-muted'}>{t('digestHint')}</span>
         </Field>
       {/if}
     </div>
-    {#if profile !== 'text'}<p class="text-[12px] text-faint">{t('signFileHint')}</p>{/if}
+    {#if profile !== 'text'}<p class="text-callout text-muted">{t('signFileHint')}</p>{/if}
     {#if error}<div id="sign-failure" tabindex="-1" role="group" aria-label={error}><Notice tone="danger" testid="sign-error">{error}
       {#snippet action()}{#if prepared}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(reviewPrepared)}>{t('workflow.review')}</button>{/if}{/snippet}
     </Notice></div>{/if}
@@ -222,15 +222,15 @@
   {#if usage}
     <div class="grid gap-2" data-testid="usage">
       <div class="flex items-baseline justify-between gap-2">
-        <span class="text-[22px] font-semibold tabular-nums">{usage.charged}<span class="text-[14px] font-normal text-faint"> / {usage.allowed}</span></span>
-        <span class="text-[12px] text-muted">{usage.remaining} {t('remaining')} · {t('validUntil')} {when(usage.valid_until_ms)}</span>
+        <span class="text-title-1 font-semibold tabular-nums">{usage.charged}<span class="text-body font-normal text-faint"> / {usage.allowed}</span></span>
+        <span class="text-callout text-muted">{usage.remaining} {t('remaining')} · {t('validUntil')} {when(usage.valid_until_ms)}</span>
       </div>
       <div class="h-2 overflow-hidden rounded-full bg-wash">
         <div class={cn('h-full rounded-full transition-[width] duration-500', share > 0.9 ? 'bg-warn' : 'bg-forest')} style:width="{share * 100}%"></div>
       </div>
-      {#if !usage.allowed}<p class="text-[12.5px] text-warn">{t('noAllowance')} <a class="text-forest hover:underline" href="#/plan">{t('openPlan')}</a></p>{/if}
+      {#if !usage.allowed}<p class="text-callout text-warn">{t('noAllowance')} <a class="text-forest hover:underline" href="#/plan">{t('openPlan')}</a></p>{/if}
       {#if usage.history.length}
-        <ul class="mt-2 grid gap-1 text-[12px]">
+        <ul class="mt-2 grid gap-1 text-callout">
           {#each usage.history as month (month.month)}
             <li class="flex justify-between text-muted"><span>{monthText(month.month, locale())}</span><span class="tabular-nums">{month.charged} / {month.allowed}</span></li>
           {/each}
@@ -250,6 +250,6 @@
       {/snippet}
     </Notice>
   {:else if !usage}
-    <p class="shimmer text-[13px]">{t('loading')}</p>
+    <p class="shimmer text-body">{t('loading')}</p>
   {/if}
 </Section>

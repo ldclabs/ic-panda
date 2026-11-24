@@ -222,7 +222,7 @@
   {#if notice}<Notice>{notice}</Notice>{/if}
   {#if unbind.length}<Notice tone="warn" testid="wallet-unbind"
       >{t('wallet.unbindHint', { n: unbind.length })}{#snippet action()}<button
-          class={buttonClass('secondary', 'xs')}
+          class={buttonClass('subtle', 'xs')}
           disabled={busy}
           onclick={unbindRemoved}>{w('unbind')}</button
         >{/snippet}</Notice
@@ -230,26 +230,26 @@
   <Section title={w('runningHealth')} icon="coins">
     <div class="grid gap-3 sm:grid-cols-3">
       <div
-        ><p class="text-faint text-[12px]">{w('cycles')}</p><b
-          class="text-[22px] whitespace-nowrap tabular-nums"
+        ><p class="text-muted text-callout">{w('cycles')}</p><b
+          class="text-title-1 whitespace-nowrap tabular-nums"
           data-testid="wallet-health-cycles">{cyclesText(health?.cycles ?? wallet.stats?.cycles ?? '0')} T</b
         ></div
       >
       <div
-        ><p class="text-faint text-[12px]">{w('daily_signatures')}</p><b
+        ><p class="text-muted text-callout">{w('daily_signatures')}</p><b
           >{wallet.stats?.signatures_today ?? '—'} / {wallet.policy.daily_signatures}</b
         ></div
       >
       {#if health}<div
-          ><p class="text-faint text-[12px]">{w('idleDays')}</p><b>{health.idle_days ?? '—'}</b><small class="text-faint block"
+          ><p class="text-muted text-callout">{w('idleDays')}</p><b>{health.idle_days ?? '—'}</b><small class="text-faint block"
             >{when(health.read_at)}</small
           ></div
         >{/if}
     </div>
-    <p class="text-muted mt-3 text-[12px]">{w(health ? 'idleEstimateHint' : 'healthUnknown')}</p>
-    {#if wallet.policy.refuel}<p class="mt-3 text-[13px]"
+    <p class="text-muted mt-3 text-callout">{w(health ? 'idleEstimateHint' : 'healthUnknown')}</p>
+    {#if wallet.policy.refuel}<p class="mt-3 text-body"
         >{w('dailyTopupMax')}: {decimal((BigInt(wallet.policy.refuel.icp_e8s) * BigInt(wallet.policy.refuel.max_per_day)).toString(), 8)} ICP</p
-      ><p class="text-muted mt-2 text-[12px]">{w('topupRuleHint')}</p>{/if}
+      ><p class="text-muted mt-2 text-callout">{w('topupRuleHint')}</p>{/if}
     {#if wallet.policy.refuel && BigInt(wallet.stats?.cycles ?? '0') < BigInt(wallet.policy.refuel.min_cycles)}<Notice tone="warn"
         >{w('lowCycles')}</Notice
       >{/if}
@@ -265,7 +265,7 @@
     >
   </Section>
   <Section title={w('cosigners')} icon="key">
-    <p class="text-muted mb-3 text-[12px]">{w('cosignBoundary')}</p>
+    <p class="text-muted mb-3 text-callout">{w('cosignBoundary')}</p>
     <nav class="mb-4 grid gap-2 sm:grid-cols-2" aria-label={w('cosigners')}>
       {#each ['setupKeys', 'setupRegister', 'setupBind', 'setupTest'] as step, i}<button
           class={buttonClass(activeStep === i + 1 ? 'secondary' : 'ghost', 'sm')}
@@ -283,14 +283,14 @@
     {:else if activeStep === 2}
       {#each keys as k (k.label)}<div class="border-line flex flex-wrap items-center gap-3 border-b py-3">
           <b>{k.label}</b><Pill>{k.backend}</Pill>
-          {#if wallet.cosigners.some((c) => c.public_key === k.public_key)}<span class="text-ok text-[13px]">{w('cosigner_added')}</span>
+          {#if wallet.cosigners.some((c) => c.public_key === k.public_key)}<span class="text-ok text-body">{w('cosigner_added')}</span>
           {:else if mayPropose}<button
               class={buttonClass('secondary', 'sm')}
               disabled={busy}
               onclick={() => run('wallet/change', { change: { kind: 'cosigner', label: k.label } })}>{w('register')}</button
             >{/if}
           <Collapsible class="w-full"
-            >{#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}<p class="font-mono text-[12px] break-all"
+            >{#snippet title()}<span class="text-callout">{w('technical')}</span>{/snippet}<p class="font-mono text-code break-all"
               >{k.public_key}</p
             ></Collapsible
           ></div
@@ -299,7 +299,7 @@
     {:else if activeStep === 3}
       {#each wallet.addresses as a (a.id)}<div class="border-line flex flex-wrap items-center gap-3 border-b py-3">
           <span class="flex-1">{a.label || a.chain} · #{a.id}</span>
-          <span class="text-[13px]"
+          <span class="text-body"
             >{a.cosign ? `${w('cosign')} ${a.cosign.threshold} / ${a.cosign.cosigners.length}` : w('unprotected')}</span
           >
           {#if mayPropose && a.control !== 'taproot_2of2'}<button
@@ -309,20 +309,20 @@
         >
       {/each}
     {:else}
-      <p class="text-muted mb-3 text-[12px]">{w('keyTestHint')}</p>
+      <p class="text-muted mb-3 text-callout">{w('keyTestHint')}</p>
       {#each keys as k (k.label)}<div class="border-line flex flex-wrap items-center gap-3 border-b py-3"
           ><b>{k.label}</b><Pill>{k.backend}</Pill><button
             class={buttonClass('secondary', 'sm')}
             disabled={busy}
             aria-label={`${w('testKey')} ${k.label}`}
             onclick={() => run('wallet/cosigner_test', { label: k.label })}>{w('testKey')}</button
-          >{#if tested[k.label]}<span class="text-ok text-[13px]" role="status">{w('keyTestPassed')}</span>{/if}</div
+          >{#if tested[k.label]}<span class="text-ok text-body" role="status">{w('keyTestPassed')}</span>{/if}</div
         >{/each}
     {/if}
     <Collapsible class="mt-5"
-      >{#snippet title()}<span class="text-[13px]">{w('cosigners')} · {w('technical')}</span>{/snippet}
+      >{#snippet title()}<span class="text-body">{w('cosigners')} · {w('technical')}</span>{/snippet}
       {#each wallet.cosigners as c (c.id)}<div class="border-line grid gap-2 border-b py-3"
-          ><b>#{c.id} · {c.label}</b><p class="text-[12px] break-all">{c.member} · {c.public_key}</p>{#if mayPropose}<div
+          ><b>#{c.id} · {c.label}</b><p class="text-callout break-all">{c.member} · {c.public_key}</p>{#if mayPropose}<div
               class="flex flex-wrap gap-2"
               >{#if replaceable(c)}<button
                   class={buttonClass('secondary', 'sm')}
@@ -342,16 +342,16 @@
   <Section title={w('versions')} icon="settings">
     {#if errors.versions}<Notice failure={errors.versions} tone="danger">{errors.versions}<button class={buttonClass('ghost', 'xs')} onclick={readVersions}>{w('retry')}</button></Notice>{/if}
     {#if versions}
-      <p class="mb-3 text-[12px]" data-testid="wallet-code-current"
+      <p class="mb-3 text-callout" data-testid="wallet-code-current"
         >{w('currentVersion')}: <bdi dir="ltr">v{versions.record?.version ?? '—'}</bdi>{#if versions.record?.locked} · {w('lock_code')}{:else if !pendingUpgrade} · {wallet.code_acceptance === 'Lock' ? w('applyLock') : w('noCodeChange')}{/if}</p
       >
-      {#if pendingUpgrade}<p class="mb-3 text-[12px]" data-testid="wallet-code-accepted">{w('upgradeAccepted')}: <bdi dir="ltr">v{acceptedUpgrade.version}</bdi></p>{/if}
+      {#if pendingUpgrade}<p class="mb-3 text-callout" data-testid="wallet-code-accepted">{w('upgradeAccepted')}: <bdi dir="ltr">v{acceptedUpgrade.version}</bdi></p>{/if}
       {#each versions.versions as v (v.version)}<div class="border-line flex flex-wrap items-center gap-2 border-t py-3"
           ><b>v{v.version}</b>{#if v.version === versions.record?.version}<Pill>{w('currentVersion')}</Pill>{:else if v.retired}<Pill
               >{w('retiredVersion')}</Pill
             >{:else if v.version === latestVersion}<Pill>{w('recommendedVersion')}</Pill>{/if}<div class="min-w-0 flex-1 basis-56"
-            ><p class="text-[12px]">{v.notes || w('releaseNotesMissing')}</p><Collapsible
-              >{#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}<p class="font-mono text-[12px] break-all"
+            ><p class="text-callout">{v.notes || w('releaseNotesMissing')}</p><Collapsible
+              >{#snippet title()}<span class="text-callout">{w('technical')}</span>{/snippet}<p class="font-mono text-code break-all"
                 >{v.module_hash}</p
               ></Collapsible
             ></div
@@ -397,7 +397,7 @@
             ></div
           ></Notice
         >{/if}
-    {:else}<p class="text-muted text-[12px]" role="status">{w(errors.versions ? 'retry' : 'loading')}</p>{/if}
+    {:else}<p class="text-muted text-callout" role="status">{w(errors.versions ? 'retry' : 'loading')}</p>{/if}
   </Section>
   <Section title={w('channel')} description={w('channelHint')} icon="channels">
     <div class="flex flex-wrap gap-2"
@@ -434,9 +434,9 @@
             >{w('checkConnections')}</button
           ></div
         >
-        {#if checks}{#each checks.endpoints as e, i (i)}<p class="text-[12px] break-all" class:text-danger={e.result.Err}
+        {#if checks}{#each checks.endpoints as e, i (i)}<p class="text-callout break-all" class:text-danger={e.result.Err}
               >{e.chain} · {e.source} · {e.result.Ok ?? e.result.Err}</p
-            >{/each}<p class="text-faint text-[11px]">{when(checks.read_at)}</p>{/if}
+            >{/each}<p class="text-faint text-caption">{when(checks.read_at)}</p>{/if}
       </div>
     {:else}<button class={buttonClass('secondary', 'sm')} onclick={load}>{w('retry')}</button>{/if}
   </Section>
@@ -450,7 +450,7 @@
   testid="wallet-replace-key-dialog"
 >
   <div class="grid gap-3">
-    {#if replacing}<p class="text-[12px] break-all">#{replacing.id} · {replacing.label} · <bdi dir="ltr" class="font-mono">{replacing.public_key}</bdi></p>{/if}
+    {#if replacing}<p class="text-callout break-all">#{replacing.id} · {replacing.label} · <bdi dir="ltr" class="font-mono">{replacing.public_key}</bdi></p>{/if}
     {#if spare.length}<Select
         bind:value={replacement}
         label={w('replaceWith')}

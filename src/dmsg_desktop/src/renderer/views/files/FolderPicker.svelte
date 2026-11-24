@@ -67,7 +67,7 @@
     {@const off = excluded.has(folder.id)}
     <button
       class={cn(
-        'flex h-8 w-full items-center gap-2 rounded-lg px-2 text-start text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-focus/35',
+        'flex h-8 w-full items-center gap-2 rounded-lg px-2 text-start text-body outline-none focus-visible:ring-3 focus-visible:ring-focus/35',
         picked === folder.id ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash',
         off && 'cursor-not-allowed opacity-40 hover:bg-transparent'
       )}
@@ -87,7 +87,7 @@
 <Dialog bind:open {title} {description} dismissible={!submitting} icon="folder" testid="files-folder-dialog">
   <div class="grid gap-px rounded-xl border border-line bg-surface p-1.5" role="group" aria-label={t('folders')}>
     <button
-      class={cn('flex h-8 w-full items-center gap-2 rounded-lg px-2 text-start text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-focus/35', picked === ROOT ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash')}
+      class={cn('flex h-8 w-full items-center gap-2 rounded-lg px-2 text-start text-body outline-none focus-visible:ring-3 focus-visible:ring-focus/35', picked === ROOT ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash')}
       aria-pressed={picked === ROOT}
       onclick={() => selectFolder(ROOT)}
       disabled={submitting}
@@ -99,8 +99,8 @@
     {@render subtree(ROOT, 1)}
   </div>
   {#if error}
-    <p role="alert" class="mt-2 text-sm text-danger">{error}</p>
-    {#if actionAfterFailure}<button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={actionAfterFailure.run}>{actionAfterFailure.label}</button>{/if}
+    <p role="alert" class="mt-2 text-body text-danger">{error}</p>
+    {#if actionAfterFailure}<button class={buttonClass('subtle', 'xs', 'mt-2')} onclick={actionAfterFailure.run}>{actionAfterFailure.label}</button>{/if}
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>

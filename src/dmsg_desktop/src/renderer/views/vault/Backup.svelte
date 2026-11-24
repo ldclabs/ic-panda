@@ -181,7 +181,7 @@
 </script>
 
 <Dialog bind:open title={t('vaultBackupTitle')} wide testid="vault-backup">
-  <div class="grid gap-3 text-[13px]">
+  <div class="grid gap-3 text-body">
     {#if account}<p class="break-all text-muted">{t('account')} · <bdi>{account}</bdi></p>{/if}
     {#if step==='home'}
       <div class="flex flex-wrap gap-2">
@@ -192,7 +192,7 @@
     {:else if step==='export' && list}
       <p>{t('vaultBackupScope')}</p>
       <p class="text-muted">{new Date(list.at).toLocaleString(locale())} · {t('trash')} {list.inventory.trash} · {t('conflictBanner',{n:list.inventory.conflicts})} · {t('managedByDmsg')} {list.inventory.managed}</p>
-      <div class="flex flex-wrap gap-2"><button class={buttonClass('secondary','xs')} disabled={busy} onclick={()=>selected=list?.inventory.items.map(r=>r.id) ?? []}>{t('selectAll')}</button><button class={buttonClass('ghost','xs')} disabled={busy} onclick={()=>selected=[]}>{t('clearSelection')}</button></div>
+      <div class="flex flex-wrap gap-2"><button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={()=>selected=list?.inventory.items.map(r=>r.id) ?? []}>{t('selectAll')}</button><button class={buttonClass('ghost','xs')} disabled={busy} onclick={()=>selected=[]}>{t('clearSelection')}</button></div>
       <div class="grid max-h-48 gap-1 overflow-y-auto">
         {#each list.inventory.items as row (row.id)}
           <Checkbox checked={selected.includes(row.id)} disabled={busy} onCheckedChange={yes=>selected=yes?[...selected,row.id]:selected.filter(v=>v!==row.id)}><span class="break-all">{row.title}</span> · {t(typeLabel[typeOf({type:row.kind})])}{row.save_state === 'local_only' ? ' · '+t('savedOnDevice') : (row.save_state === 'pending' || (!row.save_state && !row.synced)) ? ' · '+t('pendingSync',{n:1}) : ''}</Checkbox>
@@ -214,7 +214,7 @@
       <p>{t('experience.source')} · <bdi>{review.source}</bdi> · {new Date(review.at).toLocaleString(locale())}</p>
       <p>{t('vaultBackupNew')} {review.items.filter(r=>r.status==='new').length} · {t('vaultBackupSame')} {review.items.filter(r=>r.status==='same').length} · {t('review')} {review.items.filter(r=>r.status==='changed'||r.status==='deleted').length}</p>
       <p>{t('vaultBackupOmitted')} · {review.omitted}</p>
-      <div class="flex gap-2"><button class={buttonClass('secondary','xs')} disabled={busy} onclick={()=>picks=review?.items.filter(r=>r.status==='new').map(r=>r.index) ?? []}>{t('vaultBackupNew')}</button><button class={buttonClass('ghost','xs')} disabled={busy} onclick={()=>picks=[]}>{t('clearSelection')}</button></div>
+      <div class="flex gap-2"><button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={()=>picks=review?.items.filter(r=>r.status==='new').map(r=>r.index) ?? []}>{t('vaultBackupNew')}</button><button class={buttonClass('ghost','xs')} disabled={busy} onclick={()=>picks=[]}>{t('clearSelection')}</button></div>
       <div class="grid max-h-64 gap-1 overflow-y-auto">
         {#each review.items as row (row.index)}
           {@const omitted = row.files.filter(file => file === null).length}

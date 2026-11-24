@@ -46,7 +46,7 @@
       {#each shown as s (s.value)}
         <Combobox.Item value={s.value} label={s.value} class={menuItemClass}>
           <span>{s.value}</span>
-          {#if s.hint}<span class="min-w-0 truncate font-mono text-xs text-faint">{s.hint}</span>{/if}
+          {#if s.hint}<span class="min-w-0 truncate font-mono text-code text-faint">{s.hint}</span>{/if}
         </Combobox.Item>
       {/each}
     </Combobox.Content>

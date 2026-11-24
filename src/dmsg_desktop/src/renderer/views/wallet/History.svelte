@@ -109,7 +109,7 @@
 <DisplayNotice methods={['wallet/history']} params={{wallet: wallet.wallet}} />
 
 <section class="grid gap-4" data-testid="wallet-history" aria-busy={busy}>
-  <p class="text-muted text-[12px]">{w('historyCoverage')}</p>
+  <p class="text-muted text-callout">{w('historyCoverage')}</p>
   <div class="grid gap-3 sm:grid-cols-[minmax(0,2fr)_1fr_1fr]">
     <Field label={w('searchHistory')}><input bind:value={search} data-testid="wallet-history-search" /></Field>
     <DateInput label={w('fromDate')} bind:value={from} max={validDateText(to, 'date') ? to : undefined} testid="wallet-history-from" />
@@ -121,7 +121,7 @@
   </Notice>{/if}
   {#if exportError}<Notice tone="danger" testid="wallet-history-export-error">{exportError}</Notice>{/if}
   <div class="flex flex-wrap items-center justify-between gap-3"
-    ><div class="flex flex-wrap items-center gap-2"><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : rangeValid && (rows.length || complete) ? `${shown.length}` : ''}</p>
+    ><div class="flex flex-wrap items-center gap-2"><p class="text-muted text-callout" role="status">{busy ? w('loading') : rangeValid && (rows.length || complete) ? `${shown.length}` : ''}</p>
         {#if filtered}<button class={buttonClass('ghost', 'sm')} onclick={() => { search = from = to = '' }}>{w('clearFilters')}</button>{/if}</div><button
       class={buttonClass('secondary', 'sm')}
       disabled={busy || saving || !!notesError || !rangeValid || !complete || !shown.length} aria-busy={saving}
@@ -132,11 +132,11 @@
     {@const summary = intentHeadline(p.intent, metadata)}
     <button class="border-line grid gap-2 border-b py-3 text-start hover:bg-wash" onclick={() => onOpen(p.id)}>
       <div class="flex flex-wrap items-center gap-2"
-        ><Pill>#{p.id}</Pill><b class="text-[13px]">{w(summary.kind)}</b><Pill>{w(resultState(p, now))}</Pill></div
+        ><Pill>#{p.id}</Pill><b class="text-body">{w(summary.kind)}</b><Pill>{w(resultState(p, now))}</Pill></div
       >
-      {#if summary.text}<p class="text-[13px] break-all">{summary.text}</p>{/if}
-      {#if notes[p.id]}<p class="text-[12px]">{w('privateNote')}: {notes[p.id]}</p>{/if}
-      <p class="text-muted text-[12px]">{when(p.created_at)}</p>
+      {#if summary.text}<p class="text-body break-all">{summary.text}</p>{/if}
+      {#if notes[p.id]}<p class="text-callout">{w('privateNote')}: {notes[p.id]}</p>{/if}
+      <p class="text-muted text-callout">{when(p.created_at)}</p>
     </button>
   {:else}{#if !busy && complete && rangeValid}<p class="text-muted">{filtered ? w('noHistory') : t('noItems')}</p>{/if}{/each}
 </section>

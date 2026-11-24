@@ -147,12 +147,12 @@
         <Pill>{t(view.role === 'receive' ? 'deviceTransferReceiving' : 'deviceTransferSending')}</Pill>
         <Pill tone={STATES[view.state]?.tone ?? 'neutral'}>{STATES[view.state] ? t(STATES[view.state].label) : view.state}</Pill>
         {#if view.succession}<Pill tone="forest">{t('successionTitle')}</Pill>{/if}
-        <span class="text-[12px] text-faint">{when(view.started_at)}</span>
+        <span class="text-callout text-muted">{when(view.started_at)}</span>
       </div>
       {#if view.role === 'receive' && active}
         <dl>
           <Fact label={t('deviceTransferSession')}>
-            <bdi dir="ltr" class="font-mono text-[13px] tracking-wide select-all" data-testid="transfer-session-code">{view.session}</bdi>
+            <bdi dir="ltr" class="font-mono text-body tracking-wide select-all" data-testid="transfer-session-code">{view.session}</bdi>
             <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(view.session)}><Icon name="copy" />{t('copy')}</button>
           </Fact>
           <Fact label={t('device')}><Id id={view.to} full wrap /></Fact>
@@ -170,12 +170,12 @@
         <Progress value={view.report.bytes} max={Math.max(1, view.report.total_bytes)} label={t('deviceTransferProgress', { done: size(view.report.bytes), total: size(view.report.total_bytes) })} testid="transfer-progress" />
       {/if}
       {#if view.state === 'done' || (stopped && view.report?.peer)}
-        <p class="text-[12.5px] text-muted" data-testid="transfer-counts">
+        <p class="text-callout text-muted" data-testid="transfer-counts">
           {t('deviceTransferCounts', { records: view.report.records, kept: view.report.kept, skipped: view.report.skipped, size: size(view.report.bytes) })}
         </p>
       {/if}
       {#if view.error}<Notice failure={view.error.message} tone="danger">{view.error.message}</Notice>{/if}
-      {#if active && view.report?.last_error}<p class="text-[12px] text-warn">{view.report.last_error}</p>{/if}
+      {#if active && view.report?.last_error}<p class="text-callout text-warn">{view.report.last_error}</p>{/if}
       {#if active || stopped}
         <div class="flex flex-wrap gap-2">
           {#if active}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt('transfer/cancel')} data-testid="transfer-cancel">{t('cancel')}</button>{/if}
@@ -183,7 +183,7 @@
         </div>
       {/if}
     {:else}
-      <p class="text-[12.5px] text-faint">{t('deviceTransferNone')}</p>
+      <p class="text-callout text-muted">{t('deviceTransferNone')}</p>
     {/if}
   </div>
 </Section>

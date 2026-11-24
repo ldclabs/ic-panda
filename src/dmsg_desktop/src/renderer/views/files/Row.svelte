@@ -121,12 +121,12 @@
           aria-current={selected ? 'true' : undefined}
           tabindex={focusable ? 0 : -1}
         >
-          <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected ? 'text-forest' : 'text-faint')}>
+          <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-forest/12 text-forest [&_svg]:size-[18px]">
             <Icon name={folder ? 'folder' : fileIcon(entry.mime)} />
           </span>
           <span class="min-w-0">
-            <span class="block truncate text-[13.5px] leading-snug font-medium text-ink">{entry.name}</span>
-            <span class="block truncate text-[12px] leading-snug text-faint">
+            <span class="block truncate text-body leading-snug font-medium text-ink">{entry.name}</span>
+            <span class="block truncate text-callout leading-snug text-muted">
               {#if showPath}<bdi title={where}>{where}</bdi> ·{/if}
               {#if folder}
                 {ago(entry.updated_at)}

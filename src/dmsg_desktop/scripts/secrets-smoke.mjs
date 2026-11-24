@@ -492,6 +492,13 @@ async function waitForFixture(check) {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
 }
+/** A part of credential use: its tab when that page is open, else the vault filters' entry first. */
+async function workflow(page, name) {
+  const tab = page.getByTestId(`workflow-tab-${name}`)
+  if (!(await tab.isVisible())) await page.getByTestId('vault-workflows').click()
+  await tab.click()
+}
+
 async function pick(page, testid, value) {
   await page.getByTestId(testid).click()
   await page
@@ -629,7 +636,7 @@ try {
       globalThis.openedSettings = url
     }
   })
-  await main.getByTestId('workflow-tab-mounts').click()
+  await workflow(main, 'mounts')
   await main.waitForFunction(() =>
     document.body.textContent.includes(
       'The dMsg secret files extension is turned off'
@@ -658,7 +665,7 @@ try {
     animations: 'disabled',
     path: join(shots, 'mounts.png')
   })
-  await main.getByTestId('workflow-tab-sharing').click()
+  await workflow(main, 'sharing')
   await main.getByTestId('share-upload-progress').first().waitFor()
   const progress = main.getByTestId('share-upload-progress').getByRole('progressbar')
   assert.equal(await progress.nth(0).getAttribute('aria-valuenow'), '1')
@@ -706,7 +713,7 @@ try {
     /No link expiry/
   )
   await approve(approval)
-  await main.getByTestId('workflow-tab-health').click()
+  await workflow(main, 'health')
   await workflows
     .getByRole('button', { name: 'Inspect dependencies', exact: true })
     .click()
@@ -722,7 +729,7 @@ try {
       .dependencies_digest,
     'b3'.repeat(32)
   )
-  await main.getByTestId('workflow-tab-receive').click()
+  await workflow(main, 'receive')
   await workflows
     .getByLabel('Paste the full share link')
     .fill('https://dmsg.test/s/' + 'a2'.repeat(32) + '#synthetic-test-key')
@@ -760,7 +767,7 @@ try {
     path: join(shots, 'mount-window.png')
   })
   assert.equal(calls.filter((c) => c.method === 'vault/reveal').length, 0)
-  await main.getByTestId('workflow-tab-activity').click()
+  await workflow(main, 'activity')
   await workflows
     .getByText('Import selected snapshot content', { exact: true })
     .first()
@@ -860,7 +867,7 @@ try {
   uses = savedUses
 
   // A prepared mount cannot survive edits, including edits during directory selection.
-  await main.getByTestId('workflow-tab-mounts').click()
+  await workflow(main, 'mounts')
   await app.evaluate(({ dialog }) => {
     dialog.showOpenDialog = async () => ({
       canceled: false,
@@ -953,7 +960,7 @@ try {
   methods['secrets/health'] = () => {
     throw Object.assign(new Error('fixture'), { code: 'INTEGRITY_FAILED' })
   }
-  await main.getByTestId('workflow-tab-health').click()
+  await workflow(main, 'health')
   const healthError = main.getByTestId('workflow-error-health')
   await healthError.waitFor()
   assert.equal(
@@ -978,7 +985,7 @@ try {
   )
 
   // Keep masked input after failure. A successful read clears it.
-  await main.getByTestId('workflow-tab-receive').click()
+  await workflow(main, 'receive')
   const receive = methods['secrets/packages/import_preview']
   methods['secrets/packages/import_preview'] = () => {
     throw Object.assign(new Error('fixture'), { code: 'UNAVAILABLE' })
@@ -1005,9 +1012,9 @@ try {
     await new Promise((resolve) => (releaseHealth = resolve))
     throw Object.assign(new Error('fixture'), { code: 'INTEGRITY_FAILED' })
   }
-  await main.getByTestId('workflow-tab-health').click()
+  await workflow(main, 'health')
   await waitForFixture(() => releaseHealth)
-  await main.getByTestId('workflow-tab-ssh').click()
+  await workflow(main, 'ssh')
   releaseHealth()
   await workflows
     .getByRole('button', { name: 'Check connection', exact: true })
@@ -1032,7 +1039,7 @@ try {
       }
     }))
   ]
-  await main.getByTestId('workflow-tab-policies').click()
+  await workflow(main, 'policies')
   await main.evaluate(() => window.dmsg.setLocale('zh'))
   await main.getByRole('button', { name: '新建策略', exact: true }).click()
   await main.getByTestId('policy-source-item').fill('Long fixture 117')

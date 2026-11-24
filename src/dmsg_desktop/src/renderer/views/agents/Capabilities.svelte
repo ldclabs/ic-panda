@@ -156,7 +156,7 @@
     <Tooltip content={origins.map((o) => (o === '*' ? t('everyHost') : o)).join('\n')}>
       {#snippet children(props)}
         <button type="button" {...props} aria-label={origins.map(o => o === '*' ? t('everyHost') : o).join(', ')} class="inline-grid size-6 place-items-center rounded-md bg-pale text-forest">
-          {#if origins.includes('*')}<Icon name="check" class="size-3.5" />{:else}<span class="font-mono text-[10.5px]">{origins.length}</span>{/if}
+          {#if origins.includes('*')}<Icon name="check" class="size-3.5" />{:else}<span class="font-mono text-code">{origins.length}</span>{/if}
         </button>
       {/snippet}
     </Tooltip>
@@ -167,17 +167,17 @@
 
 <Section title={t('capabilityGrants')} description={t('capabilitiesHint')} icon="security" flush>
   <div class="overflow-x-auto border-t border-line">
-    <table class="w-full min-w-[640px] border-collapse text-[12.5px]" data-testid="capability-matrix">
+    <table class="w-full min-w-[640px] border-collapse text-callout" data-testid="capability-matrix">
       <caption class="sr-only">{t('capabilityGrants')}</caption>
       <thead>
-        <tr class="text-[11px] text-faint">
+        <tr class="text-caption text-faint">
           <th rowspan="2" class="px-5 py-2 text-start font-medium">{t('agentIds')}</th>
           {#each services as service (service.read)}
             <th scope="colgroup" colspan="2" class="border-s border-line px-2 pt-2 text-center font-medium text-ink-2">{t(service.label)}</th>
           {/each}
           <th rowspan="2" class="border-s border-line px-3 py-2 text-start font-medium">{t('otherCapabilities')}</th>
         </tr>
-        <tr class="text-[10.5px] text-faint">
+        <tr class="text-caption text-faint">
           {#each services as service (service.read)}
             <th class="border-s border-line px-2 pb-2 text-center font-normal">{t('canRead')}</th>
             <th class="px-2 pb-2 text-center font-normal">{t('canWrite')}</th>
@@ -209,7 +209,7 @@
 {#if unlocked && hosted.agents.length}
   <Section title={t('serviceGrants')} description={t('serviceGrantsHint')} icon="add" testid="grants-card">
     <fieldset class="grid min-w-0 gap-4" disabled={busy || submitting}>
-      <p class="text-[12.5px] text-muted">{t('agentContentBoundary')}</p>
+      <p class="text-callout text-muted">{t('agentContentBoundary')}</p>
       <div class="grid gap-3 sm:grid-cols-2">
         <Field label={t('grantee')}>
           <Select bind:value={() => grantee, selectAgent} label={t('grantee') + (grantee ? ' · ' + labelOf(grantee) : '')} placeholder={t('choose')} testid="grant-agent" class="w-full" options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
@@ -225,13 +225,13 @@
               ...origins.map((h) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
             ]}
           />
-          {#if selectedServices.length && !selectedOrigin}<span id="grant-origin-needed" class="text-[12px] text-muted" role="status">{t('keysRequired')}</span>{/if}
+          {#if selectedServices.length && !selectedOrigin}<span id="grant-origin-needed" class="text-callout text-muted" role="status">{t('keysRequired')}</span>{/if}
         </Field>
       </div>
       <div class="grid gap-1.5 rounded-lg bg-surface-2/60 p-3" data-testid="service-grants">
         {#each services as service (service.read)}
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-[13px]">{t(service.label)}</span>
+            <span class="text-body">{t(service.label)}</span>
             <span class="flex gap-4">
               <Checkbox label={t(service.label) + ' · ' + t('canRead')} bind:checked={() => ticked[service.read] ?? false, (on) => (ticked[service.read] = on)} testid="service-{service.read}">{t('canRead')}</Checkbox>
               <Checkbox label={t(service.label) + ' · ' + t('canWrite')} bind:checked={() => ticked[service.write] ?? false, (on) => (ticked[service.write] = on)} testid="service-{service.write}">{t('canWrite')}</Checkbox>
@@ -240,8 +240,8 @@
         {/each}
       </div>
       <div class="grid gap-2">
-        <p class="text-[12.5px] font-medium">{t('capabilityList')}</p>
-        <p class="text-[11.5px] text-faint">{t('capabilityPickHint')}</p>
+        <p class="text-callout font-medium">{t('capabilityList')}</p>
+        <p class="text-caption text-faint">{t('capabilityPickHint')}</p>
         <div class="flex flex-wrap gap-1.5" data-testid="grant-options">
           {#each otherCapabilities as capability (capability)}
             <button
@@ -318,13 +318,13 @@
       <li class="flex items-start gap-3 px-5 py-3">
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
-            <b class="text-[13px] font-medium">{labelOf(g.grantee)}</b>
+            <b class="text-body font-medium">{labelOf(g.grantee)}</b>
             {#if state === 'revoked'}
               <Pill testid="grant-revoked">{t('revoked')} {when(g.revoked_at)}</Pill>
             {:else if state === 'expired'}
               <Pill>{t('grantExpired')} {when(g.expires_at)}</Pill>
             {:else}
-              <span class="text-[11.5px] text-faint">{g.expires_at ? `${t('expires')} ${when(g.expires_at)}` : t('untilRevoked')}</span>
+              <span class="text-caption text-faint">{g.expires_at ? `${t('expires')} ${when(g.expires_at)}` : t('untilRevoked')}</span>
             {/if}
           </div>
           <div class="mt-1 flex flex-wrap gap-1">
@@ -336,7 +336,7 @@
         {/if}
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('noGrants')}</li>
+      <li class="px-5 py-3 text-body text-faint">{t('noGrants')}</li>
     {/each}
   </ul>
 </Section>
@@ -345,8 +345,8 @@
   <ul class="grid gap-2">
     {#each values as capability, index (index)}
       <li class="min-w-0 rounded-lg bg-surface-2 px-3 py-2">
-        <p class={cn('text-[13px] font-medium [overflow-wrap:anywhere]', sensitive(capability) && 'text-warn')}>{describe(capability)}</p>
-        <bdi dir="ltr" class="font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">{capability}</bdi>
+        <p class={cn('text-body font-medium [overflow-wrap:anywhere]', sensitive(capability) && 'text-warn')}>{describe(capability)}</p>
+        <bdi dir="ltr" class="font-mono text-code text-muted [overflow-wrap:anywhere]">{capability}</bdi>
       </li>
     {/each}
   </ul>
@@ -363,7 +363,7 @@
   {onReview}
 >
   {#snippet body()}
-    <p class="mb-2 text-[13px]">{t('grantLifetime')} · {days ? t('daysCount', { n: Number(days) }) : t('untilRevoked')}</p>
+    <p class="mb-2 text-body">{t('grantLifetime')} · {days ? t('daysCount', { n: Number(days) }) : t('untilRevoked')}</p>
     {@render reviewPermissions(chosen)}
   {/snippet}
 </Confirm>

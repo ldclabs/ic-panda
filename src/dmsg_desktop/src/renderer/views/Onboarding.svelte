@@ -124,14 +124,14 @@
 {#if status?.state === 'no_account'}
   <Section title={t('noAccount')} icon="add" testid="onboarding">
     <div class="grid gap-4">
-      <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">{t('loginPrincipal')} <Id id={status.principal} full /></div>
+      <div class="flex flex-wrap items-center gap-2 text-callout text-muted">{t('loginPrincipal')} <Id id={status.principal} full /></div>
       <button class={buttonClass('secondary', 'lg', 'justify-self-start')} disabled={busy} data-testid="create-account" onclick={create}>
         <Icon name="add" />{t('joinCreate')}
       </button>
       <Collapsible bind:open={direct} testid="join-account">
-        {#snippet title()}<b class="text-[13px] font-semibold">{t('joinShowRequest')}</b>{/snippet}
+        {#snippet title()}<b class="text-body font-semibold">{t('joinShowRequest')}</b>{/snippet}
         <div class="grid gap-2 py-2">
-        <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
+        <p class="text-callout text-muted">{t('joinAccountHint')}</p>
         <div class="flex flex-wrap items-end gap-2">
           <TextField label={t('accountId')} bind:value={account} oninput={() => { token = ''; bindingQr = '' }} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
           <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={bindRequest}>{t(token ? 'refresh' : 'bindRequest')}</button>
@@ -142,7 +142,7 @@
           <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(token)}>{t('copy')} · {t('requestToken')}</button>
           <Collapsible>
             {#snippet title()}{t('requestToken')}{/snippet}
-            <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all select-all" data-testid="bind-token">{token}</p>
+            <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-code break-all select-all" data-testid="bind-token">{token}</p>
           </Collapsible>
           <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy} onclick={bindAccept}>{t('bindAccept')}</button>
         {/if}
@@ -153,7 +153,7 @@
 {:else if status?.state === 'pairing_required'}
   <Section title={t('pairingRequired')} icon="pair" testid="onboarding">
     <div class="grid gap-3">
-      <div class="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted">
+      <div class="flex flex-wrap items-center gap-1.5 text-callout text-muted">
         {t('account')} {#if status.account}<Id id={status.account} />{:else}-{/if} · {t('device')} <Id id={status.device_id} />
       </div>
       <Checkbox bind:checked={member} disabled={busy} onCheckedChange={() => (pairing = null)}>{t('memberRole')}</Checkbox>
@@ -167,14 +167,14 @@
           {#if pairing.qr}
             <img src={pairing.qr} alt={t('pairRequest')} width="224" height="224" class="mt-2 rounded-lg bg-white p-2" data-testid="pair-qr" />
           {/if}
-          <p class="mt-1.5 font-mono text-[11.5px] break-all select-all" data-testid="pair-token">{pairing.token}</p>
-          <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{pairing.device_id}</b></p>
+          <p class="mt-1.5 font-mono text-code break-all select-all" data-testid="pair-token">{pairing.token}</p>
+          <p class="mt-1.5">{t('device')}: <b class="font-mono text-code">{pairing.device_id}</b></p>
         </Notice>
       {/if}
       <Collapsible testid="succession-request">
-        {#snippet title()}<b class="text-[13px] font-semibold">{t('successionTitle')}</b>{/snippet}
+        {#snippet title()}<b class="text-body font-semibold">{t('successionTitle')}</b>{/snippet}
         <div class="grid gap-2 py-2">
-          <p class="text-[12.5px] text-muted">{t('successionRequestHint')}</p>
+          <p class="text-callout text-muted">{t('successionRequestHint')}</p>
           <TextField label={t('successionPredecessor')} hint={t('successionPredecessorHint')} bind:value={predecessor} oninput={() => (succession = null)} mono disabled={busy} data-testid="succession-predecessor" />
           <button class={buttonClass('secondary', 'md', 'justify-self-start')} disabled={busy || !/^[0-9a-f]{64}$/.test(predecessor.trim().toLowerCase()) || !!succession} onclick={succeed} data-testid="succession-request-create">{t('successionRequest')}</button>
           {#if succession}
@@ -183,7 +183,7 @@
               {#if succession.qr}
                 <img src={succession.qr} alt={t('requestToken')} width="224" height="224" class="mt-2 rounded-lg bg-white p-2" data-testid="succession-qr" />
               {/if}
-              <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{succession.device_id}</b></p>
+              <p class="mt-1.5">{t('device')}: <b class="font-mono text-code">{succession.device_id}</b></p>
               <p class="mt-1.5 flex flex-wrap gap-1">
                 <Pill tone={succession.approval_key ? 'ok' : 'neutral'}>{t('successionApprovalKey')}: {succession.approval_key ? t('successionMade') : t('successionNotMade')}</Pill>
                 <Pill tone={succession.cosigner ? 'ok' : 'neutral'}>{t('successionCosigner')}: {succession.cosigner ? t('successionMade') : t('successionNotMade')}</Pill>
@@ -209,7 +209,7 @@
 {#if status?.state === 'pairing_required' || (status?.state === 'root_required' && !status.setup_pending)}
   <Section title={t('recovery')} description={t('recoveryHint')} icon="recovery">
     <div class="grid gap-3">
-      <p class="text-[12.5px] text-muted">{t('recoveryLimitsHint')}</p>
+      <p class="text-callout text-muted">{t('recoveryLimitsHint')}</p>
       <div class="flex flex-wrap gap-2">
         {#if status?.state === 'pairing_required'}
           <button class={buttonClass('secondary')} disabled={busy || !recovery || recovery.enabled === false || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
@@ -225,7 +225,7 @@
             {t('executeAfter')} {when(recovery.pending.execute_after)}
           </Notice>
         {:else}
-          <p class="text-[12.5px] text-faint">{t('noRecovery')}</p>
+          <p class="text-callout text-muted">{t('noRecovery')}</p>
         {/if}
       {/if}
     </div>

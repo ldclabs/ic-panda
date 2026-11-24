@@ -61,11 +61,11 @@
 <Dialog bind:open title={t('transferPacket')} description={t('transferPacketHint')} icon="transfer" testid="packet-dialog">
   {#if handed}
     <div class="grid gap-2">
-      <p class="text-[12.5px] text-ink-2">{t('packetAccepted')}</p>
-      <textarea readonly class="min-h-28 font-mono text-[11px]" data-testid="channel-handed">{handed}</textarea>
+      <p class="text-callout text-ink-2">{t('packetAccepted')}</p>
+      <textarea readonly class="min-h-28 font-mono text-code" data-testid="channel-handed">{handed}</textarea>
     </div>
   {:else}
-    <textarea bind:value={packet} class="min-h-36 font-mono text-[11px]" placeholder={t('transferPacket')} spellcheck="false" data-testid="channel-packet"></textarea>
+    <textarea bind:value={packet} class="min-h-36 font-mono text-code" placeholder={t('transferPacket')} spellcheck="false" data-testid="channel-packet"></textarea>
   {/if}
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}

@@ -567,7 +567,7 @@
 
 {#snippet row(label: string, value: string, options: { mono?: boolean; multiline?: boolean; testid?: string } = {})}
   <dt class="text-faint">{label}</dt>
-  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
+  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-code leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
 {/snippet}
 
 {#snippet nameRows()}
@@ -590,7 +590,7 @@
 
 {#snippet field(f: any)}
   <dt class="text-faint">{pickLabel(f.label, lang)}</dt>
-  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', ['hash', 'principal', 'artifact'].includes(f.value?.type) && 'font-mono text-xs leading-5', f.value?.multiline && 'whitespace-pre-wrap')}>
+  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', ['hash', 'principal', 'artifact'].includes(f.value?.type) && 'font-mono text-code leading-5', f.value?.multiline && 'whitespace-pre-wrap')}>
     {#if f.value?.type === 'record'}
       <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-s border-line ps-2.5">
         {#each f.value.fields as inner (inner.name)}{@render field(inner)}{/each}
@@ -601,15 +601,15 @@
   </dd>
 {/snippet}
 
-<div class="flex h-screen flex-col overflow-hidden bg-surface text-[13.5px] text-ink">
+<div class="flex h-screen flex-col overflow-hidden bg-surface text-body text-ink">
   {#if inset}
-    <div class="h-9 shrink-0 border-b border-line bg-paper-dim text-center text-xs leading-9 text-faint [-webkit-app-region:drag]">{t('approvalWindow')}</div>
+    <div class="h-9 shrink-0 border-b border-line bg-paper-dim text-center text-callout leading-9 text-muted [-webkit-app-region:drag]">{t('approvalWindow')}</div>
   {/if}
   {#if locked}
     <div class="grid flex-1 place-items-center p-6" data-testid="approval-locked">
       <div class="grid max-w-xs justify-items-center gap-3 text-center">
         <span class="grid size-12 place-items-center rounded-2xl border border-line bg-paper text-faint [&_svg]:size-6"><Icon name="lock" /></span>
-        <p class="text-[13.5px] text-muted">{t('approvalLocked')}</p>
+        <p class="text-body text-muted">{t('approvalLocked')}</p>
         {#if status?.state === 'locked' && status.fast_unlock}
           <button class={buttonClass('primary')} disabled={unlocking} aria-busy={unlocking} onclick={unlockHere} data-testid="approval-unlock">
             <Icon name={unlocking ? 'pending' : 'unlock'} class={unlocking ? 'motion-safe:animate-spin' : ''} />{t(unlocking ? 'unlocking' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
@@ -626,23 +626,23 @@
   {:else}
     <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-5">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="inline-flex min-h-6 min-w-0 items-center gap-1.5 rounded-md bg-gem-pale px-2 py-0.5 text-xs font-semibold text-gem [overflow-wrap:anywhere]">
+        <span class="inline-flex min-h-6 min-w-0 items-center gap-1.5 rounded-md bg-gem-pale px-2 py-0.5 text-callout font-semibold text-gem [overflow-wrap:anywhere]">
           <i class="size-[7px] shrink-0 rotate-45 rounded-[1px] bg-current"></i>{t(kind)}
         </span>
-        {#if request.risk === 'high'}<span class="inline-flex min-h-6 items-center rounded-md bg-warn-pale px-2 py-0.5 text-xs font-medium text-warn" data-testid="approval-risk">{t('highRisk')}</span>{/if}
-        {#if queue.length}<span class="text-xs text-faint" data-testid="approval-queue">{t('moreWaiting', { n: queue.length })}</span>{/if}
+        {#if request.risk === 'high'}<span class="inline-flex min-h-6 items-center rounded-md bg-warn-pale px-2 py-0.5 text-callout font-medium text-warn" data-testid="approval-risk">{t('highRisk')}</span>{/if}
+        {#if queue.length}<span class="text-callout text-muted" data-testid="approval-queue">{t('moreWaiting', { n: queue.length })}</span>{/if}
         {#if waiting && left !== null}
-          <span class={cn('ms-auto inline-flex items-center gap-1.5 text-xs tabular-nums', left <= 60_000 ? 'text-warn' : 'text-faint')}>
+          <span class={cn('ms-auto inline-flex items-center gap-1.5 text-callout tabular-nums', left <= 60_000 ? 'text-warn' : 'text-faint')}>
             <Icon name="time" class="size-3.5" />{expired ? stateLabel('expired') : t('expiresIn', { time: clock(left) })}
           </span>
         {/if}
       </div>
-      <h1 class="mt-3 text-[22px] leading-tight font-[650] tracking-[-0.025em] text-balance" data-testid="approval-title">{title}</h1>
+      <h1 class="mt-3 text-title-1 leading-tight font-[650] tracking-[-0.025em] text-balance" data-testid="approval-title">{title}</h1>
       <div class="mt-2.5 flex min-w-0 items-center gap-2.5">
-        <span class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pale text-sm font-semibold text-forest">{(who.name || '?').slice(0, 1).toUpperCase()}</span>
+        <span class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pale text-title-3 font-semibold text-forest">{(who.name || '?').slice(0, 1).toUpperCase()}</span>
         <div class="min-w-0">
-          <b class="block truncate text-sm font-semibold">{who.name}</b>
-          <span class={cn('block truncate text-xs text-faint', request.type === 'connect' && 'font-mono')} data-testid={request.type === 'connect' ? 'approval-origin' : undefined}>{who.detail}</span>
+          <b class="block truncate text-title-3 font-semibold">{who.name}</b>
+          <span class={cn('block truncate text-callout text-muted', request.type === 'connect' && 'font-mono')} data-testid={request.type === 'connect' ? 'approval-origin' : undefined}>{who.detail}</span>
         </div>
       </div>
 
@@ -662,19 +662,19 @@
               )}><Icon name={hop.icon} class="size-3.5" /></span
             >
             <!-- Host names break only after a dot. -->
-            <b class="max-w-full text-[11.5px] leading-tight font-semibold break-words"
+            <b class="max-w-full text-caption leading-tight font-semibold break-words"
               >{#if hop.name}{#each hop.name.split(/(?<=\.)/) as part, j (j)}{part}<wbr />{/each}{:else}{t(hop.role)}{/if}</b
             >
-            {#if hop.name}<small class="text-[10.5px] leading-tight text-faint">{t(hop.role)}</small>{/if}
+            {#if hop.name}<small class="text-caption leading-tight text-faint">{t(hop.role)}</small>{/if}
           </li>
         {/each}
       </ol>
       {#if request.type === 'connect'}
-        <p class="mt-2 flex gap-1.5 text-xs text-muted" data-testid="approval-relayed"><Icon name="info" class="mt-0.5 size-3.5 text-faint" />{t('relayed')}</p>
+        <p class="mt-2 flex gap-1.5 text-callout text-muted" data-testid="approval-relayed"><Icon name="info" class="mt-0.5 size-3.5 text-faint" />{t('relayed')}</p>
       {/if}
 
       {#if waiting && request.error}
-        <div class="mt-4 flex items-start gap-2 rounded-xl bg-warn-pale p-3 text-[13px]" data-testid="approval-last-error">
+        <div class="mt-4 flex items-start gap-2 rounded-xl bg-warn-pale p-3 text-body" data-testid="approval-last-error">
           <Icon name="warning" class="mt-0.5 size-[15px] shrink-0 text-warn" />
           <div class="min-w-0 flex-1">
             <p>{t('notRunYet')} {reason(request.error)}</p>
@@ -686,12 +686,12 @@
       {/if}
 
       {#if waiting && (blockers.length || readiness?.warnings?.length)}
-        <ul class="mt-4 grid gap-2 rounded-xl border border-warn/35 bg-warn-pale p-3 text-[13px]" data-testid="approval-blockers">
+        <ul class="mt-4 grid gap-2 rounded-xl border border-warn/35 bg-warn-pale p-3 text-body" data-testid="approval-blockers">
           {#each [...blockers, ...(readiness?.warnings ?? [])] as blocker (blocker)}
             <li class="flex flex-wrap items-center gap-2">
               <Icon name="warning" class="size-[15px] text-warn" />
               <span class="min-w-0 flex-1">{reason(blocker)}</span>
-              {#if fixes[blocker]}<button class={buttonClass('secondary', 'xs')} onclick={fixes[blocker].run}>{t(fixes[blocker].label)}</button>{/if}
+              {#if fixes[blocker]}<button class={buttonClass('subtle', 'xs')} onclick={fixes[blocker].run}>{t(fixes[blocker].label)}</button>{/if}
             </li>
           {/each}
         </ul>
@@ -701,29 +701,29 @@
       {/if}
 
       <section class="mt-5">
-        <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t(section)}</h2>
+        <h2 class="mb-2 text-callout font-semibold tracking-[0.03em] text-muted">{t(section)}</h2>
         {#if request.detail === null}
-          <p class="rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px] text-muted" data-testid="approval-detail-unavailable">{t('approvalDetailUnavailable')}</p>
+          <p class="rounded-xl border border-line bg-paper px-4 py-3.5 text-body text-muted" data-testid="approval-detail-unavailable">{t('approvalDetailUnavailable')}</p>
         {:else if request.type.startsWith('secret_')}
           <SecretReview {request} />
         {:else if s}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
-            <div class="font-mono text-[11px] text-faint">{s.profile}{s.subject ? ` · ${s.subject}` : ''}</div>
-            {#if s.content?.text}<p class="mt-1.5 text-base leading-normal whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="approval-text">{s.content.text}</p>{/if}
+            <div class="font-mono text-code text-faint">{s.profile}{s.subject ? ` · ${s.subject}` : ''}</div>
+            {#if s.content?.text}<p class="mt-1.5 text-title-3 leading-normal whitespace-pre-wrap select-text [overflow-wrap:anywhere]" data-testid="approval-text">{s.content.text}</p>{/if}
             {#if s.content?.sha256}
-              <p class="mt-1.5 font-mono text-xs break-all text-ink-2">sha256 {s.content.sha256}</p>
+              <p class="mt-1.5 font-mono text-code break-all text-ink-2">sha256 {s.content.sha256}</p>
               {#if d.file}
-                <p class="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-2" data-testid="approval-file">
+                <p class="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-callout text-ink-2" data-testid="approval-file">
                   <Icon name={d.file.library ? 'folder' : 'file'} class="size-3.5 text-faint" /><b class="font-medium">{d.file.name}</b>
                   <span class="text-faint">{size(d.file.size)} · {d.file.library ? t('fromLibrary') : d.file.path}</span>
                 </p>
-                <p class={cn('mt-1 text-xs', d.file_checked ? 'text-ok' : 'text-warn')}>{d.file_checked ? t('fileChecked') : t('fileChanged')}</p>
+                <p class={cn('mt-1 text-callout', d.file_checked ? 'text-ok' : 'text-warn')}>{d.file_checked ? t('fileChecked') : t('fileChanged')}</p>
               {:else if request.file_check}
-                <p class={cn('mt-1.5 text-xs', request.file_check.matches ? 'text-ok' : 'text-danger')} data-testid="approval-file-check">
+                <p class={cn('mt-1.5 text-callout', request.file_check.matches ? 'text-ok' : 'text-danger')} data-testid="approval-file-check">
                   {request.file_check.matches ? t('fileMatches', { name: request.file_check.name }) : t('fileDiffers', { name: request.file_check.name })}
                 </p>
               {:else}
-                <p class="mt-1.5 text-xs text-warn">{t('digestOnly')}</p>
+                <p class="mt-1.5 text-callout text-warn">{t('digestOnly')}</p>
               {/if}
               {#if waiting && !d.file}
                 <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} disabled={busy} onclick={checkFile} data-testid="approval-check-file">
@@ -733,24 +733,24 @@
             {/if}
             {#if s.profile === 'app_action'}
               {#if rendered}
-                <p class="mt-1.5 text-base font-semibold" data-testid="approval-command">{pickLabel(rendered.title, lang)}</p>
-                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]" data-testid="approval-fields">
+                <p class="mt-1.5 text-title-3 font-semibold" data-testid="approval-command">{pickLabel(rendered.title, lang)}</p>
+                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body" data-testid="approval-fields">
                   {@render row(t('application'), s.content.app_id, { testid: 'approval-app' })}
                   {#each rendered.fields as f (f.name)}{@render field(f)}{/each}
                   {#each rendered.files as f, i (i)}{@render row(t('file'), `${f.name} · r${f.revision} · ${size(f.size)} · sha256 ${f.sha256}`, { mono: true })}{/each}
                 </dl>
-                <p class="mt-2 text-xs text-warn">{t('appActionWarn')}</p>
+                <p class="mt-2 text-callout text-warn">{t('appActionWarn')}</p>
               {:else}
-                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
+                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body">
                   {@render row(t('application'), s.content.app_id, { testid: 'approval-app' })}
                   {@render row(t('command'), s.content.command, { testid: 'approval-command' })}
                   {#each s.content.args as arg (arg.name)}{@render row(arg.name, arg.value, { mono: true })}{/each}
                 </dl>
-                <p class="mt-2 text-xs text-warn" data-testid="approval-unrendered">{t('actionUnrendered')}</p>
+                <p class="mt-2 text-callout text-warn" data-testid="approval-unrendered">{t('actionUnrendered')}</p>
               {/if}
             {/if}
           </div>
-          <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
+          <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body">
             {@render row(t('issuer'), s.issuer, { mono: true })}
             {#if request.type === 'connect'}{@render row(t('account'), d.account, { mono: true })}{/if}
             {#if d.origin && request.type === 'attest'}{@render row(t('origin'), d.origin)}{/if}
@@ -763,26 +763,26 @@
         {:else if terms || request.type === 'letter' || (request.type === 'handle' && d.total) || unquoted}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
             {#if terms?.terms?.method === 'Cash'}
-              <div class="text-[12px] text-muted">{t(checkoutTotal === null ? 'price' : 'planTotalDebit')}</div>
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid={checkoutTotal === null ? 'approval-amount' : 'approval-total'}>
+              <div class="text-callout text-muted">{t(checkoutTotal === null ? 'price' : 'planTotalDebit')}</div>
+              <div class="text-title-1 leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid={checkoutTotal === null ? 'approval-amount' : 'approval-total'}>
                 {units(checkoutTotal?.toString() ?? terms.terms.amount, terms.terms.decimals)} {terms.terms.asset}
               </div>
             {:else if terms?.terms}
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">
+              <div class="text-title-1 leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">
                 {units(terms.terms.required_stake_e8s, 8)} PANDA
               </div>
-              <div class="mt-0.5 text-xs text-faint">{t('stake')}</div>
+              <div class="mt-0.5 text-callout text-muted">{t('stake')}</div>
             {:else if request.type === 'letter'}
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">{d.amount}</div>
-              <div class="mt-0.5 text-xs text-faint">{t('baseUnits')}</div>
+              <div class="text-title-1 leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">{d.amount}</div>
+              <div class="mt-0.5 text-callout text-muted">{t('baseUnits')}</div>
             {:else if request.type === 'handle'}
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">{units(d.total, 8)} PANDA</div>
+              <div class="text-title-1 leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">{units(d.total, 8)} PANDA</div>
             {:else}
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums">${units(d.content?.amount_usd_micros ?? '0', 6)}</div>
-              <div class="mt-0.5 text-xs text-faint">{method(d.content?.method)}</div>
+              <div class="text-title-1 leading-tight font-[650] tracking-[-0.03em] tabular-nums">${units(d.content?.amount_usd_micros ?? '0', 6)}</div>
+              <div class="mt-0.5 text-callout text-muted">{method(d.content?.method)}</div>
             {/if}
           </div>
-          <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
+          <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body">
             {#if request.type === 'checkout'}
               {@render row(t('plan'), `${bought(terms)} · ${terms.origin}`, { testid: 'approval-sku' })}
               {@render row(t('price') + ' (USD)', `$${units(terms.amount_usd_micros, 6)}`)}
@@ -812,7 +812,7 @@
             {#if terms}{@render row(t('payer'), terms.actor, { mono: true })}{/if}
           </dl>
         {:else}
-          <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px]">
+          <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-xl border border-line bg-paper px-4 py-3.5 text-body">
             {#if authenticating}
               {@render row(t('authPurpose'), authPurposes[d.content?.purpose] ? t(authPurposes[d.content?.purpose]) : String(d.content?.purpose ?? ''), { testid: 'approval-purpose' })}
               {@render row(t('account'), d.account, { mono: true })}
@@ -920,23 +920,23 @@
 
       {#if after.length}
         <section class="mt-5">
-          <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t('afterApproval')}</h2>
+          <h2 class="mb-2 text-callout font-semibold tracking-[0.03em] text-muted">{t('afterApproval')}</h2>
           <ul class="grid gap-1.5">
             {#each after as [line, warn], i (i)}
-              <li class={cn('grid grid-cols-[16px_minmax(0,1fr)] gap-2 text-[13px]', warn ? 'text-warn' : 'text-ink-2')}>
+              <li class={cn('grid grid-cols-[16px_minmax(0,1fr)] gap-2 text-body', warn ? 'text-warn' : 'text-ink-2')}>
                 <Icon name={warn ? 'warning' : 'info'} class={cn('mt-0.5 size-[15px]', !warn && 'text-faint')} /><span>{line}</span>
               </li>
             {/each}
             {#if request.risk === 'high'}
-              <li class="grid grid-cols-[16px_minmax(0,1fr)] gap-2 text-[13px] text-ink-2"><Icon name="security" class="mt-0.5 size-[15px] text-faint" /><span>{t('afterPresence')}</span></li>
+              <li class="grid grid-cols-[16px_minmax(0,1fr)] gap-2 text-body text-ink-2"><Icon name="security" class="mt-0.5 size-[15px] text-faint" /><span>{t('afterPresence')}</span></li>
             {/if}
           </ul>
         </section>
       {/if}
 
       <Collapsible class="mt-4 py-1">
-        {#snippet title()}<span class="text-[12.5px] text-muted">{t('technical')}</span>{/snippet}
-        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 pb-2 text-xs" data-testid="approval-technical">
+        {#snippet title()}<span class="text-callout text-muted">{t('technical')}</span>{/snippet}
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 pb-2 text-callout" data-testid="approval-technical">
           {@render row(t('requestId'), request.id, { mono: true })}
           {@render row(t('digest'), request.digest, { mono: true })}
           {@render row(t('from'), request.source, { mono: true, testid: 'approval-source' })}
@@ -965,7 +965,7 @@
 
       {#if unquoted && waiting}
         <div class="mt-4 rounded-xl bg-warn-pale p-3" data-testid="checkout-quote">
-          <p class="text-[13px] text-warn">{t('quoteFirst')}</p>
+          <p class="text-body text-warn">{t('quoteFirst')}</p>
           <div class="mt-2 flex items-center gap-2">
             {#if d.content?.method === 'Cash'}
               <Select bind:value={selection} testid="quote-asset" placeholder={t('choose')} options={assets.map((a) => ({ value: a.ledger, label: a.asset }))} />
@@ -1016,13 +1016,13 @@
             <span class="relative">{hold ? t('holdToApprove') : t('approve')}</span>
           </button>
         </div>
-        <p class="mt-2 text-center text-[11.5px] text-faint">
+        <p class="mt-2 text-center text-caption text-faint">
           {blockers.length ? t('cannotSignYet') : unquoted ? t('quoteFirst') : !ready ? t('approveSoon') : hold ? t('holdHint') : t('approveHint')}
         </p>
       {:else}
         <ol class="grid gap-2" data-testid="approval-outcome">
           {#each steps as step, i (i)}
-            <li class="flex items-center gap-2.5 text-[13.5px]">
+            <li class="flex items-center gap-2.5 text-body">
               <span
                 class={cn(
                   'grid size-5 place-items-center rounded-full',
@@ -1038,7 +1038,7 @@
           {/each}
         </ol>
         {#if ['failed', 'lost', 'unknown'].includes(request.state) && request.error}
-          <p class="mt-2 text-[12.5px] text-muted" data-testid="approval-reason">{reason(request.error)}</p>
+          <p class="mt-2 text-callout text-muted" data-testid="approval-reason">{reason(request.error)}</p>
           {#if request.error === 'PENDING' && (request.type === 'checkout' || request.detail?.method === 'checkout')}
             <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} onclick={() => showMain('/plan?tab=payments')} data-testid="approval-open-orders">
               {t('openOrders')}

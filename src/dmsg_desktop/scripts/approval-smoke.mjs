@@ -106,6 +106,7 @@ try {
   const main = await app.firstWindow()
   await main.getByTestId('sidebar-toggle').waitFor()
   await main.evaluate(() => { location.hash = '/vault' })
+  await main.getByTestId('vault-workflows').click()
   await main.getByTestId('workflow-tab-ssh').click()
   const [approval] = await Promise.all([
     app.waitForEvent('window'),

@@ -201,7 +201,7 @@
     <Notice tone="warn" testid="wallet-transfer-unknown">{t('operationUnknown')}</Notice>
     <button class={buttonClass('primary', 'sm', 'justify-self-end')} onclick={() => { draft.checkPending = false; onCheckStatus() }}>{w('queue')}</button>
   {:else}
-  {#if asset}<p class="text-[13px] font-medium">{w('network')}: {networkName(asset)}</p>{/if}
+  {#if asset}<p class="text-body font-medium">{w('network')}: {networkName(asset)}</p>{/if}
   {#if !reviewed}
     <form class="grid gap-4" novalidate onsubmit={(event) => { event.preventDefault(); void estimate() }}>
     <div class="grid gap-3 sm:grid-cols-2">
@@ -224,7 +224,7 @@
         /></Field
       >
     </div>
-    <p class="text-[13px]" role="status"
+    <p class="text-body" role="status"
       >{w('sourceBalance')}: {sourceBalance?.balance?.Ok != null && asset
         ? amountText(sourceBalance.balance.Ok, asset, w('atomic'))
         : w('noBalance')}</p
@@ -235,7 +235,7 @@
         ></Notice
       >{/if}
     {#if assetError}<Notice tone="warn">{assetError} <button type="button" class={buttonClass('secondary', 'sm')} onclick={onReadAssets}>{w('retry')}</button></Notice>
-    {:else if waitingForPrecision}<p class="text-muted text-[12px]" role="status">{w('loading')}</p>{/if}
+    {:else if waitingForPrecision}<p class="text-muted text-callout" role="status">{w('loading')}</p>{/if}
     {#if !available.length}<Notice>{w('noAssets')}</Notice>{/if}
     {#each draft.outputs as output, i (i)}
       {@const toId = `${noteHintId}-to-${i}`}
@@ -279,7 +279,7 @@
           aria-label={`${w('remove')} ${i + 1}`}>{w('remove')}</button>{/if}
       </div>
     {/each}
-    <p class="text-muted text-[12px]">{draft.outputs.length} / {batchLimit(address?.chain)} · {w('recipientLimit')}</p>
+    <p class="text-muted text-callout">{draft.outputs.length} / {batchLimit(address?.chain)} · {w('recipientLimit')}</p>
     {#if address?.chain !== 'Evm'}<button type="button"
         class={buttonClass('secondary', 'sm', 'justify-self-start')}
         disabled={busy || draft.outputs.length >= batchLimit(address?.chain)}
@@ -289,7 +289,7 @@
       ><textarea aria-label={w('privateNote')} aria-describedby={noteHintId} bind:value={draft.note} maxlength="500" rows="2"></textarea></Field
     >
     <Collapsible
-      >{#snippet title()}<span class="text-[13px]">{t('advanced')}</span>{/snippet}
+      >{#snippet title()}<span class="text-body">{t('advanced')}</span>{/snippet}
       <Field label={`${w('fee')} · ${fee?.symbol || fee?.asset || w('atomic')}`}
         ><input bind:value={draft.maxFee} inputmode="decimal" placeholder={w('estimated')} dir="ltr" data-testid="wallet-fee" /></Field
       >
@@ -307,12 +307,12 @@
   {/if}
   {#if reviewed}
     <section class="border-forest/30 bg-pale/30 grid gap-3 rounded-xl border p-4" data-testid="wallet-transfer-preview">
-      <h3 bind:this={reviewHeading} tabindex="-1" class="text-[15px] font-semibold">{w('reviewTransfer')} · {wallet.name}</h3>
+      <h3 bind:this={reviewHeading} tabindex="-1" class="text-title-3 font-semibold">{w('reviewTransfer')} · {wallet.name}</h3>
       <Intent intent={preview.intent} {metadata} before={wallet} />
-      <p class="text-[13px]"
+      <p class="text-body"
         >{w('sourceBalance')}: {asset ? amountText(preview.asset_balance ?? preview.native_balance, asset, w('atomic')) : '—'}</p
       >
-      <p class="text-[13px] font-semibold"
+      <p class="text-body font-semibold"
         >{w('maximumDebit')}: {preview.native_asset && asset
           ? amountText(
               (BigInt(preview.total_amount ?? '0') + BigInt(preview.max_fee) + BigInt(preview.additional_reserve ?? '0')).toString(),
@@ -321,16 +321,16 @@
             )
           : `${asset ? amountText(preview.total_amount ?? '0', asset, w('atomic')) : ''} + ${decimal((BigInt(preview.max_fee) + BigInt(preview.additional_reserve ?? '0')).toString(), preview.fee_decimals)} ${preview.fee_asset}`}</p
       >
-      {#if draft.note}<p class="text-[12px]">{w('privateNote')}: {draft.note}</p><p class="text-muted text-[12px]">{w('privateNoteHint')}</p
+      {#if draft.note}<p class="text-callout">{w('privateNote')}: {draft.note}</p><p class="text-muted text-callout">{w('privateNoteHint')}</p
         >{/if}
-      <p class="text-[12px]">{w('estimated')}: {decimal(preview.estimated_fee, preview.fee_decimals)} {preview.fee_asset}</p>
-      {#if BigInt(preview.additional_reserve || '0') > 0n}<p class="text-[12px]"
+      <p class="text-callout">{w('estimated')}: {decimal(preview.estimated_fee, preview.fee_decimals)} {preview.fee_asset}</p>
+      {#if BigInt(preview.additional_reserve || '0') > 0n}<p class="text-callout"
           >{w('reserve')}: {decimal(preview.additional_reserve, preview.fee_decimals)} {preview.fee_asset}</p
         >{/if}
-      <p class="text-[12px]"
+      <p class="text-callout"
         >{w('approvals')}: {preview.requirement.approvals} · {w('delay_ms')}: {durationText(preview.requirement.delay_ms, locale())}</p
       >
-      <p class="text-muted text-[12px]">{w('previewHint')}</p>
+      <p class="text-muted text-callout">{w('previewHint')}</p>
       {#each preview.blockers as blocker}<Notice tone="danger">{w(blocker)}</Notice>{/each}
       {#if error}<Notice tone="danger" testid="wallet-transfer-error">{error}</Notice>{/if}
       <div class="flex flex-wrap items-center justify-end gap-2">

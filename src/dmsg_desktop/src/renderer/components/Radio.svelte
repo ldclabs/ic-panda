@@ -13,7 +13,7 @@
   }: { value: string; disabled?: boolean; testid?: string; class?: string; children?: Snippet } = $props()
 </script>
 
-<label class={cn('inline-flex min-w-0 items-center gap-2 select-none', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer', className)}>
+<label class={cn('inline-flex min-w-0 items-center gap-2 select-none', disabled && 'cursor-not-allowed opacity-60', className)}>
   <RadioGroup.Item
     {value}
     {disabled}

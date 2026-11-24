@@ -54,8 +54,8 @@
       disabled={disabled || busy}
       onclick={resolve}>{w(busy ? 'loading' : 'resolveMember')}</button
     >{/if}
-  {#if isMemberId(id)}<p class="text-[12px] break-all">{id.length === 20 ? (nameOf(id) ?? '') : ''} · {id}</p><p
-      class="text-muted text-[12px]">{w('identityReview')}</p
+  {#if isMemberId(id)}<p class="text-callout break-all">{id.length === 20 ? (nameOf(id) ?? '') : ''} · {id}</p><p
+      class="text-muted text-callout">{w('identityReview')}</p
     >{/if}
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 </div>

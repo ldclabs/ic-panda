@@ -35,8 +35,8 @@
       <span class="grid h-8 w-5 shrink-0 place-items-center text-forest [&_svg]:size-5"><Icon name={icon} /></span>
     {/if}
     <div class="min-w-0 flex-1">
-      <h2 class="text-[14px] leading-8 font-semibold">{title}</h2>
-      {#if description}<p class="-mt-1 text-[12.5px] leading-normal text-muted">{description}</p>{/if}
+      <h2 class="text-title-3 leading-8 font-semibold">{title}</h2>
+      {#if description}<p class="-mt-1 text-callout leading-normal text-muted">{description}</p>{/if}
     </div>
     {#if actions}<div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-0.5">{@render actions()}</div>{/if}
   </header>

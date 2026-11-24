@@ -269,7 +269,7 @@
         {#each mine.links ?? [] as link}<Fact label={t('link')}><span class="break-all">{link.name} · {link.url}</span></Fact>{/each}
       </dl>
     </div>
-  {:else if !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{loaded.document ? t('settingsProfileMissing') : t('loading')}</p>{/if}
+  {:else if !Object.values(loadErrors).some(Boolean)}<p class="text-body text-muted">{loaded.document ? t('settingsProfileMissing') : t('loading')}</p>{/if}
   {#if pending}<Notice tone="warn">{t('principalPublicationPending')}</Notice>{/if}
   <div class="mt-3 flex flex-wrap gap-2">
     <button class={buttonClass('secondary', 'sm')} disabled={busy || !ready || !mine} onclick={edit} data-testid="profile-edit">{pending ? t('retry') : t('edit')}</button>
@@ -281,10 +281,10 @@
     <div class="grid gap-4">
       {#if error}<Notice failure={error} tone="danger" testid="profile-edit-error">{error}</Notice>{/if}
       {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}
-        <button class={buttonClass('secondary','xs')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
+        <button class={buttonClass('subtle', 'xs')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
       {#if archives.length}
         <Collapsible testid="profile-import">
-          {#snippet title()}<span class="text-[12.5px]">{t('legacyUseProfile')}</span>{/snippet}
+          {#snippet title()}<span class="text-callout">{t('legacyUseProfile')}</span>{/snippet}
         <div class="flex flex-wrap items-center gap-2">
           <Select bind:value={archive} label={t('legacyArchives')} options={archives.map((a) => ({ value: a.id, label: a.principal, mono: true }))} disabled={busy || pending} testid="profile-legacy-archive" />
           <button class={buttonClass('secondary', 'sm')} disabled={busy || pending || !ready || !archive} onclick={useLegacy} data-testid="profile-use-legacy">{t('legacyUseProfile')}</button>
@@ -294,7 +294,7 @@
       {#if fromLegacy}<Notice>{t('legacyProfileDraft')}</Notice>{/if}
       {#if legacyAvatarReference}<Notice>{t('legacyAvatarReference')}</Notice>{/if}
       {#if pending}<Notice tone="warn">{t('principalPublicationPending')}</Notice>{/if}
-      {#if !ready && !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{t('loading')}</p>{/if}
+      {#if !ready && !Object.values(loadErrors).some(Boolean)}<p class="text-body text-muted">{t('loading')}</p>{/if}
       <fieldset disabled={busy || pending || !ready} class="contents">
       <div class="flex items-center gap-4">
         {@render picture(mine ? { ...mine, avatar_url: avatarUrl, name: displayName } : null, 'size-16')}
@@ -327,7 +327,7 @@
       </fieldset>
     </div>
   {#snippet footer()}
-    {#if !changed && !pending && !publishedReadPending}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
+    {#if !changed && !pending && !publishedReadPending}<span class="text-callout text-muted">{t('securityUnchanged')}</span>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => { editing = false; error = '' }}>{t('close')}</button>
     <button class={buttonClass('primary')} disabled={busy || publishedReadPending || !ready || (!pending && (!changed || !valid))} onclick={publish} data-testid="profile-publish">{pending ? t('retry') : t('publish')}</button>
@@ -348,7 +348,7 @@
         <dl class="min-w-0 flex-1 divide-y divide-line">
           <Fact label={t('displayName')}>{found.name || '-'}</Fact>
           <Fact label={t('bio')}>{found.description || '-'}</Fact>
-          {#each (found.links ?? []) as link, i (i)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link.name} · {link.url}</bdi></Fact>{/each}
+          {#each (found.links ?? []) as link, i (i)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-code">{link.name} · {link.url}</bdi></Fact>{/each}
           <Fact label={t('principalId')}><Id id={found.id} /></Fact>
         </dl>
         {#if status?.state === 'unlocked' && found.id.split('/').pop() !== status.account}
@@ -360,7 +360,7 @@
         {/if}
       </div>
     {:else if found === null}
-      <p class="text-[12.5px] text-muted" role="status">{t('settingsProfileMissing')}</p>
+      <p class="text-callout text-muted" role="status">{t('settingsProfileMissing')}</p>
     {/if}
   </div>
 </Dialog>

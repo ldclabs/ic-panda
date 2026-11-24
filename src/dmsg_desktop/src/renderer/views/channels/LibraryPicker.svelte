@@ -46,16 +46,16 @@
     {#each found as file (file.id)}
       <li class="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-wash">
         <Checkbox bind:checked={() => chosen.has(file.id), (on) => select(file, on)} class="min-w-0 flex-1 [&>span]:min-w-0">
-          <bdi class="block truncate text-[13px]" title={file.name}>{file.name}</bdi>
+          <bdi class="block truncate text-body" title={file.name}>{file.name}</bdi>
         </Checkbox>
-        <span class="shrink-0 text-[11px] text-faint">{size(file.size)}</span>
+        <span class="shrink-0 text-caption text-faint">{size(file.size)}</span>
       </li>
     {:else}
       <li class="px-2 py-4"><SearchStatus {search} empty={t('noFiles')} /></li>
     {/each}
   </ul>
   {#snippet footer()}
-    <span class="me-auto text-[12px] text-muted" role="status">{chosen.size ? t('selectedCount', { n: chosen.size }) : ''}</span>
+    <span class="me-auto text-callout text-muted" role="status">{chosen.size ? t('selectedCount', { n: chosen.size }) : ''}</span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={!chosen.size} onclick={pick} data-testid="library-pick">{t('attachFile')}</button>
   {/snippet}

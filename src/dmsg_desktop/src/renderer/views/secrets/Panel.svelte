@@ -24,9 +24,9 @@
 <section class="min-w-0 space-y-4" aria-busy={model.state.loading}>
   <div class="flex flex-wrap items-start gap-3">
     <div class="min-w-0 flex-1">
-      <h2 class="text-base font-semibold">{title}</h2>
+      <h2 class="text-title-3 font-semibold">{title}</h2>
       {#if description}<p
-          class="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted"
+          class="mt-1 max-w-2xl text-body leading-relaxed text-muted"
         >
           {description}
         </p>{/if}

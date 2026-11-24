@@ -27,6 +27,12 @@ colors:
     ok-pale: '#ECF7EF'
     warn: '#92400E'
     warn-pale: '#FCF4E4'
+    avatar-forest: '#C0ECD7'
+    avatar-forest-ink: '#264E3E'
+    avatar-sage: '#D2E8DB'
+    avatar-sage-ink: '#384B42'
+    avatar-amber: '#FFDBCA'
+    avatar-amber-ink: '#763300'
   dark:
     paper: '#0E1512'
     paper-dim: '#111A16'
@@ -53,51 +59,44 @@ colors:
     ok-pale: '#13261B'
     warn: '#F0B84A'
     warn-pale: '#2A2210'
+    avatar-forest: '#264E3E'
+    avatar-forest-ink: '#C0ECD7'
+    avatar-sage: '#384B42'
+    avatar-sage-ink: '#D2E8DB'
+    avatar-amber: '#763300'
+    avatar-amber-ink: '#FFDBCA'
 typography:
-  plan-name:
+  title-1:
     fontFamily: Inter Variable
     fontSize: 26px
+    lineHeight: 32px
     fontWeight: '600'
-  item-title:
+  title-2:
     fontFamily: Inter Variable
-    fontSize: 17px
+    fontSize: 20px
+    lineHeight: 26px
     fontWeight: '600'
-  dialog-title:
+  title-3:
     fontFamily: Inter Variable
     fontSize: 15px
+    lineHeight: 20px
     fontWeight: '600'
-  view-title:
-    fontFamily: Inter Variable
-    fontSize: 14.5px
-    fontWeight: '600'
-  section-title:
-    fontFamily: Inter Variable
-    fontSize: 14px
-    fontWeight: '600'
-  ui:
+  body:
     fontFamily: Inter Variable
     fontSize: 13.5px
     fontWeight: '400'
     lineHeight: '1.55'
-  control:
-    fontFamily: Inter Variable
-    fontSize: 13px
-    fontWeight: '500'
-  secondary:
+  callout:
     fontFamily: Inter Variable
     fontSize: 12.5px
     fontWeight: '400'
-  meta:
-    fontFamily: Inter Variable
-    fontSize: 12px
-    fontWeight: '400'
-  label:
+  caption:
     fontFamily: Inter Variable
     fontSize: 11.5px
-    fontWeight: '500'
-  technical:
+    fontWeight: '400'
+  code:
     fontFamily: ui-monospace
-    fontSize: 11.5px–12.5px
+    fontSize: 12px
     fontWeight: '400'
 rounded:
   pill: 6px
@@ -212,11 +211,18 @@ colors as the tokens (`bg-surface`, `text-muted`, `border-line`), never as
 literal hex values.
 
 - **Line** separates content; **Edge** (3:1 on white) is the boundary of
-  inputs and other controls that need one; **Edge-soft** outlines secondary
-  buttons, which their label already identifies.
+  inputs and other controls that need one; **Edge-soft** draws quiet
+  boundaries such as scrollbars; secondary buttons are raised by the
+  `control` shadow instead, since their label already identifies them.
 - **Gem** amber means "waiting for you": the waiting count, the request's
   kind chip, the diamond. It is not decoration.
-- **Pale** marks the selected row and filter; **Wash** is hover.
+- **Select** marks the selected row of a list without the focus (1.2:1 on
+  Paper); while the list holds the focus the row takes **Select-strong**
+  (Forest; a deeper Forest in the dark theme) with white text, as system
+  lists do. **Pale** marks a chosen card or tint; **Wash** is hover.
+- **Avatar** tints (forest, sage, amber, each with its own ink, swapped in
+  the dark theme) are the iOS palette's and only color people's fallback
+  avatars; a person never wears Gem or Warn.
 - On light tinted surfaces, tertiary text uses the existing Muted ink. On
   Pale this gives small metadata a 5.63:1 contrast ratio; Faint on Paper is 4.50:1.
 - State colors come with text and an icon. **Ok** means a named step
@@ -226,12 +232,30 @@ literal hex values.
 
 ## Typography
 
-Inter Variable is bundled (`@fontsource-variable/inter`), with PingFang SC and
-Microsoft YaHei as CJK fallbacks; `ui-monospace` carries IDs, hashes,
-capabilities, packets and code. The body is 13.5px at 1.55; reading content
-(notes, messages, statements to sign) stays 13.5–14px at 1.6. Titles step
-from 14px (sections) to 15px (dialogs) and 17px (an open item); large numbers
-(the plan, an allowance) may reach 22–26px. Metadata is 11.5–12px in Faint.
+Inter Variable is bundled with its optical-size axis
+(`@fontsource-variable/inter/opsz.css`), so titles tighten and small text
+opens up; PingFang SC and Microsoft YaHei are the CJK fallbacks and
+`ui-monospace` carries IDs, hashes, capabilities, packets and code.
+
+Text takes one of seven sizes, defined in `app.css` and listed in `ui.ts`
+(`typeScale`), so tailwind-merge treats them as sizes:
+
+| Token | Size | For |
+| --- | --- | --- |
+| `text-title-1` | 26/32, −0.012em | the plan, an amount, the first-run title |
+| `text-title-2` | 20/26, −0.008em | an open item, file, letter or reminder |
+| `text-title-3` | 15/20 | the view title, a dialog, a section |
+| `text-body` | 13.5 at 1.55 | reading text, list rows, buttons, menus, inputs |
+| `text-callout` | 12.5 | a row's second line, descriptions, field names, notices, small buttons |
+| `text-caption` | 11.5 | times, counts, badges, group names, shortcut keys |
+| `text-code` | 12, monospace | IDs, hashes, paths, packets |
+
+Titles add `font-semibold`. Tailwind's own sizes are removed, and
+`tests/ui-typography.test.ts` rejects arbitrary sizes such as `text-[12px]`;
+a new need is a new token here, not a size in a view.
+
+Muted carries secondary content: a row's second line, descriptions and field
+names. Faint is for times, counts, placeholders and disabled hints only.
 
 Numbers and times use tabular figures. Lists show relative times ("2 min
 ago") with the full time in a tooltip. A translated label never sits in the
@@ -251,7 +275,11 @@ monospace face: Arabic loses its letter joining there, so only the value
   the same place. In right-to-left text the lights stay at the top left,
   over the title bar's end, which leaves them 84px. The title bar is the
   drag region and names the view once; a view does not repeat its name or
-  a subtitle below it. The sidebar folds to its rail below 900px, whatever
+  a subtitle below it. It sits on the view's Paper without a rule; the
+  rule appears while content scrolls beneath it. On macOS the sidebar has no
+  tint of its own over the system material, and its small text uses Muted.
+  The sidebar's icons are Forest; the open view's is the filled form
+  (`filled` in `glyphs.ts`). The sidebar folds to its rail below 900px, whatever
   the person chose, and comes back with the room. The window's place and
   size return when it opens again.
 - **Pane views** (vault, files, channels, inbox) run edge to edge: a filter
@@ -308,8 +336,13 @@ The kit lives in `src/renderer/components`; views compose it and do not
 restyle a control by hand.
 
 - **Buttons** — `buttonClass(variant, size)` and `iconButtonClass` in `ui.ts`: `primary` (one per
-  area), `secondary`, `ghost` (toolbars, icon buttons), `danger` (a
-  destructive step, outlined with Danger text). A button its click disabled
+  area), `secondary` (raised off the page by the `control` shadow, a hairline
+  and a soft drop, as a Mac push button, not a drawn frame), `subtle` (a
+  Wash tint without an edge, for actions inside a row, a notice or a line of
+  text; every `xs` action), `ghost` (toolbars, the actions in an open
+  object's header, icon buttons), `danger` (a destructive step, raised with
+  Danger text). The pointer stays an arrow over every control; only links
+  (`a[href]`) show the hand. A button its click disabled
   turns a ring over its label while the bridge calls that click started run
   (`pending.ts`, after 150 ms); views only disable it by their `busy` flag.
 - **Menus** — bits-ui DropdownMenu and ContextMenu with `menuContentClass`
@@ -324,11 +357,22 @@ restyle a control by hand.
   body, footer with the decision on the end side. Escape cancels. The
   new-item, edit and letter forms submit with ⌘↵.
 - **Pages** — `components/page`: `Page`, `Section` (unframed title, description,
-  actions, flush lists), `Notice` (info, warn, danger, ok), `Pill` (states),
-  `Id` (the neutral ID chip), `Field`, `Fact` (label and value rows),
-  `TabBar`.
-- **Feedback** — `toast()` notices, above composers, footers and open dialogs;
-  a copied secret's notice counts down to the clipboard being cleared. Errors
+  actions, flush lists), `Group` (settings rows in one Surface card with a
+  rule between rows, as the system's settings group them), `Notice` (info,
+  warn, danger, ok), `Pill` (states), `Id` (the neutral ID chip), `Field`,
+  `Fact` (label and value rows), `TabBar` (`onPick` when a route owns the
+  choice).
+- **Lists** — a list's container has `data-list`; its current row
+  (`aria-current`) or chosen rows (`data-chosen`) take Select, and Forest
+  while the list holds the focus (`app.css`). Vault and file rows lead with
+  a 32px type tile (`bg-forest/12`, the icon in Forest), which follows the
+  selection's ink.
+- **Feedback** — `toast()` notices, above composers, footers and open dialogs:
+  a raised Surface card with the `pop` shadow, at most two at once. A
+  failure (a text from `errorText`) carries the warning mark; the close
+  shows on hover or focus, and resting the pointer on the notices holds them.
+  A copied secret's notice counts down to the clipboard being cleared and
+  never pauses, since the clipboard clears on time. Errors
   that belong to a form stay in the form.
 - **Avatars** — published images from certified public profiles, with initials
   (or an ID's first two characters) as the fallback. Participant images load
@@ -530,6 +574,15 @@ inline editors alone handle their own cancel shortcut.
   independent results. Keep retryable drafts on failure and give errors a
   cause and next action in the interface language.
 
+## Selection
+
+The window is an application, not a page: `html` is not selectable, so
+titles, labels, buttons and navigation do not highlight under a drag.
+Content is: inputs, `pre`, `code`, `dd` values, monospace values, alerts,
+and every multi-line body (`select-text` beside `whitespace-pre-wrap`:
+messages, notes, letters, statements to sign). A new content block that a
+person may quote takes `select-text`.
+
 ## Accessibility & Languages
 
 - Twenty-three catalogs (`i18n/messages`), checked against English, which is
@@ -574,11 +627,14 @@ were not run. Documentation-only changes do not require a new visual run.
 ## 2026-10-24 UI simplification
 
 Page sections use headings, aligned content and 32px spacing, without a
-background card, enclosing border or static shadow. File and vault detail
+background card, enclosing border or static shadow. Since 2026-11-24 the
+rows of settings pages (Settings' parts, security, recovery, membership)
+sit in a `Group` card; reading content keeps no card. File and vault detail
 fields are continuous groups. Lists keep useful row separators; panes keep
 one boundary between independent scrolling areas. Inputs, choices, focus
 rings, risk notices and floating layers retain their visible boundaries.
-Decorative icon frames and empty-state dashed boxes are removed. The gate
+Decorative icon frames and empty-state dashed boxes are removed; the
+type tiles of vault and file rows (2026-11-24) carry the object's kind. The gate
 rail remains fixed, with sync, connection and lock state always visible.
 
 Icon-only tools use 32px square targets with 18px glyphs. Dialog, drawer and
@@ -621,7 +677,8 @@ live in the route (`/approvals/<tab>`, `/agents/<tab>`, `/vault/<workflow>`,
 language, login, then fast unlock and alerts. Settings keeps its account and
 pairing sections for later, and no other page tells the person to go to setup.
 
-**Selecting.** Lists select the way a file manager does: a click opens, ⌘ or
+**Selecting.** Lists select the way a file manager does, and show it the
+same way (Lists, above): a click opens, ⌘ or
 Shift adds, Shift with the arrows extends, ⌘A takes all, Enter opens, Delete
 asks and Esc clears. A batch bar appears only for a selection. The menu on a
 row and its right-click are one `TargetMenu`. There is no selection mode and no
@@ -671,4 +728,6 @@ retain the working bindings and the editable draft. Settings and the shortcut
 help display the actual saved bindings; app-local Command/Ctrl + L still locks.
 
 **Secrets.** Credential use, sharing and maintenance are workflows of the vault
-(`/vault/<workflow>`), and Approvals decides requests only.
+(`/vault/<workflow>`), and Approvals decides requests only. The vault's
+filters hold one Credential use entry, which returns to the part opened
+last; the parts are tabs on its page (a Select below 860px).

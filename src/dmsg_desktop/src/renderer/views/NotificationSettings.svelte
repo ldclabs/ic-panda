@@ -243,16 +243,16 @@
 
 <div class="space-y-6" data-testid="notification-settings">
   {#if error && !preferences}<Notice failure={error} tone="danger" testid="notifications-error">{error}</Notice>{/if}
-  {#if loading && !global}<p class="px-5 text-sm text-muted" role="status">{t('loading')}</p>{/if}
+  {#if loading && !global}<p class="px-5 text-body text-muted" role="status">{t('loading')}</p>{/if}
   {#if global && preferences}
     <Section title={t('noticeSettings')} description={t('noticeScopeHint')} icon="bell">
       <div class="space-y-4">
         <Checkbox checked={global.enabled} onCheckedChange={enable} disabled={busy || loading} label={t('noticeEnable')} testid="notifications-enabled">{t('noticeEnable')}</Checkbox>
-        <div class="grid gap-2 rounded-lg border border-line p-3">
-        <p class="text-[12px] font-medium">{t('settingsInstant')}</p>
+        <div class="grid gap-2 rounded-xl border border-line bg-surface p-3">
+        <p class="text-callout font-medium">{t('settingsInstant')}</p>
         {#if platformError}<Notice tone="warn" testid="notifications-platform-error">{platformError}
           <button class={buttonClass('ghost','xs')} onclick={readPlatform}>{t('retry')}</button></Notice>{/if}
-        {#if permission}<p class="text-xs text-muted">{t(permission.supported ? 'noticeManaged' : 'noticeUnsupported')}</p>{/if}
+        {#if permission}<p class="text-callout text-muted">{t(permission.supported ? 'noticeManaged' : 'noticeUnsupported')}</p>{/if}
         <div class="flex flex-wrap gap-2">
           <button class={buttonClass('secondary', 'sm')} disabled={busy || !permission?.supported} onclick={test} data-testid="notifications-test">{t('noticeTest')}</button>
           <button class={buttonClass('ghost', 'sm')} disabled={!permission?.settings_available} onclick={async () => {
@@ -260,14 +260,14 @@
             catch (cause) { if (alive) platformError = errorText(cause) }
           }}>{t('noticeSystem')}</button>
         </div>
-        {#if permission?.last_result}<p class="text-xs text-muted" role="status">{permission.last_result === 'failed' ? stateLabel('failed') : t('noticeTestSent')}</p>{/if}
+        {#if permission?.last_result}<p class="text-callout text-muted" role="status">{permission.last_result === 'failed' ? stateLabel('failed') : t('noticeTestSent')}</p>{/if}
         <div class="flex flex-wrap gap-2">
           <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => pause(Date.now() + 900_000)}>{t('noticePause15')}</button>
           <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => pause(Date.now() + 3_600_000)}>{t('noticePauseHour')}</button>
           <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => pause(tomorrowMorning(Date.now(), zone))}>{t('noticePauseTomorrow')}</button>
           {#if paused}<button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => pause(null)}>{t('noticeResume')}</button>{/if}
         </div>
-        {#if paused}<p class="text-xs text-muted">{t('noticeUntil')} {when(global.paused_until!)}</p>{/if}
+        {#if paused}<p class="text-callout text-muted">{t('noticeUntil')} {when(global.paused_until!)}</p>{/if}
         </div>
         <Checkbox class="flex" checked={global.quiet_hours !== null} disabled={busy || loading} onCheckedChange={(enabled) => { global!.quiet_hours = enabled ? { start: 1320, end: 480, timezone: zone } : null }} label={t('noticeQuiet')} testid="notifications-quiet">{t('noticeQuiet')}</Checkbox>
         {#if global.quiet_hours}
@@ -276,7 +276,7 @@
             <Field label={t('noticeUntil')}><Select value={String(global.quiet_hours.end)} options={times} label={t('noticeUntil')} aria-invalid={invalidHours} aria-describedby={invalidHours ? 'settings-hours-error' : undefined} onChange={(value) => { global!.quiet_hours!.end = Number(value) }} disabled={busy} testid="notifications-quiet-until" /></Field>
             <Field label={t('noticeZone')} class="min-w-40 flex-1"><SearchSelect value={global.quiet_hours.timezone} options={zones} label={t('noticeZone')} onChange={(value) => { global!.quiet_hours!.timezone = value }} disabled={busy} /></Field>
           </div>
-          {#if invalidHours}<p id="settings-hours-error" class="text-xs text-danger" role="alert">{t('settingsQuietRange')}</p>{/if}
+          {#if invalidHours}<p id="settings-hours-error" class="text-callout text-danger" role="alert">{t('settingsQuietRange')}</p>{/if}
         {/if}
         <Checkbox class="flex" bind:checked={global.security_exception} disabled={busy || loading} label={t('noticeSecurityException')}>{t('noticeSecurityException')}</Checkbox>
         <Field label={t('noticeBadge')}><Select value={global.badge} options={[{value:'all',label:t('noticeBadgeAll')},{value:'actions',label:t('noticeBadgeActions')},{value:'off',label:t('noticeBadgeOff')}]} label={t('noticeBadge')} onChange={(value) => { global!.badge = value as GlobalNoticeSettings['badge'] }} disabled={busy || loading} /></Field>
@@ -293,7 +293,7 @@
         {#if !account}<Notice>{t('loggedOutHint')}</Notice>{/if}
         {#if account}
           <Checkbox bind:checked={account.enabled} disabled={busy || loading} label={t('noticeAccount')} testid="notifications-account-enabled">{t('noticeAccount')}</Checkbox>
-          <div class="divide-y divide-line rounded-xl border border-line">
+          <div class="divide-y divide-line rounded-xl border border-line bg-surface">
             {#each noticeCategories as category}
               <div class="flex flex-wrap items-center justify-between gap-3 p-3">
                 <Checkbox bind:checked={account.categories[category].enabled} disabled={busy || loading} label={t(categoryLabels[category])}>{t(categoryLabels[category])}</Checkbox>
@@ -304,11 +304,11 @@
           <Checkbox bind:checked={account.merge_devices} disabled={busy || loading} label={t('noticeMerge')}>{t('noticeMerge')}</Checkbox>
           {#if status?.state === 'unlocked'}
             <fieldset class="min-w-0" data-testid="notifications-agents">
-              <legend class="mb-2 text-xs font-medium text-muted">{t('noticeAgent')}</legend>
+              <legend class="mb-2 text-callout font-medium text-muted">{t('noticeAgent')}</legend>
               {#if agentError}<Notice tone="warn" testid="notifications-agent-error">{agentError}
                 <button class={buttonClass('ghost', 'xs')} onclick={readAgents}>{t('retry')}</button></Notice>{/if}
               {#if agents.length}
-                <ul class="divide-y divide-line rounded-xl border border-line">
+                <ul class="divide-y divide-line rounded-xl border border-line bg-surface">
                   {#each agents as agent (agent.agent_id)}
                     <li class="flex items-center gap-3 p-3">
                       <Checkbox class="flex min-w-0 flex-1 [&>span]:min-w-0 [&>span]:[overflow-wrap:anywhere]" checked={account.agent_mail[agent.agent_id] ?? false} onCheckedChange={(value) => { if (value || Object.hasOwn(preferences!.account?.agent_mail ?? {}, agent.agent_id)) account!.agent_mail[agent.agent_id] = value
@@ -317,9 +317,9 @@
                     </li>
                   {/each}
                 </ul>
-              {:else if agentsLoading}<p class="text-xs text-muted" role="status">{t('loading')}</p>
+              {:else if agentsLoading}<p class="text-callout text-muted" role="status">{t('loading')}</p>
               {:else if !loading && !error && !agentError}
-                <p class="text-xs text-muted" data-testid="notifications-agents-empty">{t('noAgents')}</p>
+                <p class="text-callout text-muted" data-testid="notifications-agents-empty">{t('noAgents')}</p>
               {/if}
             </fieldset>
           {/if}
@@ -327,12 +327,12 @@
       </div>
     </Section>
     {#if !preferences.remote_supported}<Notice icon="info">{t('noticeRemote')}</Notice>{/if}
-    {#if pending}<Notice icon="sync">{t('noticePending')}<p class="mt-1 text-xs">{t('noticePendingHint')}</p></Notice>{/if}
+    {#if pending}<Notice icon="sync">{t('noticePending')}<p class="mt-1 text-callout">{t('noticePendingHint')}</p></Notice>{/if}
     {#if conflict}<Notice tone="warn" icon="info">{t('conflictItem')} {t('retry')}</Notice>{/if}
     <div class={`grid gap-2 rounded-lg bg-paper px-3 py-2 sm:px-5 ${dirty || conflict || error || justSaved ? 'sticky bottom-0 z-10 border border-line shadow-sm' : ''}`} data-testid="notifications-actions">
       {#if error}<Notice tone="danger" testid="notifications-error">{error}</Notice>{/if}
       <div class="flex flex-wrap items-center gap-2">
-        {#if dirty}<span role="status" class="me-auto text-[12px] font-medium">{t('settingsUnsaved')}</span>{:else if justSaved}<span role="status" class="me-auto text-[12px] text-ok" data-testid="notifications-saved">{t('savedValue')}</span>{/if}
+        {#if dirty}<span role="status" class="me-auto text-callout font-medium">{t('settingsUnsaved')}</span>{:else if justSaved}<span role="status" class="me-auto text-callout text-ok" data-testid="notifications-saved">{t('savedValue')}</span>{/if}
         {#if dirty}<button class={buttonClass('ghost', 'sm')} disabled={busy || loading}
           onclick={() => { accept(preferences!); error = '' }} data-testid="notifications-discard">{t('discard')}</button>{/if}
         <button class={buttonClass('secondary', 'sm')} disabled={busy || loading} onclick={load} data-testid="notifications-refresh">{t('refresh')}</button>
@@ -347,7 +347,7 @@
 
 <Confirm bind:open={linking} title={t('noticeLinkTitle')} description={t('noticeLinkBody')} confirm={t('noticeLinkConfirm')} icon="members" tone="warn" {busy} testid="notifications-link" onConfirm={() => save(true)} onReview={() => load()}>
   {#snippet body()}
-    <p class="text-[12.5px] text-muted">{t('noticeLinkAccounts')}</p>
+    <p class="text-callout text-muted">{t('noticeLinkAccounts')}</p>
     <ul class="mt-2 flex flex-wrap gap-2" data-testid="notifications-link-accounts">
       {#each others as other (other)}<li><Id id={other} /></li>{/each}
     </ul>

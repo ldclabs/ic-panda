@@ -8,6 +8,7 @@
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Fact from '../../components/page/Fact.svelte'
+  import Group from '../../components/page/Group.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Page from '../../components/page/Page.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -192,12 +193,12 @@
 
 
 {#snippet ack()}
-  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={acknowledge} data-testid="plan-notice-ack">{t('acknowledge')}</button>
+  <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={acknowledge} data-testid="plan-notice-ack">{t('acknowledge')}</button>
 {/snippet}
 
 {#snippet meter(name: string, used: string, limit: string, percent: number, testid: string)}
   <div class="grid gap-1.5" data-testid={testid}>
-    <div class="flex items-baseline justify-between gap-2 text-[12.5px]">
+    <div class="flex items-baseline justify-between gap-2 text-callout">
       <span class="text-muted">{name}</span>
       <span class="tabular-nums"><b class="font-semibold">{used}</b> <span class="text-faint">/ {limit}</span></span>
     </div>
@@ -212,10 +213,10 @@
   <section class="px-5" data-testid="plan-hero">
     <div class="flex flex-wrap items-start gap-3">
       <div class="min-w-0 flex-1">
-        <p class="text-[12px] font-medium text-faint">{t('plan')}</p>
-        <p class="text-[26px] leading-tight font-semibold" data-testid="plan-name">{pending ? '—' : plan?.plan ?? '—'}</p>
+        <p class="text-callout font-medium text-muted">{t('plan')}</p>
+        <p class="text-title-1 leading-tight font-semibold" data-testid="plan-name">{pending ? '—' : plan?.plan ?? '—'}</p>
         {#if plan}
-          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-callout text-muted">
             {#if pending}<Pill tone="warn" testid="plan-source">{t('sourceUnverifiable')}</Pill>
             {:else if plan.source}<Pill testid="plan-source">{label(sourceLabels, plan.source)}</Pill>{/if}
             {#if !pending && current?.method === 'Panda' && plan.eligibility}<Pill tone={plan.eligibility === 'Eligible' ? 'forest' : 'warn'}>{label(eligibilityLabels, plan.eligibility)}</Pill>{/if}
@@ -226,7 +227,7 @@
             {/if}
           </div>
           {#if membership.active && !pending && (current?.method === 'Promo' || current?.method === 'Compensation')}
-            <p class="mt-1.5 text-[12px] text-muted" data-testid="plan-no-charge">{t('promoNoCharge')}</p>
+            <p class="mt-1.5 text-callout text-muted" data-testid="plan-no-charge">{t('promoNoCharge')}</p>
           {/if}
         {/if}
       </div>
@@ -235,7 +236,7 @@
     </div>
     {#if errors.plan}<div class="px-6 pb-4"><Notice failure={errors.plan} tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}
     {#if plan}
-      <dl class="mt-3">
+      <Group class="mt-3">
         {#if current}<Fact label={t(pending ? 'recordedTerm' : 'term')} testid="plan-term">{when(current.term_starts_at_ms ?? current.starts_at_ms)} – {when(current.ends_at_ms)}</Fact>{/if}
         {#each plan.addons ?? [] as addon (addon.order)}
           <Fact label={t('storagePack')}>+{size(addon.storage_bytes)} · {t('until', { time: when(addon.expires_at_ms) })}</Fact>
@@ -245,14 +246,14 @@
         {:else if plan.renew_from_ms}
           <Fact label={t('renewal')}>{t('renewalOpens', { time: when(plan.renew_from_ms) })}</Fact>
         {/if}
-      </dl>
+      </Group>
     {/if}
   </section>
 
   {#if plan?.refund && plan.refund.until_ms > now}
     <Notice tone="info" icon="info" testid="plan-refund">
       {t('refundWindow', { time: when(plan.refund.until_ms) })}
-      {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy || !canManageMembership} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
+      {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={busy || !canManageMembership} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
     </Notice>
   {/if}
   {#if needsRefresh}
@@ -288,7 +289,7 @@
       {/if}
     </div>
     {#if plan?.limits && !pending}
-      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted" data-testid="plan-benefits">
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-callout text-muted" data-testid="plan-benefits">
         <li data-testid="plan-backup-limit">{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{cloud?.backup_max_file_bytes != null ? `${cloud.backup_max_file_bytes / 1048576} MiB` : '—'}</bdi></li>
         <li>{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</li>
         <li data-testid="plan-device-limit">{t('deviceSlots', { n: plan.limits.active_devices ?? '—' })}</li>
@@ -310,7 +311,7 @@
   {#if catalog?.wallet_quotas_error}<Notice tone="warn" failure={catalog.wallet_quotas_error} testid="wallet-quotas-error">{t('walletQuotasUnavailable')}</Notice>{/if}
   {#if paid.length}
     <Section title={t('plans')} description={t('plansHint')} icon="coins" testid="plan-cards">
-      <p class="mb-3 text-[12.5px] leading-relaxed text-muted">{t('plansValue')}</p>
+      <p class="mb-3 text-callout leading-relaxed text-muted">{t('plansValue')}</p>
       <div class="grid gap-2 lg:grid-cols-3">
         {#each paid as p (p.plan_id)}
           {@const offer = offers.get(p.plan_id)}
@@ -318,11 +319,11 @@
           {@const mine = membership.active && !pending && plan?.plan === p.plan_id}
           <div class={cn('grid content-start gap-2 rounded-xl border p-4', mine ? 'border-forest bg-pale' : 'border-line bg-surface')} data-testid={`plan-${value}`}>
             <div class="flex items-center justify-between gap-2">
-              <b class="text-[15px] font-semibold">{p.plan_id}</b>
+              <b class="text-title-3 font-semibold">{p.plan_id}</b>
               {#if mine}<Pill tone="forest">{t('current')}</Pill>{/if}
             </div>
-            <p><span class="text-[22px] font-semibold tabular-nums">{price(p.price_cents)}</span> <span class="text-[12px] text-faint">/ {t('year')}</span></p>
-            <ul class="grid gap-1 text-[12px] text-muted">
+            <p><span class="text-title-1 font-semibold tabular-nums">{price(p.price_cents)}</span> <span class="text-callout text-muted">/ {t('year')}</span></p>
+            <ul class="grid gap-1 text-callout text-muted">
               <li class="flex items-center gap-1.5"><Icon name="sync" class="size-3.5 text-faint" />{size(p.limits.storage_bytes)}</li>
               <li class="flex items-start gap-1.5" data-testid={`plan-${value}-backup-limit`}><Icon name="file" class="mt-0.5 size-3.5 shrink-0 text-faint" /><span>{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{p.plan_id === 'Max' ? '1000 MiB' : '100 MiB'}</bdi></span></li>
               <li class="flex items-center gap-1.5"><Icon name="channels" class="size-3.5 text-faint" />{t('channelSlots', { n: p.limits.active_channels })}</li>
@@ -339,12 +340,12 @@
                 data-testid={`plan-${value}-${offer.action}`}>{t(offerLabels[offer.action] ?? 'subscribe')}</button
               >
               {#if offer.action === 'upgrade'}
-                <p class="text-[11.5px] text-faint">{t('upgradeProrated')}</p>
+                <p class="text-caption text-faint">{t('upgradeProrated')}</p>
               {:else if offer.action !== 'subscribe'}
-                <p class="text-[11.5px] text-faint">{t('startsAt', { time: when(offer.starts_at_ms) })}</p>
+                <p class="text-caption text-faint">{t('startsAt', { time: when(offer.starts_at_ms) })}</p>
               {/if}
             {:else if offer}
-              <p class="text-[11.5px] text-faint" data-testid={`plan-${value}-wait`}>{waitLabels[offer.reason] ? t(waitLabels[offer.reason], { time: when(offer.available_at_ms) }) : offer.reason}</p>
+              <p class="text-caption text-faint" data-testid={`plan-${value}-wait`}>{waitLabels[offer.reason] ? t(waitLabels[offer.reason], { time: when(offer.available_at_ms) }) : offer.reason}</p>
             {/if}
           </div>
         {/each}
@@ -363,10 +364,10 @@
         {#each packs as pack (pack.product_id)}
           <li class="flex items-center gap-3 rounded-xl border border-line px-4 py-3">
             <div class="min-w-0 flex-1">
-              <b class="text-[14px] font-semibold">+{size(pack.storage_bytes)}</b>
-              <p class="text-[12px] text-faint tabular-nums">{price(pack.price_cents)} / {t('year')}</p>
+              <b class="text-title-3 font-semibold">+{size(pack.storage_bytes)}</b>
+              <p class="text-callout text-faint tabular-nums">{price(pack.price_cents)} / {t('year')}</p>
             </div>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy || !canChoose || !plan?.storage_available} aria-label={`${t('addStorage')} · ${size(pack.storage_bytes)}`} onclick={() => buyPack(pack)} data-testid="plan-pack-buy">{t('addStorage')}</button>
+            <button class={buttonClass('subtle', 'xs')} disabled={busy || !canChoose || !plan?.storage_available} aria-label={`${t('addStorage')} · ${size(pack.storage_bytes)}`} onclick={() => buyPack(pack)} data-testid="plan-pack-buy">{t('addStorage')}</button>
           </li>
         {/each}
       </ul>
@@ -390,13 +391,13 @@
 >
   {#snippet body()}
     {#if refund}
-      <dl>
+      <Group>
         {#if refund.planName}<Fact label={t('plan')}>{refund.planName}</Fact>{/if}
         <Fact label={t('planOrderId')}><Id id={refund.order} full wrap /></Fact>
         <Fact label={t('refundAmount')} testid="refund-amount">{units(refund.refund, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('networkFee')}>{units(refund.fee, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('refundReceived')}>{units(refund.received, refund.decimals)} {refund.asset}</Fact>
-      </dl>
+      </Group>
     {/if}
   {/snippet}
 </Confirm>

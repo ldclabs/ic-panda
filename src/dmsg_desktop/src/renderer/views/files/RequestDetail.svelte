@@ -127,8 +127,8 @@
       <Icon name="back" class="rtl:rotate-180" />{t('requestBack')}
     </button>
     <div class="min-w-0 flex-1">
-      <h2 class="break-words text-[15px] font-semibold"><bdi dir="auto">{link.title ?? link.request_id}</bdi></h2>
-      <p class="mt-0.5 text-[12px] text-faint">
+      <h2 class="break-words text-title-3 font-semibold"><bdi dir="auto">{link.title ?? link.request_id}</bdi></h2>
+      <p class="mt-0.5 text-callout text-muted">
         {#if link.label}<bdi dir="auto">{link.label}</bdi>{' · '}{/if}{t(requestStates[link.status] ?? 'requestStateOpen')} · {t('linkExpires', { time: when(link.expires_at) })}
       </p>
     </div>
@@ -139,7 +139,7 @@
   <div class="min-h-0 flex-1 overflow-y-auto p-5">
     {#if error}<Notice failure={error} tone="danger" testid="request-detail-error">{error}</Notice>{/if}
     {#if link.instructions}
-      <p class="mb-3 whitespace-pre-wrap break-words rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted"><bdi dir="auto">{link.instructions}</bdi></p>
+      <p class="mb-3 whitespace-pre-wrap select-text break-words rounded-lg bg-surface-2 px-3 py-2 text-callout text-muted"><bdi dir="auto">{link.instructions}</bdi></p>
     {/if}
     {#if loaded}
       <ul class="divide-y divide-line" data-testid="request-files">
@@ -149,38 +149,38 @@
               <Icon name={file.state === 'unreadable' ? 'warning' : 'file'} class="shrink-0 text-faint" />
               <div class="min-w-0 basis-48 flex-1">
                 {#if file.name}
-                  <p class="break-words text-[13px] font-medium"><bdi dir="auto">{file.name}</bdi></p>
+                  <p class="break-words text-body font-medium"><bdi dir="auto">{file.name}</bdi></p>
                 {:else}
                   <Id id={file.upload_id} />
                 {/if}
-                <p class="mt-0.5 text-[11.5px] text-faint">
+                <p class="mt-0.5 text-caption text-faint">
                   {size(file.size ?? file.bytes)} · {when(file.stored_at)}
                 </p>
                 {#if file.sender?.name}
-                  <p class="mt-0.5 break-words text-[12px] text-muted" data-testid="request-sender">
+                  <p class="mt-0.5 break-words text-callout text-muted" data-testid="request-sender">
                     {t('requestFrom')} <bdi dir="auto">{file.sender.name}</bdi>
                   </p>
                 {/if}
                 {#if file.sender?.note}
-                  <p class="mt-0.5 whitespace-pre-wrap break-words text-[12px] text-muted"><bdi dir="auto">{file.sender.note}</bdi></p>
+                  <p class="mt-0.5 whitespace-pre-wrap select-text break-words text-callout text-muted"><bdi dir="auto">{file.sender.note}</bdi></p>
                 {/if}
                 {#if file.replaces}
-                  <p class="mt-0.5 break-words text-[11.5px] text-faint">
+                  <p class="mt-0.5 break-words text-caption text-faint">
                     {t('requestReplaces', { name: replaced(file.replaces) ?? file.replaces.slice(0, 8) })}
                   </p>
                 {/if}
                 {#if file.state === 'unreadable'}
-                  <p class="mt-0.5 text-[12px] text-warn" data-testid="request-unreadable">{t('requestUnreadable')}</p>
+                  <p class="mt-0.5 text-callout text-warn" data-testid="request-unreadable">{t('requestUnreadable')}</p>
                 {:else if file.state === 'withdrawn'}
-                  <p class="mt-0.5 text-[12px] text-faint">{t('requestWithdrawn')}</p>
+                  <p class="mt-0.5 text-callout text-muted">{t('requestWithdrawn')}</p>
                 {:else if file.state === 'saved'}
-                  <p class="mt-0.5 text-[12px] text-ok">{t('requestSaved')}</p>
+                  <p class="mt-0.5 text-callout text-ok">{t('requestSaved')}</p>
                 {/if}
               </div>
               <div class="flex flex-wrap gap-1">
                 {#if file.state === 'received'}
                   <button
-                    class={buttonClass('secondary', 'xs')}
+                    class={buttonClass('subtle', 'xs')}
                     disabled={!!saving || busy || !unlocked}
                     onclick={() => save(file.upload_id)}
                     data-testid="request-save">{t('requestSave')}</button
@@ -213,14 +213,14 @@
               {@const label = t(step.stage === 'save' ? 'requestSaving' : 'requestDownloading', { done: size(step.done), total: size(step.total) })}
               <div class="grid gap-1" data-testid="request-progress">
                 <Progress value={percentOf(step)} {label} />
-                <p class="text-[11.5px] text-faint" role="status">{label}</p>
+                <p class="text-caption text-faint" role="status">{label}</p>
               </div>
             {/if}
           </li>
         {/each}
       </ul>
-      {#if !files.length}<p class="py-12 text-center text-[13px] text-faint" data-testid="request-files-empty">{t('requestFilesEmpty')}</p>{/if}
-    {:else if busy}<p class="py-12 text-center text-[13px] text-faint">{t('loading')}</p>{/if}
+      {#if !files.length}<p class="py-12 text-center text-body text-faint" data-testid="request-files-empty">{t('requestFilesEmpty')}</p>{/if}
+    {:else if busy}<p class="py-12 text-center text-body text-faint">{t('loading')}</p>{/if}
   </div>
 </section>
 
@@ -237,8 +237,8 @@
 />
 
 <Dialog bind:open={() => !!deleting, (next) => !next && (deleting = null)} title={t('requestDeleteCloud')} icon="trash" tone="danger" testid="request-delete-confirm">
-  <p class="break-words text-[13px] font-medium"><bdi dir="auto">{deleting?.name ?? deleting?.upload_id}</bdi></p>
-  <p class="mt-2 text-[13px] text-muted">{t('requestDeleteHint')}</p>
+  <p class="break-words text-body font-medium"><bdi dir="auto">{deleting?.name ?? deleting?.upload_id}</bdi></p>
+  <p class="mt-2 text-body text-muted">{t('requestDeleteHint')}</p>
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}<span class="flex-1"></span><button class={buttonClass('ghost')} onclick={() => (deleting = null)}>{t('cancel')}</button><button class={buttonClass('danger')} disabled={busy || !unlocked} onclick={remove} data-testid="request-delete-yes">{t('requestDeleteCloud')}</button>{/snippet}
 </Dialog>

@@ -47,7 +47,7 @@
   }
 </script>
 
-<dl class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-3 text-[13px]" data-testid="wallet-policy-summary">
+<dl class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-3 text-body" data-testid="wallet-policy-summary">
   {#each keys as key (key)}
     {@const changed = before && JSON.stringify(before[key]) !== JSON.stringify(policy[key])}
     <dt class="text-muted">{w(key)}</dt>
@@ -57,9 +57,9 @@
     </dd>
   {/each}
 </dl>
-<p class="text-muted mt-3 text-[12px]">{w('policyLimitsHint')}</p>
-{#if policy.refuel}<p class="text-muted mt-2 text-[12px]">{w('topupRuleHint')}</p>{/if}
+<p class="text-muted mt-3 text-callout">{w('policyLimitsHint')}</p>
+{#if policy.refuel}<p class="text-muted mt-2 text-callout">{w('topupRuleHint')}</p>{/if}
 <Collapsible class="mt-4">
-  {#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}
-  <p class="text-[12px]">{w('version')}: {policy.version}</p>
+  {#snippet title()}<span class="text-callout">{w('technical')}</span>{/snippet}
+  <p class="text-callout">{w('version')}: {policy.version}</p>
 </Collapsible>

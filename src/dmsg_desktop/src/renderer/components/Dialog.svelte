@@ -63,8 +63,8 @@
           <span class={cn('grid h-9 w-5 shrink-0 place-items-center [&_svg]:size-5', tones[tone])}><Icon name={icon} /></span>
         {/if}
         <div class="min-w-0 flex-1">
-          <Dialog.Title class="pt-2 text-[15px] leading-5 font-semibold [overflow-wrap:anywhere]">{title}</Dialog.Title>
-          {#if description}<Dialog.Description class="mt-0.5 text-[12.5px] leading-normal text-muted">{description}</Dialog.Description>{/if}
+          <Dialog.Title class="pt-2 text-title-3 leading-5 font-semibold [overflow-wrap:anywhere]">{title}</Dialog.Title>
+          {#if description}<Dialog.Description class="mt-0.5 text-callout leading-normal text-muted">{description}</Dialog.Description>{/if}
         </div>
         <Dialog.Close class={iconButtonClass('ghost', 'lg')} disabled={!dismissible} aria-label={t('close')} data-testid="dialog-close">
           <Icon name="close" />

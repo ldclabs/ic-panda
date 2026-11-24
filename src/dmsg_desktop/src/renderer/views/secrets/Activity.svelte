@@ -110,10 +110,10 @@
   {#each visible as request}<article class={card}>
       <div class="flex flex-wrap justify-between gap-2">
         <h3 class="font-medium">{t(titleOf(request).label)}</h3>
-        <span class="text-sm">{stateLabel(request.state)}</span>
+        <span class="text-body">{stateLabel(request.state)}</span>
       </div>
-      <p class="break-words text-sm">{summaryOf(request)}</p>
-      <p class="text-xs text-muted">
+      <p class="break-words text-body">{summaryOf(request)}</p>
+      <p class="text-callout text-muted">
         {when(request.updated_at ?? request.created_at)}
       </p>
       <div class="flex flex-wrap gap-2">
@@ -133,7 +133,7 @@
           >{/if}
       </div>
     </article>{:else}{#if model.state.loaded && !model.state.errors.activity}<p
-        class="py-8 text-center text-sm text-muted"
+        class="py-8 text-center text-body text-muted"
       >
         {query || kind !== 'all' || statusFilter !== 'all'
           ? ux('noMatches')
@@ -144,7 +144,7 @@
         class={buttonClass('secondary')}
         disabled={page === 0}
         onclick={() => page--}>{ux('previous')}</button
-      ><span class="self-center text-sm"
+      ><span class="self-center text-body"
         >{page + 1} / {Math.ceil(filtered.length / 30)}</span
       ><button
         class={buttonClass('secondary')}

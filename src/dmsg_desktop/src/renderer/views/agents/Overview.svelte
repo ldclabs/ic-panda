@@ -208,8 +208,8 @@
   <Notice failure={failures.map((failure) => failure.message)} tone="danger" testid={principalError ? 'principal-error' : 'agent-overview-error'}>
     <p>{t('loadFailed')}: {failures.map((failure) => failure.label).join(' · ')}</p>
     <Collapsible class="mt-1">
-      {#snippet title()}<span class="text-[12px]">{t('technical')}</span>{/snippet}
-      {#each [...new Set(failures.map((failure) => failure.message))] as message}<p class="mt-1 text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">{message}</p>{/each}
+      {#snippet title()}<span class="text-callout">{t('technical')}</span>{/snippet}
+      {#each [...new Set(failures.map((failure) => failure.message))] as message}<p class="mt-1 text-callout whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{message}</p>{/each}
     </Collapsible>
     {#snippet action()}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={onRetry}>{t('retry')}</button>{/snippet}
   </Notice>
@@ -226,9 +226,9 @@
             <Pill tone="ok"><Icon name="check" />{t('published')}</Pill>
           {:else}
             <Pill tone="warn">{t('unpublished')}</Pill>
-            {#if unlocked}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => run('agent/publish')}>{t('publish')}</button>{/if}
+            {#if unlocked}<button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => run('agent/publish')}>{t('publish')}</button>{/if}
           {/if}
-          <span class="text-[11.5px] text-faint tabular-nums">{t('principalVersion', { version: principal.version, published: principal.published_version })}</span>
+          <span class="text-caption text-faint tabular-nums">{t('principalVersion', { version: principal.version, published: principal.published_version })}</span>
           {#if unlocked && principal.published}
             <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => run('agent/refresh')} data-testid="principal-refresh"><Icon name="sync-now" />{t('refreshService')}</button>
           {/if}
@@ -236,7 +236,7 @@
       </Fact>
     </dl>
   {:else if !loaded.principal && !principalError && unlocked}
-    <p class="text-[13px] text-muted">{t('loading')}</p>
+    <p class="text-body text-muted">{t('loading')}</p>
   {:else if unlocked && !principalError}
     <div class="flex flex-wrap items-end gap-2">
       <Field label={t('type')}>
@@ -247,7 +247,7 @@
       </button>
     </div>
   {:else if !unlocked}
-    <p class="text-[13px] text-muted">{t('locked')}</p>
+    <p class="text-body text-muted">{t('locked')}</p>
   {/if}
 </Section>
 
@@ -255,11 +255,11 @@
   <Section title={t('controllers')} description={t('controllersHint')} icon="key" flush testid="controllers">
     <div class="grid gap-3 border-t border-line bg-surface-2/60 px-5 py-4" data-testid="default-controller">
       <div class="flex flex-wrap items-center gap-2">
-        <b class="text-[13px] font-medium">{t('defaultController')}</b>
-        <span class="font-mono text-[11.5px] text-muted">https://dmsg.net</span>
+        <b class="text-body font-medium">{t('defaultController')}</b>
+        <span class="font-mono text-code text-muted">https://dmsg.net</span>
         {#if defaultController}<Pill tone={principal.published ? 'ok' : 'warn'}>#{defaultController.generation} · {principal.published ? t('defaultControllerReady') : t('unpublished')}</Pill>{/if}
       </div>
-      <p class="text-[12px] text-muted">{t('defaultControllerHint')}</p>
+      <p class="text-callout text-muted">{t('defaultControllerHint')}</p>
       {#if !defaultController && unlocked}
         <Checkbox bind:checked={defaultConsent}>{t('controllerUnrestrictedConsent')}</Checkbox>
         <div><button class={buttonClass('primary')} disabled={busy || registrationPending || !defaultConsent} onclick={registerDefault} data-testid="default-controller-register">{t('enableDefaultController')}</button></div>
@@ -279,16 +279,16 @@
     <ul class="divide-y divide-line">
       {#each principal.controllers as c (c.generation)}
         <li class="flex items-start gap-3 px-5 py-3">
-          <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 font-mono text-[12px] text-muted">#{c.generation}</span>
+          <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 font-mono text-code text-muted">#{c.generation}</span>
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
-              <b class="text-[13px] font-medium">{c.name ?? t('controller')}</b>
+              <b class="text-body font-medium">{c.name ?? t('controller')}</b>
               <Id id={c.agent_id} />
               {#if c.invalid_from}<Pill tone="danger">{t('compromisedFrom', { at: when(c.invalid_from) })}</Pill>{/if}
               {#if c.retired_at}<Pill>{t('retired')}</Pill>{/if}
             </div>
-            <p class="mt-0.5 text-[12px] text-muted">{ceilingText(c)}</p>
-            <p class="mt-0.5 text-[11.5px] text-faint">{t('validFrom')} {when(c.valid_from)}{c.retired_at ? ` · ${t('retired')} ${when(c.retired_at)}` : ''}</p>
+            <p class="mt-0.5 text-callout text-muted">{ceilingText(c)}</p>
+            <p class="mt-0.5 text-caption text-faint">{t('validFrom')} {when(c.valid_from)}{c.retired_at ? ` · ${t('retired')} ${when(c.retired_at)}` : ''}</p>
           </div>
           {#if unlocked}
             <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -323,8 +323,8 @@
     </ul>
     {#if unlocked}
       <details bind:open={customController} class="border-t border-line px-5 py-3.5" data-testid="custom-controller">
-        <summary class="cursor-pointer text-[13px] font-medium">{t('customController')}</summary>
-        <p class="mt-2 text-[12px] text-muted">{t('customControllerHint')}</p>
+        <summary class="text-body font-medium">{t('customController')}</summary>
+        <p class="mt-2 text-callout text-muted">{t('customControllerHint')}</p>
         <form class="mt-3 grid gap-3" onsubmit={(event) => { event.preventDefault(); register() }}>
           <TextField label={t('name')} hint={t('controllerNameHint')} bind:value={controllerName} onblur={() => (controllerTouched.name = true)}
             error={controllerTouched.name && registrationErrors.name ? t(registrationErrors.name) : undefined} data-testid="controller-name" />
@@ -343,13 +343,13 @@
 {/if}
 
   <Section title={t('credentials')} description={t('credentialsHint')} icon="epoch" flush>
-    {#if errors.credentials}<p class="px-5 text-[12px] text-danger">{t('loadFailed')}</p>{/if}
+    {#if errors.credentials}<p class="px-5 text-callout text-danger">{t('loadFailed')}</p>{/if}
     <div class="border-t border-line" data-testid="credentials">
       {#each bySubject(credentials) as [subject, group] (subject)}
         <div class="border-b border-line last:border-b-0">
           <div class="flex flex-wrap items-center gap-1.5 bg-surface-2/50 px-5 py-2">
             <Icon name="agents" class="text-faint" />
-            <b class="text-[12.5px] font-medium">{labelOf(subject)}</b>
+            <b class="text-callout font-medium">{labelOf(subject)}</b>
             {#if labelOf(subject) !== subject}<Id id={subject} />{/if}
             <span class="flex-1"></span>
             {#if unlocked && current.length}
@@ -363,15 +363,15 @@
                   <div class="flex flex-wrap items-center gap-1.5">
                     <Pill tone={statusTone(c.status)}>{statusLabel(c.status)}</Pill>
                     <Id id={c.id} />
-                    {#if generationOf(c.controller)}<span class="font-mono text-[11.5px] text-faint">#{generationOf(c.controller)}</span>{/if}
+                    {#if generationOf(c.controller)}<span class="font-mono text-code text-faint">#{generationOf(c.controller)}</span>{/if}
                   </div>
                   <div class="mt-1 flex flex-wrap gap-1">
                     {#each c.scopes as scope (scope)}<Pill tone="forest">{scope}</Pill>{/each}
-                    <span class="text-[12px] text-faint">→</span>
-                    {#each c.audiences as audience (audience)}<span class="font-mono text-[11.5px] text-muted">{audience}</span>{/each}
+                    <span class="text-callout text-muted">→</span>
+                    {#each c.audiences as audience (audience)}<span class="font-mono text-code text-muted">{audience}</span>{/each}
                   </div>
-                  {#if c.relationship}<p class="mt-1 text-[12px] text-muted">{c.relationship}</p>{/if}
-                  <p class="mt-1 text-[11.5px] text-faint">
+                  {#if c.relationship}<p class="mt-1 text-callout text-muted">{c.relationship}</p>{/if}
+                  <p class="mt-1 text-caption text-faint">
                     {#if c.expires_at}{t('expires')} {when(c.expires_at)}{/if}{#if c.status === 'suspended'} · {t('suspendedHint')}{/if}
                   </p>
                 </div>
@@ -389,7 +389,7 @@
           </ul>
         </div>
       {:else}
-        <p class="px-5 py-3 text-[13px] text-faint">{!unlocked ? t('locked') : errors.credentials ? '' : !loaded.credentials ? t('loading') : t('noCredentials')}</p>
+        <p class="px-5 py-3 text-body text-faint">{!unlocked ? t('locked') : errors.credentials ? '' : !loaded.credentials ? t('loading') : t('noCredentials')}</p>
       {/each}
     </div>
     {#if unlocked && current.length}
@@ -428,13 +428,13 @@
     <Section title={t('delegationJournal')} description={t('delegationJournalHint')} icon="history" flush testid="delegation-journal">
       <ul class="divide-y divide-line">
         {#each delegations.slice(0, 20) as job (job.id)}
-          <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-[12.5px]">
+          <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-callout">
             <Pill tone={job.stage === 'accepted' ? 'ok' : job.stage === 'failed' ? 'danger' : 'warn'}>{stageLabel(job.stage)}</Pill>
             <span class="font-medium">{job.kind.type === 'revoke' ? t('delegationRevoke') : t('delegationGrant')}</span>
             {#if job.kind.subject}<span class="text-muted">{labelOf(job.kind.subject)}</span>{/if}
-            <span class="font-mono text-[11.5px] text-faint">#{job.generation}</span>
-            {#if job.error}<span class={cn('font-mono text-[11.5px]', job.stage === 'failed' ? 'text-danger' : 'text-warn')}>{job.error}</span>{/if}
-            <span class="ms-auto text-[11.5px] text-faint">{when(job.created_at)}</span>
+            <span class="font-mono text-code text-faint">#{job.generation}</span>
+            {#if job.error}<span class={cn('font-mono text-code', job.stage === 'failed' ? 'text-danger' : 'text-warn')}>{job.error}</span>{/if}
+            <span class="ms-auto text-caption text-faint">{when(job.created_at)}</span>
           </li>
         {/each}
       </ul>
@@ -497,7 +497,7 @@
           <Field label={t('audiences')} hint={t('controllerAudiencesHint')}><input bind:value={rotating.audiences} data-testid="rotate-audiences" /></Field>
         </div>
       {/if}
-      {#each Object.values(rotationErrors) as error}<p role="alert" class="text-[12px] text-danger">{t(error)}</p>{/each}
+      {#each Object.values(rotationErrors) as error}<p role="alert" class="text-callout text-danger">{t(error)}</p>{/each}
     </div>
   {/if}
   {#snippet footer()}
@@ -512,7 +512,7 @@
   {#if renewing}
     <form id="agent-renew-form" class="grid gap-3" onsubmit={(e) => { e.preventDefault(); void submitRenewal() }}>
       <div class="grid gap-1.5">
-        <h3 class="text-[12px] font-medium text-faint">{t('scopeLabel')}</h3>
+        <h3 class="text-callout font-medium text-muted">{t('scopeLabel')}</h3>
         <div class="flex flex-wrap gap-3">
           {#each Object.keys(renewing.scopes) as scope (scope)}
             <Checkbox bind:checked={() => renewing?.scopes[scope] ?? false, (on) => renewing && (renewing.scopes[scope] = on)}>{scope}</Checkbox>
@@ -520,7 +520,7 @@
         </div>
       </div>
       <div class="grid gap-1.5">
-        <h3 class="text-[12px] font-medium text-faint">{t('audienceLabel')}</h3>
+        <h3 class="text-callout font-medium text-muted">{t('audienceLabel')}</h3>
         <div class="flex flex-wrap gap-3">
           {#each Object.keys(renewing.audiences) as audience (audience)}
             <Checkbox bind:checked={() => renewing?.audiences[audience] ?? false, (on) => renewing && (renewing.audiences[audience] = on)}>{audience}</Checkbox>
@@ -529,7 +529,7 @@
       </div>
       <div class="grid gap-3 sm:grid-cols-[1fr_96px]">
         <Field label={t('relationship')}><input bind:value={renewing.relationship} /></Field>
-        <Field label={t('days')}><input type="number" required min="1" max="366" step="1" aria-describedby="renew-days-range" bind:value={renewing.days} class="tabular-nums" data-testid="renew-days" /><span id="renew-days-range" class="text-[11.5px] text-muted">{t('agentDaysRange')}</span></Field>
+        <Field label={t('days')}><input type="number" required min="1" max="366" step="1" aria-describedby="renew-days-range" bind:value={renewing.days} class="tabular-nums" data-testid="renew-days" /><span id="renew-days-range" class="text-caption text-muted">{t('agentDaysRange')}</span></Field>
       </div>
     </form>
   {/if}

@@ -24,7 +24,7 @@
 {#if jobs.length}
   <div class="pointer-events-none absolute inset-x-2 bottom-2 z-10 grid min-w-0 grid-cols-[minmax(0,1fr)] max-h-[calc(100%-1rem)] gap-1.5 overflow-x-hidden overflow-y-auto">
     {#if jobs.length > SHOWN}
-      <p class="pointer-events-auto justify-self-center rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11px] text-faint" data-testid="files-jobs-more">
+      <p class="pointer-events-auto justify-self-center rounded-full border border-line bg-surface px-2.5 py-0.5 text-caption text-faint" data-testid="files-jobs-more">
         {t('moreJobs', { n: jobs.length - SHOWN })}
       </p>
     {/if}
@@ -41,7 +41,7 @@
             name={job.stage === 'done' ? 'verified' : job.stage === 'error' ? 'warning' : job.stage === 'cancelled' ? 'close' : icon(job)}
             class={cn('shrink-0', job.stage === 'done' ? 'text-ok' : job.stage === 'error' ? 'text-danger' : 'text-faint')}
           />
-          <b class="min-w-0 flex-1 truncate text-[12.5px] font-medium" title={nameOf(job)} dir="auto">{nameOf(job)}</b>
+          <b class="min-w-0 flex-1 truncate text-callout font-medium" title={nameOf(job)} dir="auto">{nameOf(job)}</b>
           {#if (job.kind === 'backup' || job.upload) && ['error', 'retrying', 'paused'].includes(job.stage)}
             <button class={buttonClass('ghost', 'xs')} onclick={() => onRetry(job)}>{t('retry')}</button>
           {/if}
@@ -55,12 +55,12 @@
             </button>
           {/if}
         </div>
-        {#if job.stage !== 'done' && count(job)}<p class="mt-1.5 text-[11px] text-faint tabular-nums"><bdi>{count(job)}</bdi></p>{/if}
+        {#if job.stage !== 'done' && count(job)}<p class="mt-1.5 text-caption text-faint tabular-nums"><bdi>{count(job)}</bdi></p>{/if}
         {#if !['done', 'error', 'cancelled'].includes(job.stage)}
           <div class="mt-2"><Progress value={job.total && !job.folder && !['committing', 'verifying'].includes(job.stage) ? job.done : null} max={job.total || 1} label={label(job)} /></div>
         {/if}
         {#if ['done', 'error', 'cancelled'].includes(job.stage) || job.current}
-        <p class={cn('mt-1.5 truncate text-[11.5px]', job.stage === 'error' ? 'text-danger' : job.stage === 'done' ? 'text-ok' : 'text-faint')}>
+        <p class={cn('mt-1.5 truncate text-caption', job.stage === 'error' ? 'text-danger' : job.stage === 'done' ? 'text-ok' : 'text-faint')}>
           {#if job.stage === 'error'}
             {job.kind === 'add' ? t('addFailed') : t('error')}: {job.error}
           {:else if job.stage === 'cancelled'}
@@ -72,7 +72,7 @@
           {/if}
         </p>
         {/if}
-        {#if job.retryAt && job.stage === 'retrying'}<p class="mt-1 text-[11.5px] text-faint">{t('syncRetryAt', { time: new Date(job.retryAt).toLocaleTimeString() })}</p>{/if}
+        {#if job.retryAt && job.stage === 'retrying'}<p class="mt-1 text-caption text-faint">{t('syncRetryAt', { time: new Date(job.retryAt).toLocaleTimeString() })}</p>{/if}
       </div>
     {/each}
   </div>

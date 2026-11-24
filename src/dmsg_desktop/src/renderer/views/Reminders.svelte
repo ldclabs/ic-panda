@@ -142,8 +142,8 @@
   {#if incoming}
     <section class="grid max-w-xl gap-5 py-4" aria-labelledby="reminder-state-title" data-testid="reminder-state">
       <Icon name={query.has('ended') ? 'info' : wrongAccount ? 'account' : step ? 'lock' : 'bell'} class="size-6 text-muted" />
-      <h2 id="reminder-state-title" class="text-[17px] font-semibold text-ink [overflow-wrap:anywhere]">{query.has('ended') ? endedTitle : wrongAccount ? t('reminderOtherAccount') : step ? t('reminderUnlockTitle') : openingError ? t('reminderOpenFailed') : t('reminderOpening')}</h2>
-      <p class="text-[13.5px] leading-relaxed text-muted">{query.has('ended') ? t('reminderUnavailableHint') : wrongAccount ? t('reminderAccountHint') : step ? t('reminderUnlockHint') : ''}</p>
+      <h2 id="reminder-state-title" class="text-title-2 font-semibold text-ink [overflow-wrap:anywhere]">{query.has('ended') ? endedTitle : wrongAccount ? t('reminderOtherAccount') : step ? t('reminderUnlockTitle') : openingError ? t('reminderOpenFailed') : t('reminderOpening')}</h2>
+      <p class="text-body leading-relaxed text-muted">{query.has('ended') ? t('reminderUnavailableHint') : wrongAccount ? t('reminderAccountHint') : step ? t('reminderUnlockHint') : ''}</p>
       {#if wrongAccount && !query.has('ended')}
         <div class="flex flex-wrap items-center gap-2" data-testid="reminders-original-account">{#if nameOf(requestedAccount!, false)}<span class="font-medium">{nameOf(requestedAccount!, false)}</span>{/if}<Id id={requestedAccount!} /></div>
         <div><button class={buttonClass('primary')} disabled={$unlocking} onclick={openAccounts} data-testid="reminders-choose-account"><Icon name="account" />{t('localAccounts')}</button></div>
@@ -166,7 +166,7 @@
           <DropdownMenu.Trigger class={iconButtonClass()} aria-label={t('moreActions')} title={t('moreActions')} data-testid="reminders-menu"><Icon name="more" /></DropdownMenu.Trigger>
           <DropdownMenu.Portal><DropdownMenu.Content class={`${menuContentClass} max-w-80`}>
             <DropdownMenu.Item class={`${menuItemClass} whitespace-normal`} disabled={loading || busy || !(items.some(noticeUnread) || summary?.counts.actionable || summary?.counts.unread)} onSelect={() => markRead()} data-testid="reminders-read-all">{t('reminderReadAll')}</DropdownMenu.Item>
-            <p class="px-3 py-2 text-xs text-muted">{t('noticeMarkReadHint')}</p>
+            <p class="px-3 py-2 text-callout text-muted">{t('noticeMarkReadHint')}</p>
             <DropdownMenu.Separator class="my-1 h-px bg-line" />
             <DropdownMenu.Item class={menuItemClass} onSelect={() => go('/settings/notifications')}>{t('noticeSettings')}</DropdownMenu.Item>
             {#if scope === 'recent'}<DropdownMenu.Item class={menuItemClass} disabled={busy || !selected} onSelect={clear}>{t('noticeClear')}</DropdownMenu.Item>{/if}
@@ -175,7 +175,7 @@
       </div>
       {#if error}<Notice failure={error} tone="danger">{error}</Notice><div><button class={buttonClass('secondary','sm')} disabled={loading || busy} onclick={() => reload()}>{t('retry')}</button></div>{/if}
       {#if step}<Notice icon="lock">{t('reminderUnlockHint')}{#snippet action()}<button class={buttonClass('secondary','sm')} disabled={$unlocking} onclick={step.run}>{t(step.label)}</button>{/snippet}</Notice>{/if}
-      {#if counts?.unverified}<div class="flex flex-wrap items-center gap-2 text-xs text-muted" role="status" data-testid="reminders-unverified"><span>{t('noticeVerifyHint')}</span>{#if scope === 'open'}<button class={buttonClass('ghost','xs')} onclick={() => scope = 'recent'}>{t('noticeRecent')}</button>{/if}</div>{/if}
+      {#if counts?.unverified}<div class="flex flex-wrap items-center gap-2 text-callout text-muted" role="status" data-testid="reminders-unverified"><span>{t('noticeVerifyHint')}</span>{#if scope === 'open'}<button class={buttonClass('ghost','xs')} onclick={() => scope = 'recent'}>{t('noticeRecent')}</button>{/if}</div>{/if}
       <ul class="divide-y divide-line" data-testid="reminders-list">
         {#each items as item (item.id)}
           <li class="flex items-start gap-1 rounded-lg pe-1 transition-colors duration-100 hover:bg-wash" data-testid="reminder-item">
@@ -190,7 +190,7 @@
             </DropdownMenu.Root>
           </li>
         {:else}
-          {#if !error}<li class="grid justify-items-center gap-2 px-5 py-12 text-center" role="status"><Icon name="bell" class="size-6 text-faint" /><span class="text-[14px] font-medium">{loading ? t('loading') : counts?.unverified ? t('noticeVerifyHint') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')}</span>{#if !loading && !counts?.unverified && scope === 'open'}<span class="text-[12.5px] text-muted">{t('reminderEmptyHint')}</span>{/if}</li>{/if}
+          {#if !error}<li class="grid justify-items-center gap-2 px-5 py-12 text-center" role="status"><Icon name="bell" class="size-6 text-faint" /><span class="text-body font-medium">{loading ? t('loading') : counts?.unverified ? t('noticeVerifyHint') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')}</span>{#if !loading && !counts?.unverified && scope === 'open'}<span class="text-callout text-muted">{t('reminderEmptyHint')}</span>{/if}</li>{/if}
         {/each}
       </ul>
       {#if cursor}<div><button class={buttonClass('secondary','sm')} disabled={loading || busy} onclick={() => load(true)}>{t('more')}</button></div>{/if}
@@ -207,7 +207,7 @@
         {@const late = laterItem.deadline !== null && choice.until >= laterItem.deadline}
         <div>
           <button class={buttonClass('secondary', 'sm')} disabled={busy || late} onclick={() => snooze(choice.until)}>{choice.label}</button>
-          {#if late}<p class="mt-1 text-xs text-muted">{t('noticeLate')}</p>{/if}
+          {#if late}<p class="mt-1 text-callout text-muted">{t('noticeLate')}</p>{/if}
         </div>
       {/each}
     </div>

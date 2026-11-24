@@ -54,7 +54,7 @@
   data-testid={testid}
 >
   {#each tags as tag, i (i)}
-    <span class="inline-flex h-6 max-w-full items-center gap-0.5 rounded-md bg-wash ps-2 pe-0.5 text-xs text-ink-2">
+    <span class="inline-flex h-6 max-w-full items-center gap-0.5 rounded-md bg-wash ps-2 pe-0.5 text-callout text-ink-2">
       <span class="truncate">{tag}</span>
       <button
         type="button"
@@ -73,7 +73,7 @@
     bind:this={input}
     bind:value={text}
     aria-label={t('tags')}
-    class="h-6 min-w-24 flex-1 border-0 bg-transparent px-1 py-0 text-[13px] shadow-none focus-visible:shadow-none focus-visible:ring-0"
+    class="h-6 min-w-24 flex-1 border-0 bg-transparent px-1 py-0 text-body shadow-none focus-visible:shadow-none focus-visible:ring-0"
     placeholder={tags.length ? '' : placeholder}
     disabled={tags.length >= max}
     onkeydown={onKey}

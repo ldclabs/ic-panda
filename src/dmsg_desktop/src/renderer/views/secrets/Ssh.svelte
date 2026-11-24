@@ -30,7 +30,7 @@
 <Panel {model} title={w('ssh')} description={ux('sshSteps')}>
   <div class={card}>
     <div class="flex flex-wrap justify-between gap-2">
-      <span class="text-sm"
+      <span class="text-body"
         >{ux('status')}: {ssh.available ? ux('ready') : ux('unknown')}</span
       ><button
         class={buttonClass('secondary')}
@@ -38,7 +38,7 @@
         onclick={() => model.refresh()}>{ux('sshCheck')}</button
       >
     </div>
-    <p class="text-xs text-muted">{ux('sshCheckHint')}</p>
+    <p class="text-callout text-muted">{ux('sshCheckHint')}</p>
     {#if ssh.socket}<Id
         id={`export SSH_AUTH_SOCK=${quoteShell(ssh.socket)}`}
         full
@@ -51,7 +51,7 @@
   {#if model.state.loaded && !keys.length && !model.state.errors.keys}<div
       class={card}
     >
-      <p class="text-sm text-muted">{ux('noSources')}</p>
+      <p class="text-body text-muted">{ux('noSources')}</p>
       <button class={buttonClass('primary')} onclick={() => openVault()}
         >{ux('openVault')}</button
       >
@@ -91,29 +91,29 @@
         >
       </div>
       {#if key.supported && ssh.socket}<details>
-          <summary class="cursor-pointer text-sm text-forest"
+          <summary class="text-body text-forest"
             >{ux('copyConfig')}</summary
           >
           <pre
-            class="my-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-wash p-3 text-xs"
+            class="my-3 overflow-x-auto whitespace-pre-wrap select-text break-all rounded-lg bg-wash p-3 text-callout"
             dir="ltr">{config(key)}</pre>
           <button
             class={buttonClass('secondary')}
             onclick={() => copyText(config(key))}>{ux('copyConfig')}</button
           >
-          <p class="mt-2 text-xs text-muted">
+          <p class="mt-2 text-callout text-muted">
             {w('sshEnableWarning')}
             {w('gitWarning')}
           </p>
         </details>{/if}
     </article>{/each}
   {#each bindings.filter((b) => b.enabled) as binding}<article class={card}>
-      <p class="text-sm">
+      <p class="text-body">
         {keys.find((k) => k.fingerprint === binding.fingerprint)?.title ??
           ux('fingerprint')}
       </p>
       <Id id={binding.fingerprint} full wrap />
-      <p class="text-sm">{binding.purposes.map(term).join(' · ')}</p>
+      <p class="text-body">{binding.purposes.map(term).join(' · ')}</p>
       <button
         class={buttonClass('danger')}
         disabled={model.state.busy}

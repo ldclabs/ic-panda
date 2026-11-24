@@ -21,11 +21,11 @@
 
 <div class="space-y-2" data-testid="secret-dependencies">
   {#each index.dependencies as entry}<div
-      class="rounded-lg border border-line p-3 text-sm"
+      class="rounded-lg border border-line p-3 text-body"
     >
       <div class="flex flex-wrap justify-between gap-2">
         <span class="font-medium break-all">{entry.label}</span><span
-          class="text-xs text-muted"
+          class="text-callout text-muted"
           >{term(entry.kind)} · {term(entry.state)}</span
         >
       </div>
@@ -35,10 +35,10 @@
           >{w('review')}</button
         >{/if}
       <details>
-        <summary class="cursor-pointer text-xs text-muted"
+        <summary class="text-callout text-muted"
           >{ux('details')}</summary
         ><Id id={entry.id} full wrap />
-        <p class="break-all text-xs">{entry.action}</p>
+        <p class="break-all text-callout">{entry.action}</p>
       </details>
-    </div>{:else}<p class="text-sm text-muted">{w('noDependencies')}</p>{/each}
+    </div>{:else}<p class="text-body text-muted">{w('noDependencies')}</p>{/each}
 </div>

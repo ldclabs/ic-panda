@@ -2486,6 +2486,12 @@ smoke: try {
     console.log('desktop interaction smoke test passed')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'gallery') {
+    const { galleryFlow } = await import('./gallery-flow.mjs')
+    await galleryFlow({ app, main, shots })
+    console.log('gallery captured')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'settings') {
     await settingsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])

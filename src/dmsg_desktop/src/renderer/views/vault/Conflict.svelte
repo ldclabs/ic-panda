@@ -100,10 +100,10 @@
 {#snippet side(part: Part, entry: any, tone: 'current' | 'theirs')}
   {@const picked = (picks[part] ?? 'current') === tone}
   {@const field = part.startsWith('field:') ? fieldOf(entry, part) : undefined}
-  <div class={cn('min-w-0 rounded-lg border px-2.5 py-1.5 text-[12.5px] transition-colors', picked ? 'border-forest bg-pale' : 'border-line bg-surface')}>
+  <div class={cn('min-w-0 rounded-lg border px-2.5 py-1.5 text-callout transition-colors', picked ? 'border-forest bg-pale' : 'border-line bg-surface')}>
     {#if mergeable}
       <button
-        class={cn('mb-1 flex items-center gap-1.5 text-[11.5px] outline-none focus-visible:underline', picked ? 'text-forest' : 'text-faint hover:text-ink')}
+        class={cn('mb-1 flex items-center gap-1.5 text-caption outline-none focus-visible:underline', picked ? 'text-forest' : 'text-faint hover:text-ink')}
         onclick={() => choose(part, tone)}
         aria-pressed={picked}
         data-testid={`conflict-pick-${tone}`}
@@ -122,11 +122,11 @@
         <span class="font-mono text-faint">••••••</span>
       {/if}
     {:else if part === 'notes' && body}
-      <ol class="font-mono text-[12px] leading-relaxed">
+      <ol class="font-mono text-code leading-relaxed">
         {#each tone === 'current' ? body.current : body.copy as line, i (i)}
           <li
             class={cn(
-              'min-h-[1.6em] px-1 whitespace-pre-wrap [overflow-wrap:anywhere]',
+              'min-h-[1.6em] px-1 whitespace-pre-wrap select-text [overflow-wrap:anywhere]',
               line.changed && (tone === 'current' ? 'bg-danger-pale text-danger line-through decoration-danger/40' : 'bg-ok-pale text-ok')
             )}
           >
@@ -144,15 +144,15 @@
   <Dialog bind:open title={t('conflictTitle', { title: copy.item.title })} description={t('conflictDialogHint')} icon="conflict" tone="warn" wide testid="conflict-dialog">
     {#if parts.length}
       <div class="grid gap-3">
-        <div class="grid grid-cols-[1fr_1fr] gap-3 border-b border-line pb-1.5 text-[12px]">
+        <div class="grid grid-cols-[1fr_1fr] gap-3 border-b border-line pb-1.5 text-callout">
           <span><b class="font-semibold">{t('currentVersion')}</b> <span class="text-faint">{when(head.item.updatedAt)}</span></span>
           <span><b class="font-semibold">{t('theCopy')}</b> <span class="text-faint">{when(copy.item.updatedAt)}</span></span>
         </div>
         {#each parts as part (part)}
           <div class="grid gap-1" data-testid="conflict-part" data-part={part}>
-            <div class="flex items-center gap-1.5 text-[11.5px] text-faint">
+            <div class="flex items-center gap-1.5 text-caption text-faint">
               {label(part)}
-              {#if conflict.hidden.includes(part.slice(6))}<span class="rounded bg-warn-pale px-1 text-[10.5px] text-warn">{t('hiddenDiffers')}</span>{/if}
+              {#if conflict.hidden.includes(part.slice(6))}<span class="rounded bg-warn-pale px-1 text-caption text-warn">{t('hiddenDiffers')}</span>{/if}
             </div>
             <div class="grid grid-cols-[1fr_1fr] gap-3">
               {@render side(part, head, 'current')}
@@ -164,16 +164,16 @@
                   <Icon name="edit" />{t('editMergedNotes')}
                 </button>
               {:else}
-                <textarea bind:value={notes} rows="5" class="text-[13px] text-ink" data-testid="conflict-notes"></textarea>
+                <textarea bind:value={notes} rows="5" class="text-body text-ink" data-testid="conflict-notes"></textarea>
               {/if}
             {/if}
           </div>
         {/each}
       </div>
     {:else}
-      <p class="text-[13px] text-muted">{t('sameContent')}</p>
+      <p class="text-body text-muted">{t('sameContent')}</p>
     {/if}
-    {#if !mergeable}<p class="mt-3 text-[12.5px] text-muted">{t('mergeDeleted')}</p>{/if}
+    {#if !mergeable}<p class="mt-3 text-callout text-muted">{t('mergeDeleted')}</p>{/if}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#snippet footer()}
       {#if conflicts.length > 1}
@@ -181,7 +181,7 @@
           <button class={iconButtonClass('ghost', 'md')} aria-label={t('previousOne')} disabled={at === 0} onclick={() => (index = at - 1)}>
             <Icon name="chevron-end" class="rotate-180" />
           </button>
-          <span class="text-[12px] text-faint tabular-nums">{t('conflictOf', { index: at + 1, n: conflicts.length })}</span>
+          <span class="text-callout text-faint tabular-nums">{t('conflictOf', { index: at + 1, n: conflicts.length })}</span>
           <button class={iconButtonClass('ghost', 'md')} aria-label={t('nextOne')} disabled={at >= conflicts.length - 1} onclick={() => (index = at + 1)}>
             <Icon name="chevron-end" />
           </button>

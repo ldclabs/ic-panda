@@ -347,13 +347,13 @@
 {/snippet}
 
 {#snippet author(account: string)}
-  <b class="text-[13px] font-semibold" title={account}>
+  <b class="text-body font-semibold" title={account}>
     {#if account === me}{t('you')}{:else}<bdi>{label(account)}</bdi>{/if}
   </b>
 {/snippet}
 
 {#snippet quote(target: any, ref: any)}
-  <div class="mb-1 flex max-w-lg items-baseline gap-1.5 border-s-2 border-edge-soft ps-2 text-[12px] text-faint" data-testid="message-quote">
+  <div class="mb-1 flex max-w-lg items-baseline gap-1.5 border-s-2 border-edge-soft ps-2 text-callout text-muted" data-testid="message-quote">
     <Icon name="reply" class="size-3 shrink-0" />
     {#if target}
       <span class="shrink-0 font-medium text-muted">{target.account === me ? t('you') : label(target.account)}</span>
@@ -380,17 +380,17 @@
   {@const packet = packetStep(message.packet, ledger, channel?.billing, me)}
   {#if message.packet?.format==='dmsg-wallet-event/1' && validPrincipal(message.packet.wallet??'')}
     <div class="mt-1.5 max-w-md rounded-xl border border-line bg-surface p-3" data-testid="message-wallet-event">
-      <p class="text-[13px] font-semibold">{message.packet.name}</p>
-      <p class="mt-1 text-[12px]">{message.packet.proposal!=null?`#${message.packet.proposal} · `:''}{w(message.packet.status??'proposals')}</p>
-      <p class="mt-1 text-[11px] text-faint">{w('channelHint')}</p>
-      <a class="mt-2 inline-flex text-[12px] font-medium text-forest underline" href={`#${walletRoute(message.packet.wallet,Number.isSafeInteger(message.packet.proposal)?message.packet.proposal:undefined)}`}>{w('details')}</a>
+      <p class="text-body font-semibold">{message.packet.name}</p>
+      <p class="mt-1 text-callout">{message.packet.proposal!=null?`#${message.packet.proposal} · `:''}{w(message.packet.status??'proposals')}</p>
+      <p class="mt-1 text-caption text-faint">{w('channelHint')}</p>
+      <a class="mt-2 inline-flex text-callout font-medium text-forest underline" href={`#${walletRoute(message.packet.wallet,Number.isSafeInteger(message.packet.proposal)?message.packet.proposal:undefined)}`}>{w('details')}</a>
     </div>
   {:else if packet}
     <div class="mt-1.5 flex max-w-md items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5" data-testid="message-packet">
       <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-pale text-forest"><Icon name={packet.kind === 'owner' ? 'owner' : 'coins'} /></span>
       <span class="min-w-0 flex-1">
-        <span class="block text-[13px] font-medium">{packet.kind === 'owner' ? t('transferOwner') : t('transferSponsor')}</span>
-        <span class="block truncate text-[11.5px] text-faint">
+        <span class="block text-body font-medium">{packet.kind === 'owner' ? t('transferOwner') : t('transferSponsor')}</span>
+        <span class="block truncate text-caption text-faint">
           → {packet.target === me ? t('you') : label(packet.target)} · {message.packet.acceptance ? t('packetAcceptedShort') : t('packetProposed')}
         </span>
       </span>
@@ -399,7 +399,7 @@
           {packet.step === 'accept' ? t('acceptTransfer') : t('commitTransfer')}
         </button>
       {:else if packet.step === 'done'}
-        <span class="inline-flex items-center gap-1 text-[11.5px] text-forest"><Icon name="check" class="size-3.5" />{t('transferDone')}</span>
+        <span class="inline-flex items-center gap-1 text-caption text-forest"><Icon name="check" class="size-3.5" />{t('transferDone')}</span>
       {/if}
     </div>
   {/if}
@@ -434,17 +434,17 @@
          laid out, so the timeline's end is where it says it is. -->
     <section class={g < groups.length - 2 ? '[content-visibility:auto] [contain-intrinsic-size:auto_600px]' : ''}>
     <div class="sticky top-0 z-[1] flex justify-center py-1.5">
-      <span class="rounded-full border border-line bg-paper px-2.5 py-0.5 text-[11px] font-medium text-faint">{dayLabel(group.at)}</span>
+      <span class="rounded-full border border-line bg-paper px-2.5 py-0.5 text-caption font-medium text-faint">{dayLabel(group.at)}</span>
     </div>
     {#each group.messages as message, i (message.seq)}
       {@const compact = follows(group.messages, i) && message.seq !== unreadAt}
       {#if message.seq === unreadAt}
-        <div class="flex items-center gap-3 px-6 py-1.5 text-[11px] font-medium text-forest" data-testid="unread-divider">
+        <div class="flex items-center gap-3 px-6 py-1.5 text-caption font-medium text-forest" data-testid="unread-divider">
           <span class="h-px flex-1 bg-forest/40"></span>{t('newMessages')}<span class="h-px flex-1 bg-forest/40"></span>
         </div>
       {/if}
       {#if message.hidden}
-        <div class="flex items-center gap-2 px-6 py-1 text-[11.5px] text-faint" data-seq={message.seq} data-testid="message-hidden">
+        <div class="flex items-center gap-2 px-6 py-1 text-caption text-faint" data-seq={message.seq} data-testid="message-hidden">
           <Icon name="eye-off" class="size-3.5" />{t('hiddenMessage')}
           <button class="underline-offset-2 hover:text-ink hover:underline" onclick={() => onHide(message, false)}>{t('show')}</button>
         </div>
@@ -456,7 +456,7 @@
           dir="ltr"
         >
           {#if compact}
-            <time class="w-8 shrink-0 pt-0.5 text-end text-[10.5px] text-faint opacity-0 group-hover:opacity-100">{timeFormat.format(message.stored_at)}</time>
+            <time class="w-8 shrink-0 pt-0.5 text-end text-caption text-faint opacity-0 group-hover:opacity-100">{timeFormat.format(message.stored_at)}</time>
           {:else}
             <ParticipantAvatar account={message.account} />
           {/if}
@@ -465,26 +465,26 @@
               <div class={cn('flex flex-wrap items-baseline gap-x-2', mine(message) && 'justify-end')}>
                 {@render author(message.account)}
                 {#if message.agent}
-                  <span class="inline-flex items-center gap-1 rounded bg-wash px-1 text-[10.5px] text-ink-2" title={message.agent.id} data-testid="message-agent">
+                  <span class="inline-flex items-center gap-1 rounded bg-wash px-1 text-caption text-ink-2" title={message.agent.id} data-testid="message-agent">
                     <Icon name="agents" class="size-3" />{t('viaAgent', { name: message.agent.name })}
                   </span>
                 {/if}
-                <time class="text-[11px] text-faint" title={when(message.stored_at)}>{timeFormat.format(message.stored_at)}</time>
+                <time class="text-caption text-faint" title={when(message.stored_at)}>{timeFormat.format(message.stored_at)}</time>
                 {#if mine(message)}{@render ticks(message)}{/if}
               </div>
             {/if}
             {#if message.reply_to}{@render quote(bySeq.get(message.reply_to.seq), message.reply_to)}{/if}
             {#if message.unreadable}
-              <p class="inline-flex items-center gap-1.5 text-[13px] text-faint italic" data-testid="message-unreadable"><Icon name="warning" class="size-3.5 text-warn" />{t('unreadableMessage')}</p>
+              <p class="inline-flex items-center gap-1.5 text-body text-faint italic" data-testid="message-unreadable"><Icon name="warning" class="size-3.5 text-warn" />{t('unreadableMessage')}</p>
             {:else if message.retracted}
-              <p class="text-[13px] text-faint italic" data-testid="message-retracted">{t('retracted')}</p>
+              <p class="text-body text-faint italic" data-testid="message-retracted">{t('retracted')}</p>
             {:else}
               {#if message.text}
-                <p dir="auto" class="max-w-xl text-start text-[13.5px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
-                  <LinkedText text={message.text} />{#if message.edited_at}<span class="ms-1 text-[11px] text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
+                <p dir="auto" class="max-w-xl text-start text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
+                  <LinkedText text={message.text} />{#if message.edited_at}<span class="ms-1 text-caption text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
                 </p>
               {/if}
-              {#if message.file_deleted}<p class="mt-2 text-[12px] text-faint" data-testid="attachment-deleted">{t('storageAttachmentDeleted')}</p>
+              {#if message.file_deleted}<p class="mt-2 text-callout text-muted" data-testid="attachment-deleted">{t('storageAttachmentDeleted')}</p>
               {:else if message.file}
                 {#if isImage(message) && images[message.seq]}
                   <button class="mt-1.5 block max-w-sm cursor-zoom-in overflow-hidden rounded-xl border border-line" onclick={() => (large = message)} title={message.file.name} data-testid="message-image-open">
@@ -497,8 +497,8 @@
                 >
                   <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={isImage(message) ? 'image' : 'file'} /></span>
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate text-[13px] font-medium">{message.file.name}</span>
-                    <span class="block text-[11.5px] text-faint">{size(message.file.size)}</span>
+                    <span class="block truncate text-body font-medium">{message.file.name}</span>
+                    <span class="block text-caption text-faint">{size(message.file.size)}</span>
                   </span>
                   {#if message.file.mime==='application/vnd.dmsg.secret-package'}
                     <button class={buttonClass('secondary','sm')} onclick={()=>onSnapshot(message)} data-testid="message-snapshot">{workflowText('channelSnapshot')}</button>
@@ -558,7 +558,7 @@
       <div class="grid h-full place-items-center px-8 text-center">
         <div class="grid justify-items-center gap-2">
           <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
-          <p class="text-[13px] text-muted">{t('noMessages')}</p>
+          <p class="text-body text-muted">{t('noMessages')}</p>
         </div>
       </div>
     {/if}
@@ -570,20 +570,20 @@
         <div class="flex flex-wrap items-baseline justify-end gap-2">
           {@render author(me ?? '')}
           {#if item.queued}
-            <span class="text-[11px] text-muted">{t('mailQueued')}</span>
+            <span class="text-caption text-muted">{t('mailQueued')}</span>
           {:else if item.sending}
-            <span class="shimmer text-[11px]">{t('sending')}</span>
+            <span class="shimmer text-caption">{t('sending')}</span>
           {:else if uncertainSend(item)}
-            <span class="inline-flex items-center gap-1 text-[11px] text-warn"><Icon name="history" class="size-3" />{t('waiting')}</span>
+            <span class="inline-flex items-center gap-1 text-caption text-warn"><Icon name="history" class="size-3" />{t('waiting')}</span>
           {:else}
-            <span class="inline-flex items-center gap-1 text-[11px] text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
+            <span class="inline-flex items-center gap-1 text-caption text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
           {/if}
         </div>
-        {#if item.draft?.text}<p dir="auto" class="max-w-xl text-start text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
-        {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
+        {#if item.draft?.text}<p dir="auto" class="max-w-xl text-start text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
+        {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-callout text-muted"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
         {#if !item.sending && !item.queued}
           <div class="mt-1 flex gap-1.5">
-            <button class={buttonClass('secondary', 'xs')} onclick={() => onRetry(item)} data-testid="outgoing-retry">{t(uncertainSend(item) ? 'reconcileNow' : 'retry')}</button>
+            <button class={buttonClass('subtle', 'xs')} onclick={() => onRetry(item)} data-testid="outgoing-retry">{t(uncertainSend(item) ? 'reconcileNow' : 'retry')}</button>
             {#if !uncertainSend(item)}<button class={buttonClass('ghost', 'xs')} onclick={() => onDiscard(item)} data-testid="outgoing-discard">{t('discard')}</button>{/if}
           </div>
         {/if}
@@ -598,7 +598,7 @@
     onclick={latest}
     data-testid="channel-latest"
   >
-    <Icon name="arrow-down" />{t('jumpToLatest')}{#if channel?.unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest tabular-nums">{channel.unread > 99 ? '99+' : channel.unread}</span>{/if}
+    <Icon name="arrow-down" />{t('jumpToLatest')}{#if channel?.unread}<span class="rounded-full bg-forest px-1.5 text-caption leading-4 font-semibold text-on-forest tabular-nums">{channel.unread > 99 ? '99+' : channel.unread}</span>{/if}
   </button>
 {/if}
 </div>
@@ -607,7 +607,7 @@
   <Dialog bind:open={() => !!large, (open) => !open && (large = null)} title={large.file.name} icon="image" wide testid="message-image-large">
     <img src={images[large.seq]} alt={large.file.name} class="mx-auto max-h-[64vh] w-auto rounded-lg object-contain" />
     {#snippet footer()}
-      <span class="min-w-0 flex-1 truncate text-[12px] text-faint">{size(large.file.size)}</span>
+      <span class="min-w-0 flex-1 truncate text-callout text-muted">{size(large.file.size)}</span>
       <button class={buttonClass('ghost')} onclick={() => copyImage(large)} data-testid="image-copy"><Icon name="copy" />{t('copy')}</button>
       <button class={buttonClass('ghost')} onclick={() => onSave(large)}><Icon name="folder-add" />{t('saveToLibrary')}</button>
       <button class={buttonClass('primary')} onclick={() => onDownload(large)} data-testid="image-download"><Icon name="download" />{t('download')}</button>
@@ -618,7 +618,7 @@
 {#if writes}
   <div class="border-t border-line px-4 pt-2.5 pb-3">
     {#if reply || editing}
-      <div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px] text-muted" data-testid="composer-mode">
+      <div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-callout text-muted" data-testid="composer-mode">
         <Icon name={editing ? 'edit' : 'reply'} class="size-3.5 shrink-0" />
         <span class="shrink-0 font-medium">{editing ? t('editing') : `${t('replyingTo')} ${reply.account === me ? t('you') : label(reply.account)}`}</span>
         <span class="min-w-0 flex-1 truncate">{snippet(editing?.message ?? reply)}</span>
@@ -628,7 +628,7 @@
     {#if attachments.length && !editing}
       <div class="mb-2 flex flex-wrap gap-1.5">
         {#each attachments as file (file.id)}
-          <div class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-line bg-surface ps-2 pe-0.5 py-0.5 text-[12px]" data-testid="channel-attached">
+          <div class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-line bg-surface ps-2 pe-0.5 py-0.5 text-callout" data-testid="channel-attached">
             <Icon name="attach" class="size-3.5 shrink-0 text-faint" />
             <span class="truncate">{file.name}</span>
             <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('remove')} onclick={() => (attachments = attachments.filter((f) => f.id !== file.id))}><Icon name="close" /></button>
@@ -650,7 +650,7 @@
             <DropdownMenu.Content side="top" align="start" sideOffset={6} class={cn(menuContentClass, 'w-72')} data-testid="channel-attachment-menu">
               {#if files.length}
                 <DropdownMenu.Group>
-                  <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('fromLibrary')}</DropdownMenu.GroupHeading>
+                  <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-caption font-medium text-faint">{t('fromLibrary')}</DropdownMenu.GroupHeading>
                   {#each files as file (file.id)}
                     <DropdownMenu.Item
                       class={menuItemClass}
@@ -658,7 +658,7 @@
                       onSelect={() => !attachments.some((a) => a.id === file.id) && (attachments = [...attachments, { id: file.id, name: file.name }])}
                     >
                       <span class="flex min-w-0 items-center gap-2"><Icon name="file" class="shrink-0 text-faint" /><span class="truncate">{file.name}</span></span>
-                      <span class="shrink-0 text-[11px] text-faint">{size(file.size)}</span>
+                      <span class="shrink-0 text-caption text-faint">{size(file.size)}</span>
                     </DropdownMenu.Item>
                   {/each}
                 </DropdownMenu.Group>
@@ -678,7 +678,7 @@
         bind:this={input}
         bind:value={() => composerText, (text) => { if (editing) editing.text = text; else draft = text }}
         rows="1"
-        class="max-h-40 min-h-8 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 text-[13.5px] shadow-none [field-sizing:content] focus-visible:shadow-none"
+        class="max-h-40 min-h-8 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 text-body shadow-none [field-sizing:content] focus-visible:shadow-none"
         placeholder={t('messageTo', { name: channel.name })}
         onkeydown={onKey}
         onpaste={pasteFiles}
@@ -688,7 +688,7 @@
         <Icon name={editing ? 'check' : 'send'} class="rtl:-scale-x-100" />{editing ? t('save') : t('send')}
       </button>
     </div>
-    <p class="mt-1.5 flex gap-2 px-1 text-[11px] text-faint">
+    <p class="mt-1.5 flex gap-2 px-1 text-caption text-faint">
       <span class="min-w-0 flex-1">{t('composerHint')}</span>
       {#if used > MAX_TEXT * 0.8}<span class={cn('tabular-nums', tooLong && 'text-danger')} data-testid="composer-count">{used} / {MAX_TEXT}</span>{/if}
     </p>

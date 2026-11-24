@@ -256,11 +256,11 @@
   })
 
   const tabClass =
-    'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
+    'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-callout text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
 </script>
 
 {#snippet sender(account: string)}
-  <bdi {@attach visibleName(account)} class="truncate text-[13px]" title={account}>{label(account, false)}</bdi>
+  <bdi {@attach visibleName(account)} class="truncate text-body" title={account}>{label(account, false)}</bdi>
 {/snippet}
 
 <div class="@container flex h-full min-h-0 flex-wrap" data-testid="inbox">
@@ -293,7 +293,7 @@
         <Tabs.Root bind:value={() => box, (next) => (box = next as Box)}>
           <Tabs.List aria-label={t('inbox')} class="flex gap-0.5 rounded-[10px] bg-wash p-0.5">
             <Tabs.Trigger value="inbox" class={tabClass} data-testid="inbox-received">
-              {t('inbox')}{#if unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest">{unread}</span>{/if}
+              {t('inbox')}{#if unread}<span class="rounded-full bg-forest px-1.5 text-caption leading-4 font-semibold text-on-forest">{unread}</span>{/if}
             </Tabs.Trigger>
             <Tabs.Trigger value="sent" class={tabClass} data-testid="inbox-sent">{t('sentLetters')}</Tabs.Trigger>
             <Tabs.Trigger value="archive" class={tabClass}>{t('archived')}</Tabs.Trigger>
@@ -304,12 +304,12 @@
           <input bind:value={query} class="ps-8" placeholder={t('searchLetters')} aria-label={t('searchLetters')} data-testid="letter-search" />
         </label>
       </div>
-      <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
+      <ul data-list class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
         {#if boxError}
           <li class="pb-2">
             <Notice failure={boxError} tone="danger" testid="inbox-error">
               {boxError === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : boxError}
-              {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={box === 'sent' ? readingOutgoing : refreshing} onclick={() => box === 'sent' ? loadOutgoing() : refreshLetters()}>{t('retry')}</button>{/snippet}
+              {#snippet action()}<button class={buttonClass('subtle', 'xs')} disabled={box === 'sent' ? readingOutgoing : refreshing} onclick={() => box === 'sent' ? loadOutgoing() : refreshLetters()}>{t('retry')}</button>{/snippet}
             </Notice>
           </li>
         {/if}
@@ -326,11 +326,11 @@
             >
               <Avatar id={account} />
               <span class="min-w-0">
-                <span class={cn('flex items-center gap-1.5 truncate text-[13px] leading-snug', box !== 'sent' && !item.read ? 'font-semibold' : 'font-medium')}>
+                <span class={cn('flex items-center gap-1.5 truncate text-body leading-snug', box !== 'sent' && !item.read ? 'font-semibold' : 'font-medium')}>
                   {#if box === 'sent'}<span class="text-faint">{t('to')}</span>{/if}
                   {@render sender(account)}
                 </span>
-                <span class="block truncate text-[12px] leading-snug text-faint">
+                <span class="block truncate text-callout leading-snug text-muted">
                   {#if box === 'sent'}
                     {item.text ? item.text.split('\n')[0] : item.paid ? t('paidLetter') : t('freeLetter')}
                   {:else if item.state === 'visible'}
@@ -340,7 +340,7 @@
                   {/if}
                 </span>
               </span>
-              <span class="flex flex-col items-end gap-1 pt-0.5 text-[11px] text-faint">
+              <span class="flex flex-col items-end gap-1 pt-0.5 text-caption text-faint">
                 {#if box !== 'sent' || item.sent_at}<span class="whitespace-nowrap">{ago(box === 'sent' ? item.sent_at : item.created_at)}</span>{/if}
                 {#if box !== 'sent' && !item.read}<span class="size-2 rounded-full bg-forest" title={t('unread')}></span>{/if}
                 {#if box === 'sent' && item.paid}<Icon name="coins" class="size-3.5 text-gem" />{/if}
@@ -350,7 +350,7 @@
         {:else}
           {#if !boxError}<li class="grid justify-items-center gap-2 px-4 py-10 text-center">
             <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="inbox" /></span>
-            <p class="text-[13px] text-muted" role="status" data-testid="letters-empty">{!ready || (refreshing && box !== 'sent') ? t('loading') : asked ? t('noResults') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
+            <p class="text-body text-muted" role="status" data-testid="letters-empty">{!ready || (refreshing && box !== 'sent') ? t('loading') : asked ? t('noResults') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
           </li>{/if}
         {/each}
       </ul>
@@ -364,25 +364,25 @@
           <header class="flex flex-wrap items-start gap-3">
             <Avatar id={letter.sender} size="lg" />
             <div class="min-w-0 flex-1 basis-40">
-              <button class="block max-w-full truncate text-start text-[13.5px] font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${letter.sender}`} onclick={() => copyText(letter.sender)}>
+              <button class="block max-w-full truncate text-start text-body font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${letter.sender}`} onclick={() => copyText(letter.sender)}>
                 <bdi>{label(letter.sender)}</bdi>
               </button>
-              <p class="text-[12px] text-faint">{when(letter.created_at)}</p>
+              <p class="text-callout text-muted">{when(letter.created_at)}</p>
             </div>
             {#if unlocked}
               <div class="flex w-full flex-wrap gap-1 @min-[1000px]:w-auto">
                 {#if !letter.read}
-                  <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => mark(letter, true, letter.archived)} data-testid="letter-read">
+                  <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => mark(letter, true, letter.archived)} data-testid="letter-read">
                     <Icon name="check" />{t('markRead')}
                   </button>
                 {/if}
-                <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => mark(letter, true, !letter.archived)} data-testid="letter-archive">
+                <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => mark(letter, true, !letter.archived)} data-testid="letter-archive">
                   <Icon name={letter.archived ? 'unarchive' : 'archive'} />{letter.archived ? t('moveToInbox') : t('archive')}
                 </button>
                 <button class={buttonClass('primary', 'sm')} onclick={() => write(letter.sender)} data-testid="letter-reply">
                   <Icon name="reply" />{t('reply')}
                 </button>
-                <button class={buttonClass('secondary', 'sm')} onclick={() => (location.hash = `/channels?direct=${letter.sender}`)} data-testid="letter-converse">
+                <button class={buttonClass('ghost', 'sm')} onclick={() => (location.hash = `/channels?direct=${letter.sender}`)} data-testid="letter-converse">
                   <Icon name="channels" />{t('startConversation')}
                 </button>
               </div>
@@ -390,9 +390,9 @@
           </header>
           <div class="mt-5 py-4">
             {#if letter.state === 'visible'}
-              <p class="text-[14px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]"><LinkedText text={letter.text} /></p>
+              <p class="text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]"><LinkedText text={letter.text} /></p>
             {:else}
-              <p class="flex items-center gap-2 text-[13px] text-muted"><Icon name="warning" class="text-warn" />{t('aborted')}{letter.abort_reason ? ` · ${letter.abort_reason}` : ''}</p>
+              <p class="flex items-center gap-2 text-body text-muted"><Icon name="warning" class="text-warn" />{t('aborted')}{letter.abort_reason ? ` · ${letter.abort_reason}` : ''}</p>
             {/if}
           </div>
         </article>
@@ -401,54 +401,54 @@
           <header class="flex flex-wrap items-start gap-3">
             <Avatar id={order.recipient} size="lg" />
             <div class="min-w-0 flex-1 basis-40">
-              <button class="block max-w-full truncate text-start text-[13.5px] font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${order.recipient}`} onclick={() => copyText(order.recipient)}>
+              <button class="block max-w-full truncate text-start text-body font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${order.recipient}`} onclick={() => copyText(order.recipient)}>
                 <span class="text-faint">{t('to')}</span> <bdi>{label(order.recipient)}</bdi>
               </button>
-              {#if order.sent_at}<p class="text-[12px] text-faint">{when(order.sent_at)}</p>{/if}
+              {#if order.sent_at}<p class="text-callout text-muted">{when(order.sent_at)}</p>{/if}
             </div>
-            <span class={cn('rounded-md px-2 py-0.5 text-[11.5px] font-medium', order.paid ? 'bg-gem-pale text-gem' : 'bg-wash text-muted')}>
+            <span class={cn('rounded-md px-2 py-0.5 text-caption font-medium', order.paid ? 'bg-gem-pale text-gem' : 'bg-wash text-muted')}>
               {order.paid ? t('paidLetter') : t('freeLetter')}
             </span>
           </header>
           {#if order.text}
-            <p class="py-2 text-[14px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]" data-testid="sent-text">{order.text}</p>
+            <p class="py-2 text-body leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]" data-testid="sent-text">{order.text}</p>
           {/if}
           <dl class="grid gap-1 border-t border-line pt-2">
             <div class="grid grid-cols-[120px_1fr] items-center gap-4 py-1.5">
-              <dt class="text-[12px] text-faint">{t('status')}</dt>
-              <dd class="flex items-center gap-2 text-[12.5px]">
+              <dt class="text-callout text-muted">{t('status')}</dt>
+              <dd class="flex items-center gap-2 text-callout">
                 {#if orders[order.order_id]}
                   <span data-testid="order-state">{named(orders[order.order_id].state, orderStates)}</span>
                   <button class={buttonClass('ghost', 'xs')} onclick={() => check(order)} data-testid="order-refresh">{t('refresh')}</button>
                 {:else if orderFailed[order.order_id]}
                   <span class="text-faint">{t('serviceUnavailable')}</span>
-                  <button class={buttonClass('secondary', 'xs')} onclick={() => check(order)} data-testid="order-retry">{t('retry')}</button>
+                  <button class={buttonClass('subtle', 'xs')} onclick={() => check(order)} data-testid="order-retry">{t('retry')}</button>
                 {:else}
                   <span class="text-faint">{t('loading')}</span>
                 {/if}
               </dd>
             </div>
             <div class="grid grid-cols-[120px_1fr] items-center gap-4 py-1.5">
-              <dt class="text-[12px] text-faint">{t('order')}</dt>
-              <dd class="truncate font-mono text-[12px]" title={order.order_id}>{order.order_id}</dd>
+              <dt class="text-callout text-muted">{t('order')}</dt>
+              <dd class="truncate font-mono text-code" title={order.order_id}>{order.order_id}</dd>
             </div>
           </dl>
           {#if order.paid}
             <div class="py-3">
               <div class="flex items-center justify-between gap-2">
-                <b class="text-[13px] font-semibold">{t('funds')}</b>
-                <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => funds(order)}>{t('checkFunds')}</button>
+                <b class="text-body font-semibold">{t('funds')}</b>
+                <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => funds(order)}>{t('checkFunds')}</button>
               </div>
               {#if escrows[order.order_id]}
                 <ul class="mt-2 divide-y divide-line" data-testid="escrow-transfers">
                   {#each escrows[order.order_id].transfers as leg (leg.leg_id)}
-                    <li class="flex items-center justify-between gap-2 py-2 text-[12.5px]">
+                    <li class="flex items-center justify-between gap-2 py-2 text-callout">
                       <span class="min-w-0">
-                        <span class="rounded bg-pale px-1.5 text-[11px] font-medium text-forest">{named(leg.status, legStates)}</span>
+                        <span class="rounded bg-pale px-1.5 text-caption font-medium text-forest">{named(leg.status, legStates)}</span>
                         {legKind(leg.kind)} · {leg.amount} → <bdi dir="ltr" class="font-mono">{shortId(leg.to)}</bdi>
                       </span>
                       {#if ['FeeBlocked', 'Rejected'].includes(leg.status)}
-                        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => revise(order, leg)}>{t('revise')}</button>
+                        <button class={buttonClass('subtle', 'xs')} disabled={busy} onclick={() => revise(order, leg)}>{t('revise')}</button>
                       {/if}
                     </li>
                   {/each}
@@ -458,7 +458,7 @@
           {/if}
         </article>
       {:else}
-        <div class="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
+        <div class="grid h-full place-items-center p-8 text-center text-body text-faint">
           <p>{list.length ? t('selectLetter') : ''}</p>
         </div>
       {/if}

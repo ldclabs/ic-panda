@@ -69,7 +69,7 @@
   {@const active = scope === value}
   <button
     class={cn(
-      'flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-[13px] outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
+      'flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-body outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
       active ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash hover:text-ink'
     )}
     aria-current={active ? 'true' : undefined}
@@ -78,7 +78,7 @@
   >
     <Icon name={icon as any} class={cn('shrink-0', active ? 'text-forest' : 'text-faint')} />
     <span class="min-w-0 flex-1 truncate">{label}</span>
-    {#if count != null}<span class="text-[11px] text-faint tabular-nums">{count}</span>{/if}
+    {#if count != null}<span class="text-caption text-faint tabular-nums">{count}</span>{/if}
   </button>
 {/snippet}
 
@@ -89,7 +89,7 @@
   <button
     {...props}
     class={cn(
-      'flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-start text-[13px] outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
+      'flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-start text-body outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
       active ? 'bg-pale font-medium text-forest' : 'text-ink-2 hover:bg-wash hover:text-ink',
       over === value && 'ring-2 ring-forest/60'
     )}
@@ -169,10 +169,10 @@
   {/each}
 {/snippet}
 
-<nav class="flex min-h-0 flex-1 flex-col gap-px overflow-x-hidden overflow-y-auto p-2.5" aria-label={t('folders')}>
+<nav data-list class="flex min-h-0 flex-1 flex-col gap-px overflow-x-hidden overflow-y-auto p-2.5" aria-label={t('folders')}>
   {@render entry(null, 0, false)}
   <div class="flex items-center justify-between px-2 pt-3 pb-1">
-    <span class="text-[11px] font-medium text-faint">{t('folders')}</span>
+    <span class="text-caption font-medium text-faint">{t('folders')}</span>
     {#if unlocked}
       <button class="grid size-5 place-items-center rounded text-faint hover:text-ink" aria-label={t('newFolder')} onclick={() => onNewFolder(scope.length === 64 ? scope : ROOT)} data-testid="files-new-folder">
         <Icon name="folder-add" class="size-3.5" />
@@ -184,7 +184,7 @@
     {@render place('starred', 'star', t('starred'), 'files-scope-starred')}
   </div>
   {#if tags.length}
-    <span class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('tags')}</span>
+    <span class="px-2 pt-3 pb-1 text-caption font-medium text-faint">{t('tags')}</span>
     {#each tags as item (item.tag)}
       {@render place(`tag:${item.tag}`, 'tag', item.tag, 'files-scope-tag', item.files)}
     {/each}

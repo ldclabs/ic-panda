@@ -127,7 +127,7 @@
 
 <Panel {model} title={w('health')} description={ux('healthScope')}>
   <nav
-    class="flex flex-wrap gap-3 text-sm text-forest"
+    class="flex flex-wrap gap-3 text-body text-forest"
     aria-label={w('health')}
   >
     <a
@@ -162,7 +162,7 @@
         {ux('findings')}
         {report?.findings?.filter((f: any) => !f.dismissed).length ?? '—'}
       </h3>
-      {#if report?.observed_at}<span class="text-xs text-muted"
+      {#if report?.observed_at}<span class="text-callout text-muted"
           >{when(report.observed_at)}</span
         >{/if}
     </div>
@@ -196,12 +196,12 @@
           class="space-y-2 rounded-lg border border-line p-3"
         >
           <div class="flex flex-wrap justify-between gap-2">
-            <strong class="text-sm">{ux(finding.rule)}</strong><span
-              class="text-xs text-warn">{ux(finding.severity)}</span
+            <strong class="text-body">{ux(finding.rule)}</strong><span
+              class="text-callout text-warn">{ux(finding.severity)}</span
             >
           </div>
-          <p class="text-sm font-medium">{name(finding)}</p>
-          <p class="text-xs text-muted">
+          <p class="text-body font-medium">{name(finding)}</p>
+          <p class="text-callout text-muted">
             {term(finding.evidence)} · {when(finding.observed_at)}
           </p>
           <div class="flex flex-wrap gap-2">
@@ -218,24 +218,24 @@
             >
           </div>
           <details>
-            <summary class="cursor-pointer text-xs text-muted"
+            <summary class="text-callout text-muted"
               >{ux('details')}</summary
             ><Id id={finding.subject} full wrap /><Id
               id={finding.revision}
               full
               wrap
             />
-            <p class="break-all text-xs">{finding.rule} · {finding.action}</p>
+            <p class="break-all text-callout">{finding.rule} · {finding.action}</p>
           </details>
         </article>
-      {:else}{#if report?.findings.length}<p class="text-sm text-muted">
+      {:else}{#if report?.findings.length}<p class="text-body text-muted">
             {ux('noMatches')}
           </p>{/if}{/each}
     </div>
   </section>
   <section class={card} id="health-scan">
     <h3 class="font-semibold">{ux('scan')}</h3>
-    <p class="text-sm text-muted">{w('scanHint')}</p>
+    <p class="text-body text-muted">{w('scanHint')}</p>
     <button
       class={buttonClass('secondary')}
       disabled={model.state.busy || scan?.state === 'running'}
@@ -250,7 +250,7 @@
           }
         )}>{w('scan')}</button
     >
-    {#if scan}<p class="break-all text-xs">
+    {#if scan}<p class="break-all text-callout">
         {scan.root} · {term(scan.state)} · {scan.report?.files ?? 0}
         {ux('file')} · {size(scan.report?.bytes ?? 0)}
       </p>
@@ -274,7 +274,7 @@
             >{candidate.relative_path} · {candidate.variables.join(
               ', '
             )}</Checkbox
-          >{#if candidate.warnings.length}<p class="text-xs text-warn">
+          >{#if candidate.warnings.length}<p class="text-callout text-warn">
               {candidate.warnings.map(ux).join(' · ')}
             </p>{/if}
         </div>{/each}<button
@@ -293,7 +293,7 @@
   </section>
   <section class={card} id="health-rotation">
     <h3 class="font-semibold">{w('rotation')}</h3>
-    <p class="text-sm leading-relaxed text-muted">{ux('rotationHelp')}</p>
+    <p class="text-body leading-relaxed text-muted">{ux('rotationHelp')}</p>
     <SourcePicker
       {items}
       bind:itemId
@@ -328,7 +328,7 @@
         onclick={() => openVault(itemId || undefined)}>{ux('openVault')}</button
       >
     </div>
-    <p class="text-xs text-muted">{w('referenceBoundary')}</p>
+    <p class="text-callout text-muted">{w('referenceBoundary')}</p>
     {#if index}<Dependencies {index} {navigate} />{/if}
     {#each rotations as rotation}<article
         class="space-y-3 border-t border-line pt-4"
@@ -346,7 +346,7 @@
         </div>
         {#if rotation.completed_at}<Notice tone="ok"
             >{ux('complete')} · {when(rotation.completed_at)}</Notice
-          >{:else}<p class="text-xs text-muted">{ux('rotationBlocked')}</p>{/if}
+          >{:else}<p class="text-callout text-muted">{ux('rotationBlocked')}</p>{/if}
         <button
           class={buttonClass('secondary')}
           disabled={model.state.busy}
@@ -387,7 +387,7 @@
                       dependencies_digest: dependencies[rotation.id]?.digest
                     })
                   )}
-                ><span class="text-xs text-muted"
+                ><span class="text-callout text-muted"
                   >{rotation[step] ? '✓' : i + 1}</span
                 >{w(step)}</button
               >

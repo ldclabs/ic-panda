@@ -16,7 +16,7 @@
 </script>
 
 <div class="grid gap-1.5" data-testid={testid}>
-  <div class="flex justify-between gap-3 text-[12px] text-muted">
+  <div class="flex justify-between gap-3 text-callout text-muted">
     <span>{label}</span>{#if state.value !== null}<span class="tabular-nums"
         >{Math.round(state.percent)}%</span
       >{/if}

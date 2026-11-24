@@ -12,8 +12,8 @@
   const observed = $derived(stale.length ? Math.min(...stale.map((s) => s.observed_at_ms!)) : null)
 </script>
 {#if observed}
-  <p class="px-5 py-2 text-xs text-muted" role="status" data-testid="display-stale">{t('cachedDisplay')} · {when(observed)}</p>
+  <p class="px-5 py-2 text-callout text-muted" role="status" data-testid="display-stale">{t('cachedDisplay')} · {when(observed)}</p>
 {/if}
 
-{#if refreshing}<p class="px-5 py-2 text-xs text-muted" role="status">{t('loading')}</p>{/if}
-{#each errors as error}<p class="px-5 py-2 text-xs text-muted" role="status">{errorText(new CallError(`${error}: display refresh`))}</p>{/each}
+{#if refreshing}<p class="px-5 py-2 text-callout text-muted" role="status">{t('loading')}</p>{/if}
+{#each errors as error}<p class="px-5 py-2 text-callout text-muted" role="status">{errorText(new CallError(`${error}: display refresh`))}</p>{/each}

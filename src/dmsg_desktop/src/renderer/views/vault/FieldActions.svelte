@@ -69,7 +69,7 @@
     <Icon name={action.icon} class="mt-0.5 shrink-0 text-faint" />
     <span class="min-w-0">
       <span class="block">{action.label}</span>
-      {#if action.hint}<span class="mt-1 block max-w-64 text-[11.5px] leading-normal text-muted">{action.hint}</span>{/if}
+      {#if action.hint}<span class="mt-1 block max-w-64 text-caption leading-normal text-muted">{action.hint}</span>{/if}
     </span>
   </span>
 {/snippet}

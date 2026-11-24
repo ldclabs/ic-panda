@@ -223,7 +223,7 @@
       {#if (needsHosted && requiresUnlock.hosted) || (tab === 'capabilities' && requiresUnlock.grants)}
         <Locked {status} testid="agents-resource-locked" />
       {:else if needsHosted && !loaded.hosted}
-        {#if !errors.hosted}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
+        {#if !errors.hosted}<p role="status" class="text-body text-muted">{t('loading')}</p>{/if}
       {:else if missingAgent}
         <Notice testid="agent-missing">{t('tabAgentIds')} · {t('noResults')} <bdi class="font-mono">{routeAgent}</bdi>
           {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={() => showTab('ids')}>{t('tabAgentIds')}</button>{/snippet}
@@ -243,7 +243,7 @@
         {#if loaded.grants}
           {#if !hosted.agents.length && unlocked}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={createFromEmpty}>{t('create')} · {t('tabAgentIds')}</button>{/if}
           <Capabilities {hosted} {grants} {unlocked} {busy} {attempt} onReview={loadGrants} active={routeAgent || inspectedAgent} {selectAgent} />
-        {:else if !errors.grants}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
+        {:else if !errors.grants}<p role="status" class="text-body text-muted">{t('loading')}</p>{/if}
       {:else if tab === 'discourse'}
         <Discourse agents={hosted.agents} active={selection} {selectAgent} />
       {:else if tab === 'mail'}

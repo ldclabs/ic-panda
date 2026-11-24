@@ -80,23 +80,23 @@
 
 <Dialog bind:open {title} {description} icon="agents" wide {testid}>
   <div class="grid gap-3">
-    <p class="text-[12.5px] text-muted">{t('agentContentBoundary')}</p>
+    <p class="text-callout text-muted">{t('agentContentBoundary')}</p>
     <ul class="divide-y divide-line rounded-xl border border-line">
       {#each reaching as g (g.id)}
         <li class="flex items-start gap-3 px-3 py-2">
           <div class="min-w-0 flex-1">
-            <b class="text-[13px] font-medium">{labelOf(g.grantee)}</b>
+            <b class="text-body font-medium">{labelOf(g.grantee)}</b>
             <div class="mt-1 flex flex-wrap gap-1">
               {#each g.capabilities as capability (capability)}
                 <Pill class={cn('font-mono font-normal', !names.includes(capability) && 'opacity-50')}>{capability}</Pill>
               {/each}
             </div>
-            <p class="mt-1 text-[11px] text-faint">{g.expires_at ? `${t('expires')} ${when(g.expires_at)}` : t('untilRevoked')}</p>
+            <p class="mt-1 text-caption text-faint">{g.expires_at ? `${t('expires')} ${when(g.expires_at)}` : t('untilRevoked')}</p>
           </div>
           <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>
         </li>
       {:else}
-        <li class="px-3 py-2.5 text-[12.5px] text-faint">{t('noAgentReach')}</li>
+        <li class="px-3 py-2.5 text-callout text-muted">{t('noAgentReach')}</li>
       {/each}
     </ul>
     {#if agents.length}
@@ -116,8 +116,8 @@
             </Checkbox>
           {/each}
         </div>
-        {#if refused.length}<p class="text-[12px] text-faint" data-testid={testid ? `${testid}-refused` : undefined}>{t('unknownCapabilities', { list: refused.join(', ') })}</p>{/if}
-        {#if chosen.some(sensitive)}<p class="text-[12px] text-warn">{t('wideGrantHint')}</p>{/if}
+        {#if refused.length}<p class="text-callout text-muted" data-testid={testid ? `${testid}-refused` : undefined}>{t('unknownCapabilities', { list: refused.join(', ') })}</p>{/if}
+        {#if chosen.some(sensitive)}<p class="text-callout text-warn">{t('wideGrantHint')}</p>{/if}
         <button
           class={buttonClass('primary', 'sm', 'justify-self-end')}
           disabled={busy || !agent || !chosen.length}
@@ -126,7 +126,7 @@
         >
       </div>
     {:else}
-      <p class="text-[12px] text-faint">{t('noAgentIds')}</p>
+      <p class="text-callout text-muted">{t('noAgentIds')}</p>
     {/if}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </div>
