@@ -98,30 +98,30 @@ private struct WorkspaceOverlays: ViewModifier {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
                 Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
-                Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
+                Button("Open") {
+                    guard !model.concealed, model.notifications.presented?.id == plan.id else { return }
+                    model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target)
+                    model.notifications.presented = nil
+                }
             }.padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius)).padding(.horizontal, 16).padding(.bottom, bottomInset)
         }.ignoresSafeArea(.all, edges: .bottom)
             .accessibilityIdentifier("notifications.toast")
             .task(id: plan.id) {
                 try? await Task.sleep(for: .seconds(6))
-                if model.notifications.presented?.id == plan.id { model.notifications.presented = nil }
+                if !Task.isCancelled, model.notifications.presented?.id == plan.id { model.notifications.presented = nil }
             }
             .rising()
     }
 
     func body(content: Content) -> some View {
+        let shown = model.concealed ? nil : model.notifications.presented
         ZStack {
             content
             ZStack {
-                if let plan = model.notifications.presented, !model.concealed {
+                if let plan = shown {
                     reminder(plan)
                 }
-            }.arrivals(of: model.concealed ? nil : model.notifications.presented?.id)
-            if model.concealed {
-                Theme.paper.ignoresSafeArea()
-                Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)
-                    .accessibilityLabel("Private workspace hidden").accessibilityIdentifier("workspace.privacy-shield")
-            }
+            }.arrivals(of: shown?.id).allowsHitTesting(shown != nil).accessibilityHidden(shown == nil)
         }
         .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { rootBottomInset = $0 }
         .overlay(alignment: .bottom) {
@@ -129,6 +129,14 @@ private struct WorkspaceOverlays: ViewModifier {
                 WorkspaceFeedback(bottomInset: bottomInset)
                 if model.noticeHosts.isEmpty { TransientNotice().padding(.bottom, bottomInset) }
             }.ignoresSafeArea(.all, edges: .bottom)
+        }
+        .accessibilityHidden(model.concealed)
+        .overlay {
+            if model.concealed {
+                Theme.paper.ignoresSafeArea()
+                Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)
+                    .accessibilityLabel("Private workspace hidden").accessibilityIdentifier("workspace.privacy-shield")
+            }
         }
         .workspaceAlert(presenting: model.noticeHosts.isEmpty)
     }

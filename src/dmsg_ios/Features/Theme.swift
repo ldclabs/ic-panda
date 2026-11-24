@@ -37,8 +37,6 @@ enum Motion {
     static let fade = Animation.smooth(duration: 0.2)
     /// A floating notice leaves, quicker than it came.
     static let exit = Animation.easeOut(duration: 0.15)
-    /// A countdown ring sweeps evenly through each second.
-    static let tick = Animation.linear(duration: 1)
     /// What a jump landed on fades from its highlight.
     static let point = Animation.easeOut(duration: 0.6)
 }
@@ -77,15 +75,16 @@ private struct Develop: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var trigger = 0
     func body(content: Content) -> some View {
+        let animating = active && !reduceMotion
         content.keyframeAnimator(initialValue: 1.0, trigger: trigger) { view, clarity in
-            let shownClarity = active && !reduceMotion ? clarity : 1.0
+            let shownClarity = animating ? clarity : 1.0
             view.blur(radius: (1 - shownClarity) * 6).opacity(0.35 + 0.65 * shownClarity)
         } keyframes: { _ in
             MoveKeyframe(0)
             CubicKeyframe(1, duration: 0.2)
         }
         .onChange(of: shown) { _, _ in
-            if active && !reduceMotion { trigger &+= 1 }
+            if animating { trigger &+= 1 }
         }
     }
 }

@@ -186,6 +186,8 @@ final class MessagingUITests: XCTestCase {
         let reply = app.buttons["Open original message"]
         XCTAssertTrue(reply.waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts.matching(identifier: "A message you hid").count, 2)
+        reply.tap()
+        XCTAssertTrue(app.buttons["Show"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Hidden original text"].exists)
         capture(app, "Reply preview preserves local message hiding")
     }

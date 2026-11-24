@@ -67,7 +67,7 @@ struct WorkspaceFeedback: View {
             let status = WorkspaceStatus.current(model, at: timeline.date).flatMap { $0.presentsFeedback ? $0 : nil }
             let shown = status.flatMap { status in active == status.key && dismissed != status.key && !model.concealed
                 && model.notice == nil && model.notifications.presented == nil ? status : nil }
-            Group {
+            ZStack {
                 if let status = shown {
                     HStack(spacing: 10) {
                         Image(systemName: status.symbol).foregroundStyle(status.urgent ? .orange : Theme.forest).accessibilityHidden(true)
@@ -86,7 +86,8 @@ struct WorkspaceFeedback: View {
                         .accessibilityIdentifier("workspace.feedback")
                         .rising()
                 }
-            }.arrivals(of: shown?.key).task(id: status?.key) {
+            }.arrivals(of: shown?.key).allowsHitTesting(shown != nil).accessibilityHidden(shown == nil)
+            .task(id: status?.key) {
                 active = status?.key
                 if status?.urgent == true {
                     let message = model.recoveryWarning?.pending == true ? String(localized: "Account recovery is pending")
@@ -113,7 +114,7 @@ struct TransientNotice: View {
             if let notice = shown {
                 noticeBar(notice, revision: revision).rising()
             }
-        }.arrivals(of: shown)
+        }.arrivals(of: shown).opacity(model.concealed ? 0 : 1).accessibilityHidden(shown == nil)
     }
 
     private func noticeBar(_ notice: String, revision: UInt64) -> some View {

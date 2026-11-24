@@ -139,7 +139,7 @@ struct VaultDetailView: View {
     private func fieldRow(_ field: VaultField, item: VaultItem, at date: Date) -> some View {
         let live = liveCode(field, item: item)
         let shown = live ? codes[field.id] : revealed[field.id]
-        return VaultDetailField(field: field, value: shown?.value(at: date), remaining: shown?.remaining(at: date),
+        return VaultDetailField(field: field, value: shown?.value(at: date), remaining: shown?.remaining(at: date), expires: shown?.expires,
             busy: workingField == field.id, readOnly: item.reserved || item.deleted, live: live,
             copied: copied?.fieldID == field.id,
             reveal: {

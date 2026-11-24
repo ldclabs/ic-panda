@@ -8,7 +8,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -47,11 +46,12 @@ val LocalNoticePermission = staticCompositionLocalOf<() -> Unit> { {} }
     val plan by client.notices.presented.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     // The card slides down into place and fades out when it goes; covering the screen hides it at once.
-    val shown = plan?.takeIf { !state.concealed && !state.starting }
+    if (state.concealed || state.starting) return
+    val shown = plan
     val current = retained(shown)
     val drop = with(LocalDensity.current) { 16.dp.roundToPx() }
     AnimatedVisibility(shown != null, Modifier.fillMaxSize(), enter = slideInVertically(Motion.spatial()) { -drop } + fadeIn(Motion.effects()),
-        exit = if (state.concealed || state.starting) ExitTransition.None else fadeOut(Motion.effectsFast())) {
+        exit = fadeOut(Motion.effectsFast())) {
         current?.let { reminder ->
             val interactive = shown != null
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 16.dp, vertical = 72.dp)) {

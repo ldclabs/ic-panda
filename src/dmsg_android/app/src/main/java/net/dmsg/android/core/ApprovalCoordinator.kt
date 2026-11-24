@@ -106,10 +106,14 @@ class ApprovalCoordinator(private val client: ClientController) {
             if (active()) open(id)
         }
     }
-    fun decide(value: ApprovalDetail, approved: Boolean) {
+    fun decide(value: ApprovalDetail, approved: Boolean, onDecided: () -> Unit) {
         client.perform({ core -> parseApproval(client.operation { core.decide(value.id, value.digest, approved, it) }.decode()) },
             key = "approval:decide:" + value.id, onError = { refresh() }) { result ->
-            if (selected == value.id) { val request = detail.begin(); detail.accept(request, result) }
+            if (selected == value.id) {
+                val request = detail.begin()
+                detail.accept(request, result)
+                if (result.state != "awaiting_user") onDecided()
+            }
             refresh()
         }
     }

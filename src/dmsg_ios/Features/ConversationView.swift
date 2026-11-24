@@ -45,7 +45,8 @@ struct ConversationView: View {
     @State private var selectingText: MessageEdit?
     @State private var retracting: MessageItem?
     /// The message a reply jump landed on, lit for a moment.
-    @State private var pointed: (id: String, token: UUID)?
+    @State private var pointed: String?
+    @State private var replyJump: Task<Void, Never>?
     private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
     private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private static let bottom = "conversation.bottom"
@@ -100,12 +101,11 @@ struct ConversationView: View {
                                 Label("Unread messages", systemImage: "circle.fill").font(.footnote).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
                             bubble(row, own: row.message.account == own, references: references) { sequence in
-                                actionTask?.cancel()
-                                actionTask = Task { await reveal(sequence, proxy: proxy) }
+                                jumpToReply(sequence, proxy: proxy)
                             }
                         }.padding(.top, row.firstOfGroup ? 10 : 0)
                             .background {
-                                if pointed?.id == row.id { RoundedRectangle(cornerRadius: Theme.radius).fill(Theme.fill).padding(-4).accessibilityHidden(true) }
+                                if pointed == row.id { RoundedRectangle(cornerRadius: Theme.radius).fill(Theme.fill).padding(-4).accessibilityHidden(true) }
                             }
                             .id(row.id)
                             // A message that arrives while the conversation is open rises in; see `load()`.
@@ -240,6 +240,7 @@ struct ConversationView: View {
                 }
             }
             .onDisappear {
+                cancelReplyJump()
                 refreshRequested = false
                 actionTask?.cancel()
                 if model.activeChannel == channel.id { model.activeChannel = nil }
@@ -256,10 +257,12 @@ struct ConversationView: View {
     }
 
     private func openSearch() {
+        cancelReplyJump()
         searching = true; searchFocused = true
     }
 
     private func followLatest() {
+        cancelReplyJump()
         guard historyAnchor != nil else { return }
         messageRequest = nil
         messages = []; messagesKnown = false; loadFailed = false
@@ -277,19 +280,37 @@ struct ConversationView: View {
         }
     }
 
+    private func cancelReplyJump() {
+        replyJump?.cancel()
+        pointed = nil
+    }
+
+    private func jumpToReply(_ sequence: UInt64, proxy: ScrollViewProxy) {
+        let previous = replyJump
+        cancelReplyJump()
+        replyJump = Task {
+            // Let a cancelled history read release the pagination slot before the next jump.
+            await previous?.value
+            guard !Task.isCancelled, !model.concealed else { return }
+            await reveal(sequence, proxy: proxy)
+        }
+    }
+
     private func reveal(_ sequence: UInt64, proxy: ScrollViewProxy) async {
+        let epoch = model.epoch
         query = ""; searching = false; await load()
-        while !Task.isCancelled && !messages.contains(where: { $0.sequence == sequence }) && hasEarlier {
+        while !Task.isCancelled && epoch == model.epoch && !model.concealed && !messages.contains(where: { $0.sequence == sequence }) && hasEarlier {
             let before = nextBefore; await loadEarlier(); if nextBefore == before { break }
         }
+        guard !Task.isCancelled, epoch == model.epoch, !model.concealed else { return }
         if let message = messages.first(where: { $0.sequence == sequence }) {
+            preserveMessage = nil
             proxy.scrollTo(message.id, anchor: .center)
             // The original lights where it landed, then fades, so the eye finds it.
-            let token = UUID()
-            pointed = (message.id, token)
+            pointed = message.id
             try? await Task.sleep(for: .seconds(0.6))
-            if pointed?.token == token { withAnimation(Motion.point) { pointed = nil } }
-        } else if !Task.isCancelled { model.notice = String(localized: "The original message is not available on this device.") }
+            if !Task.isCancelled { withAnimation(Motion.point) { pointed = nil } }
+        } else { model.notice = String(localized: "The original message is not available on this device.") }
     }
 
     private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {

@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 @MainActor final class AccountSettingsUITests: XCTestCase {
@@ -11,10 +12,12 @@ import XCTest
         return app
     }
 
-    /// A copy button reads "Copied" for a moment after its tap.
-    private func copiedInPlace(_ button: XCUIElement) -> Bool {
-        let copied = expectation(for: NSPredicate(format: "value == %@", "Copied"), evaluatedWith: button)
-        return XCTWaiter().wait(for: [copied], timeout: 3) == .completed
+    /// XCTest can wait longer than the confirmation is shown. Check the clipboard write.
+    private func assertCopies(_ label: String, in app: XCUIApplication) {
+        let clipboard = UIPasteboard.general
+        let before = clipboard.changeCount
+        tap(label, in: app)
+        XCTAssertGreaterThan(clipboard.changeCount, before, label)
     }
 
     private func tap(_ label: String, in app: XCUIApplication) {
@@ -552,9 +555,7 @@ import XCTest
         capture(app, "Account header links to the profile without an ID copy action")
         tap("account.profile", in: app)
         XCTAssertTrue(app.textFields["profile.name"].waitForExistence(timeout: 5))
-        tap("profile.copy-id", in: app)
-        // The button confirms in place instead of posting a notice.
-        XCTAssertTrue(copiedInPlace(app.buttons["profile.copy-id"]))
+        assertCopies("profile.copy-id", in: app)
         XCTAssertTrue(app.textFields["profile.name"].exists)
     }
 
@@ -567,8 +568,7 @@ import XCTest
             XCTAssertTrue(copy.waitForExistence(timeout: 5))
             XCTAssertTrue(copy.isEnabled)
             XCTAssertEqual(copy.value as? String, principal)
-            tap("security.copy-login.\(principal)", in: app)
-            XCTAssertTrue(copiedInPlace(copy))
+            assertCopies("security.copy-login.\(principal)", in: app)
         }
         let removals = app.buttons.matching(identifier: "Review removing this login")
         XCTAssertEqual(removals.count, 2)

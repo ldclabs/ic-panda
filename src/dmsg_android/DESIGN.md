@@ -55,7 +55,7 @@ motion:
   spatial: 'spring, damping 0.8 / stiffness 380 (page slides)'
   effects: 'critically damped springs, stiffness 1600 (fades in), 3800 (fades out)'
   spatialFast: 'spring, damping 0.6 / stiffness 800 (ticks, badges, stars)'
-  tick: 'linear, 1000 ms (countdown rings)'
+  countdown: 'linear, through the code expiry (countdown rings)'
   progress: 'ProgressIndicatorDefaults.ProgressAnimationSpec (determinate bars)'
   pulse: '900 ms, reversing (skeleton rows)'
 ---
@@ -294,8 +294,8 @@ The small motion follows the desktop's seven verbs
   `CopyIconButton` do the same for icon-only copies. Menu copies, which close,
   are left to the system's clipboard confirmation.
 - **Developing.** A revealed vault value and each new one-time code develop
-  from a 6 dp blur (`Modifier.develop`); hiding is instant. The code ring sweeps
-  evenly through each second and fills at once for a new code.
+  from a 6 dp blur (`Modifier.develop`); hiding is instant. The code ring
+  follows the code's expiry and fills at once for a new code.
 - **Settling.** Chips move their tick and colours together; a favourite star
   springs in (`spatialFast`) when set and fades when cleared; the send button
   grows in; the entry mark grows in where the splash icon was. Progress bars

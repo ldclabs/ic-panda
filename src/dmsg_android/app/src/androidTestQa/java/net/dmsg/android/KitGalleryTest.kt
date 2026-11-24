@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
+import net.dmsg.android.core.ReadState
 import net.dmsg.android.ui.*
 import net.dmsg.android.ui.kit.*
 import org.junit.Assert.assertTrue
@@ -42,6 +43,29 @@ class KitGalleryTest {
         Look("dark", dark = true, rtl = false, fontScale = 1f),
         Look("rtl-200", dark = false, rtl = true, fontScale = 2f),
     )
+
+    @Test fun readFeedbackKeepsOnlyTheCurrentRetryAction() {
+        var read by mutableStateOf<ReadState<Unit>>(ReadState.Failed("UNAVAILABLE"))
+        compose.setContent {
+            DMsgTheme(false) { Column { ReadFeedback(read) {} } }
+        }
+        val action = compose.onNode(hasClickAction())
+        action.assertIsEnabled()
+
+        compose.mainClock.autoAdvance = false
+        compose.runOnIdle { read = ReadState.Stale(Unit, "UNAVAILABLE") }
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        action.assertIsEnabled()
+
+        compose.runOnIdle { read = ReadState.Ready(Unit) }
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        action.assertIsNotEnabled()
+
+        compose.mainClock.autoAdvance = true
+        action.assertDoesNotExist()
+    }
 
     @Test fun kitRendersInEveryLookWithFullTouchTargets() {
         var look by mutableStateOf(looks.first())

@@ -32,7 +32,9 @@ struct VaultLargeTypeView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .environment(\.layoutDirection, vaultFieldIsLTR(target.field, value: text) ? .leftToRight : direction)
                             .accessibilityIdentifier("vault.large.value")
-                        if let remaining = value?.remaining(at: timeline.date) { VaultCodeCountdown(remaining: remaining) }
+                        if let remaining = value?.remaining(at: timeline.date), let expires = value?.expires {
+                            VaultCodeCountdown(remaining: remaining, expires: expires)
+                        }
                     } else if let failure {
                         NoticeBar(text: failure)
                         Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.large.retry")

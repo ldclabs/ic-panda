@@ -118,7 +118,12 @@ struct SecretPackageImportView: View {
             guard epoch == model.epoch, !Task.isCancelled, source != nil || (link == selectedLink && password == selectedPassword) else { return }
             let next: SecretPackagePreview = try model.decode(result)
             preview = next; fields = []; notes = false; attachments = []; completed = nil
-        } catch { if epoch == model.epoch { refusals &+= 1; model.report(error) } }
+        } catch {
+            guard epoch == model.epoch, !Task.isCancelled, !model.concealed,
+                  source != nil || (link == selectedLink && password == selectedPassword) else { return }
+            refusals &+= 1
+            model.report(error)
+        }
     }
 
     private func importRequest() async {

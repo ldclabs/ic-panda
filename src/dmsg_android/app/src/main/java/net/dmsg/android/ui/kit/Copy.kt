@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -43,12 +45,13 @@ import net.dmsg.android.platform.str
 import net.dmsg.android.ui.Motion
 
 /** The copy icon that turns into a tick for a moment after copying: the tick springs in and the icon fades back. */
-@Composable internal fun CopyIcon(copied: Boolean, contentDescription: String?) {
-    AnimatedContent(copied, transitionSpec = {
+@Composable internal fun CopyIcon(copied: Boolean, description: String?) {
+    val semantics = if (description == null) Modifier else Modifier.semantics { contentDescription = description }
+    AnimatedContent(copied, modifier = semantics, transitionSpec = {
         (if (targetState) scaleIn(Motion.spatialFast(), initialScale = 0.6f) + fadeIn(Motion.effects()) else fadeIn(Motion.effects())) togetherWith
             fadeOut(Motion.effectsFast())
     }, label = "copied") { tick ->
-        Icon(if (tick) Icons.Outlined.Check else Icons.Outlined.ContentCopy, contentDescription,
+        Icon(if (tick) Icons.Outlined.Check else Icons.Outlined.ContentCopy, null,
             tint = if (tick) MaterialTheme.colorScheme.primary else LocalContentColor.current)
     }
 }
@@ -86,7 +89,6 @@ import net.dmsg.android.ui.Motion
     var copies by remember(key) { mutableIntStateOf(0) }
     LaunchedEffect(key, copies) { if (copies > 0) { delay(2000); copies = 0 } }
     val copied = copies > 0
-    val shown by animateFloatAsState(if (copied) 1f else 0f, Motion.effects(), label = "copied")
     val click = {
         if (copy()) {
             copies += 1
@@ -94,11 +96,14 @@ import net.dmsg.android.ui.Motion
         }
     }
     val content: @Composable () -> Unit = {
-        if (icon) { CopyIcon(copied, null); Spacer(Modifier.width(8.dp)) }
-        Box(contentAlignment = Alignment.CenterStart) {
-            // Both labels take space, so the button keeps its width; only the shown one is read out.
-            Text(label, Modifier.graphicsLayer { alpha = 1f - shown }.then(if (copied) Modifier.clearAndSetSemantics {} else Modifier))
-            Text(str(R.string.vault_copied), Modifier.graphicsLayer { alpha = shown }.then(if (copied) Modifier else Modifier.clearAndSetSemantics {}))
+        key(key) {
+            val shown by animateFloatAsState(if (copied) 1f else 0f, Motion.effects(), label = "copied")
+            if (icon) { CopyIcon(copied, null); Spacer(Modifier.width(8.dp)) }
+            Box(contentAlignment = Alignment.CenterStart) {
+                // Both labels take space, so the button keeps its width; only the shown one is read out.
+                Text(label, Modifier.graphicsLayer { alpha = 1f - shown }.then(if (copied) Modifier.clearAndSetSemantics {} else Modifier))
+                Text(str(R.string.vault_copied), Modifier.graphicsLayer { alpha = shown }.then(if (copied) Modifier else Modifier.clearAndSetSemantics {}))
+            }
         }
     }
     if (outlined) OutlinedButton(click, modifier.fillMaxWidth(), enabled, colors = colors ?: ButtonDefaults.outlinedButtonColors()) { content() }
@@ -115,5 +120,7 @@ import net.dmsg.android.ui.Motion
         copy()
         copies += 1
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-    }, Modifier.semantics { if (copied) stateDescription = str(R.string.vault_copied) }) { CopyIcon(copied, contentDescription) }
+    }, Modifier.semantics { if (copied) stateDescription = str(R.string.vault_copied) }) {
+        key(key) { CopyIcon(copied, contentDescription) }
+    }
 }

@@ -78,8 +78,8 @@ internal object Motion {
     fun <T> effects(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
     fun <T> effectsFast(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
 
-    /** A countdown ring sweeping evenly through one second. */
-    fun <T> tick(): FiniteAnimationSpec<T> = tween(1000, easing = LinearEasing)
+    /** A countdown ring sweeping to the current code's expiry. */
+    fun <T> countdown(durationMs: Int): FiniteAnimationSpec<T> = tween(durationMs, easing = LinearEasing)
 
     /** A determinate progress bar gliding to its new value. */
     fun progress(): AnimationSpec<Float> = ProgressIndicatorDefaults.ProgressAnimationSpec

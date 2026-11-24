@@ -207,15 +207,16 @@ import net.dmsg.core.MessageItem
     val firstUnread = if (search.isBlank() && info != null && info.unread > 0u) {
         rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
     } else null
-    val rawPending = outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty()
+    val currentOutbox = outgoing.valueOrNull()?.takeIf { it.channel == channel }
+    val rawPending = currentOutbox?.items.orEmpty()
     val pending = rawPending.filter {
         search.isBlank() || it.text.contains(search, true) || it.attachmentName?.contains(search, true) == true
     }
-    // A send that fails answers with the Reject haptic once per failure, ignoring failures already present on load or hidden by search.
-    val outgoingReady = outgoing.valueOrNull()?.channel == channel || outgoing is ReadState.Empty
+    // A refresh keeps the old outbox visible while retrying. Only a finished read can confirm another failure.
+    val outgoingReady = currentOutbox != null && (outgoing is ReadState.Ready || outgoing is ReadState.Empty)
     val failedIds = rawPending.mapNotNull { item -> item.id.takeIf { !state.working("message:send:" + item.id) && item.error != null && item.error != "EXECUTION_UNKNOWN" } }.toSet()
-    val seenFailures = remember(channel) { mutableStateOf<Set<String>?>(null) }
-    LaunchedEffect(outgoingReady, failedIds) {
+    val seenFailures = remember(channel, state.epoch) { mutableStateOf<Set<String>?>(null) }
+    LaunchedEffect(channel, state.epoch, outgoingReady, failedIds) {
         if (!outgoingReady) return@LaunchedEffect
         val previous = seenFailures.value
         if (previous != null && failedIds.any { it !in previous }) haptics.performHapticFeedback(HapticFeedbackType.Reject)
@@ -285,7 +286,7 @@ import net.dmsg.core.MessageItem
             Reveal(shownError != null) {
                 error?.let {
                     Box(Modifier.padding(horizontal = pageMargin(), vertical = 4.dp)) {
-                        Notice(errorText(it), true) { TextButton(onClick = { dismissedError = it }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_close_6cf4a77)) } }
+                        Notice(errorText(it), true) { TextButton(onClick = { dismissedError = it }, enabled = shownError != null, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) { Text(str(R.string.text_close_6cf4a77)) } }
                     }
                 }
             }
@@ -366,19 +367,37 @@ import net.dmsg.core.MessageItem
             }
         }
         // The reply and attachments unfold above the composer and the conversation makes room.
-        val replying = retained(composer.reply)
-        Reveal(composer.reply != null) { replying?.let { reply -> Row(Modifier.padding(start = pageMargin(), top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            QuoteBar(Modifier.weight(1f)) {
-                Text(str(R.string.text_reply_b4c9334), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                Text(reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        key(channel) {
+            val replying = retained(composer.reply)
+            Reveal(composer.reply != null) {
+                replying?.let { reply ->
+                    Row(Modifier.padding(start = pageMargin(), top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        QuoteBar(Modifier.weight(1f)) {
+                            Text(str(R.string.text_reply_b4c9334), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(reply.preview ?: rows.find { it.sequence == reply.sequence }?.text ?: "#${reply.sequence}", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                        IconButton(onClick = { update(composer.copy(reply = null)) }, enabled = composer.reply != null) {
+                            Icon(Icons.Outlined.Close, str(R.string.text_cancel_reply_b66716c))
+                        }
+                    }
+                }
             }
-            IconButton(onClick = { update(composer.copy(reply = null)) }) { Icon(Icons.Outlined.Close, str(R.string.text_cancel_reply_b66716c)) }
-        } } }
-        val attachments = retained(composer.attachments.takeIf { it.isNotEmpty() }).orEmpty()
-        Reveal(composer.attachments.isNotEmpty()) { LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(if (composer.attachments.isEmpty()) attachments else composer.attachments, key = { "${it.file}:${it.version}" }) { file -> InputChip(selected = true, onClick = {}, modifier = Modifier.animateItem(), label = { Text(file.name, Modifier.widthIn(max = 180.dp), maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, trailingIcon = { IconButton(onClick = { update(composer.copy(attachments = composer.attachments.filterNot { it.file == file.file && it.version == file.version })) }) { Icon(Icons.Outlined.Close, str(R.string.text_remove_attachment_d043b7e) + file.name) } }) }
-        } }
+            val attaching = composer.attachments.isNotEmpty()
+            val attachments = retained(composer.attachments.takeIf { attaching }).orEmpty()
+            Reveal(attaching) {
+                LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = pageMargin()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(attachments, key = { "${it.file}:${it.version}" }) { file ->
+                        InputChip(selected = true, onClick = {}, modifier = Modifier.animateItem(), enabled = attaching,
+                            label = { Text(file.name, Modifier.widthIn(max = 180.dp), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, trailingIcon = {
+                                IconButton(onClick = { update(composer.copy(attachments = composer.attachments.filterNot { it.file == file.file && it.version == file.version })) }, enabled = attaching) {
+                                    Icon(Icons.Outlined.Close, str(R.string.text_remove_attachment_d043b7e) + file.name)
+                                }
+                            })
+                    }
+                }
+            }
+        }
         if (!draftsReady) ReadFeedback(channels, client.messages::browse)
         if (info?.canPublish == false) Notice(str(R.string.text_you_cannot_publish_in_the_current_channel_state_a56d35a))
         // A filled capsule holds the attachment menu and the text; the send button grows in once there is something to send.

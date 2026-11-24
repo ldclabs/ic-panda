@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import kotlin.math.roundToInt
 
 fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.string.text_unknown_d748bba) else
     runCatching { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.MEDIUM,
@@ -282,10 +284,6 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
         }
     }
     val code = otp?.takeIf { tick < deadline }
-    // The ring sweeps evenly between the once-a-second ticks and fills at once for a new code.
-    val left = if (code != null && period > 0) ((deadline - tick).toFloat() / period).coerceIn(0f, 1f) else 0f
-    val ring = remember { Animatable(left) }
-    LaunchedEffect(left) { if (left > ring.value) ring.snapTo(left) else ring.animateTo(left, Motion.tick()) }
     val shown = if (isOtp) code != null else revealed != null
     val value = if (isOtp) code ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
     val website = if (field.kind == "url" && !field.concealed) {
@@ -313,8 +311,7 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             },
             trailingContent = if (readOnly) null else { {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (code != null && period > 0) CircularProgressIndicator(progress = { ring.value },
-                        Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.5.dp)
+                    if (code != null && period > 0) OtpCountdown(tick, deadline, period)
                     if (field.concealed && (!isOtp || historical)) IconButton(onClick = ::toggleReveal) {
                         Icon(if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                             str(if (shown) R.string.text_hide_d2e660d else R.string.text_reveal_5917b8a) + " · " + label)
@@ -349,4 +346,21 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
     if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.headlineLarge.let { if (isOtp) it.tabular() else it }.copy(textDirection = direction)) } },
         confirmButton = { TextButton(onClick = { large = null }) { Text(str(R.string.text_done_9ffd599)) } },
         dismissButton = { TextButton(onClick = ::copyValue) { Text(str(if (copiedAt == 0L) R.string.text_copy_d6e9651 else R.string.vault_copied)) } })
+}
+
+@Composable private fun OtpCountdown(tick: Long, deadline: Long, period: Long) {
+    val sampled = (deadline - tick).coerceIn(0L, period).toFloat() / period
+    val ring = remember(deadline, period) { Animatable(sampled) }
+    var sweeping by remember(ring) { mutableStateOf(false) }
+    LaunchedEffect(ring) {
+        val scale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
+        if (scale == 0f) return@LaunchedEffect
+        val remaining = (deadline - SystemClock.elapsedRealtime()).coerceIn(0L, period)
+        ring.snapTo(remaining.toFloat() / period)
+        sweeping = true
+        // Keep the ring on the code's clock even when the system scales UI animations.
+        ring.animateTo(0f, Motion.countdown((remaining / scale).roundToInt()))
+    }
+    CircularProgressIndicator(progress = { if (sweeping) ring.value else sampled },
+        Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.5.dp)
 }

@@ -204,17 +204,7 @@ private fun approvalSource(source: String): String = when {
     var decision by remember(selected, state.epoch) { mutableStateOf<Pair<ApprovalDetail, Boolean>?>(null) }
     var technical by remember(selected) { mutableStateOf(false) }
     val current = detail.valueOrNull()?.takeIf { it.id == selected }
-    // A decision that went through answers with the Confirm haptic once the request leaves "awaiting_user".
     val haptics = LocalHapticFeedback.current
-    val decided = remember(selected) { booleanArrayOf(false) }
-    val deciding = state.working("approval:decide:" + selected)
-    LaunchedEffect(deciding, current?.state) {
-        if (deciding) decided[0] = true
-        else if (decided[0]) {
-            decided[0] = false
-            if (current != null && current.state != "awaiting_user") haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-        }
-    }
     LaunchedEffect(selected, state.epoch) { if (selected.isEmpty()) client.approvals.refreshRemote() else client.approvals.select(selected) }
     DisposableEffect(selected) { onDispose { client.approvals.leave(selected) } }
     val scroll = if (selected.isEmpty()) workspaceScrollState(client.navigation, "approvals:index") else key(selected) { rememberScrollState() }
@@ -365,7 +355,16 @@ private fun approvalSource(source: String): String = when {
                 } }
                 Text(str(R.string.text_this_decision_is_bound_to_the_exact_request_and_digest_shown_0594140), style = MaterialTheme.typography.bodySmall)
             }
-        }, confirmButton = { TextButton(onClick = { decision = null; client.approvals.decide(value, approve) }, enabled = current?.id == value.id && current.digest == value.digest && current.state == "awaiting_user" && detail is ReadState.Ready && now < value.expiresAt && (!approve || current.supported) && !state.working("approval:decide:" + selected) && state.unlocked) { Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1)) } }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+        }, confirmButton = {
+            TextButton(onClick = {
+                decision = null
+                client.approvals.decide(value, approve) { haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
+            }, enabled = current?.id == value.id && current.digest == value.digest && current.state == "awaiting_user" &&
+                detail is ReadState.Ready && now < value.expiresAt && (!approve || current.supported) &&
+                !state.working("approval:decide:" + selected) && state.unlocked) {
+                Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1))
+            }
+        }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
     }
 }
 

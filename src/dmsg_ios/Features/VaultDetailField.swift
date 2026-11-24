@@ -7,6 +7,7 @@ struct VaultDetailField: View {
     let field: VaultField
     let value: String?
     let remaining: Int?
+    let expires: Date?
     let busy: Bool
     let readOnly: Bool
     let live: Bool
@@ -40,7 +41,7 @@ struct VaultDetailField: View {
             }
             if !readOnly {
                 HStack(spacing: 0) {
-                    if let remaining, value != nil { VaultCodeCountdown(remaining: remaining) }
+                    if let remaining, let expires, value != nil { VaultCodeCountdown(remaining: remaining, expires: expires) }
                     // Showing a hidden value is the common action after copying, so it sits on the row.
                     if field.concealed && !live {
                         Button(action: reveal) {
@@ -105,24 +106,19 @@ struct VaultDetailField: View {
 
 struct VaultCodeCountdown: View {
     let remaining: Int
+    let expires: Date
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var progress: CGFloat?
-
-    private var target: CGFloat { CGFloat(min(max(remaining, 0), 30)) / 30 }
 
     var body: some View {
         ZStack {
             Circle().stroke(Theme.fill, lineWidth: 3)
-            // The ring sweeps evenly through each second and fills at once for a new code.
-            Circle().trim(from: 0, to: progress ?? target)
-                .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+                let seconds = reduceMotion ? Double(remaining) : expires.timeIntervalSince(timeline.date)
+                Circle().trim(from: 0, to: CGFloat(min(max(seconds, 0), 30)) / 30)
+                    .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
+            }
             Text(remaining.formatted()).font(.caption2.monospacedDigit()).countMotion(remaining)
         }.frame(width: 30, height: 30)
-            .onChange(of: remaining) { old, new in
-                let next = CGFloat(min(max(new, 0), 30)) / 30
-                if reduceMotion || new > old { progress = next }
-                else { withAnimation(Motion.tick) { progress = next } }
-            }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Remaining").accessibilityValue(remaining.formatted())
     }
