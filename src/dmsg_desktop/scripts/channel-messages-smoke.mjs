@@ -60,14 +60,15 @@ try {
   const main = await app.firstWindow(); main.setDefaultTimeout(15000)
   const failures = []; main.on('pageerror', error => failures.push(`${main.url()} ${error.stack}`))
   await main.getByTestId('channel-item').first().click()
-  await main.locator('[data-seq="2"] img').waitFor()
+  await main.locator('[data-seq="1"] img').waitFor()
   const own = main.locator('article[data-seq="2"]'), incoming = main.locator('article[data-seq="1"]')
-  const right = async locator => assert.ok(await locator.evaluate(el => { const avatar = (el.querySelector('img') ?? el.firstElementChild).getBoundingClientRect(), row = el.getBoundingClientRect(); return avatar.x > row.x + row.width / 2 }), 'own avatar or continuation belongs on the right')
+  // One's own messages are bubbles at the end, without an avatar; others keep theirs at the start.
+  const right = async locator => assert.ok(await locator.evaluate(el => { const content = el.firstElementChild.getBoundingClientRect(), row = el.getBoundingClientRect(); return !el.querySelector('img') && content.right > row.right - 24 && content.x > row.x + 40 }), 'own messages belong at the end')
   await right(own)
   assert.ok(await incoming.evaluate(el => el.querySelector('img').getBoundingClientRect().x < el.getBoundingClientRect().x + 50))
   const avatarReads = calls.filter(c => c.method === 'channel/avatar').length
   await main.evaluate(() => { location.hash = '/settings/appearance' }); await main.getByTestId('channel-messages').waitFor({ state: 'detached' })
-  await main.evaluate(() => { location.hash = '/channels' }); await main.getByTestId('channel-item').first().click(); await main.locator('[data-seq="2"] img').waitFor()
+  await main.evaluate(() => { location.hash = '/channels' }); await main.getByTestId('channel-item').first().click(); await main.locator('[data-seq="1"] img').waitFor()
   assert.equal(calls.filter(c => c.method === 'channel/avatar').length, avatarReads, 'reopening the channel reuses in-memory images')
   const preview = main.getByTestId('channel-preview')
   await preview.filter({ hasText: 'Preview sender: List preview' }).waitFor()

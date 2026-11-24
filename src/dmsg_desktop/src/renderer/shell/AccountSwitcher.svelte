@@ -109,9 +109,9 @@
         data-testid="account-switcher"
       >
         {#if avatar}
-          <img src={avatar} alt="" class="size-8 shrink-0 rounded-[9px] object-cover" />
+          <img src={avatar} alt="" class="size-8 shrink-0 rounded-full object-cover" />
         {:else}
-          <span class="grid size-8 shrink-0 place-items-center rounded-[9px] bg-forest text-body font-semibold text-on-forest">{initial}</span>
+          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-forest text-body font-semibold text-on-forest">{initial}</span>
         {/if}
         {#if !collapsed}
           <span class="min-w-0 flex-1">

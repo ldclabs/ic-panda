@@ -43,6 +43,9 @@
   --avatar-amber: #ffdbca;
   --avatar-amber-ink: #763300;
   --pop-shadow: 0 14px 34px -10px rgb(16 37 31 / 25%), 0 0 0 1px rgb(16 37 31 / 5%);
+  /* One's own message bubble: Forest with white ink; a deeper Forest in the dark theme. */
+  --bubble-mine: #145c45;
+  --on-bubble-mine: #ffffff;
   /* A list's selected row: neutral while the list has no focus, Forest while it has. */
   --select: #dde6dd;
   --select-strong: #145c45;
@@ -94,6 +97,8 @@
     --select: #22332b;
     --select-strong: #1f6b52;
     --on-select-strong: #ffffff;
+    --bubble-mine: #1f6b52;
+    --on-bubble-mine: #ffffff;
   }
 }
 
@@ -313,6 +318,21 @@ html[lang='ur'] {
   --on-forest: var(--select-strong);
   --muted: color-mix(in srgb, var(--on-select-strong) 82%, transparent);
   --faint: color-mix(in srgb, var(--on-select-strong) 72%, transparent);
+}
+
+/*
+ * One's own message (DESIGN.md, Messages): a Forest bubble whose inks follow
+ * it, so links, quotes, times and receipts read on it.
+ */
+.bubble-mine {
+  background-color: var(--bubble-mine);
+  color: var(--on-bubble-mine);
+  --forest: var(--on-bubble-mine);
+  --ink: var(--on-bubble-mine);
+  --ink-2: var(--on-bubble-mine);
+  --muted: color-mix(in srgb, var(--on-bubble-mine) 82%, transparent);
+  --faint: color-mix(in srgb, var(--on-bubble-mine) 70%, transparent);
+  --edge-soft: color-mix(in srgb, var(--on-bubble-mine) 45%, transparent);
 }
 
 /* The approval window's Approve fills while its delay runs. */

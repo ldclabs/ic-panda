@@ -2,8 +2,11 @@
   import { initials, tone } from '../views/channels/channels'
   import { cn } from './ui'
 
-  /** A rounded tile with a name's first letter or an ID's first two, in a tone that stays with the ID. */
-  let { id, name = id, src, size = 'md', class: className }: { id: string; name?: string; src?: string | null; size?: 'sm' | 'md' | 'lg'; class?: string } = $props()
+  /**
+   * A name's first letter or an ID's first two, in a tone that stays with the
+   * ID: a circle for a person, a rounded tile for a channel or an object.
+   */
+  let { id, name = id, src, size = 'md', person = false, class: className }: { id: string; name?: string; src?: string | null; size?: 'sm' | 'md' | 'lg'; person?: boolean; class?: string } = $props()
   let failed = $state<string | null>(null)
 
   // The iOS avatar tints: Gem and Warn mean a state, so a person never wears them.
@@ -13,7 +16,7 @@
 </script>
 
 <span
-  class={cn('grid shrink-0 place-items-center overflow-hidden font-semibold select-none', /^[0-9a-z]{2}$/.test(text) && 'font-mono', tones[tone(id, tones.length)], sizes[size], className)}
+  class={cn('grid shrink-0 place-items-center overflow-hidden font-semibold select-none', /^[0-9a-z]{2}$/.test(text) && 'font-mono', tones[tone(id, tones.length)], sizes[size], person && 'rounded-full', className)}
   aria-hidden="true"
 >
   {#if src && failed !== src}

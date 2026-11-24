@@ -256,7 +256,7 @@
           </div>
           <div class="border-line @container overflow-hidden rounded-xl border" data-testid="wallet-members">
             <div class="border-line bg-pale/40 flex flex-wrap items-center gap-2 border-b px-3 py-2.5" data-testid="wallet-creator">
-              {#if creator}<Avatar id={creator} size="sm" />{/if}
+              {#if creator}<Avatar id={creator} size="sm" person />{/if}
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <b class="text-callout font-medium">{t('you')}</b>

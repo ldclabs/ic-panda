@@ -324,7 +324,7 @@
               aria-current={selected === item.order_id ? 'true' : undefined}
               onclick={() => { missingNotice = false; selected = item.order_id }}
             >
-              <Avatar id={account} />
+              <Avatar id={account} person />
               <span class="min-w-0">
                 <span class={cn('flex items-center gap-1.5 truncate text-body leading-snug', box !== 'sent' && !item.read ? 'font-semibold' : 'font-medium')}>
                   {#if box === 'sent'}<span class="text-faint">{t('to')}</span>{/if}
@@ -362,7 +362,7 @@
       {#if letter}
         <article class="mx-auto max-w-2xl px-4 py-5 @min-[900px]:px-8" data-testid="letter">
           <header class="flex flex-wrap items-start gap-3">
-            <Avatar id={letter.sender} size="lg" />
+            <Avatar id={letter.sender} size="lg" person />
             <div class="min-w-0 flex-1 basis-40">
               <button class="block max-w-full truncate text-start text-body font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${letter.sender}`} onclick={() => copyText(letter.sender)}>
                 <bdi>{label(letter.sender)}</bdi>
@@ -399,7 +399,7 @@
       {:else if order}
         <article class="mx-auto grid max-w-2xl gap-4 px-4 py-5 @min-[900px]:px-8" data-testid="sent-letter">
           <header class="flex flex-wrap items-start gap-3">
-            <Avatar id={order.recipient} size="lg" />
+            <Avatar id={order.recipient} size="lg" person />
             <div class="min-w-0 flex-1 basis-40">
               <button class="block max-w-full truncate text-start text-body font-medium outline-none hover:text-forest focus-visible:underline" title={`${t('copy')} ${order.recipient}`} onclick={() => copyText(order.recipient)}>
                 <span class="text-faint">{t('to')}</span> <bdi>{label(order.recipient)}</bdi>

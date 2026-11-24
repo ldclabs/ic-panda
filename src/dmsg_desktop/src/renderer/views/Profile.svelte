@@ -252,7 +252,7 @@
   {#if published?.avatar_url && images[published.avatar_url]}
     <img class="{size} shrink-0 rounded-full object-cover ring-1 ring-line" src={images[published.avatar_url]} alt={t('avatar')} data-testid={'profile-avatar'} />
   {:else}
-    <Avatar id={published?.id ?? status?.account ?? ''} name={published?.name || published?.id || status?.account || ''} size="lg" class="{size} rounded-full" />
+    <Avatar id={published?.id ?? status?.account ?? ''} name={published?.name || published?.id || status?.account || ''} size="lg" person class={size} />
   {/if}
 {/snippet}
 

@@ -306,8 +306,9 @@ monospace face: Arabic loses its letter joining there, so only the value
 Order of separation: spacing, a rule, a tint, a border, a shadow. Only
 floating layers (menus, tooltips, the palette, dialogs, notices, the import
 card) have the `pop` shadow. Radii: 6px pills and chips, 8px controls and
-list rows, 12px panels, 16px sections and dialogs; avatars are rounded
-squares, profile pictures are circles.
+list rows, 12px panels, 16px sections and dialogs. People (participants,
+members, letter senders, accounts, direct conversations) are circles;
+channels and objects are rounded tiles, as on iOS and Android.
 
 ## Icons
 
@@ -374,8 +375,10 @@ restyle a control by hand.
   A copied secret's notice counts down to the clipboard being cleared and
   never pauses, since the clipboard clears on time. Errors
   that belong to a form stay in the form.
-- **Avatars** — published images from certified public profiles, with initials
-  (or an ID's first two characters) as the fallback. Participant images load
+- **Avatars** — `Avatar` with `person` for a person (a circle), without for
+  a channel or object (a rounded tile); published images from certified
+  public profiles, with initials (or an ID's first two characters) as the
+  fallback. Participant images load
   when their rows become visible, through the daemon's bounded, encrypted URL
   cache; repeated messages and channel visits share the result. The fallback
   tone stays with the ID; it helps recognition and never means verified.
@@ -508,6 +511,17 @@ inline editors alone handle their own cancel shortcut.
 - **Status of a file** — one icon with a tooltip, in the row and as a pill
   in the detail: on this device, backing up, backed up, only in the cloud,
   over the cloud's limit, failed. Never by color alone.
+- **Messages** — bubbles, up to 60 characters wide with a 16px radius.
+  One's own sit at the end in Forest with white text, a deeper Forest in
+  the dark theme (`bubble-mine` in `app.css`, whose inner inks follow it),
+  without an avatar or name; others' sit at the start in Surface with a
+  Line edge, after the sender's circle and, at the start
+  of a run, the name. A message that follows the same sender closes up and
+  narrows its corner on the sender's side. The time and the receipt sit at
+  the bubble's end in the caption size; a reply's quote sits inside it;
+  files, images and packets are cards below it. Retracted and unreadable
+  messages stay plain italic lines. The hover tools float beside the bubble
+  on the open side, a Surface strip with the `pop` shadow.
 - **Message states** — sending (shimmer) until the relay stores it, then a
   check with its sequence number; refused messages stay with Retry and
   Discard.

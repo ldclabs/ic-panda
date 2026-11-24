@@ -8,5 +8,5 @@
 </script>
 
 <span {@attach observe} class="shrink-0">
-  <Avatar id={account} {size} name={label(account, visible)} src={visible ? avatarOf(account) : null} />
+  <Avatar id={account} {size} person name={label(account, visible)} src={visible ? avatarOf(account) : null} />
 </span>

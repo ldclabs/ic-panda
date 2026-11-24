@@ -775,7 +775,7 @@
       onclick={() => pick(entry.id)}
       data-testid="channel-item"
     >
-      <Avatar id={entry.id} name={entry.name} />
+      <Avatar id={entry.id} name={entry.name} person={entry.ledger?.type === 'direct'} class="size-9" />
       <span class="min-w-0">
         <span class="flex min-w-0 items-center gap-1">
           <span class={cn('truncate text-body leading-snug', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
