@@ -38,6 +38,84 @@
   border-radius: 12px;
   background: white;
 }
+.dmsg-site .deletion-card {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+.dmsg-site .deletion-card dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 24px;
+  margin: 0;
+}
+.dmsg-site .deletion-card dl > div {
+  display: contents;
+}
+.dmsg-site .deletion-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.dmsg-site .deletion-card dd {
+  margin: 0;
+}
+.dmsg-site .deletion-card .digest-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.dmsg-site .deletion-card code {
+  font-size: 14px;
+  word-break: break-all;
+}
+.dmsg-site .deletion-card .copy-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dmsg-site .deletion-card .icon-button {
+  display: grid;
+  place-items: center;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  border-radius: 8px;
+}
+.dmsg-site .deletion-card .icon-button:hover {
+  background: var(--pale);
+}
+.dmsg-site .deletion-card .copy-status {
+  opacity: 0;
+  color: var(--action);
+  font-size: 13px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.dmsg-site .deletion-card .copy-status.visible {
+  opacity: 1;
+}
+.dmsg-site .deletion-card .copy-status.failed {
+  color: #b42318;
+}
+.dmsg-site .deletion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dmsg-site .deletion-card .copy-status {
+    transition: none;
+  }
+}
 .dmsg-site .terms-digest dl {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -196,6 +274,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .dmsg-site .terms-digest dl > div + div dt {
+    margin-top: 8px;
+  }
+  .dmsg-site .deletion-card {
+    padding: 16px;
+  }
+  .dmsg-site .deletion-card dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dmsg-site .deletion-card dl > div + div dt {
     margin-top: 8px;
   }
   .dmsg-site .legal-layout {

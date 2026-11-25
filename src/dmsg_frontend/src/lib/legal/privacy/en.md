@@ -48,6 +48,6 @@ Cloud ciphertext follows the account's storage and deletion rules. Service-accou
 
 ## 6. Choices, rights and contact
 
-You can export or delete content, revoke devices or browsers, block senders, report abuse, change contact rules, request service-account deletion and separately remove this device's account data. Depending on your location, you may have rights to access, correct, delete or object to processing of personal information. Contact [Support](https://dmsg.net/_/support) for requests or private vulnerability reports. We explain when encryption, retained transaction records or immutable public records limit a request.
+You can export or delete content, revoke devices or browsers, block senders, report abuse, change contact rules, request service-account deletion (inside the app or via the [Delete account](https://dmsg.net/_/delete-account) page) and separately remove this device's account data. Depending on your location, you may have rights to access, correct, delete or object to processing of personal information. Contact [Support](https://dmsg.net/_/support) for requests or private vulnerability reports. We explain when encryption, retained transaction records or immutable public records limit a request.
 
 No system is perfectly secure. App updates and canister upgrades under DAO governance remain points of trust. dMsg is not intended for children under 13 or below the applicable minimum age for using online services without parental consent. We update the date above and announce material policy changes in the app or on the website.

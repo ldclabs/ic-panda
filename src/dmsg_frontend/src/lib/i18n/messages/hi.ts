@@ -1360,4 +1360,11 @@ export default {
     'कोई नमूना वाक्य आज़माएँ। यह उदाहरण आपके ब्राउज़र में ही रहता है।',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg पासवर्ड, नोट और फ़ाइलों के लिए एक निजी कार्यक्षेत्र है। इन्हें निजी रखें, और तय करें कि पहुँच किसे मिले।',
+  'Delete account': 'खाता हटाएँ',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'ऐप अनइंस्टॉल करने के बाद भी अपना dMsg क्लाउड सेवा खाता और डेटा स्थायी रूप से कैसे हटाएँ।',
+  'Email deletion request': 'हटाने का अनुरोध ईमेल करें',
+  'Support email': 'सहायता ईमेल',
+  'Copy support email': 'सहायता ईमेल कॉपी करें',
+  'Copy failed': 'कॉपी विफल रही',
+  'Email subject': 'ईमेल विषय',
 } satisfies Messages

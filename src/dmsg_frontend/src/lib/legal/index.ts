@@ -2,7 +2,7 @@ import type { Locale } from '$lib/i18n'
 import MarkdownIt from 'markdown-it'
 import versions from './terms.json'
 
-export type LegalKind = 'privacy' | 'terms' | 'support'
+export type LegalKind = 'privacy' | 'terms' | 'support' | 'delete-account'
 
 export interface TermsVersion {
   version: number

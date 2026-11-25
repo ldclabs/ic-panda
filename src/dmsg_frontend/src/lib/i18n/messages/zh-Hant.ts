@@ -1327,4 +1327,11 @@ export default {
     '輸入一句範例文字，示範內容留在目前瀏覽器中。',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg 是保管密碼、筆記與檔案的私密工作台。資料私密保管，誰能存取由你決定。',
+  'Delete account': '刪除帳號',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': '了解如何永久刪除你的 dMsg 雲端服務帳號與資料，包括解除安裝應用程式後的申請方式。',
+  'Email deletion request': '傳送刪除請求郵件',
+  'Support email': '支援信箱',
+  'Copy support email': '複製支援信箱',
+  'Copy failed': '複製失敗',
+  'Email subject': '郵件主旨',
 } satisfies Messages

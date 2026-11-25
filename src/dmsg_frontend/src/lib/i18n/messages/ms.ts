@@ -1365,4 +1365,11 @@ export default {
     'Cuba ayat sampel. Ilustrasi ini kekal dalam pelayar anda.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg ialah ruang kerja peribadi untuk kata laluan, nota dan fail. Kekalkannya peribadi, dan pilih siapa yang mendapat akses.',
+  'Delete account': 'Padam akaun',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Cara memadam akaun perkhidmatan awan dMsg dan data anda secara kekal, termasuk selepas menyahpasang aplikasi.',
+  'Email deletion request': 'E-mel permintaan pemadaman',
+  'Support email': 'E-mel sokongan',
+  'Copy support email': 'Salin e-mel sokongan',
+  'Copy failed': 'Gagal menyalin',
+  'Email subject': 'Subjek e-mel',
 } satisfies Messages

@@ -39,15 +39,32 @@
       description: $t(
         'Where to get help with dMsg, what to include in a report and how to report a security issue.'
       )
+    },
+    {
+      kind: 'delete-account',
+      href: '/_/delete-account',
+      label: $t('Delete account'),
+      description: $t(
+        'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.'
+      )
     }
   ])
   const page = $derived(pages.find((item) => item.kind === kind)!)
   const verifyCommand = `curl -s https://dmsg.net${currentTerms.path} | shasum -a 256`
   const earlierTerms = termsVersions.slice(0, -1).reverse()
+  const supportEmail = 'hi@yiwen.ai'
+  const deleteSubject = 'dMsg Account Deletion Request'
+  const deleteMailto = `mailto:${supportEmail}?subject=${encodeURIComponent(deleteSubject)}&body=${encodeURIComponent(
+    'dMsg Account ID (or public handle):\nGoogle Play / App Store order ID (if applicable):\nConfirmation: Please permanently delete my dMsg cloud service account.\n\n(Never include private keys, seed phrases, recovery materials, backup passwords or login sessions.)\n'
+  )}`
 
   let doc = $state<LegalDocument | null>(null)
   let failed = $state(false)
   let copied = $state(false)
+  let emailCopyState = $state<'idle' | 'copied' | 'failed'>('idle')
+  let emailCopyStatus = $state('')
+  let lastAnnouncement = ''
+  let emailCopyTimer: ReturnType<typeof setTimeout> | undefined
   let request = 0
 
   async function load(target: LegalKind, language: Locale) {
@@ -70,6 +87,29 @@
     } catch {
       // Clipboard blocked: the digest remains selectable.
     }
+  }
+
+  async function copySupportEmail() {
+    clearTimeout(emailCopyTimer)
+    let ok = false
+    try {
+      await navigator.clipboard.writeText(supportEmail)
+      ok = true
+    } catch {
+      ok = false
+    }
+    emailCopyState = ok ? 'copied' : 'failed'
+    let message = ok ? $t('Copied') : $t('Copy failed')
+    if (message === lastAnnouncement) message += '\u00A0'
+    lastAnnouncement = message
+    emailCopyStatus = ''
+    requestAnimationFrame(() => {
+      emailCopyStatus = message
+    })
+    emailCopyTimer = setTimeout(() => {
+      emailCopyState = 'idle'
+      emailCopyStatus = ''
+    }, 2000)
   }
 
   $effect(() => {
@@ -171,6 +211,45 @@
               </div>
             </div>
           </details>
+        {:else if kind === 'delete-account'}
+          <div class="deletion-card">
+            <dl>
+              <div>
+                <dt>{$t('Support email')}</dt>
+                <dd class="digest-value">
+                  <code id="delete-support-email" dir="ltr">{supportEmail}</code>
+                  <span class="copy-control">
+                    <button
+                      type="button"
+                      class="icon-button"
+                      onclick={copySupportEmail}
+                      aria-label={$t('Copy support email')}
+                      data-copied={emailCopyState === 'copied' ? '' : undefined}
+                      data-failed={emailCopyState === 'failed' ? '' : undefined}
+                      ><Icon
+                        name={emailCopyState === 'copied' ? 'check' : 'copy'}
+                      /></button
+                    >
+                    <span
+                      class="copy-status"
+                      class:visible={emailCopyStatus !== ''}
+                      class:failed={emailCopyState === 'failed'}
+                      role="status">{emailCopyStatus}</span
+                    >
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>{$t('Email subject')}</dt>
+                <dd><code dir="ltr">{deleteSubject}</code></dd>
+              </div>
+            </dl>
+            <div class="deletion-actions">
+              <a class="button primary" href={deleteMailto}
+                >{$t('Email deletion request')}</a
+              >
+            </div>
+          </div>
         {/if}
       </section>
 

@@ -1376,4 +1376,11 @@ export default {
     'Subukan ang isang sample na pangungusap. Nananatili sa iyong browser ang ilustrasyong ito.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'Ang dMsg ay pribadong workspace para sa mga password, tala at file. Panatilihing pribado ang mga ito, at piliin kung sino ang may access.',
+  'Delete account': 'Tanggalin ang account',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Paano permanenteng tanggalin ang iyong dMsg cloud service account at data, kahit pagkatapos i-uninstall ang app.',
+  'Email deletion request': 'Mag-email ng kahilingan sa pagtanggal',
+  'Support email': 'Email ng suporta',
+  'Copy support email': 'Kopyahin ang email ng suporta',
+  'Copy failed': 'Nabigo ang pagkopya',
+  'Email subject': 'Paksa ng email',
 } satisfies Messages

@@ -1530,4 +1530,11 @@ export default {
     'Введите пример фразы. Эта иллюстрация остаётся в вашем браузере.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg — приватное рабочее пространство для паролей, заметок и файлов. Храните их приватно и выбирайте, у кого есть доступ.',
+  'Delete account': 'Удалить аккаунт',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Как навсегда удалить облачный аккаунт dMsg и связанные данные, в том числе после удаления приложения.',
+  'Email deletion request': 'Отправить запрос на удаление по почте',
+  'Support email': 'Почта поддержки',
+  'Copy support email': 'Скопировать почту поддержки',
+  'Copy failed': 'Не удалось скопировать',
+  'Email subject': 'Тема письма',
 } satisfies Messages

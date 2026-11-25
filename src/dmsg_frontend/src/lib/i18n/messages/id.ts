@@ -1360,4 +1360,11 @@ export default {
     'Coba kalimat contoh. Ilustrasi ini tetap berada di browser Anda.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg adalah ruang kerja pribadi untuk kata sandi, catatan, dan file. Jaga tetap pribadi, dan tentukan siapa yang mendapat akses.',
+  'Delete account': 'Hapus akun',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Cara menghapus akun layanan cloud dMsg dan data Anda secara permanen, termasuk setelah menghapus instalasi aplikasi.',
+  'Email deletion request': 'Kirim email permintaan penghapusan',
+  'Support email': 'Email dukungan',
+  'Copy support email': 'Salin email dukungan',
+  'Copy failed': 'Gagal menyalin',
+  'Email subject': 'Subjek email',
 } satisfies Messages

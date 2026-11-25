@@ -1359,4 +1359,11 @@ export default {
     'Örnek bir cümle deneyin. Bu gösterim tarayıcınızda kalır.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg; parolalar, notlar ve dosyalar için özel bir çalışma alanıdır. Onları gizli tutun ve kimin erişeceğini siz seçin.',
+  'Delete account': 'Hesabı sil',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Uygulamayı kaldırdıktan sonra dahil olmak üzere dMsg bulut hizmeti hesabınızı ve verilerinizi kalıcı olarak nasıl sileceğiniz.',
+  'Email deletion request': 'Silme talebi e-postası gönder',
+  'Support email': 'Destek e-postası',
+  'Copy support email': 'Destek e-postasını kopyala',
+  'Copy failed': 'Kopyalama başarısız',
+  'Email subject': 'E-posta konusu',
 } satisfies Messages

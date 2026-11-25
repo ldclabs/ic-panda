@@ -1547,4 +1547,11 @@ export default {
     'Prueba con una frase de ejemplo. Esta ilustración no sale de tu navegador.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg es un espacio de trabajo privado para contraseñas, notas y archivos. Mantenlos privados y elige quién tiene acceso.',
+  'Delete account': 'Eliminar cuenta',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Cómo eliminar de forma permanente tu cuenta del servicio en la nube de dMsg y tus datos, incluso después de desinstalar la aplicación.',
+  'Email deletion request': 'Enviar solicitud de eliminación por correo',
+  'Support email': 'Correo de soporte',
+  'Copy support email': 'Copiar correo de soporte',
+  'Copy failed': 'Error al copiar',
+  'Email subject': 'Asunto del correo',
 } satisfies Messages

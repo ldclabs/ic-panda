@@ -1360,4 +1360,11 @@ export default {
     'Thử một câu mẫu. Minh họa này chỉ diễn ra trong trình duyệt của bạn.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg là không gian làm việc riêng tư cho mật khẩu, ghi chú và tệp. Giữ chúng riêng tư và chọn ai được truy cập.',
+  'Delete account': 'Xóa tài khoản',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'Cách xóa vĩnh viễn tài khoản dịch vụ đám mây dMsg và dữ liệu của bạn, kể cả sau khi đã gỡ cài đặt ứng dụng.',
+  'Email deletion request': 'Gửi email yêu cầu xóa tài khoản',
+  'Support email': 'Email hỗ trợ',
+  'Copy support email': 'Sao chép email hỗ trợ',
+  'Copy failed': 'Sao chép thất bại',
+  'Email subject': 'Tiêu đề email',
 } satisfies Messages

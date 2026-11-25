@@ -6,6 +6,7 @@ dMsg 由 ICPanda DAO 公开开发。可以复现的问题，请提交 GitHub iss
 
 ## 在哪里提问
 
+- **账号删除与移动端支持**：[hi@yiwen.ai](mailto:hi@yiwen.ai)（申请删除账号请见[删除账号](/_/delete-account)）。
 - **问题报告**：网站、旧版应用、扩展或 canister 的问题，请提交 [GitHub issue](https://github.com/ldclabs/ic-panda/issues)。
 - **疑问与社区**：[OpenChat 上的 ICPanda 社区](https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai)。
 - **新闻与公告**：[X 上的 @ICPandaDAO](https://x.com/ICPandaDAO)。
@@ -36,4 +37,4 @@ dMsg 由 ICPanda DAO 公开开发。可以复现的问题，请提交 GitHub iss
 
 ## 政策
 
-请阅读[隐私政策](/_/privacy)和[服务条款](/_/terms)。
+请阅读[隐私政策](/_/privacy)、[服务条款](/_/terms)和[删除账号说明](/_/delete-account)。

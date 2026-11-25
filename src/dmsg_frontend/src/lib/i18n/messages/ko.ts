@@ -1350,4 +1350,11 @@ export default {
     '샘플 문장을 입력해 보세요. 이 예시는 브라우저 안에 머뭅니다.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg는 비밀번호, 메모, 파일을 위한 프라이빗 워크스페이스입니다. 비공개로 보관하고 누가 접근할지 선택하세요.',
+  'Delete account': '계정 삭제',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': '앱을 제거한 후를 포함하여 dMsg 클라우드 서비스 계정과 데이터를 영구적으로 삭제하는 방법.',
+  'Email deletion request': '삭제 요청 이메일 보내기',
+  'Support email': '지원 이메일',
+  'Copy support email': '지원 이메일 복사',
+  'Copy failed': '복사 실패',
+  'Email subject': '이메일 제목',
 } satisfies Messages

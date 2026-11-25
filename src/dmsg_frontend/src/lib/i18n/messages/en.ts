@@ -1513,6 +1513,13 @@ const en = {
     'Try a sample sentence. This illustration stays in your browser.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.',
+  'Delete account': 'Delete account',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.',
+  'Email deletion request': 'Email deletion request',
+  'Support email': 'Support email',
+  'Copy support email': 'Copy support email',
+  'Copy failed': 'Copy failed',
+  'Email subject': 'Email subject',
 }
 
 export type MessageKey = keyof typeof en

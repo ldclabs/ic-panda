@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { locales } from '$lib/i18n/locales'
-import { currentTerms, renderDocument, termsVersions } from './index'
+import { currentTerms, loadLegalDocument, renderDocument, termsVersions } from './index'
 
 const dir = resolve('src/lib/legal')
 const englishTerms = readFileSync(resolve(`static${currentTerms.path}`), 'utf8')
@@ -73,5 +73,18 @@ describe('legal documents', () => {
         createHash('sha256').update(readFileSync(file)).digest('hex')
       ).toBe(v.sha256)
     }
+  })
+
+  it('provides English and Simplified Chinese account deletion guides with English fallback', async () => {
+    const en = await loadLegalDocument('delete-account', 'en')
+    const zh = await loadLegalDocument('delete-account', 'zh')
+    const fallback = await loadLegalDocument('delete-account', 'fr')
+    expect(en.locale).toBe('en')
+    expect(zh.locale).toBe('zh')
+    expect(fallback.locale).toBe('en')
+    expect(en.sections.length).toBeGreaterThan(0)
+    expect(zh.sections.length).toBe(en.sections.length)
+    expect(en.html).toContain('hi@yiwen.ai')
+    expect(zh.html).toContain('hi@yiwen.ai')
   })
 })

@@ -6,6 +6,7 @@ dMsg is built in public by ICPanda DAO. For a problem you can reproduce, open a 
 
 ## Where to ask
 
+- **Account deletion and mobile support:** [hi@yiwen.ai](mailto:hi@yiwen.ai) (for account deletion requests, see [Delete account](/_/delete-account)).
 - **Bug reports:** [GitHub issues](https://github.com/ldclabs/ic-panda/issues) for problems with the website, the legacy app, the extension or the canisters.
 - **Questions and community:** the [ICPanda community on OpenChat](https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai).
 - **News and announcements:** [@ICPandaDAO on X](https://x.com/ICPandaDAO).
@@ -36,4 +37,4 @@ Do not post vulnerability details in a public issue. Contact us privately throug
 
 ## Policies
 
-Read the [Privacy Policy](/_/privacy) and the [Terms of Service](/_/terms).
+Read the [Privacy Policy](/_/privacy), the [Terms of Service](/_/terms) and the [Delete account](/_/delete-account) guide.

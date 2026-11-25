@@ -1358,4 +1358,11 @@ export default {
     'একটি নমুনা বাক্য দিয়ে দেখুন। এই উদাহরণ আপনার ব্রাউজারেই থাকে।',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg পাসওয়ার্ড, নোট ও ফাইলের জন্য একটি ব্যক্তিগত ওয়ার্কস্পেস। এগুলো ব্যক্তিগত রাখুন, এবং কে অ্যাক্সেস পাবে তা বেছে নিন।',
+  'Delete account': 'অ্যাকাউন্ট মুছুন',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': 'অ্যাপটি আনইনস্টল করার পরসহ কীভাবে স্থায়ীভাবে আপনার dMsg ক্লাউড সার্ভিস অ্যাকাউন্ট ও ডেটা মুছবেন।',
+  'Email deletion request': 'মুছে ফেলার অনুরোধ ইমেল করুন',
+  'Support email': 'সহায়তা ইমেল',
+  'Copy support email': 'সহায়তা ইমেল কপি করুন',
+  'Copy failed': 'কপি ব্যর্থ হয়েছে',
+  'Email subject': 'ইমেলের বিষয়',
 } satisfies Messages

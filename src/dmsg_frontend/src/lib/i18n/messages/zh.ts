@@ -1459,4 +1459,11 @@ export default {
     '输入一句示例文字，演示内容留在当前浏览器中。',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg 是保管密码、笔记与文件的私密工作台。资料私密保管，谁能访问由你决定。',
+  'Delete account': '删除账号',
+  'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.': '了解如何永久删除你的 dMsg 云端服务账号与数据，包括卸载应用后的申请方式。',
+  'Email deletion request': '发送删除请求邮件',
+  'Support email': '支持邮箱',
+  'Copy support email': '复制支持邮箱',
+  'Copy failed': '复制失败',
+  'Email subject': '邮件主题',
 } satisfies Messages
