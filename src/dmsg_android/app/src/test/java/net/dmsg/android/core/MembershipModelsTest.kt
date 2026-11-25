@@ -52,6 +52,8 @@ class MembershipModelsTest {
         assertEquals("rejected", refused.status); assertEquals("PROMO_ALREADY_CLAIMED", refused.reason); assertFalse(refused.synced)
 
         assertTrue(runCatching { parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":true,"plan":"Enterprise"}""")) }.isFailure)
+        assertTrue(runCatching { parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":true}""")) }.isFailure)
+        assertTrue(runCatching { parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":true,"plan":"Plus","duration_days":0,"expires_at_ms":100}""")) }.isFailure)
         assertTrue(runCatching { parsePromoRedemption(Json.parseToJsonElement("""{"status":"unknown"}""")) }.isFailure)
     }
 }

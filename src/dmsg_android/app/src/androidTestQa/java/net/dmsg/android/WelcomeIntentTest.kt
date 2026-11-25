@@ -51,7 +51,16 @@ class WelcomeIntentTest {
         compose.runOnUiThread {
             compose.activity.setContent { DMsgTheme(false) { EntryScreen(client, sample.value, {}, {}, remember { SnackbarHostState() }) } }
         }
-        compose.onNodeWithText("Open an existing account").performClick()
+        compose.onNodeWithTag("open-demo-access").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("open-demo-access").performClick()
+        compose.onNodeWithTag("demo-code-submit").assertIsNotEnabled()
+        compose.onNodeWithTag("demo-code-input").performTextInput("SAMPLE-CODE")
+        compose.onNodeWithTag("demo-code-submit").assertIsEnabled()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.runOnIdle { sample.value = initial.copy(session = session.copy(state = "no_account", setupPending = true)) }
+        compose.onNodeWithTag("open-demo-access").assertDoesNotExist()
+        compose.runOnIdle { sample.value = initial.copy(session = session) }
+        compose.onNodeWithText("Open an existing account").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(true, client.joiningAccount.value); client.showAccountInvitation(false) }
         compose.onNodeWithText("Use an existing passkey").performScrollTo().performClick()
         compose.onNodeWithText("Use an existing passkey").assertIsDisplayed()

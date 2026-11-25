@@ -59,6 +59,7 @@ pub const DMSG_APP: &str = "dmsg";
 /// The origin dMsg's own checkouts carry.
 pub const DMSG_ORIGIN: &str = "https://dmsg.net";
 const JOURNAL: &str = "checkout:";
+const PENDING_PROMO: &str = "promo:pending";
 const APPLICATION: &str = "dmsg/application/approve/v1";
 /// A device approval is valid for at most four minutes.
 const APPROVAL_MS: u64 = 240_000;
@@ -1223,6 +1224,22 @@ pub async fn relay_refresh<H: Hold>(h: &H) -> Result<()> {
     h.send(|c| c.signed_post_empty(&path)).await.map(|_| ())
 }
 
+/// Canonical spelling shared by the relay and the local redemption journal.
+pub fn normalize_promo_code(code: &str) -> Result<String> {
+    let code = code.trim();
+    ensure_valid(code.len() <= 96 && code.is_ascii(), "code")?;
+    let canonical: String = code
+        .bytes()
+        .filter(|b| *b != b'-' && !b.is_ascii_whitespace())
+        .map(|b| char::from(b.to_ascii_uppercase()))
+        .collect();
+    ensure_valid(
+        (4..=32).contains(&canonical.len()) && canonical.bytes().all(|b| b.is_ascii_alphanumeric()),
+        "code",
+    )?;
+    Ok(canonical)
+}
+
 /// Preview a public promotion code against the configured relay without an account.
 ///
 /// # Errors
@@ -1233,6 +1250,50 @@ pub async fn public_promo_preview(config: &crate::config::Config, code: &str) ->
         config.environment == dmsg_types::Environment::Local,
     )?;
     cloud.public_promo_preview(code).await
+}
+
+/// An authorized redemption saved in the device workspace before contacting the relay.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PendingPromo {
+    /// Canonical redemption code. The workspace seals it under the local device key.
+    pub code: String,
+    /// The same signed operation ID is used until the relay reports a terminal result.
+    pub request_id: Hash,
+    /// This independent account also needs its initial sample content.
+    pub sample_workspace: bool,
+}
+
+impl Client {
+    /// Read this unlocked workspace's outstanding redemption, if any.
+    pub fn pending_promo(&self) -> Result<Option<PendingPromo>> {
+        self.workspace.private(self.keys()?, PENDING_PROMO)
+    }
+
+    /// Retrying the same code reuses the first request, including after a restart.
+    pub fn stage_promo(&self, next: PendingPromo) -> Result<PendingPromo> {
+        self.require_online()?;
+        if !next.sample_workspace {
+            self.account()?;
+        }
+        if let Some(previous) = self.pending_promo()? {
+            ensure(previous.code == next.code, Error::ExecutionUnknown)?;
+            return Ok(previous);
+        }
+        self.workspace
+            .put_private(self.keys()?, PENDING_PROMO, &next)?;
+        Ok(next)
+    }
+
+    /// A late reply must not clear a newer redemption.
+    pub fn finish_promo(&self, request_id: &Hash) -> Result<()> {
+        if self
+            .pending_promo()?
+            .is_some_and(|p| p.request_id == *request_id)
+        {
+            self.workspace.delete_private(PENDING_PROMO)?;
+        }
+        Ok(())
+    }
 }
 
 /// Preview, redeem or issue a guest pass using a device-bound operation.

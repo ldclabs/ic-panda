@@ -78,7 +78,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     var choosingAccount by remember { mutableStateOf(false) }
     var choosingLanguage by remember { mutableStateOf(false) }
     var demoOpen by rememberSaveable { mutableStateOf(false) }
-    var demoCode by rememberSaveable { mutableStateOf("") }
+    var demoCode by remember { mutableStateOf("") }
     var demoError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.epoch) { choosingAccount = false }
     var confirmingReset by remember { mutableStateOf(false) }
@@ -227,7 +227,9 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                 }
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
                     if (!anotherAccount) EntryLink(str(R.string.text_saved_accounts_e314a1f), enabled = !state.busy) { choosingAccount = true }
-                    if (!anotherAccount) EntryLink(str(R.string.demo_access_link), Modifier.testTag("open-demo-access"), enabled = !state.busy) { demoOpen = true; demoError = null }
+                    if (!anotherAccount && intent == null && state.session?.accountKind != "local" && (status == "logged_out" || status == "locked")) {
+                        EntryLink(str(R.string.demo_access_link), Modifier.testTag("open-demo-access"), enabled = !state.busy) { demoOpen = true; demoError = null }
+                    }
                     EntryLink(str(R.string.app_language), Modifier.testTag("open-language")) { choosingLanguage = true }
                     EntryLink(str(R.string.text_privacy_policy_d216307)) { information = "privacy" }
                     EntryLink(str(R.string.text_about_and_support_b62fe45)) { information = "about" }

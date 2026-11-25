@@ -58,6 +58,7 @@ import net.dmsg.android.platform.numericExpression
         } else {
             membership.loadPlan()
             membership.loadUsage()
+            membership.resumePromo()
         }
     }
     val current = plan.valueOrNull()
@@ -182,11 +183,12 @@ import net.dmsg.android.platform.numericExpression
             modifier = Modifier.fillMaxWidth().testTag("promo-code-input"),
             label = { Text(str(R.string.promo_code_label)) },
             singleLine = true,
-            enabled = !working,
+            enabled = !working && !promo.retrySubmission,
         )
         if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
         promo.preview?.let { preview ->
             if (preview.eligible) {
+                LabelValue(str(R.string.text_recipient_account_id_99c767d), preview.account, code = true)
                 preview.plan?.let { LabelValue(str(R.string.promo_preview_plan), it) }
                 preview.durationDays?.let { LabelValue(str(R.string.promo_preview_duration), str(R.string.promo_days_format, localizedNumber(it))) }
                 preview.expiresAt?.let { LabelValue(str(R.string.text_current_term_ends_b4c54ff), displayTime(it)) }
@@ -206,14 +208,14 @@ import net.dmsg.android.platform.numericExpression
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = client.membership::previewPromo,
-                enabled = !working && promo.code.isNotBlank(),
+                enabled = !working && !promo.retrySubmission && promo.code.isNotBlank(),
                 modifier = Modifier.testTag("promo-preview-btn"),
             ) { Text(str(R.string.promo_check_code)) }
             Button(
-                onClick = client.membership::redeemPromo,
-                enabled = !working && promo.code.isNotBlank() && promo.preview?.eligible != false,
+                onClick = if (promo.retrySubmission) client.membership::resumePromo else client.membership::redeemPromo,
+                enabled = !working && (promo.retrySubmission || promo.preview?.eligible == true),
                 modifier = Modifier.testTag("promo-redeem-btn"),
-            ) { Text(str(R.string.promo_redeem_action)) }
+            ) { Text(str(if (promo.retrySubmission) R.string.text_retry_563171c else R.string.promo_redeem_action)) }
         }
     }
 }

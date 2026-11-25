@@ -125,6 +125,7 @@ pub fn error_code(error: &Error) -> String {
                 | "LOCAL_HARDWARE_UNAVAILABLE"
                 | "LOCAL_HARDWARE_LOST"
                 | "PROMO_UNAVAILABLE"
+                | "PROMO_PENDING"
                 | "PROMO_EXHAUSTED"
                 | "PROMO_INELIGIBLE"
                 | "PROMO_ALREADY_CLAIMED"

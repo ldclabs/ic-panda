@@ -24,6 +24,7 @@ fun errorText(code: String): String = when (code) {
     "REMINDER_UNAVAILABLE" -> str(R.string.text_this_reminder_cannot_open_its_original_item_here_f6a992c)
     "MEMBERSHIP_STALE" -> str(R.string.text_refresh_to_verify_the_current_membership_171ab7c)
     "PROMO_UNAVAILABLE" -> str(R.string.promo_error_unavailable)
+    "PROMO_PENDING" -> str(R.string.promo_pending)
     "PROMO_EXHAUSTED" -> str(R.string.promo_error_exhausted)
     "PROMO_INELIGIBLE" -> str(R.string.promo_error_ineligible)
     "PROMO_ALREADY_CLAIMED" -> str(R.string.promo_error_already_claimed)

@@ -1032,6 +1032,20 @@ class WorkspaceFlowTest {
         capture("qa-files-empty")
     }
 
+    @Test fun enteringAPromoCodeRequiresAnEligiblePreviewBeforeRedemption() {
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.open("membership") }
+        compose.waitUntil(15_000) { client.membership.usage.state.value !is ReadState.Idle && !client.state.value.working("membership:promo") }
+        val list = compose.onNodeWithTag("membership-list")
+        list.performScrollToNode(hasTestTag("promo-redeem-btn"))
+        compose.onNodeWithTag("promo-redeem-btn").assertIsNotEnabled()
+        compose.runOnIdle { client.membership.editPromoCode("SAMPLE-CODE") }
+        compose.onNodeWithTag("promo-preview-btn").assertIsEnabled()
+        compose.onNodeWithTag("promo-redeem-btn").assertIsNotEnabled()
+        capture("qa-membership-promo")
+        compose.runOnIdle { client.dark(true) }
+        capture("qa-membership-promo-dark")
+    }
+
     @Test fun membershipOverviewUsesTheUsageLimitAndKeepsComparisonOnItsOwnPage() {
         val membership = client.membership
         compose.runOnIdle { client.navigation.open("account"); client.navigation.open("membership") }

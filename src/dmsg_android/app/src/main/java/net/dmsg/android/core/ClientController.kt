@@ -731,10 +731,12 @@ class ClientController internal constructor(private val application: Application
     fun startDemoWithCode(code: String, onError: (String) -> Unit = {}, onStarted: () -> Unit = {}) {
         automaticUnlock.suppress()
         cancelAuthentication()
-        perform({ engine ->
-            systemExports.invalidate()
-            engine.startDemoWithCode(code)
-        }, transition = true, quiet = true, onError = onError) {
+        perform({ it.startDemoWithCode(code) }, transition = true, quiet = true, onError = { error ->
+            if (state.value.unlocked) {
+                navigation.open("membership")
+                showError(error)
+            } else onError(error)
+        }) {
             showAccess(AccessPage.WELCOME)
             refresh("vault")
             membership.loadPlan(true)

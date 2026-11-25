@@ -258,6 +258,7 @@ mod tests {
         assert!(old.run(|c| Box::pin(async { c.status() })).await.is_ok());
         host.pause();
         host.resume_if(host.generation()).unwrap();
+        assert!(matches!(old.begin_transition(), Err(Error::Locked)));
         // Even an operation first polled now still belongs to the old UI.
         assert!(matches!(
             old.run(|_| Box::pin(async { Ok(()) })).await,

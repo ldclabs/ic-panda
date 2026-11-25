@@ -74,20 +74,25 @@ data class PromoDraft(
     val code: String = "",
     val preview: PromoPreview? = null,
     val result: PromoRedemption? = null,
+    val retrySubmission: Boolean = false,
     val error: String? = null,
 )
 fun parsePromoPreview(value: JsonElement): PromoPreview {
     val row = value.objectValue()
     val plan = row.text("plan")
     if (plan != null) check(plan in membershipTiers) { "INTEGRITY_FAILED" }
+    val eligible = row.requiredFlag("eligible")
+    val duration = row.unsigned("duration_days")
+    val expiry = row.unsigned("expires_at_ms")
+    if (eligible) check(plan in membershipTiers.drop(1) && duration != null && duration > 0u && expiry != null && expiry > 0u) { "INTEGRITY_FAILED" }
     return PromoPreview(
         account = row.required("account"),
-        eligible = row.requiredFlag("eligible"),
+        eligible = eligible,
         reason = row.text("reason"),
         title = row.text("title"),
         plan = plan,
-        durationDays = row.unsigned("duration_days"),
-        expiresAt = row.unsigned("expires_at_ms"),
+        durationDays = duration,
+        expiresAt = expiry,
     )
 }
 fun parsePromoRedemption(value: JsonElement): PromoRedemption {
@@ -112,9 +117,6 @@ class MembershipCoordinator(private val client: ClientController) {
     val usage = ReadStore<MembershipUsage>()
     private val promoValue = MutableStateFlow(PromoDraft())
     val promo = promoValue.asStateFlow()
-    private var promoRequestId: String? = null
-    private var promoRequestCode: String? = null
-
     fun loadPlan(force: Boolean = false) {
         val request = plan.begin()
         fun accept(value: CachedMembership) { plan.accept(request, value.value); if (value.stale) plan.fail(request, "MEMBERSHIP_STALE") }
@@ -134,52 +136,54 @@ class MembershipCoordinator(private val client: ClientController) {
     }
     fun editPromoCode(code: String) {
         client.activity()
-        val trimmed = code.trim()
-        if (trimmed != promoRequestCode) {
-            promoRequestId = null
-            promoRequestCode = null
-        }
-        promoValue.value = PromoDraft(code = code)
+        promoValue.value = PromoDraft(code = code, retrySubmission = promoValue.value.retrySubmission)
     }
     fun previewPromo() {
-        val code = promoValue.value.code.trim()
-        if (code.isEmpty()) return
-        promoValue.update { it.copy(preview = null, result = null, error = null) }
-        client.perform({ parsePromoPreview(it.promoPreview(code).decode()) }, key = "membership:promo", replace = true, quiet = true, onError = { error ->
-            promoValue.update { it.copy(error = error) }
-        }) { preview ->
-            promoValue.update { it.copy(preview = preview, error = null) }
-        }
+        val draft = promoValue.value
+        val code = draft.code.trim()
+        val account = client.state.value.session?.account ?: return
+        if (code.isEmpty() || draft.retrySubmission) return
+        val checking = draft.copy(preview = null, result = null, error = null)
+        promoValue.value = checking
+        client.perform({ engine ->
+            parsePromoPreview(engine.promoPreview(code).decode()).also {
+                check(it.account == account) { "INTEGRITY_FAILED" }
+            }
+        }, key = "membership:promo", quiet = true, onError = { error ->
+            promoValue.compareAndSet(checking, checking.copy(error = error))
+        }) { preview -> promoValue.compareAndSet(checking, checking.copy(preview = preview)) }
     }
     fun redeemPromo() {
-        val code = promoValue.value.code.trim()
-        if (code.isEmpty()) return
-        val id = if (promoRequestCode == code && promoRequestId != null) promoRequestId!! else requestId().also {
-            promoRequestCode = code
-            promoRequestId = it
+        val draft = promoValue.value
+        val preview = draft.preview ?: return
+        if (!preview.eligible || draft.retrySubmission || preview.account != client.state.value.session?.account) return
+        client.perform({ parsePromoRedemption(it.promoRedeem(draft.code.trim(), requestId()).decode()) },
+            key = "membership:promo", quiet = true, onError = ::promoInterrupted, apply = ::acceptPromo)
+    }
+    fun resumePromo() {
+        if (client.state.value.session?.accountKind == "local") return
+        client.perform({ engine ->
+            engine.resumePromo().decode().takeUnless { it == JsonNull }?.let(::parsePromoRedemption)
+        }, key = "membership:promo", quiet = true, onError = ::promoInterrupted) { result ->
+            if (result != null) acceptPromo(result)
+            else if (promoValue.value.retrySubmission) promoValue.update { it.copy(retrySubmission = false, error = null) }
         }
-        promoValue.update { it.copy(result = null, error = null) }
-        client.perform({ parsePromoRedemption(it.promoRedeem(code, id).decode()) }, key = "membership:promo", replace = false, quiet = true, onError = { error ->
-            promoValue.update { it.copy(error = error) }
-        }) { result ->
-            if (result.status == "applied") {
-                promoRequestId = null
-                promoRequestCode = null
-                promoValue.value = PromoDraft(result = result)
-                loadPlan(true)
-                loadUsage()
-            } else {
-                if (result.status == "rejected" || result.status == "failed") {
-                    promoRequestId = null
-                    promoRequestCode = null
-                }
-                promoValue.update { it.copy(result = result, error = null) }
-            }
+    }
+    private fun promoInterrupted(error: String) {
+        promoValue.update { it.copy(error = error, retrySubmission = true) }
+    }
+    private fun acceptPromo(result: PromoRedemption) {
+        if (result.status == "applied") {
+            promoValue.value = PromoDraft(result = result)
+            loadPlan(true)
+            loadUsage()
+        } else {
+            promoValue.update { it.copy(preview = null, result = result, error = null, retrySubmission = result.status == "pending") }
         }
     }
     fun load(force: Boolean = false) { loadPlan(force); loadCatalog(); loadUsage() }
     fun clear() {
         plan.reset(); catalog.reset(); usage.reset()
-        promoValue.value = PromoDraft(); promoRequestId = null; promoRequestCode = null
+        promoValue.value = PromoDraft()
     }
 }
