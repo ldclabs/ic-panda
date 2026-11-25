@@ -124,6 +124,18 @@ pub fn error_code(error: &Error) -> String {
                 | "LOCAL_PASSWORD_REQUIRED"
                 | "LOCAL_HARDWARE_UNAVAILABLE"
                 | "LOCAL_HARDWARE_LOST"
+                | "PROMO_UNAVAILABLE"
+                | "PROMO_EXHAUSTED"
+                | "PROMO_INELIGIBLE"
+                | "PROMO_ALREADY_CLAIMED"
+                | "PROMO_ACCOUNT_TOO_OLD"
+                | "PROMO_ACTIVE_PLAN"
+                | "PROMO_ACTIVE_PAID_PLAN"
+                | "PROMO_ACTIVE_GRANT"
+                | "PROMO_EXPIRED"
+                | "PROMO_PAUSED"
+                | "PROMO_PURCHASE_PENDING"
+                | "PROMO_CAPACITY"
         )
     {
         return code.clone();

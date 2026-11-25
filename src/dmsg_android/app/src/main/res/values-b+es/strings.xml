@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Transfiriendo bloques cifrados"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferencias cifradas"</string>
     <string name="customize_fields" formatted="false">"Personalizar campos"</string>
+    <string name="delete_account_web" formatted="false">"Eliminar cuenta en la web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Si desinstalas dMsg o pierdes el acceso a este dispositivo, aún puedes solicitar la eliminación de la cuenta desde la página web pública anterior."</string>
+    <string name="demo_access_description" formatted="false">"Introduce un código de acceso para crear en este dispositivo un espacio de trabajo en la nube cifrado e independiente con beneficios de membresía verificados. Puedes cerrar sesión o eliminar sus datos locales en cualquier momento."</string>
+    <string name="demo_access_link" formatted="false">"Espacio de muestra"</string>
+    <string name="demo_access_title" formatted="false">"Abrir un espacio de muestra"</string>
+    <string name="demo_code_label" formatted="false">"Código de acceso"</string>
     <string name="device_content_signing" formatted="false">"Firma de contenido"</string>
     <string name="dynamic_color" formatted="false">"Color dinámico"</string>
     <string name="dynamic_color_detail" formatted="false">"Los colores siguen tu fondo de pantalla."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Documento largo truncado para la vista previa. Descárgalo o ábrelo externamente para ver todo el contenido."</string>
     <string name="preview_unavailable" formatted="false">"Este archivo ya no está disponible."</string>
     <string name="preview_unsupported" formatted="false">"No se admite la vista previa para este tipo de archivo."</string>
+    <string name="promo_applied" formatted="false">"Membresía activada. Se están actualizando los límites de tu plan."</string>
+    <string name="promo_check_code" formatted="false">"Comprobar código"</string>
+    <string name="promo_code_label" formatted="false">"Código promocional"</string>
+    <string name="promo_days_format" formatted="true">"%1$s días"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Este código solo está disponible para cuentas recién creadas."</string>
+    <string name="promo_error_active_plan" formatted="false">"Esta cuenta ya tiene una membresía activa."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Esta cuenta ya ha utilizado esta promoción."</string>
+    <string name="promo_error_capacity" formatted="false">"Los canjes están temporalmente ocupados. Inténtalo de nuevo más tarde."</string>
+    <string name="promo_error_exhausted" formatted="false">"Este código ha alcanzado su límite de canjes."</string>
+    <string name="promo_error_expired" formatted="false">"Este código ha caducado."</string>
+    <string name="promo_error_ineligible" formatted="false">"Esta cuenta no cumple los requisitos para este código."</string>
+    <string name="promo_error_paused" formatted="false">"Esta promoción está pausada temporalmente."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Completa la compra pendiente en esta cuenta antes de canjear un código."</string>
+    <string name="promo_error_unavailable" formatted="false">"Este código no es válido o ya no está disponible."</string>
     <string name="promo_granted" formatted="false">"Membresía promocional"</string>
     <string name="promo_no_charge" formatted="false">"Sin cargos automáticos al vencer."</string>
+    <string name="promo_pending" formatted="false">"Canje enviado. Los beneficios de la membresía terminarán de activarse en breve."</string>
+    <string name="promo_preview_duration" formatted="false">"Duración"</string>
+    <string name="promo_preview_plan" formatted="false">"Plan"</string>
+    <string name="promo_redeem_action" formatted="false">"Canjear"</string>
+    <string name="promo_redeem_hint" formatted="false">"Introduce un código promocional para previsualizar y activar los beneficios de membresía en esta cuenta."</string>
+    <string name="promo_redeem_title" formatted="false">"Canjear código"</string>
     <string name="receive_closed" formatted="false">"Nadie puede enviarte cartas nuevas mientras la recepción esté cerrada."</string>
     <string name="receive_free" formatted="false">"Cualquier persona que no hayas bloqueado puede escribirte gratis."</string>
     <string name="receive_selected" formatted="false">"Solo pueden escribirte las cuentas seleccionadas o quienes tengan una invitación válida."</string>

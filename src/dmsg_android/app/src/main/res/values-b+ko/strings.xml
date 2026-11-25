@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"암호화된 블록 전송 중"</string>
     <string name="cipher_transfer_title" formatted="false">"암호화 전송"</string>
     <string name="customize_fields" formatted="false">"필드 사용자화"</string>
+    <string name="delete_account_web" formatted="false">"웹에서 계정 삭제 요청"</string>
+    <string name="delete_account_web_hint" formatted="false">"dMsg를 삭제했거나 이 기기에 접근할 수 없더라도 위의 공개 웹 페이지에서 계정 삭제를 요청할 수 있습니다."</string>
+    <string name="demo_access_description" formatted="false">"액세스 코드를 입력하면 확인된 멤버십 혜택이 포함된 독립적인 암호화 샘플 클라우드 워크스페이스가 이 기기에 생성됩니다. 언제든지 로그아웃하거나 로컬 데이터를 삭제할 수 있습니다."</string>
+    <string name="demo_access_link" formatted="false">"샘플 워크스페이스"</string>
+    <string name="demo_access_title" formatted="false">"샘플 워크스페이스 열기"</string>
+    <string name="demo_code_label" formatted="false">"액세스 코드"</string>
     <string name="device_content_signing" formatted="false">"콘텐츠 서명"</string>
     <string name="dynamic_color" formatted="false">"동적 색상"</string>
     <string name="dynamic_color_detail" formatted="false">"색상이 배경화면을 따릅니다."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"긴 문서의 미리보기 일부가 생략되었습니다. 전체 내용을 보려면 다운로드하거나 외부 앱으로 여세요."</string>
     <string name="preview_unavailable" formatted="false">"이 파일은 더 이상 사용할 수 없습니다."</string>
     <string name="preview_unsupported" formatted="false">"이 파일 형식은 미리보기를 지원하지 않습니다."</string>
+    <string name="promo_applied" formatted="false">"멤버십이 활성화되었습니다. 요금제 한도를 새로고침하는 중입니다."</string>
+    <string name="promo_check_code" formatted="false">"코드 확인"</string>
+    <string name="promo_code_label" formatted="false">"프로모션 코드"</string>
+    <string name="promo_days_format" formatted="true">"%1$s일"</string>
+    <string name="promo_error_account_too_old" formatted="false">"이 코드는 새로 생성된 계정에서만 사용할 수 있습니다."</string>
+    <string name="promo_error_active_plan" formatted="false">"이 계정에는 이미 활성화된 멤버십이 있습니다."</string>
+    <string name="promo_error_already_claimed" formatted="false">"이 계정은 이미 해당 프로모션을 사용했습니다."</string>
+    <string name="promo_error_capacity" formatted="false">"코드 사용 요청이 일시적으로 많습니다. 나중에 다시 시도하세요."</string>
+    <string name="promo_error_exhausted" formatted="false">"이 코드는 사용 한도에 도달했습니다."</string>
+    <string name="promo_error_expired" formatted="false">"만료된 코드입니다."</string>
+    <string name="promo_error_ineligible" formatted="false">"이 계정은 해당 코드를 사용할 수 없습니다."</string>
+    <string name="promo_error_paused" formatted="false">"이 프로모션은 현재 일시 중지되었습니다."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"코드를 사용하기 전에 이 계정의 대기 중인 구매를 먼저 완료하세요."</string>
+    <string name="promo_error_unavailable" formatted="false">"유효하지 않거나 더 이상 사용할 수 없는 코드입니다."</string>
     <string name="promo_granted" formatted="false">"프로모션 멤버십"</string>
     <string name="promo_no_charge" formatted="false">"만료 시 자동 결제되지 않습니다."</string>
+    <string name="promo_pending" formatted="false">"코드 사용이 제출되었습니다. 멤버십 혜택이 곧 활성화됩니다."</string>
+    <string name="promo_preview_duration" formatted="false">"기간"</string>
+    <string name="promo_preview_plan" formatted="false">"요금제"</string>
+    <string name="promo_redeem_action" formatted="false">"사용하기"</string>
+    <string name="promo_redeem_hint" formatted="false">"프로모션 코드를 입력해 이 계정의 멤버십 혜택을 미리 보고 활성화하세요."</string>
+    <string name="promo_redeem_title" formatted="false">"코드 사용"</string>
     <string name="receive_closed" formatted="false">"수신을 닫으면 아무도 새 편지를 보낼 수 없습니다."</string>
     <string name="receive_free" formatted="false">"차단하지 않은 사람은 누구나 무료로 편지를 보낼 수 있습니다."</string>
     <string name="receive_selected" formatted="false">"선택한 계정이나 유효한 초대를 받은 사람만 편지를 보낼 수 있습니다."</string>

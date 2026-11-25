@@ -37,6 +37,7 @@ import net.dmsg.android.BuildConfig
             ListRow(str(R.string.text_privacy_policy_d216307), icon = Icons.Outlined.Policy, onClick = privacy)
             ListRow(str(R.string.text_terms_of_service_01b68b7), icon = Icons.Outlined.Description) { browser("https://dmsg.net/_/terms") }
             ListRow(str(R.string.text_contact_support_70c3b08), icon = Icons.Outlined.SupportAgent) { browser("https://dmsg.net/_/support") }
+            ListRow(str(R.string.delete_account_web), icon = Icons.Outlined.DeleteOutline) { browser("https://dmsg.net/_/delete-account") }
             ListRow(str(R.string.text_website_ad80f52), icon = Icons.Outlined.Public) { browser("https://dmsg.net/") }
             ListRow(str(R.string.text_dao_governance_8b8d8f9), icon = Icons.Outlined.AccountBalance) { browser("https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai") }
         }
@@ -87,6 +88,7 @@ import net.dmsg.android.BuildConfig
         Section {
             ListRow(str(R.string.text_read_the_published_policy_3b84e0d), icon = Icons.Outlined.Policy) { browser("https://dmsg.net/_/privacy") }
             ListRow(str(R.string.text_contact_support_70c3b08), icon = Icons.Outlined.SupportAgent) { browser("https://dmsg.net/_/support") }
+            ListRow(str(R.string.delete_account_web), icon = Icons.Outlined.DeleteOutline) { browser("https://dmsg.net/_/delete-account") }
         }
     }
 }

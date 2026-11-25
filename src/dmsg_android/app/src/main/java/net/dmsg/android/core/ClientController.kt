@@ -728,6 +728,20 @@ class ClientController internal constructor(private val application: Application
         }
     }
 
+    fun startDemoWithCode(code: String, onError: (String) -> Unit = {}, onStarted: () -> Unit = {}) {
+        automaticUnlock.suppress()
+        cancelAuthentication()
+        perform({ engine ->
+            systemExports.invalidate()
+            engine.startDemoWithCode(code)
+        }, transition = true, quiet = true, onError = onError) {
+            showAccess(AccessPage.WELCOME)
+            refresh("vault")
+            membership.loadPlan(true)
+            onStarted()
+        }
+    }
+
     fun initialize() { automaticUnlock.suppress(); perform({ it.initializeAccount() }, transition = true) { refresh("vault") } }
     fun refreshAccount() = perform({ it.refreshAccount() }, transition = true) { refresh("vault") }
     fun logout() { val account = state.value.session?.account; account?.let(push::forget); lock { perform({ systemExports.invalidate(); account?.let { owner -> backgroundFiles.forget(owner); incoming.forget(owner) }; it.logout() }, transition = true) } }

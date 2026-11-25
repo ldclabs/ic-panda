@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Transferindo blocos criptografados"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferências criptografadas"</string>
     <string name="customize_fields" formatted="false">"Personalizar campos"</string>
+    <string name="delete_account_web" formatted="false">"Excluir conta na web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Se você desinstalar o dMsg ou perder o acesso a este dispositivo, ainda poderá solicitar a exclusão da conta pela página pública acima."</string>
+    <string name="demo_access_description" formatted="false">"Digite um código de acesso para criar neste dispositivo um espaço na nuvem de exemplo independente e criptografado, com benefícios de assinatura verificados. Você pode sair ou remover os dados locais a qualquer momento."</string>
+    <string name="demo_access_link" formatted="false">"Espaço de exemplo"</string>
+    <string name="demo_access_title" formatted="false">"Abrir espaço de exemplo"</string>
+    <string name="demo_code_label" formatted="false">"Código de acesso"</string>
     <string name="device_content_signing" formatted="false">"Assinatura de conteúdo"</string>
     <string name="dynamic_color" formatted="false">"Cores dinâmicas"</string>
     <string name="dynamic_color_detail" formatted="false">"As cores acompanham seu plano de fundo."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Documento longo truncado na pré-visualização. Baixe ou abra externamente para ver todo o conteúdo."</string>
     <string name="preview_unavailable" formatted="false">"Este arquivo não está mais disponível."</string>
     <string name="preview_unsupported" formatted="false">"A pré-visualização não é compatível com este tipo de arquivo."</string>
+    <string name="promo_applied" formatted="false">"Assinatura ativada. Os limites do seu plano estão sendo atualizados."</string>
+    <string name="promo_check_code" formatted="false">"Verificar código"</string>
+    <string name="promo_code_label" formatted="false">"Código promocional"</string>
+    <string name="promo_days_format" formatted="true">"%1$s dias"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Este código está disponível apenas para contas recém-criadas."</string>
+    <string name="promo_error_active_plan" formatted="false">"Esta conta já possui uma assinatura ativa."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Esta conta já utilizou esta promoção."</string>
+    <string name="promo_error_capacity" formatted="false">"Os resgates estão temporariamente ocupados. Tente novamente mais tarde."</string>
+    <string name="promo_error_exhausted" formatted="false">"Este código atingiu o limite de resgates."</string>
+    <string name="promo_error_expired" formatted="false">"Este código expirou."</string>
+    <string name="promo_error_ineligible" formatted="false">"Esta conta não é elegível para este código."</string>
+    <string name="promo_error_paused" formatted="false">"Esta promoção está pausada no momento."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Conclua a compra pendente nesta conta antes de resgatar um código."</string>
+    <string name="promo_error_unavailable" formatted="false">"Este código é inválido ou não está mais disponível."</string>
     <string name="promo_granted" formatted="false">"Assinatura promocional"</string>
     <string name="promo_no_charge" formatted="false">"Sem cobrança automática no vencimento."</string>
+    <string name="promo_pending" formatted="false">"Resgate enviado. Os benefícios da assinatura serão ativados em breve."</string>
+    <string name="promo_preview_duration" formatted="false">"Duração"</string>
+    <string name="promo_preview_plan" formatted="false">"Plano"</string>
+    <string name="promo_redeem_action" formatted="false">"Resgatar"</string>
+    <string name="promo_redeem_hint" formatted="false">"Digite um código promocional para visualizar e ativar benefícios de assinatura nesta conta."</string>
+    <string name="promo_redeem_title" formatted="false">"Resgatar código"</string>
     <string name="receive_closed" formatted="false">"Ninguém pode enviar novas cartas enquanto o recebimento estiver fechado."</string>
     <string name="receive_free" formatted="false">"Qualquer pessoa que você não bloqueou pode escrever de graça."</string>
     <string name="receive_selected" formatted="false">"Só contas selecionadas ou pessoas com um convite válido podem escrever."</string>

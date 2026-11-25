@@ -450,6 +450,51 @@ impl LoginSession {
     }
 }
 
+/// A fresh local Ed25519 identity delegated to a scoped session key for
+/// `targets`. Used to create an independent review/demo cloud account without
+/// requiring a pre-existing Passkey or Internet Identity.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for an empty/oversized target list or invalid
+/// lifetime, `Error::Expired` on overflow, or `Error::IntegrityFailed` if the
+/// delegation cannot be signed.
+pub fn ephemeral_delegated(targets: &[Principal], ttl_ms: u64, now: u64) -> Result<Delegated> {
+    ensure_valid(
+        !targets.is_empty()
+            && targets.len() <= MAX_TARGETS
+            && ttl_ms > 0
+            && ttl_ms <= 30 * dmsg_types::DAY,
+        "ephemeral delegation",
+    )?;
+    let expires_at = now.checked_add(ttl_ms).ok_or(Error::Expired)?;
+    let expiration = expires_at.checked_mul(1_000_000).ok_or(Error::Expired)?;
+    let root_seed = Zeroizing::new(random_key());
+    let scoped_seed = Zeroizing::new(random_key());
+    let root = BasicIdentity::from_raw_key(&root_seed);
+    let scoped_key = BasicIdentity::from_raw_key(&scoped_seed);
+    let delegation = Delegation {
+        pubkey: scoped_key.public_key().ok_or(Error::IntegrityFailed)?,
+        expiration,
+        targets: Some(targets.to_vec()),
+        permissions: None,
+    };
+    let signature = root
+        .sign_delegation(&delegation)
+        .ok()
+        .and_then(|s| s.signature)
+        .ok_or(Error::IntegrityFailed)?;
+    KeptLogin::new(
+        root.public_key().ok_or(Error::IntegrityFailed)?,
+        &scoped_seed,
+        &[SignedDelegation {
+            delegation,
+            signature,
+        }],
+        expires_at,
+    )
+    .delegated()
+}
+
 /// A login of the key `[seed; 32]`, delegated to a scoped key, for tests.
 #[cfg(any(test, feature = "testing"))]
 pub(crate) fn kept_for_tests(seed: u8, expires_at: u64) -> KeptLogin {

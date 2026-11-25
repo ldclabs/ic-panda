@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"正在傳輸加密分塊"</string>
     <string name="cipher_transfer_title" formatted="false">"加密傳輸"</string>
     <string name="customize_fields" formatted="false">"自訂欄位"</string>
+    <string name="delete_account_web" formatted="false">"在網頁申請刪除帳號"</string>
+    <string name="delete_account_web_hint" formatted="false">"即使您已解除安裝 dMsg 或無法使用此裝置，仍可透過上方公開網頁申請刪除帳號。"</string>
+    <string name="demo_access_description" formatted="false">"輸入體驗碼，即可在此裝置建立獨立的端對端加密範例雲端工作區，並自動啟用驗證後的會員權益。您可隨時登出或移除本機資料。"</string>
+    <string name="demo_access_link" formatted="false">"範例工作區"</string>
+    <string name="demo_access_title" formatted="false">"開啟範例工作區"</string>
+    <string name="demo_code_label" formatted="false">"體驗碼"</string>
     <string name="device_content_signing" formatted="false">"內容簽署"</string>
     <string name="dynamic_color" formatted="false">"動態取色"</string>
     <string name="dynamic_color_detail" formatted="false">"顏色跟隨桌布。"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"文件較長，已截斷部分預覽內容；請下載或以其他應用程式檢視完整內容。"</string>
     <string name="preview_unavailable" formatted="false">"此檔案已無法使用。"</string>
     <string name="preview_unsupported" formatted="false">"暫不支援預覽此檔案類型。"</string>
+    <string name="promo_applied" formatted="false">"會員權益已啟用，正在重新整理方案額度。"</string>
+    <string name="promo_check_code" formatted="false">"檢查兌換碼"</string>
+    <string name="promo_code_label" formatted="false">"促銷兌換碼"</string>
+    <string name="promo_days_format" formatted="true">"%1$s 天"</string>
+    <string name="promo_error_account_too_old" formatted="false">"此代碼僅適用於新建立的帳號。"</string>
+    <string name="promo_error_active_plan" formatted="false">"此帳號已有生效中的會員方案。"</string>
+    <string name="promo_error_already_claimed" formatted="false">"此帳號已使用過這項促銷活動。"</string>
+    <string name="promo_error_capacity" formatted="false">"目前兌換請求較多，請稍後再試。"</string>
+    <string name="promo_error_exhausted" formatted="false">"此代碼已達兌換次數上限。"</string>
+    <string name="promo_error_expired" formatted="false">"此代碼已過期。"</string>
+    <string name="promo_error_ineligible" formatted="false">"此帳號不符合使用此代碼的資格。"</string>
+    <string name="promo_error_paused" formatted="false">"此促銷活動目前已暫停。"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"請先完成此帳號待處理的購買項目，再使用兌換碼。"</string>
+    <string name="promo_error_unavailable" formatted="false">"此代碼無效或已無法使用。"</string>
     <string name="promo_granted" formatted="false">"贈予會員"</string>
     <string name="promo_no_charge" formatted="false">"到期不會自動扣款。"</string>
+    <string name="promo_pending" formatted="false">"兌換已提交，會員權益將於片刻後完成啟用。"</string>
+    <string name="promo_preview_duration" formatted="false">"期間"</string>
+    <string name="promo_preview_plan" formatted="false">"方案"</string>
+    <string name="promo_redeem_action" formatted="false">"立即兌換"</string>
+    <string name="promo_redeem_hint" formatted="false">"輸入促銷兌換碼，即可預覽並於此帳號啟用對應會員權益。"</string>
+    <string name="promo_redeem_title" formatted="false">"兌換碼"</string>
     <string name="receive_closed" formatted="false">"關閉收信後，任何人都無法寄來新信。"</string>
     <string name="receive_free" formatted="false">"所有未被你封鎖的人都可以免費來信。"</string>
     <string name="receive_selected" formatted="false">"只有選定的帳號或持有效邀請的人可以來信。"</string>

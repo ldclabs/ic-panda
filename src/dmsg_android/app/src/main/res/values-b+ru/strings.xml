@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Передача зашифрованных блоков"</string>
     <string name="cipher_transfer_title" formatted="false">"Зашифрованные передачи"</string>
     <string name="customize_fields" formatted="false">"Настроить поля"</string>
+    <string name="delete_account_web" formatted="false">"Удалить аккаунт на сайте"</string>
+    <string name="delete_account_web_hint" formatted="false">"Если вы удалите dMsg или потеряете доступ к этому устройству, вы всё равно сможете запросить удаление аккаунта на публичной веб-странице выше."</string>
+    <string name="demo_access_description" formatted="false">"Введите код доступа, чтобы создать на этом устройстве независимое зашифрованное демонстрационное облачное пространство с подтверждённой подпиской. Вы можете выйти или удалить его локальные данные в любой момент."</string>
+    <string name="demo_access_link" formatted="false">"Демо-пространство"</string>
+    <string name="demo_access_title" formatted="false">"Открыть демо-пространство"</string>
+    <string name="demo_code_label" formatted="false">"Код доступа"</string>
     <string name="device_content_signing" formatted="false">"Подпись содержимого"</string>
     <string name="dynamic_color" formatted="false">"Динамические цвета"</string>
     <string name="dynamic_color_detail" formatted="false">"Цвета подстраиваются под обои."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Длинный документ сокращён в предпросмотре. Скачайте его или откройте во внешнем приложении целиком."</string>
     <string name="preview_unavailable" formatted="false">"Этот файл больше недоступен."</string>
     <string name="preview_unsupported" formatted="false">"Предпросмотр для этого типа файла не поддерживается."</string>
+    <string name="promo_applied" formatted="false">"Подписка активирована. Лимиты тарифа обновляются."</string>
+    <string name="promo_check_code" formatted="false">"Проверить код"</string>
+    <string name="promo_code_label" formatted="false">"Промокод"</string>
+    <string name="promo_days_format" formatted="true">"%1$s дн."</string>
+    <string name="promo_error_account_too_old" formatted="false">"Этот код доступен только для недавно созданных аккаунтов."</string>
+    <string name="promo_error_active_plan" formatted="false">"У этого аккаунта уже есть активная подписка."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Этот аккаунт уже использовал данную акцию."</string>
+    <string name="promo_error_capacity" formatted="false">"Сервис активации временно перегружен. Повторите попытку позже."</string>
+    <string name="promo_error_exhausted" formatted="false">"Лимит активаций этого кода исчерпан."</string>
+    <string name="promo_error_expired" formatted="false">"Срок действия этого кода истёк."</string>
+    <string name="promo_error_ineligible" formatted="false">"Этот аккаунт не соответствует условиям кода."</string>
+    <string name="promo_error_paused" formatted="false">"Эта акция временно приостановлена."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Сначала завершите незавершённую покупку в этом аккаунте, затем активируйте код."</string>
+    <string name="promo_error_unavailable" formatted="false">"Этот код недействителен или больше недоступен."</string>
     <string name="promo_granted" formatted="false">"Подарочная подписка"</string>
     <string name="promo_no_charge" formatted="false">"По окончании срока автоматического списания не будет."</string>
+    <string name="promo_pending" formatted="false">"Запрос отправлен. Преимущества подписки будут активированы в ближайшее время."</string>
+    <string name="promo_preview_duration" formatted="false">"Срок"</string>
+    <string name="promo_preview_plan" formatted="false">"Тариф"</string>
+    <string name="promo_redeem_action" formatted="false">"Активировать"</string>
+    <string name="promo_redeem_hint" formatted="false">"Введите промокод, чтобы проверить и активировать преимущества подписки для этого аккаунта."</string>
+    <string name="promo_redeem_title" formatted="false">"Активировать код"</string>
     <string name="receive_closed" formatted="false">"Пока приём закрыт, никто не может присылать вам новые письма."</string>
     <string name="receive_free" formatted="false">"Все, кого вы не заблокировали, могут писать вам бесплатно."</string>
     <string name="receive_selected" formatted="false">"Вам могут писать только выбранные аккаунты и люди с действующим приглашением."</string>

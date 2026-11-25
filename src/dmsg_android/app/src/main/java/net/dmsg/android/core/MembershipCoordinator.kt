@@ -1,5 +1,8 @@
 package net.dmsg.android.core
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.*
 
 val membershipTiers = listOf("Free", "Plus", "Pro", "Max")
@@ -51,11 +54,67 @@ fun parseMembershipUsage(value: JsonElement): MembershipUsage {
     return MembershipUsage(cloud, execution, cloudError, executionError)
 }
 
+data class PromoPreview(
+    val account: String,
+    val eligible: Boolean,
+    val reason: String?,
+    val title: String?,
+    val plan: String?,
+    val durationDays: ULong?,
+    val expiresAt: ULong?,
+)
+data class PromoRedemption(
+    val status: String,
+    val reason: String?,
+    val plan: String?,
+    val expiresAt: ULong?,
+    val synced: Boolean,
+)
+data class PromoDraft(
+    val code: String = "",
+    val preview: PromoPreview? = null,
+    val result: PromoRedemption? = null,
+    val error: String? = null,
+)
+fun parsePromoPreview(value: JsonElement): PromoPreview {
+    val row = value.objectValue()
+    val plan = row.text("plan")
+    if (plan != null) check(plan in membershipTiers) { "INTEGRITY_FAILED" }
+    return PromoPreview(
+        account = row.required("account"),
+        eligible = row.requiredFlag("eligible"),
+        reason = row.text("reason"),
+        title = row.text("title"),
+        plan = plan,
+        durationDays = row.unsigned("duration_days"),
+        expiresAt = row.unsigned("expires_at_ms"),
+    )
+}
+fun parsePromoRedemption(value: JsonElement): PromoRedemption {
+    val row = value.objectValue()
+    val status = row.required("status")
+    check(status in setOf("applied", "pending", "rejected", "failed", "revoked")) { "INTEGRITY_FAILED" }
+    val plan = row.text("plan")
+    if (plan != null) check(plan in membershipTiers) { "INTEGRITY_FAILED" }
+    return PromoRedemption(
+        status = status,
+        reason = row.text("reason"),
+        plan = plan,
+        expiresAt = row.unsigned("expires_at_ms"),
+        synced = row.flag("synced"),
+    )
+}
+
 /** The entitlement, catalogue and usage have independent failures and request ownership. */
 class MembershipCoordinator(private val client: ClientController) {
     val plan = ReadStore<MembershipPlan>()
     val catalog = ReadStore<MembershipCatalog>()
     val usage = ReadStore<MembershipUsage>()
+    private val promoValue = MutableStateFlow(PromoDraft())
+    val promo = promoValue.asStateFlow()
+    private var promoRequestId: String? = null
+    private var promoRequestCode: String? = null
+
     fun loadPlan(force: Boolean = false) {
         val request = plan.begin()
         fun accept(value: CachedMembership) { plan.accept(request, value.value); if (value.stale) plan.fail(request, "MEMBERSHIP_STALE") }
@@ -73,6 +132,54 @@ class MembershipCoordinator(private val client: ClientController) {
         // execution_usage restores an existing login before reading the private monthly ledger.
         client.perform({ parseMembershipUsage(it.accountUsage().decode()) }, key = "membership:usage", replace = true, quiet = true, onError = { usage.fail(request, it) }) { usage.accept(request, it) }
     }
+    fun editPromoCode(code: String) {
+        client.activity()
+        val trimmed = code.trim()
+        if (trimmed != promoRequestCode) {
+            promoRequestId = null
+            promoRequestCode = null
+        }
+        promoValue.value = PromoDraft(code = code)
+    }
+    fun previewPromo() {
+        val code = promoValue.value.code.trim()
+        if (code.isEmpty()) return
+        promoValue.update { it.copy(preview = null, result = null, error = null) }
+        client.perform({ parsePromoPreview(it.promoPreview(code).decode()) }, key = "membership:promo", replace = true, quiet = true, onError = { error ->
+            promoValue.update { it.copy(error = error) }
+        }) { preview ->
+            promoValue.update { it.copy(preview = preview, error = null) }
+        }
+    }
+    fun redeemPromo() {
+        val code = promoValue.value.code.trim()
+        if (code.isEmpty()) return
+        val id = if (promoRequestCode == code && promoRequestId != null) promoRequestId!! else requestId().also {
+            promoRequestCode = code
+            promoRequestId = it
+        }
+        promoValue.update { it.copy(result = null, error = null) }
+        client.perform({ parsePromoRedemption(it.promoRedeem(code, id).decode()) }, key = "membership:promo", replace = false, quiet = true, onError = { error ->
+            promoValue.update { it.copy(error = error) }
+        }) { result ->
+            if (result.status == "applied") {
+                promoRequestId = null
+                promoRequestCode = null
+                promoValue.value = PromoDraft(result = result)
+                loadPlan(true)
+                loadUsage()
+            } else {
+                if (result.status == "rejected" || result.status == "failed") {
+                    promoRequestId = null
+                    promoRequestCode = null
+                }
+                promoValue.update { it.copy(result = result, error = null) }
+            }
+        }
+    }
     fun load(force: Boolean = false) { loadPlan(force); loadCatalog(); loadUsage() }
-    fun clear() { plan.reset(); catalog.reset(); usage.reset() }
+    fun clear() {
+        plan.reset(); catalog.reset(); usage.reset()
+        promoValue.value = PromoDraft(); promoRequestId = null; promoRequestCode = null
+    }
 }

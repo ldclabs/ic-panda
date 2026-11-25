@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Memindahkan blok disulitkan"</string>
     <string name="cipher_transfer_title" formatted="false">"Pemindahan disulitkan"</string>
     <string name="customize_fields" formatted="false">"Sesuaikan medan"</string>
+    <string name="delete_account_web" formatted="false">"Padam akaun di web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Jika anda menyahpasang dMsg atau kehilangan akses kepada peranti ini, anda masih boleh memohon pemadaman akaun daripada halaman web awam di atas."</string>
+    <string name="demo_access_description" formatted="false">"Masukkan kod akses untuk mencipta ruang kerja awan sampel tersulit yang berasingan pada peranti ini dengan manfaat keahlian yang disahkan. Anda boleh log keluar atau membuang data tempatannya pada bila-bila masa."</string>
+    <string name="demo_access_link" formatted="false">"Ruang kerja sampel"</string>
+    <string name="demo_access_title" formatted="false">"Buka ruang kerja sampel"</string>
+    <string name="demo_code_label" formatted="false">"Kod akses"</string>
     <string name="device_content_signing" formatted="false">"Tandatangan kandungan"</string>
     <string name="dynamic_color" formatted="false">"Warna dinamik"</string>
     <string name="dynamic_color_detail" formatted="false">"Warna mengikut kertas dinding anda."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Dokumen panjang dipendekkan untuk pratonton. Muat turun atau buka secara luaran untuk melihat semua kandungan."</string>
     <string name="preview_unavailable" formatted="false">"Fail ini tidak lagi tersedia."</string>
     <string name="preview_unsupported" formatted="false">"Pratonton tidak disokong untuk jenis fail ini."</string>
+    <string name="promo_applied" formatted="false">"Keahlian diaktifkan. Had pelan anda sedang dimuat semula."</string>
+    <string name="promo_check_code" formatted="false">"Semak kod"</string>
+    <string name="promo_code_label" formatted="false">"Kod promosi"</string>
+    <string name="promo_days_format" formatted="true">"%1$s hari"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Kod ini hanya tersedia untuk akaun yang baru dicipta."</string>
+    <string name="promo_error_active_plan" formatted="false">"Akaun ini sudah mempunyai keahlian aktif."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Akaun ini telah menggunakan promosi ini."</string>
+    <string name="promo_error_capacity" formatted="false">"Penebusan sibuk buat sementara waktu. Cuba lagi kemudian."</string>
+    <string name="promo_error_exhausted" formatted="false">"Kod ini telah mencapai had penebusannya."</string>
+    <string name="promo_error_expired" formatted="false">"Kod ini telah tamat tempoh."</string>
+    <string name="promo_error_ineligible" formatted="false">"Akaun ini tidak layak untuk kod ini."</string>
+    <string name="promo_error_paused" formatted="false">"Promosi ini sedang dijeda buat sementara waktu."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Selesaikan pembelian yang belum selesai pada akaun ini sebelum menebus kod."</string>
+    <string name="promo_error_unavailable" formatted="false">"Kod ini tidak sah atau tidak lagi tersedia."</string>
     <string name="promo_granted" formatted="false">"Keahlian promosi"</string>
     <string name="promo_no_charge" formatted="false">"Tiada caj automatik apabila tamat."</string>
+    <string name="promo_pending" formatted="false">"Penebusan dihantar. Manfaat keahlian akan selesai diaktifkan sebentar lagi."</string>
+    <string name="promo_preview_duration" formatted="false">"Tempoh"</string>
+    <string name="promo_preview_plan" formatted="false">"Pelan"</string>
+    <string name="promo_redeem_action" formatted="false">"Tebus"</string>
+    <string name="promo_redeem_hint" formatted="false">"Masukkan kod promosi untuk melihat pratonton dan mengaktifkan manfaat keahlian pada akaun ini."</string>
+    <string name="promo_redeem_title" formatted="false">"Tebus kod"</string>
     <string name="receive_closed" formatted="false">"Tiada sesiapa boleh menghantar surat baharu apabila penerimaan ditutup."</string>
     <string name="receive_free" formatted="false">"Sesiapa yang tidak anda sekat boleh menulis secara percuma."</string>
     <string name="receive_selected" formatted="false">"Hanya akaun terpilih atau orang yang mempunyai jemputan sah boleh menulis."</string>

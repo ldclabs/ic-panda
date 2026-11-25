@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Đang truyền các khối đã mã hóa"</string>
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>
     <string name="customize_fields" formatted="false">"Tùy chỉnh trường"</string>
+    <string name="delete_account_web" formatted="false">"Xóa tài khoản trên web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Ngay cả khi bạn gỡ cài đặt dMsg hoặc mất quyền truy cập vào thiết bị này, bạn vẫn có thể yêu cầu xóa tài khoản từ trang web công khai ở trên."</string>
+    <string name="demo_access_description" formatted="false">"Nhập mã truy cập để tạo một không gian đám mây mẫu độc lập, được mã hóa trên thiết bị này kèm quyền lợi hội viên đã xác minh. Bạn có thể đăng xuất hoặc xóa dữ liệu cục bộ của không gian này bất cứ lúc nào."</string>
+    <string name="demo_access_link" formatted="false">"Không gian mẫu"</string>
+    <string name="demo_access_title" formatted="false">"Mở không gian mẫu"</string>
+    <string name="demo_code_label" formatted="false">"Mã truy cập"</string>
     <string name="device_content_signing" formatted="false">"Ký nội dung"</string>
     <string name="dynamic_color" formatted="false">"Màu động"</string>
     <string name="dynamic_color_detail" formatted="false">"Màu sắc theo hình nền của bạn."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Tài liệu dài đã được rút gọn khi xem trước. Hãy tải xuống hoặc mở bằng ứng dụng ngoài để xem toàn bộ."</string>
     <string name="preview_unavailable" formatted="false">"Tệp này không còn khả dụng."</string>
     <string name="preview_unsupported" formatted="false">"Không hỗ trợ xem trước loại tệp này."</string>
+    <string name="promo_applied" formatted="false">"Đã kích hoạt hội viên. Hạn mức gói của bạn đang được làm mới."</string>
+    <string name="promo_check_code" formatted="false">"Kiểm tra mã"</string>
+    <string name="promo_code_label" formatted="false">"Mã khuyến mãi"</string>
+    <string name="promo_days_format" formatted="true">"%1$s ngày"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Mã này chỉ áp dụng cho tài khoản mới tạo."</string>
+    <string name="promo_error_active_plan" formatted="false">"Tài khoản này đã có gói hội viên đang hoạt động."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Tài khoản này đã sử dụng chương trình khuyến mãi này."</string>
+    <string name="promo_error_capacity" formatted="false">"Hệ thống đổi mã tạm thời bận. Vui lòng thử lại sau."</string>
+    <string name="promo_error_exhausted" formatted="false">"Mã này đã đạt giới hạn lượt sử dụng."</string>
+    <string name="promo_error_expired" formatted="false">"Mã này đã hết hạn."</string>
+    <string name="promo_error_ineligible" formatted="false">"Tài khoản này không đủ điều kiện dùng mã này."</string>
+    <string name="promo_error_paused" formatted="false">"Chương trình khuyến mãi này hiện đang tạm dừng."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Hãy hoàn tất giao dịch mua đang chờ xử lý trên tài khoản này trước khi đổi mã."</string>
+    <string name="promo_error_unavailable" formatted="false">"Mã này không hợp lệ hoặc không còn khả dụng."</string>
     <string name="promo_granted" formatted="false">"Gói thành viên khuyến mãi"</string>
     <string name="promo_no_charge" formatted="false">"Không tự động tính phí khi hết hạn."</string>
+    <string name="promo_pending" formatted="false">"Đã gửi yêu cầu đổi mã. Quyền lợi hội viên sẽ hoàn tất kích hoạt trong giây lát."</string>
+    <string name="promo_preview_duration" formatted="false">"Thời hạn"</string>
+    <string name="promo_preview_plan" formatted="false">"Gói"</string>
+    <string name="promo_redeem_action" formatted="false">"Đổi mã"</string>
+    <string name="promo_redeem_hint" formatted="false">"Nhập mã khuyến mãi để xem trước và kích hoạt quyền lợi hội viên cho tài khoản này."</string>
+    <string name="promo_redeem_title" formatted="false">"Đổi mã"</string>
     <string name="receive_closed" formatted="false">"Không ai có thể gửi thư mới khi bạn đóng nhận thư."</string>
     <string name="receive_free" formatted="false">"Bất kỳ ai bạn chưa chặn đều có thể gửi thư miễn phí."</string>
     <string name="receive_selected" formatted="false">"Chỉ tài khoản đã chọn hoặc người có lời mời hợp lệ mới có thể gửi thư."</string>

@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"एन्क्रिप्ट किए गए ब्लॉक भेजे जा रहे हैं"</string>
     <string name="cipher_transfer_title" formatted="false">"एन्क्रिप्टेड ट्रांसफ़र"</string>
     <string name="customize_fields" formatted="false">"फ़ील्ड कस्टमाइज़ करें"</string>
+    <string name="delete_account_web" formatted="false">"वेब पर खाता हटाएं"</string>
+    <string name="delete_account_web_hint" formatted="false">"यदि आप dMsg अनइंस्टॉल कर देते हैं या इस डिवाइस तक पहुंच खो देते हैं, तब भी आप ऊपर दिए गए सार्वजनिक वेब पेज से खाता हटाने का अनुरोध कर सकते हैं।"</string>
+    <string name="demo_access_description" formatted="false">"सत्यापित सदस्यता लाभों के साथ इस डिवाइस पर एक स्वतंत्र एन्क्रिप्टेड नमूना क्लाउड कार्यक्षेत्र बनाने के लिए एक्सेस कोड दर्ज करें। आप कभी भी साइन आउट कर सकते हैं या इसका स्थानीय डेटा हटा सकते हैं।"</string>
+    <string name="demo_access_link" formatted="false">"नमूना कार्यक्षेत्र"</string>
+    <string name="demo_access_title" formatted="false">"नमूना कार्यक्षेत्र खोलें"</string>
+    <string name="demo_code_label" formatted="false">"एक्सेस कोड"</string>
     <string name="device_content_signing" formatted="false">"सामग्री पर हस्ताक्षर"</string>
     <string name="dynamic_color" formatted="false">"डायनैमिक रंग"</string>
     <string name="dynamic_color_detail" formatted="false">"रंग आपके वॉलपेपर के अनुसार बदलते हैं।"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"लंबा दस्तावेज़ पूर्वावलोकन के लिए छोटा किया गया है। पूरी सामग्री देखने के लिए डाउनलोड करें या बाहर खोलें।"</string>
     <string name="preview_unavailable" formatted="false">"यह फ़ाइल अब उपलब्ध नहीं है।"</string>
     <string name="preview_unsupported" formatted="false">"इस फ़ाइल प्रकार के लिए पूर्वावलोकन समर्थित नहीं है।"</string>
+    <string name="promo_applied" formatted="false">"सदस्यता सक्रिय हो गई है। आपके प्लान की सीमाएं रीफ़्रेश हो रही हैं।"</string>
+    <string name="promo_check_code" formatted="false">"कोड जांचें"</string>
+    <string name="promo_code_label" formatted="false">"प्रचार कोड"</string>
+    <string name="promo_days_format" formatted="true">"%1$s दिन"</string>
+    <string name="promo_error_account_too_old" formatted="false">"यह कोड केवल नए बनाए गए खातों के लिए उपलब्ध है।"</string>
+    <string name="promo_error_active_plan" formatted="false">"इस खाते पर पहले से एक सक्रिय सदस्यता है।"</string>
+    <string name="promo_error_already_claimed" formatted="false">"यह खाता पहले ही इस प्रचार का उपयोग कर चुका है।"</string>
+    <string name="promo_error_capacity" formatted="false">"रिडीम सेवा अस्थायी रूप से व्यस्त है। बाद में पुनः प्रयास करें।"</string>
+    <string name="promo_error_exhausted" formatted="false">"यह कोड अपनी रिडीम सीमा तक पहुंच चुका है।"</string>
+    <string name="promo_error_expired" formatted="false">"यह कोड समाप्त हो चुका है।"</string>
+    <string name="promo_error_ineligible" formatted="false">"यह खाता इस कोड के लिए पात्र नहीं है।"</string>
+    <string name="promo_error_paused" formatted="false">"यह प्रचार वर्तमान में रोका गया है।"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"कोड रिडीम करने से पहले इस खाते की लंबित खरीदारी पूरी करें।"</string>
+    <string name="promo_error_unavailable" formatted="false">"यह कोड अमान्य है या अब उपलब्ध नहीं है।"</string>
     <string name="promo_granted" formatted="false">"प्रचार सदस्यता"</string>
     <string name="promo_no_charge" formatted="false">"अवधि पूरी होने पर कोई स्वचालित शुल्क नहीं लगेगा।"</string>
+    <string name="promo_pending" formatted="false">"रिडीम अनुरोध सबमिट हो गया है। सदस्यता लाभ शीघ्र ही सक्रिय हो जाएंगे।"</string>
+    <string name="promo_preview_duration" formatted="false">"अवधि"</string>
+    <string name="promo_preview_plan" formatted="false">"प्लान"</string>
+    <string name="promo_redeem_action" formatted="false">"रिडीम करें"</string>
+    <string name="promo_redeem_hint" formatted="false">"इस खाते पर सदस्यता लाभ देखने और सक्रिय करने के लिए प्रचार कोड दर्ज करें।"</string>
+    <string name="promo_redeem_title" formatted="false">"कोड रिडीम करें"</string>
     <string name="receive_closed" formatted="false">"पत्र पाना बंद होने पर कोई भी नया पत्र नहीं भेज सकता।"</string>
     <string name="receive_free" formatted="false">"जिन लोगों को आपने ब्लॉक नहीं किया है वे मुफ़्त में लिख सकते हैं।"</string>
     <string name="receive_selected" formatted="false">"केवल चुने हुए खाते या मान्य आमंत्रण वाले लोग लिख सकते हैं।"</string>

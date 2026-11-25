@@ -35,4 +35,23 @@ class MembershipModelsTest {
         assertTrue(runCatching { parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(plans.dropLast(1))) }) }.isFailure)
         assertTrue(runCatching { parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(plans.dropLast(1) + plans.first())) }) }.isFailure)
     }
+    @Test fun promoPreviewAndRedemptionValidateKnownPlansAndStatuses() {
+        val eligible = parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":true,"reason":null,"title":"Play Review","plan":"Plus","duration_days":30,"expires_at_ms":999999}"""))
+        assertTrue(eligible.eligible); assertEquals("Plus", eligible.plan); assertEquals(30uL, eligible.durationDays); assertNull(eligible.reason)
+
+        val rejected = parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":false,"status":"rejected","reason":"PROMO_EXHAUSTED"}"""))
+        assertFalse(rejected.eligible); assertEquals("PROMO_EXHAUSTED", rejected.reason); assertNull(rejected.plan)
+
+        val applied = parsePromoRedemption(Json.parseToJsonElement("""{"grant_id":"g1","account":"0123456789abcdefghij","status":"applied","reason":null,"plan":"Plus","expires_at_ms":999999,"synced":true}"""))
+        assertEquals("applied", applied.status); assertEquals("Plus", applied.plan); assertTrue(applied.synced)
+
+        val pending = parsePromoRedemption(Json.parseToJsonElement("""{"grant_id":"g2","account":"0123456789abcdefghij","status":"pending","reason":null,"plan":"Plus","expires_at_ms":999999,"synced":false}"""))
+        assertEquals("pending", pending.status); assertFalse(pending.synced)
+
+        val refused = parsePromoRedemption(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":false,"status":"rejected","reason":"PROMO_ALREADY_CLAIMED"}"""))
+        assertEquals("rejected", refused.status); assertEquals("PROMO_ALREADY_CLAIMED", refused.reason); assertFalse(refused.synced)
+
+        assertTrue(runCatching { parsePromoPreview(Json.parseToJsonElement("""{"account":"0123456789abcdefghij","eligible":true,"plan":"Enterprise"}""")) }.isFailure)
+        assertTrue(runCatching { parsePromoRedemption(Json.parseToJsonElement("""{"status":"unknown"}""")) }.isFailure)
+    }
 }

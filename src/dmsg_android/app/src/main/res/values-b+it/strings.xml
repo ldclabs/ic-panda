@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Trasferimento dei blocchi cifrati"</string>
     <string name="cipher_transfer_title" formatted="false">"Trasferimenti cifrati"</string>
     <string name="customize_fields" formatted="false">"Personalizza campi"</string>
+    <string name="delete_account_web" formatted="false">"Elimina account sul web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Se disinstalli dMsg o perdi l\'accesso a questo dispositivo, puoi comunque richiedere l\'eliminazione dell\'account dalla pagina web pubblica sopra indicata."</string>
+    <string name="demo_access_description" formatted="false">"Inserisci un codice di accesso per creare su questo dispositivo uno spazio cloud di esempio indipendente e crittografato, con vantaggi di abbonamento verificati. Puoi uscire o rimuovere i dati locali in qualsiasi momento."</string>
+    <string name="demo_access_link" formatted="false">"Spazio di esempio"</string>
+    <string name="demo_access_title" formatted="false">"Apri uno spazio di esempio"</string>
+    <string name="demo_code_label" formatted="false">"Codice di accesso"</string>
     <string name="device_content_signing" formatted="false">"Firma dei contenuti"</string>
     <string name="dynamic_color" formatted="false">"Colori dinamici"</string>
     <string name="dynamic_color_detail" formatted="false">"I colori seguono il tuo sfondo."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Documento lungo troncato per l’anteprima. Scaricalo o aprilo esternamente per vedere tutto il contenuto."</string>
     <string name="preview_unavailable" formatted="false">"Questo file non è più disponibile."</string>
     <string name="preview_unsupported" formatted="false">"L’anteprima non è supportata per questo tipo di file."</string>
+    <string name="promo_applied" formatted="false">"Abbonamento attivato. I limiti del tuo piano si stanno aggiornando."</string>
+    <string name="promo_check_code" formatted="false">"Verifica codice"</string>
+    <string name="promo_code_label" formatted="false">"Codice promozionale"</string>
+    <string name="promo_days_format" formatted="true">"%1$s giorni"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Questo codice è disponibile solo per account appena creati."</string>
+    <string name="promo_error_active_plan" formatted="false">"Questo account dispone già di un abbonamento attivo."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Questo account ha già utilizzato questa promozione."</string>
+    <string name="promo_error_capacity" formatted="false">"Il servizio di riscatto è temporaneamente occupato. Riprova più tardi."</string>
+    <string name="promo_error_exhausted" formatted="false">"Questo codice ha raggiunto il limite di riscatti."</string>
+    <string name="promo_error_expired" formatted="false">"Questo codice è scaduto."</string>
+    <string name="promo_error_ineligible" formatted="false">"Questo account non è idoneo per questo codice."</string>
+    <string name="promo_error_paused" formatted="false">"Questa promozione è attualmente in pausa."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Completa l\'acquisto in sospeso su questo account prima di riscattare un codice."</string>
+    <string name="promo_error_unavailable" formatted="false">"Questo codice non è valido o non è più disponibile."</string>
     <string name="promo_granted" formatted="false">"Abbonamento promozionale"</string>
     <string name="promo_no_charge" formatted="false">"Nessun addebito automatico alla scadenza."</string>
+    <string name="promo_pending" formatted="false">"Riscatto inviato. I vantaggi dell\'abbonamento saranno attivi a breve."</string>
+    <string name="promo_preview_duration" formatted="false">"Durata"</string>
+    <string name="promo_preview_plan" formatted="false">"Piano"</string>
+    <string name="promo_redeem_action" formatted="false">"Riscatta"</string>
+    <string name="promo_redeem_hint" formatted="false">"Inserisci un codice promozionale per visualizzare in anteprima e attivare i vantaggi dell\'abbonamento su questo account."</string>
+    <string name="promo_redeem_title" formatted="false">"Riscatta codice"</string>
     <string name="receive_closed" formatted="false">"Nessuno può inviarti nuove lettere mentre la ricezione è chiusa."</string>
     <string name="receive_free" formatted="false">"Chiunque tu non abbia bloccato può scriverti gratuitamente."</string>
     <string name="receive_selected" formatted="false">"Possono scriverti solo gli account selezionati o chi dispone di un invito valido."</string>

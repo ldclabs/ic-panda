@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"กำลังโอนบล็อกที่เข้ารหัส"</string>
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>
     <string name="customize_fields" formatted="false">"ปรับแต่งช่องข้อมูล"</string>
+    <string name="delete_account_web" formatted="false">"ลบบัญชีผ่านเว็บ"</string>
+    <string name="delete_account_web_hint" formatted="false">"หากคุณถอนการติดตั้ง dMsg หรือไม่สามารถเข้าถึงอุปกรณ์นี้ได้ คุณยังคงสามารถส่งคำขอลบบัญชีได้จากหน้าเว็บสาธารณะด้านบน"</string>
+    <string name="demo_access_description" formatted="false">"ป้อนรหัสเข้าถึงเพื่อสร้างพื้นที่ทำงานคลาวด์ตัวอย่างที่เข้ารหัสแยกต่างหากบนอุปกรณ์นี้ พร้อมสิทธิ์สมาชิกที่ยืนยันแล้ว คุณสามารถออกจากระบบหรือลบข้อมูลในเครื่องได้ทุกเมื่อ"</string>
+    <string name="demo_access_link" formatted="false">"พื้นที่ทำงานตัวอย่าง"</string>
+    <string name="demo_access_title" formatted="false">"เปิดพื้นที่ทำงานตัวอย่าง"</string>
+    <string name="demo_code_label" formatted="false">"รหัสเข้าถึง"</string>
     <string name="device_content_signing" formatted="false">"การลงนามเนื้อหา"</string>
     <string name="dynamic_color" formatted="false">"สีแบบไดนามิก"</string>
     <string name="dynamic_color_detail" formatted="false">"สีจะเปลี่ยนตามวอลเปเปอร์ของคุณ"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"ตัดทอนเอกสารขนาดยาวสำหรับการดูตัวอย่าง ดาวน์โหลดหรือเปิดด้วยแอปภายนอกเพื่อดูทั้งหมด"</string>
     <string name="preview_unavailable" formatted="false">"ไฟล์นี้ไม่สามารถใช้งานได้แล้ว"</string>
     <string name="preview_unsupported" formatted="false">"ไม่รองรับการดูตัวอย่างสำหรับไฟล์ประเภทนี้"</string>
+    <string name="promo_applied" formatted="false">"เปิดใช้งานสมาชิกแล้ว กำลังอัปเดตขีดจำกัดแผนของคุณ"</string>
+    <string name="promo_check_code" formatted="false">"ตรวจสอบรหัส"</string>
+    <string name="promo_code_label" formatted="false">"รหัสโปรโมชัน"</string>
+    <string name="promo_days_format" formatted="true">"%1$s วัน"</string>
+    <string name="promo_error_account_too_old" formatted="false">"รหัสนี้ใช้ได้เฉพาะบัญชีที่สร้างใหม่เท่านั้น"</string>
+    <string name="promo_error_active_plan" formatted="false">"บัญชีนี้มีสมาชิกที่ใช้งานอยู่แล้ว"</string>
+    <string name="promo_error_already_claimed" formatted="false">"บัญชีนี้ใช้โปรโมชันนี้ไปแล้ว"</string>
+    <string name="promo_error_capacity" formatted="false">"ระบบแลกรหัสมีผู้ใช้งานจำนวนมากชั่วคราว โปรดลองอีกครั้งในภายหลัง"</string>
+    <string name="promo_error_exhausted" formatted="false">"รหัสนี้ถูกใช้ครบตามจำนวนที่กำหนดแล้ว"</string>
+    <string name="promo_error_expired" formatted="false">"รหัสนี้หมดอายุแล้ว"</string>
+    <string name="promo_error_ineligible" formatted="false">"บัญชีนี้ไม่มีสิทธิ์ใช้รหัสนี้"</string>
+    <string name="promo_error_paused" formatted="false">"โปรโมชันนี้ถูกระงับชั่วคราวในขณะนี้"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"โปรดดำเนินการซื้อที่ค้างอยู่ในบัญชีนี้ให้เสร็จสิ้นก่อนแลกรหัส"</string>
+    <string name="promo_error_unavailable" formatted="false">"รหัสนี้ไม่ถูกต้องหรือไม่สามารถใช้งานได้แล้ว"</string>
     <string name="promo_granted" formatted="false">"สมาชิกโปรโมชัน"</string>
     <string name="promo_no_charge" formatted="false">"ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ"</string>
+    <string name="promo_pending" formatted="false">"ส่งคำขอแลกสิทธิ์แล้ว สิทธิ์สมาชิกจะเปิดใช้งานเสร็จสมบูรณ์ในอีกสักครู่"</string>
+    <string name="promo_preview_duration" formatted="false">"ระยะเวลา"</string>
+    <string name="promo_preview_plan" formatted="false">"แผน"</string>
+    <string name="promo_redeem_action" formatted="false">"แลกสิทธิ์"</string>
+    <string name="promo_redeem_hint" formatted="false">"ป้อนรหัสโปรโมชันเพื่อดูรายละเอียดและเปิดใช้งานสิทธิ์สมาชิกในบัญชีนี้"</string>
+    <string name="promo_redeem_title" formatted="false">"แลกรหัส"</string>
     <string name="receive_closed" formatted="false">"เมื่อปิดรับจดหมาย จะไม่มีใครส่งจดหมายใหม่ถึงคุณได้"</string>
     <string name="receive_free" formatted="false">"ทุกคนที่คุณไม่ได้บล็อกส่งจดหมายได้ฟรี"</string>
     <string name="receive_selected" formatted="false">"เฉพาะบัญชีที่เลือกหรือผู้ที่มีคำเชิญที่ใช้ได้เท่านั้นที่ส่งจดหมายได้"</string>

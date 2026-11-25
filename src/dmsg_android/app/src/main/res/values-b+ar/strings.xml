@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"جارٍ نقل الكتل المشفّرة"</string>
     <string name="cipher_transfer_title" formatted="false">"عمليات النقل المشفّرة"</string>
     <string name="customize_fields" formatted="false">"تخصيص الحقول"</string>
+    <string name="delete_account_web" formatted="false">"حذف الحساب عبر الويب"</string>
+    <string name="delete_account_web_hint" formatted="false">"إذا أزلت تثبيت dMsg أو فقدت الوصول إلى هذا الجهاز، لا يزال بإمكانك طلب حذف الحساب من صفحة الويب العامة أعلاه."</string>
+    <string name="demo_access_description" formatted="false">"أدخل رمز الوصول لإنشاء مساحة عمل سحابية تجريبية مستقلة ومشفّرة على هذا الجهاز مع مزايا عضوية موثّقة. يمكنك تسجيل الخروج أو إزالة بياناتها المحلية في أي وقت."</string>
+    <string name="demo_access_link" formatted="false">"مساحة عمل تجريبية"</string>
+    <string name="demo_access_title" formatted="false">"فتح مساحة عمل تجريبية"</string>
+    <string name="demo_code_label" formatted="false">"رمز الوصول"</string>
     <string name="device_content_signing" formatted="false">"توقيع المحتوى"</string>
     <string name="dynamic_color" formatted="false">"الألوان الديناميكية"</string>
     <string name="dynamic_color_detail" formatted="false">"تتبع الألوان خلفية شاشتك."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"تم اختصار المستند الطويل للمعاينة. نزّله أو افتحه خارجياً لعرض المحتوى بالكامل."</string>
     <string name="preview_unavailable" formatted="false">"هذا الملف لم يعد متاحاً."</string>
     <string name="preview_unsupported" formatted="false">"المعاينة غير مدعومة لهذا النوع من الملفات."</string>
+    <string name="promo_applied" formatted="false">"تم تفعيل العضوية. جارٍ تحديث حدود باقتك."</string>
+    <string name="promo_check_code" formatted="false">"التحقق من الرمز"</string>
+    <string name="promo_code_label" formatted="false">"الرمز الترويجي"</string>
+    <string name="promo_days_format" formatted="true">"%1$s يومًا"</string>
+    <string name="promo_error_account_too_old" formatted="false">"هذا الرمز متاح فقط للحسابات المنشأة حديثًا."</string>
+    <string name="promo_error_active_plan" formatted="false">"يحتوي هذا الحساب بالفعل على عضوية نشطة."</string>
+    <string name="promo_error_already_claimed" formatted="false">"استخدم هذا الحساب هذا العرض الترويجي بالفعل."</string>
+    <string name="promo_error_capacity" formatted="false">"خدمة الاسترداد مشغولة مؤقتًا. حاول مرة أخرى لاحقًا."</string>
+    <string name="promo_error_exhausted" formatted="false">"بلغ هذا الرمز الحد الأقصى للاسترداد."</string>
+    <string name="promo_error_expired" formatted="false">"انتهت صلاحية هذا الرمز."</string>
+    <string name="promo_error_ineligible" formatted="false">"هذا الحساب غير مؤهل لاستخدام هذا الرمز."</string>
+    <string name="promo_error_paused" formatted="false">"هذا العرض الترويجي متوقف مؤقتًا حاليًا."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"أكمل عملية الشراء المعلّقة على هذا الحساب قبل استرداد الرمز."</string>
+    <string name="promo_error_unavailable" formatted="false">"هذا الرمز غير صالح أو لم يعد متاحًا."</string>
     <string name="promo_granted" formatted="false">"عضوية ترويجية"</string>
     <string name="promo_no_charge" formatted="false">"لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة."</string>
+    <string name="promo_pending" formatted="false">"تم إرسال طلب الاسترداد. سيكتمل تفعيل مزايا العضوية قريبًا."</string>
+    <string name="promo_preview_duration" formatted="false">"المدة"</string>
+    <string name="promo_preview_plan" formatted="false">"الباقة"</string>
+    <string name="promo_redeem_action" formatted="false">"استرداد"</string>
+    <string name="promo_redeem_hint" formatted="false">"أدخل رمزًا ترويجيًا لمعاينة مزايا العضوية وتفعيلها على هذا الحساب."</string>
+    <string name="promo_redeem_title" formatted="false">"استرداد الرمز"</string>
     <string name="receive_closed" formatted="false">"لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا."</string>
     <string name="receive_free" formatted="false">"يمكن لأي شخص لم تحظره مراسلتك مجانًا."</string>
     <string name="receive_selected" formatted="false">"يمكن للحسابات المحددة أو لمن لديهم دعوة صالحة فقط مراسلتك."</string>

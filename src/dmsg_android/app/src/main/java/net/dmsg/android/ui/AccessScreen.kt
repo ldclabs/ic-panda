@@ -77,6 +77,9 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     var information by remember { mutableStateOf<String?>(null) }
     var choosingAccount by remember { mutableStateOf(false) }
     var choosingLanguage by remember { mutableStateOf(false) }
+    var demoOpen by rememberSaveable { mutableStateOf(false) }
+    var demoCode by rememberSaveable { mutableStateOf("") }
+    var demoError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.epoch) { choosingAccount = false }
     var confirmingReset by remember { mutableStateOf(false) }
     var slow by remember { mutableStateOf(false) }
@@ -224,6 +227,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                 }
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
                     if (!anotherAccount) EntryLink(str(R.string.text_saved_accounts_e314a1f), enabled = !state.busy) { choosingAccount = true }
+                    if (!anotherAccount) EntryLink(str(R.string.demo_access_link), Modifier.testTag("open-demo-access"), enabled = !state.busy) { demoOpen = true; demoError = null }
                     EntryLink(str(R.string.app_language), Modifier.testTag("open-language")) { choosingLanguage = true }
                     EntryLink(str(R.string.text_privacy_policy_d216307)) { information = "privacy" }
                     EntryLink(str(R.string.text_about_and_support_b62fe45)) { information = "about" }
@@ -254,4 +258,43 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
         text = { Text(str(R.string.text_use_this_same_passkey_to_stop_renewal_on_its_other_devices_alread_9578651)) },
         confirmButton = { TextButton(onClick = { confirmingReset = false; client.resetPasskeySessions() }) { Text(str(R.string.text_continue_fd19155)) } },
         dismissButton = { TextButton(onClick = { confirmingReset = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    if (demoOpen) AlertDialog(
+        onDismissRequest = { if (!state.busy) { demoOpen = false; demoError = null } },
+        title = { Text(str(R.string.demo_access_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(str(R.string.demo_access_description), style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = demoCode,
+                    onValueChange = { demoCode = it; demoError = null },
+                    modifier = Modifier.fillMaxWidth().testTag("demo-code-input"),
+                    label = { Text(str(R.string.demo_code_label)) },
+                    singleLine = true,
+                    enabled = !state.busy,
+                )
+                if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                demoError?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    demoError = null
+                    client.startDemoWithCode(demoCode.trim(), onError = { demoError = it }) {
+                        demoOpen = false
+                        demoCode = ""
+                        demoError = null
+                    }
+                },
+                enabled = !state.busy && demoCode.isNotBlank(),
+                modifier = Modifier.testTag("demo-code-submit"),
+            ) { Text(str(R.string.text_continue_fd19155)) }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { demoOpen = false; demoError = null },
+                enabled = !state.busy,
+            ) { Text(str(R.string.text_cancel_998b9c4)) }
+        },
+    )
 }

@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"এনক্রিপ্ট করা ব্লক স্থানান্তর হচ্ছে"</string>
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>
     <string name="customize_fields" formatted="false">"ফিল্ড সাজান"</string>
+    <string name="delete_account_web" formatted="false">"ওয়েবে অ্যাকাউন্ট মুছুন"</string>
+    <string name="delete_account_web_hint" formatted="false">"আপনি যদি dMsg আনইনস্টল করেন বা এই ডিভাইসে অ্যাক্সেস হারান, তবুও উপরের সর্বজনীন ওয়েব পৃষ্ঠা থেকে অ্যাকাউন্ট মোছার অনুরোধ করতে পারবেন।"</string>
+    <string name="demo_access_description" formatted="false">"যাচাইকৃত সদস্যপদ সুবিধাসহ এই ডিভাইসে একটি স্বতন্ত্র এনক্রিপ্টেড নমুনা ক্লাউড ওয়ার্কস্পেস তৈরি করতে অ্যাক্সেস কোড লিখুন। আপনি যেকোনো সময় সাইন আউট করতে বা এর স্থানীয় ডেটা মুছে ফেলতে পারবেন।"</string>
+    <string name="demo_access_link" formatted="false">"নমুনা ওয়ার্কস্পেস"</string>
+    <string name="demo_access_title" formatted="false">"নমুনা ওয়ার্কস্পেস খুলুন"</string>
+    <string name="demo_code_label" formatted="false">"অ্যাক্সেস কোড"</string>
     <string name="device_content_signing" formatted="false">"বিষয়বস্তু স্বাক্ষর"</string>
     <string name="dynamic_color" formatted="false">"ডায়নামিক রং"</string>
     <string name="dynamic_color_detail" formatted="false">"রং আপনার ওয়ালপেপার অনুসরণ করে।"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"দীর্ঘ নথি প্রিভিউয়ের জন্য সংক্ষিপ্ত করা হয়েছে। সম্পূর্ণ বিষয়বস্তু দেখতে ডাউনলোড বা বাহ্যিকভাবে খুলুন।"</string>
     <string name="preview_unavailable" formatted="false">"এই ফাইলটি আর উপলব্ধ নয়।"</string>
     <string name="preview_unsupported" formatted="false">"এই ফাইল ধরনের জন্য প্রিভিউ সমর্থিত নয়।"</string>
+    <string name="promo_applied" formatted="false">"সদস্যপদ সক্রিয় হয়েছে। আপনার প্ল্যানের সীমা রিফ্রেশ হচ্ছে।"</string>
+    <string name="promo_check_code" formatted="false">"কোড যাচাই করুন"</string>
+    <string name="promo_code_label" formatted="false">"প্রোমোশন কোড"</string>
+    <string name="promo_days_format" formatted="true">"%1$s দিন"</string>
+    <string name="promo_error_account_too_old" formatted="false">"এই কোডটি কেবল নতুন তৈরি অ্যাকাউন্টের জন্য প্রযোজ্য।"</string>
+    <string name="promo_error_active_plan" formatted="false">"এই অ্যাকাউন্টে ইতিমধ্যেই একটি সক্রিয় সদস্যপদ রয়েছে।"</string>
+    <string name="promo_error_already_claimed" formatted="false">"এই অ্যাকাউন্টে ইতিমধ্যেই এই প্রোমোশন ব্যবহার করা হয়েছে।"</string>
+    <string name="promo_error_capacity" formatted="false">"রিডেম্পশন সেবা সাময়িকভাবে ব্যস্ত। পরে আবার চেষ্টা করুন।"</string>
+    <string name="promo_error_exhausted" formatted="false">"এই কোডটি রিডিম করার সীমায় পৌঁছে গেছে।"</string>
+    <string name="promo_error_expired" formatted="false">"এই কোডের মেয়াদ শেষ হয়ে গেছে।"</string>
+    <string name="promo_error_ineligible" formatted="false">"এই অ্যাকাউন্টটি এই কোডের জন্য যোগ্য নয়।"</string>
+    <string name="promo_error_paused" formatted="false">"এই প্রোমোশনটি বর্তমানে সাময়িকভাবে বন্ধ আছে।"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"কোড রিডিম করার আগে এই অ্যাকাউন্টের মুলতুবি কেনাকাটা সম্পন্ন করুন।"</string>
+    <string name="promo_error_unavailable" formatted="false">"এই কোডটি অবৈধ বা আর উপলব্ধ নয়।"</string>
     <string name="promo_granted" formatted="false">"প্রচারমূলক সদস্যতা"</string>
     <string name="promo_no_charge" formatted="false">"মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।"</string>
+    <string name="promo_pending" formatted="false">"রিডেম্পশন জমা দেওয়া হয়েছে। সদস্যপদ সুবিধা শীঘ্রই সক্রিয় হবে।"</string>
+    <string name="promo_preview_duration" formatted="false">"মেয়াদ"</string>
+    <string name="promo_preview_plan" formatted="false">"প্ল্যান"</string>
+    <string name="promo_redeem_action" formatted="false">"রিডিম করুন"</string>
+    <string name="promo_redeem_hint" formatted="false">"এই অ্যাকাউন্টে সদস্যপদ সুবিধা প্রিভিউ এবং সক্রিয় করতে একটি প্রোমোশনাল কোড লিখুন।"</string>
+    <string name="promo_redeem_title" formatted="false">"কোড রিডিম করুন"</string>
     <string name="receive_closed" formatted="false">"চিঠি গ্রহণ বন্ধ থাকলে কেউ নতুন চিঠি পাঠাতে পারবেন না।"</string>
     <string name="receive_free" formatted="false">"আপনি যাঁদের অবরুদ্ধ করেননি তাঁরা বিনামূল্যে লিখতে পারেন।"</string>
     <string name="receive_selected" formatted="false">"কেবল নির্বাচিত অ্যাকাউন্ট বা বৈধ আমন্ত্রণধারীরা চিঠি লিখতে পারেন।"</string>

@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"正在传输加密分块"</string>
     <string name="cipher_transfer_title" formatted="false">"加密传输"</string>
     <string name="customize_fields" formatted="false">"自定义字段"</string>
+    <string name="delete_account_web" formatted="false">"网页申请删除账号"</string>
+    <string name="delete_account_web_hint" formatted="false">"即使卸载 dMsg 或无法使用本设备，你仍可通过上方公开网页提交账号删除申请。"</string>
+    <string name="demo_access_description" formatted="false">"输入体验码，在本机创建一个独立的端到端加密示例云端工作区并自动激活对应会员权益。你可以随时退出或移除其本机数据。"</string>
+    <string name="demo_access_link" formatted="false">"示例工作区"</string>
+    <string name="demo_access_title" formatted="false">"打开示例工作区"</string>
+    <string name="demo_code_label" formatted="false">"体验码"</string>
     <string name="device_content_signing" formatted="false">"内容签名"</string>
     <string name="dynamic_color" formatted="false">"动态取色"</string>
     <string name="dynamic_color_detail" formatted="false">"颜色跟随壁纸。"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。"</string>
     <string name="preview_unavailable" formatted="false">"此文件已不可用。"</string>
     <string name="preview_unsupported" formatted="false">"暂不支持预览此文件类型。"</string>
+    <string name="promo_applied" formatted="false">"会员权益已激活，正在刷新当前套餐额度。"</string>
+    <string name="promo_check_code" formatted="false">"检查兑换码"</string>
+    <string name="promo_code_label" formatted="false">"兑换码"</string>
+    <string name="promo_days_format" formatted="true">"%1$s 天"</string>
+    <string name="promo_error_account_too_old" formatted="false">"该兑换码仅适用于新创建的账号。"</string>
+    <string name="promo_error_active_plan" formatted="false">"当前账号已有生效中的会员权益。"</string>
+    <string name="promo_error_already_claimed" formatted="false">"当前账号已使用过该活动兑换码。"</string>
+    <string name="promo_error_capacity" formatted="false">"当前兑换请求较多，请稍后再试。"</string>
+    <string name="promo_error_exhausted" formatted="false">"该兑换码已达到兑换次数上限。"</string>
+    <string name="promo_error_expired" formatted="false">"该兑换码已过期。"</string>
+    <string name="promo_error_ineligible" formatted="false">"当前账号不符合该兑换码的使用条件。"</string>
+    <string name="promo_error_paused" formatted="false">"该活动当前已暂停。"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"请先完成当前账号的待处理购买，再使用兑换码。"</string>
+    <string name="promo_error_unavailable" formatted="false">"该兑换码无效或已失效。"</string>
     <string name="promo_granted" formatted="false">"赠予会员"</string>
     <string name="promo_no_charge" formatted="false">"到期不会自动扣费。"</string>
+    <string name="promo_pending" formatted="false">"兑换已提交，会员权益将在片刻后完成激活。"</string>
+    <string name="promo_preview_duration" formatted="false">"时长"</string>
+    <string name="promo_preview_plan" formatted="false">"套餐"</string>
+    <string name="promo_redeem_action" formatted="false">"立即兑换"</string>
+    <string name="promo_redeem_hint" formatted="false">"输入兑换码，预览并在当前账号激活对应会员权益。"</string>
+    <string name="promo_redeem_title" formatted="false">"兑换码"</string>
     <string name="receive_closed" formatted="false">"关闭收信后，任何人都无法发来新信。"</string>
     <string name="receive_free" formatted="false">"所有未被你屏蔽的人都可以免费来信。"</string>
     <string name="receive_selected" formatted="false">"只有选定账号或持有效邀请的人可以来信。"</string>

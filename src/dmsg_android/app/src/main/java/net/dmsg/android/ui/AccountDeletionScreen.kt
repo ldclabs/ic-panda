@@ -114,8 +114,9 @@ import net.dmsg.android.core.*
                     }
                 }
             }
-            Section {
+            Section(footer = str(R.string.delete_account_web_hint)) {
                 ListRow(str(R.string.text_privacy_policy_d216307), icon = Icons.Outlined.Policy) { client.navigation.push(Route("privacy")) }
+                CodeRow(str(R.string.delete_account_web), "https://dmsg.net/_/delete-account") { client.clipboard.copy("https://dmsg.net/_/delete-account") }
             }
         }
         if (job == null) BottomActionBar {

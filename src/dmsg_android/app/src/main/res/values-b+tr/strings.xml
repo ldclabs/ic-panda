@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Şifreli bloklar aktarılıyor"</string>
     <string name="cipher_transfer_title" formatted="false">"Şifreli aktarımlar"</string>
     <string name="customize_fields" formatted="false">"Alanları özelleştir"</string>
+    <string name="delete_account_web" formatted="false">"Hesabı web\'den sil"</string>
+    <string name="delete_account_web_hint" formatted="false">"dMsg uygulamasını kaldırsanız veya bu cihaza erişiminizi kaybetseniz bile yukarıdaki herkese açık web sayfasından hesap silme talebinde bulunabilirsiniz."</string>
+    <string name="demo_access_description" formatted="false">"Bu cihazda doğrulanmış üyelik avantajlarına sahip bağımsız, uçtan uca şifreli bir örnek bulut çalışma alanı oluşturmak için erişim kodunu girin. İstediğiniz zaman çıkış yapabilir veya yerel verilerini kaldırabilirsiniz."</string>
+    <string name="demo_access_link" formatted="false">"Örnek çalışma alanı"</string>
+    <string name="demo_access_title" formatted="false">"Örnek çalışma alanı aç"</string>
+    <string name="demo_code_label" formatted="false">"Erişim kodu"</string>
     <string name="device_content_signing" formatted="false">"İçerik imzalama"</string>
     <string name="dynamic_color" formatted="false">"Dinamik renkler"</string>
     <string name="dynamic_color_detail" formatted="false">"Renkler duvar kağıdınıza uyar."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Uzun belge önizleme için kısaltıldı. Tüm içeriği görmek için indirin veya harici olarak açın."</string>
     <string name="preview_unavailable" formatted="false">"Bu dosya artık kullanılamıyor."</string>
     <string name="preview_unsupported" formatted="false">"Bu dosya türü için önizleme desteklenmiyor."</string>
+    <string name="promo_applied" formatted="false">"Üyelik etkinleştirildi. Plan limitleriniz yenileniyor."</string>
+    <string name="promo_check_code" formatted="false">"Kodu kontrol et"</string>
+    <string name="promo_code_label" formatted="false">"Promosyon kodu"</string>
+    <string name="promo_days_format" formatted="true">"%1$s gün"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Bu kod yalnızca yeni oluşturulan hesaplar için geçerlidir."</string>
+    <string name="promo_error_active_plan" formatted="false">"Bu hesapta zaten etkin bir üyelik var."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Bu hesap bu promosyonu zaten kullandı."</string>
+    <string name="promo_error_capacity" formatted="false">"Kod kullanımı geçici olarak yoğun. Daha sonra tekrar deneyin."</string>
+    <string name="promo_error_exhausted" formatted="false">"Bu kod kullanım sınırına ulaştı."</string>
+    <string name="promo_error_expired" formatted="false">"Bu kodun süresi doldu."</string>
+    <string name="promo_error_ineligible" formatted="false">"Bu hesap bu kod için uygun değil."</string>
+    <string name="promo_error_paused" formatted="false">"Bu promosyon şu anda duraklatıldı."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Kod kullanmadan önce bu hesaptaki bekleyen satın alma işlemini tamamlayın."</string>
+    <string name="promo_error_unavailable" formatted="false">"Bu kod geçersiz veya artık kullanılamıyor."</string>
     <string name="promo_granted" formatted="false">"Promosyon üyeliği"</string>
     <string name="promo_no_charge" formatted="false">"Süre sonunda otomatik ücret alınmaz."</string>
+    <string name="promo_pending" formatted="false">"Kullanım gönderildi. Üyelik avantajları kısa süre içinde etkinleşecek."</string>
+    <string name="promo_preview_duration" formatted="false">"Süre"</string>
+    <string name="promo_preview_plan" formatted="false">"Plan"</string>
+    <string name="promo_redeem_action" formatted="false">"Kullan"</string>
+    <string name="promo_redeem_hint" formatted="false">"Bu hesapta üyelik avantajlarını önizlemek ve etkinleştirmek için bir promosyon kodu girin."</string>
+    <string name="promo_redeem_title" formatted="false">"Kod kullan"</string>
     <string name="receive_closed" formatted="false">"Mektup alımı kapalıyken kimse yeni mektup gönderemez."</string>
     <string name="receive_free" formatted="false">"Engellemediğiniz herkes ücretsiz yazabilir."</string>
     <string name="receive_selected" formatted="false">"Yalnızca seçili hesaplar veya geçerli daveti olan kişiler yazabilir."</string>

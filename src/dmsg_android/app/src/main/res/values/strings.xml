@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Transferring encrypted blocks"</string>
     <string name="cipher_transfer_title" formatted="false">"Encrypted transfers"</string>
     <string name="customize_fields" formatted="false">"Customize fields"</string>
+    <string name="delete_account_web" formatted="false">"Delete account on web"</string>
+    <string name="delete_account_web_hint" formatted="false">"If you uninstall dMsg or lose access to this device, you can still request account deletion from the public web page above."</string>
+    <string name="demo_access_description" formatted="false">"Enter an access code to create an independent encrypted sample cloud workspace on this device with verified membership benefits. You can sign out or remove its local data at any time."</string>
+    <string name="demo_access_link" formatted="false">"Sample workspace"</string>
+    <string name="demo_access_title" formatted="false">"Open a sample workspace"</string>
+    <string name="demo_code_label" formatted="false">"Access code"</string>
     <string name="device_content_signing" formatted="false">"Content signing"</string>
     <string name="dynamic_color" formatted="false">"Dynamic color"</string>
     <string name="dynamic_color_detail" formatted="false">"Colors follow your wallpaper."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Long document truncated for preview. Download or open externally to view all content."</string>
     <string name="preview_unavailable" formatted="false">"This file is no longer available."</string>
     <string name="preview_unsupported" formatted="false">"Preview is not supported for this file type."</string>
+    <string name="promo_applied" formatted="false">"Membership activated. Your plan limits are refreshing."</string>
+    <string name="promo_check_code" formatted="false">"Check code"</string>
+    <string name="promo_code_label" formatted="false">"Promotion code"</string>
+    <string name="promo_days_format" formatted="true">"%1$s days"</string>
+    <string name="promo_error_account_too_old" formatted="false">"This code is only available for newly created accounts."</string>
+    <string name="promo_error_active_plan" formatted="false">"This account already has an active membership."</string>
+    <string name="promo_error_already_claimed" formatted="false">"This account has already used this promotion."</string>
+    <string name="promo_error_capacity" formatted="false">"Redemptions are temporarily busy. Try again later."</string>
+    <string name="promo_error_exhausted" formatted="false">"This code has reached its redemption limit."</string>
+    <string name="promo_error_expired" formatted="false">"This code has expired."</string>
+    <string name="promo_error_ineligible" formatted="false">"This account is not eligible for this code."</string>
+    <string name="promo_error_paused" formatted="false">"This promotion is currently paused."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Finish the pending purchase on this account before redeeming a code."</string>
+    <string name="promo_error_unavailable" formatted="false">"This code is invalid or no longer available."</string>
     <string name="promo_granted" formatted="false">"Promotional membership"</string>
     <string name="promo_no_charge" formatted="false">"No automatic charge at expiry."</string>
+    <string name="promo_pending" formatted="false">"Redemption submitted. Membership benefits will finish activating shortly."</string>
+    <string name="promo_preview_duration" formatted="false">"Duration"</string>
+    <string name="promo_preview_plan" formatted="false">"Plan"</string>
+    <string name="promo_redeem_action" formatted="false">"Redeem"</string>
+    <string name="promo_redeem_hint" formatted="false">"Enter a promotional code to preview and activate membership benefits on this account."</string>
+    <string name="promo_redeem_title" formatted="false">"Redeem code"</string>
     <string name="receive_closed" formatted="false">"No one can send a new letter while receiving is closed."</string>
     <string name="receive_free" formatted="false">"Anyone you haven’t blocked can write for free."</string>
     <string name="receive_selected" formatted="false">"Only selected accounts or people with a valid invitation can write."</string>

@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Mentransfer blok terenkripsi"</string>
     <string name="cipher_transfer_title" formatted="false">"Transfer terenkripsi"</string>
     <string name="customize_fields" formatted="false">"Sesuaikan bidang"</string>
+    <string name="delete_account_web" formatted="false">"Hapus akun di web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Jika Anda menghapus dMsg atau kehilangan akses ke perangkat ini, Anda tetap dapat mengajukan penghapusan akun melalui halaman web publik di atas."</string>
+    <string name="demo_access_description" formatted="false">"Masukkan kode akses untuk membuat ruang kerja cloud contoh terenkripsi yang independen di perangkat ini dengan manfaat keanggotaan terverifikasi. Anda dapat keluar atau menghapus data lokalnya kapan saja."</string>
+    <string name="demo_access_link" formatted="false">"Ruang kerja contoh"</string>
+    <string name="demo_access_title" formatted="false">"Buka ruang kerja contoh"</string>
+    <string name="demo_code_label" formatted="false">"Kode akses"</string>
     <string name="device_content_signing" formatted="false">"Penandatanganan konten"</string>
     <string name="dynamic_color" formatted="false">"Warna dinamis"</string>
     <string name="dynamic_color_detail" formatted="false">"Warna mengikuti wallpaper Anda."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Dokumen panjang dipotong untuk pratinjau. Unduh atau buka secara eksternal untuk melihat seluruh isi."</string>
     <string name="preview_unavailable" formatted="false">"File ini tidak lagi tersedia."</string>
     <string name="preview_unsupported" formatted="false">"Pratinjau tidak didukung untuk jenis file ini."</string>
+    <string name="promo_applied" formatted="false">"Keanggotaan diaktifkan. Batas paket Anda sedang diperbarui."</string>
+    <string name="promo_check_code" formatted="false">"Periksa kode"</string>
+    <string name="promo_code_label" formatted="false">"Kode promo"</string>
+    <string name="promo_days_format" formatted="true">"%1$s hari"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Kode ini hanya tersedia untuk akun yang baru dibuat."</string>
+    <string name="promo_error_active_plan" formatted="false">"Akun ini sudah memiliki keanggotaan aktif."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Akun ini sudah menggunakan promo ini."</string>
+    <string name="promo_error_capacity" formatted="false">"Penukaran sedang sibuk sementara. Coba lagi nanti."</string>
+    <string name="promo_error_exhausted" formatted="false">"Kode ini telah mencapai batas penukaran."</string>
+    <string name="promo_error_expired" formatted="false">"Kode ini sudah kedaluwarsa."</string>
+    <string name="promo_error_ineligible" formatted="false">"Akun ini tidak memenuhi syarat untuk kode ini."</string>
+    <string name="promo_error_paused" formatted="false">"Promo ini sedang dijeda sementara."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Selesaikan pembelian yang tertunda pada akun ini sebelum menukarkan kode."</string>
+    <string name="promo_error_unavailable" formatted="false">"Kode ini tidak valid atau tidak lagi tersedia."</string>
     <string name="promo_granted" formatted="false">"Keanggotaan promosi"</string>
     <string name="promo_no_charge" formatted="false">"Tidak ada tagihan otomatis saat berakhir."</string>
+    <string name="promo_pending" formatted="false">"Penukaran dikirim. Manfaat keanggotaan akan segera selesai diaktifkan."</string>
+    <string name="promo_preview_duration" formatted="false">"Durasi"</string>
+    <string name="promo_preview_plan" formatted="false">"Paket"</string>
+    <string name="promo_redeem_action" formatted="false">"Tukarkan"</string>
+    <string name="promo_redeem_hint" formatted="false">"Masukkan kode promo untuk melihat pratinjau dan mengaktifkan manfaat keanggotaan pada akun ini."</string>
+    <string name="promo_redeem_title" formatted="false">"Tukarkan kode"</string>
     <string name="receive_closed" formatted="false">"Tidak ada yang dapat mengirim surat baru saat penerimaan ditutup."</string>
     <string name="receive_free" formatted="false">"Siapa pun yang tidak Anda blokir dapat menulis secara gratis."</string>
     <string name="receive_selected" formatted="false">"Hanya akun terpilih atau orang dengan undangan yang valid yang dapat menulis."</string>

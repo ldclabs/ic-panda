@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Przesyłanie zaszyfrowanych bloków"</string>
     <string name="cipher_transfer_title" formatted="false">"Zaszyfrowane transfery"</string>
     <string name="customize_fields" formatted="false">"Dostosuj pola"</string>
+    <string name="delete_account_web" formatted="false">"Usuń konto w przeglądarce"</string>
+    <string name="delete_account_web_hint" formatted="false">"Jeśli odinstalujesz dMsg lub utracisz dostęp do tego urządzenia, nadal możesz poprosić o usunięcie konta na powyższej publicznej stronie internetowej."</string>
+    <string name="demo_access_description" formatted="false">"Wpisz kod dostępu, aby utworzyć na tym urządzeniu niezależną, zaszyfrowaną przykładową przestrzeń w chmurze ze zweryfikowanymi korzyściami subskrypcji. W dowolnym momencie możesz się wylogować lub usunąć jej dane lokalne."</string>
+    <string name="demo_access_link" formatted="false">"Przykładowa przestrzeń"</string>
+    <string name="demo_access_title" formatted="false">"Otwórz przykładową przestrzeń"</string>
+    <string name="demo_code_label" formatted="false">"Kod dostępu"</string>
     <string name="device_content_signing" formatted="false">"Podpisywanie treści"</string>
     <string name="dynamic_color" formatted="false">"Kolory dynamiczne"</string>
     <string name="dynamic_color_detail" formatted="false">"Kolory dopasowują się do tapety."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Długi dokument skrócono w podglądzie. Pobierz lub otwórz w zewnętrznej aplikacji, aby zobaczyć całość."</string>
     <string name="preview_unavailable" formatted="false">"Ten plik nie jest już dostępny."</string>
     <string name="preview_unsupported" formatted="false">"Podgląd nie jest obsługiwany dla tego typu pliku."</string>
+    <string name="promo_applied" formatted="false">"Subskrypcja została aktywowana. Limity Twojego planu są odświeżane."</string>
+    <string name="promo_check_code" formatted="false">"Sprawdź kod"</string>
+    <string name="promo_code_label" formatted="false">"Kod promocyjny"</string>
+    <string name="promo_days_format" formatted="true">"%1$s dni"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Ten kod jest dostępny wyłącznie dla nowo utworzonych kont."</string>
+    <string name="promo_error_active_plan" formatted="false">"To konto ma już aktywną subskrypcję."</string>
+    <string name="promo_error_already_claimed" formatted="false">"To konto już skorzystało z tej promocji."</string>
+    <string name="promo_error_capacity" formatted="false">"System realizacji kodów jest chwilowo przeciążony. Spróbuj ponownie później."</string>
+    <string name="promo_error_exhausted" formatted="false">"Ten kod osiągnął limit realizacji."</string>
+    <string name="promo_error_expired" formatted="false">"Ten kod wygasł."</string>
+    <string name="promo_error_ineligible" formatted="false">"To konto nie kwalifikuje się do użycia tego kodu."</string>
+    <string name="promo_error_paused" formatted="false">"Ta promocja jest obecnie wstrzymana."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Dokończ oczekujący zakup na tym koncie przed realizacją kodu."</string>
+    <string name="promo_error_unavailable" formatted="false">"Ten kod jest nieprawidłowy lub nie jest już dostępny."</string>
     <string name="promo_granted" formatted="false">"Członkostwo promocyjne"</string>
     <string name="promo_no_charge" formatted="false">"Po wygaśnięciu nie pobierzemy opłaty automatycznie."</string>
+    <string name="promo_pending" formatted="false">"Realizacja została przesłana. Korzyści subskrypcji wkrótce się aktywują."</string>
+    <string name="promo_preview_duration" formatted="false">"Czas trwania"</string>
+    <string name="promo_preview_plan" formatted="false">"Plan"</string>
+    <string name="promo_redeem_action" formatted="false">"Zrealizuj"</string>
+    <string name="promo_redeem_hint" formatted="false">"Wpisz kod promocyjny, aby podejrzeć i aktywować korzyści subskrypcji na tym koncie."</string>
+    <string name="promo_redeem_title" formatted="false">"Zrealizuj kod"</string>
     <string name="receive_closed" formatted="false">"Gdy odbiór jest wyłączony, nikt nie może wysyłać nowych listów."</string>
     <string name="receive_free" formatted="false">"Każda niezablokowana osoba może pisać bezpłatnie."</string>
     <string name="receive_selected" formatted="false">"Mogą pisać tylko wybrane konta i osoby z ważnym zaproszeniem."</string>

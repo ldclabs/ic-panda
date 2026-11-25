@@ -9785,5 +9785,109 @@
     "en": "Modified",
     "zh-Hans": "修改时间",
     "ios": "Modified"
+  },
+  "demo_access_link": {
+    "en": "Sample workspace",
+    "zh-Hans": "示例工作区"
+  },
+  "demo_access_title": {
+    "en": "Open a sample workspace",
+    "zh-Hans": "打开示例工作区"
+  },
+  "demo_access_description": {
+    "en": "Enter an access code to create an independent encrypted sample cloud workspace on this device with verified membership benefits. You can sign out or remove its local data at any time.",
+    "zh-Hans": "输入体验码，在本机创建一个独立的端到端加密示例云端工作区并自动激活对应会员权益。你可以随时退出或移除其本机数据。"
+  },
+  "demo_code_label": {
+    "en": "Access code",
+    "zh-Hans": "体验码"
+  },
+  "promo_redeem_title": {
+    "en": "Redeem code",
+    "zh-Hans": "兑换码"
+  },
+  "promo_redeem_hint": {
+    "en": "Enter a promotional code to preview and activate membership benefits on this account.",
+    "zh-Hans": "输入兑换码，预览并在当前账号激活对应会员权益。"
+  },
+  "promo_code_label": {
+    "en": "Promotion code",
+    "zh-Hans": "兑换码"
+  },
+  "promo_check_code": {
+    "en": "Check code",
+    "zh-Hans": "检查兑换码"
+  },
+  "promo_redeem_action": {
+    "en": "Redeem",
+    "zh-Hans": "立即兑换"
+  },
+  "promo_preview_plan": {
+    "en": "Plan",
+    "zh-Hans": "套餐"
+  },
+  "promo_preview_duration": {
+    "en": "Duration",
+    "zh-Hans": "时长"
+  },
+  "promo_days_format": {
+    "en": "%1$s days",
+    "zh-Hans": "%1$s 天"
+  },
+  "promo_applied": {
+    "en": "Membership activated. Your plan limits are refreshing.",
+    "zh-Hans": "会员权益已激活，正在刷新当前套餐额度。"
+  },
+  "promo_pending": {
+    "en": "Redemption submitted. Membership benefits will finish activating shortly.",
+    "zh-Hans": "兑换已提交，会员权益将在片刻后完成激活。"
+  },
+  "promo_error_unavailable": {
+    "en": "This code is invalid or no longer available.",
+    "zh-Hans": "该兑换码无效或已失效。"
+  },
+  "promo_error_exhausted": {
+    "en": "This code has reached its redemption limit.",
+    "zh-Hans": "该兑换码已达到兑换次数上限。"
+  },
+  "promo_error_ineligible": {
+    "en": "This account is not eligible for this code.",
+    "zh-Hans": "当前账号不符合该兑换码的使用条件。"
+  },
+  "promo_error_already_claimed": {
+    "en": "This account has already used this promotion.",
+    "zh-Hans": "当前账号已使用过该活动兑换码。"
+  },
+  "promo_error_account_too_old": {
+    "en": "This code is only available for newly created accounts.",
+    "zh-Hans": "该兑换码仅适用于新创建的账号。"
+  },
+  "promo_error_active_plan": {
+    "en": "This account already has an active membership.",
+    "zh-Hans": "当前账号已有生效中的会员权益。"
+  },
+  "promo_error_expired": {
+    "en": "This code has expired.",
+    "zh-Hans": "该兑换码已过期。"
+  },
+  "promo_error_paused": {
+    "en": "This promotion is currently paused.",
+    "zh-Hans": "该活动当前已暂停。"
+  },
+  "promo_error_purchase_pending": {
+    "en": "Finish the pending purchase on this account before redeeming a code.",
+    "zh-Hans": "请先完成当前账号的待处理购买，再使用兑换码。"
+  },
+  "promo_error_capacity": {
+    "en": "Redemptions are temporarily busy. Try again later.",
+    "zh-Hans": "当前兑换请求较多，请稍后再试。"
+  },
+  "delete_account_web": {
+    "en": "Delete account on web",
+    "zh-Hans": "网页申请删除账号"
+  },
+  "delete_account_web_hint": {
+    "en": "If you uninstall dMsg or lose access to this device, you can still request account deletion from the public web page above.",
+    "zh-Hans": "即使卸载 dMsg 或无法使用本设备，你仍可通过上方公开网页提交账号删除申请。"
   }
 }

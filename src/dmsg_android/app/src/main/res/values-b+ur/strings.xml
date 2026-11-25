@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"رمز شدہ بلاکس منتقل ہو رہے ہیں"</string>
     <string name="cipher_transfer_title" formatted="false">"رمز شدہ منتقلیاں"</string>
     <string name="customize_fields" formatted="false">"فیلڈز حسب ضرورت بنائیں"</string>
+    <string name="delete_account_web" formatted="false">"ویب پر اکاؤنٹ حذف کریں"</string>
+    <string name="delete_account_web_hint" formatted="false">"اگر آپ dMsg ان انسٹال کر دیں یا اس ڈیوائس تک رسائی کھو دیں، تب بھی آپ اوپر دیے گئے عوامی ویب صفحے سے اکاؤنٹ حذف کرنے کی درخواست کر سکتے ہیں۔"</string>
+    <string name="demo_access_description" formatted="false">"تصدیق شدہ رکنیت کے فوائد کے ساتھ اس ڈیوائس پر ایک آزاد انکرپٹڈ نمونہ کلاؤڈ ورک اسپیس بنانے کے لیے رسائی کوڈ درج کریں۔ آپ کسی بھی وقت سائن آؤٹ کر سکتے ہیں یا اس کا مقامی ڈیٹا ہٹا سکتے ہیں۔"</string>
+    <string name="demo_access_link" formatted="false">"نمونہ ورک اسپیس"</string>
+    <string name="demo_access_title" formatted="false">"نمونہ ورک اسپیس کھولیں"</string>
+    <string name="demo_code_label" formatted="false">"رسائی کوڈ"</string>
     <string name="device_content_signing" formatted="false">"مواد پر دستخط"</string>
     <string name="dynamic_color" formatted="false">"متحرک رنگ"</string>
     <string name="dynamic_color_detail" formatted="false">"رنگ آپ کے وال پیپر کے مطابق ہوتے ہیں۔"</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"طویل دستاویز کو پیش منظر کے لیے مختصر کیا گیا ہے۔ مکمل مواد دیکھنے کے لیے ڈاؤن لوڈ کریں یا باہر کھولیں۔"</string>
     <string name="preview_unavailable" formatted="false">"یہ فائل اب دستیاب نہیں ہے۔"</string>
     <string name="preview_unsupported" formatted="false">"اس فائل کی قسم کے لیے پیش منظر دستیاب نہیں ہے۔"</string>
+    <string name="promo_applied" formatted="false">"رکنیت فعال ہو گئی ہے۔ آپ کے پلان کی حدود تازہ ہو رہی ہیں۔"</string>
+    <string name="promo_check_code" formatted="false">"کوڈ چیک کریں"</string>
+    <string name="promo_code_label" formatted="false">"پروموشن کوڈ"</string>
+    <string name="promo_days_format" formatted="true">"%1$s دن"</string>
+    <string name="promo_error_account_too_old" formatted="false">"یہ کوڈ صرف نئے بنائے گئے اکاؤنٹس کے لیے دستیاب ہے۔"</string>
+    <string name="promo_error_active_plan" formatted="false">"اس اکاؤنٹ پر پہلے سے ایک فعال رکنیت موجود ہے۔"</string>
+    <string name="promo_error_already_claimed" formatted="false">"یہ اکاؤنٹ پہلے ہی یہ پروموشن استعمال کر چکا ہے۔"</string>
+    <string name="promo_error_capacity" formatted="false">"کوڈ استعمال کرنے کی سروس عارضی طور پر مصروف ہے۔ بعد میں دوبارہ کوشش کریں۔"</string>
+    <string name="promo_error_exhausted" formatted="false">"یہ کوڈ اپنے استعمال کی حد تک پہنچ چکا ہے۔"</string>
+    <string name="promo_error_expired" formatted="false">"اس کوڈ کی میعاد ختم ہو چکی ہے۔"</string>
+    <string name="promo_error_ineligible" formatted="false">"یہ اکاؤنٹ اس کوڈ کے لیے اہل نہیں ہے۔"</string>
+    <string name="promo_error_paused" formatted="false">"یہ پروموشن فی الحال عارضی طور پر معطل ہے۔"</string>
+    <string name="promo_error_purchase_pending" formatted="false">"کوڈ استعمال کرنے سے پہلے اس اکاؤنٹ پر زیر التواء خریداری مکمل کریں۔"</string>
+    <string name="promo_error_unavailable" formatted="false">"یہ کوڈ غلط ہے یا اب دستیاب نہیں ہے۔"</string>
     <string name="promo_granted" formatted="false">"تشہیری رکنیت"</string>
     <string name="promo_no_charge" formatted="false">"مدت ختم ہونے پر خودکار رقم نہیں کاٹی جائے گی۔"</string>
+    <string name="promo_pending" formatted="false">"درخواست جمع ہو گئی ہے۔ رکنیت کے فوائد جلد فعال ہو جائیں گے۔"</string>
+    <string name="promo_preview_duration" formatted="false">"مدت"</string>
+    <string name="promo_preview_plan" formatted="false">"پلان"</string>
+    <string name="promo_redeem_action" formatted="false">"استعمال کریں"</string>
+    <string name="promo_redeem_hint" formatted="false">"اس اکاؤنٹ پر رکنیت کے فوائد کا پیش منظر دیکھنے اور انہیں فعال کرنے کے لیے پروموشنل کوڈ درج کریں۔"</string>
+    <string name="promo_redeem_title" formatted="false">"کوڈ استعمال کریں"</string>
     <string name="receive_closed" formatted="false">"وصولی بند ہو تو کوئی نیا خط نہیں بھیج سکتا۔"</string>
     <string name="receive_free" formatted="false">"جنہیں آپ نے بلاک نہیں کیا وہ سب مفت لکھ سکتے ہیں۔"</string>
     <string name="receive_selected" formatted="false">"صرف منتخب اکاؤنٹس یا درست دعوت نامہ رکھنے والے لوگ لکھ سکتے ہیں۔"</string>

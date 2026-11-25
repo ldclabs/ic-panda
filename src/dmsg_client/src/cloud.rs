@@ -695,7 +695,8 @@ impl Cloud {
         // A lost reply must not turn the following read/preflight into an
         // uncertain mutation. The relay still rejects stale/conflicting proofs.
         let evidence = method == reqwest::Method::POST && url.path() == "/v1/security/evidence";
-        let mutation = method != reqwest::Method::GET && !admission && !evidence;
+        let promo_preview = method == reqwest::Method::POST && url.path() == "/public/promos/preview";
+        let mutation = method != reqwest::Method::GET && !admission && !evidence && !promo_preview;
         let inventory = !mutation && url.path().contains("/exports/");
         let mut request = self.http.request(method, url);
         if let Some((bytes, content_type)) = body {
@@ -879,6 +880,41 @@ impl Cloud {
             Err(Error::NotFound) => Ok(None),
             Err(error) => Err(error),
         }
+    }
+
+    /// Preview a public promotion code without authenticating a device.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for malformed codes and relay errors as returned.
+    pub async fn public_promo_preview(&self, code: &str) -> Result<Json> {
+        let trimmed = code.trim();
+        ensure(
+            !trimmed.is_empty()
+                && trimmed.len() <= 96
+                && trimmed
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b' ' || b == b'-'),
+            dmsg_types::invalid("code"),
+        )?;
+        let url = self
+            .origin
+            .join("/public/promos/preview")
+            .map_err(|_| dmsg_types::invalid("path"))?;
+        ensure(url.origin() == self.origin.origin(), Error::Forbidden)?;
+        let body = serde_json::to_vec(&serde_json::json!({
+            "code": trimmed,
+            "surface": "landing",
+        }))
+        .map_err(|_| dmsg_types::invalid("code"))?;
+        self.exchange(
+            reqwest::Method::POST,
+            url,
+            Some((body, "application/json")),
+            None,
+            false,
+        )
+        .await?
+        .json()
     }
 
     /// A counted public-share session. POST is idempotent for the same share/session IDs.

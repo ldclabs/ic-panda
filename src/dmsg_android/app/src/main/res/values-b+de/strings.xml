@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Verschlüsselte Datenblöcke werden übertragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Verschlüsselte Übertragungen"</string>
     <string name="customize_fields" formatted="false">"Felder anpassen"</string>
+    <string name="delete_account_web" formatted="false">"Konto im Web löschen"</string>
+    <string name="delete_account_web_hint" formatted="false">"Wenn du dMsg deinstallierst oder den Zugriff auf dieses Gerät verlierst, kannst du die Kontolöschung weiterhin über die öffentliche Webseite oben beantragen."</string>
+    <string name="demo_access_description" formatted="false">"Gib einen Zugangscode ein, um auf diesem Gerät einen unabhängigen, verschlüsselten Beispiel-Cloud-Arbeitsbereich mit verifizierten Mitgliedschaftsvorteilen zu erstellen. Du kannst dich jederzeit abmelden oder die lokalen Daten entfernen."</string>
+    <string name="demo_access_link" formatted="false">"Beispiel-Arbeitsbereich"</string>
+    <string name="demo_access_title" formatted="false">"Beispiel-Arbeitsbereich öffnen"</string>
+    <string name="demo_code_label" formatted="false">"Zugangscode"</string>
     <string name="device_content_signing" formatted="false">"Inhalte signieren"</string>
     <string name="dynamic_color" formatted="false">"Dynamische Farben"</string>
     <string name="dynamic_color_detail" formatted="false">"Die Farben folgen deinem Hintergrundbild."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Langes Dokument für die Vorschau gekürzt. Zum vollständigen Lesen herunterladen oder extern öffnen."</string>
     <string name="preview_unavailable" formatted="false">"Diese Datei ist nicht mehr verfügbar."</string>
     <string name="preview_unsupported" formatted="false">"Für diesen Dateityp wird keine Vorschau unterstützt."</string>
+    <string name="promo_applied" formatted="false">"Mitgliedschaft aktiviert. Deine Tariflimits werden aktualisiert."</string>
+    <string name="promo_check_code" formatted="false">"Code prüfen"</string>
+    <string name="promo_code_label" formatted="false">"Aktionscode"</string>
+    <string name="promo_days_format" formatted="true">"%1$s Tage"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Dieser Code ist nur für neu erstellte Konten verfügbar."</string>
+    <string name="promo_error_active_plan" formatted="false">"Dieses Konto hat bereits eine aktive Mitgliedschaft."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Dieses Konto hat diese Aktion bereits genutzt."</string>
+    <string name="promo_error_capacity" formatted="false">"Einlösungen sind vorübergehend ausgelastet. Bitte versuche es später erneut."</string>
+    <string name="promo_error_exhausted" formatted="false">"Dieser Code hat sein Einlöselimit erreicht."</string>
+    <string name="promo_error_expired" formatted="false">"Dieser Code ist abgelaufen."</string>
+    <string name="promo_error_ineligible" formatted="false">"Dieses Konto ist für diesen Code nicht berechtigt."</string>
+    <string name="promo_error_paused" formatted="false">"Diese Aktion ist derzeit pausiert."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Schließe zuerst den ausstehenden Kauf für dieses Konto ab, bevor du einen Code einlöst."</string>
+    <string name="promo_error_unavailable" formatted="false">"Dieser Code ist ungültig oder nicht mehr verfügbar."</string>
     <string name="promo_granted" formatted="false">"Aktionsmitgliedschaft"</string>
     <string name="promo_no_charge" formatted="false">"Bei Ablauf erfolgt keine automatische Abbuchung."</string>
+    <string name="promo_pending" formatted="false">"Einlösung übermittelt. Die Mitgliedschaftsvorteile werden in Kürze aktiviert."</string>
+    <string name="promo_preview_duration" formatted="false">"Laufzeit"</string>
+    <string name="promo_preview_plan" formatted="false">"Tarif"</string>
+    <string name="promo_redeem_action" formatted="false">"Einlösen"</string>
+    <string name="promo_redeem_hint" formatted="false">"Gib einen Aktionscode ein, um Mitgliedschaftsvorteile für dieses Konto anzuzeigen und zu aktivieren."</string>
+    <string name="promo_redeem_title" formatted="false">"Code einlösen"</string>
     <string name="receive_closed" formatted="false">"Bei geschlossenem Posteingang kann niemand neue Briefe senden."</string>
     <string name="receive_free" formatted="false">"Alle, die du nicht blockiert hast, können dir kostenlos schreiben."</string>
     <string name="receive_selected" formatted="false">"Nur ausgewählte Konten oder Personen mit gültiger Einladung können dir schreiben."</string>

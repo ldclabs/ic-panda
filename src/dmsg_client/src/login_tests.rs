@@ -121,6 +121,25 @@ fn accepts_a_delegation_to_the_session_key() {
 }
 
 #[test]
+fn creates_ephemeral_self_delegated_login_scoped_to_targets() {
+    let first = ephemeral_delegated(&targets(), 7 * dmsg_types::DAY, NOW).unwrap();
+    let second = ephemeral_delegated(&targets(), 7 * dmsg_types::DAY, NOW).unwrap();
+    assert_ne!(first.principal, Principal::anonymous());
+    assert_ne!(first.principal, second.principal);
+    assert_eq!(first.identity.sender().unwrap(), first.principal);
+    assert_eq!(first.expires_at, NOW + 7 * dmsg_types::DAY);
+    let chain = first.identity.delegation_chain();
+    assert_eq!(chain.len(), 1);
+    assert_eq!(chain[0].delegation.targets, Some(targets()));
+    let restored = first.kept.delegated().unwrap();
+    assert_eq!(restored.principal, first.principal);
+    assert_eq!(restored.expires_at, first.expires_at);
+    assert!(ephemeral_delegated(&[], dmsg_types::DAY, NOW).is_err());
+    assert!(ephemeral_delegated(&targets(), 0, NOW).is_err());
+    assert!(ephemeral_delegated(&targets(), 31 * dmsg_types::DAY, NOW).is_err());
+}
+
+#[test]
 fn refuses_foreign_or_broader_callbacks() {
     let s = session();
     let key = s.request.session_pubkey.to_vec();

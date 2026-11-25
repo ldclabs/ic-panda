@@ -1223,6 +1223,18 @@ pub async fn relay_refresh<H: Hold>(h: &H) -> Result<()> {
     h.send(|c| c.signed_post_empty(&path)).await.map(|_| ())
 }
 
+/// Preview a public promotion code against the configured relay without an account.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for malformed codes and relay errors as returned.
+pub async fn public_promo_preview(config: &crate::config::Config, code: &str) -> Result<Json> {
+    let cloud = crate::cloud::Cloud::new(
+        &config.relay,
+        config.environment == dmsg_types::Environment::Local,
+    )?;
+    cloud.public_promo_preview(code).await
+}
+
 /// Preview, redeem or issue a guest pass using a device-bound operation.
 pub async fn promo<H: Hold>(
     h: &H,

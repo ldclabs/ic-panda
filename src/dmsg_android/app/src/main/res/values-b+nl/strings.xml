@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Versleutelde blokken overdragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Versleutelde overdrachten"</string>
     <string name="customize_fields" formatted="false">"Velden aanpassen"</string>
+    <string name="delete_account_web" formatted="false">"Account verwijderen via het web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Als je dMsg verwijdert of geen toegang meer hebt tot dit apparaat, kun je nog steeds via de openbare webpagina hierboven om verwijdering van je account vragen."</string>
+    <string name="demo_access_description" formatted="false">"Voer een toegangscode in om op dit apparaat een zelfstandige, versleutelde cloudvoorbeeldwerkruimte aan te maken met geverifieerde lidmaatschapsvoordelen. Je kunt op elk moment uitloggen of de lokale gegevens verwijderen."</string>
+    <string name="demo_access_link" formatted="false">"Voorbeeldwerkruimte"</string>
+    <string name="demo_access_title" formatted="false">"Voorbeeldwerkruimte openen"</string>
+    <string name="demo_code_label" formatted="false">"Toegangscode"</string>
     <string name="device_content_signing" formatted="false">"Inhoud ondertekenen"</string>
     <string name="dynamic_color" formatted="false">"Dynamische kleuren"</string>
     <string name="dynamic_color_detail" formatted="false">"De kleuren volgen je achtergrond."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Lang document ingekort voor voorbeeldweergave. Download of open extern om alle inhoud te bekijken."</string>
     <string name="preview_unavailable" formatted="false">"Dit bestand is niet meer beschikbaar."</string>
     <string name="preview_unsupported" formatted="false">"Voorbeeldweergave wordt niet ondersteund voor dit bestandstype."</string>
+    <string name="promo_applied" formatted="false">"Lidmaatschap geactiveerd. De limieten van je abonnement worden vernieuwd."</string>
+    <string name="promo_check_code" formatted="false">"Code controleren"</string>
+    <string name="promo_code_label" formatted="false">"Promotiecode"</string>
+    <string name="promo_days_format" formatted="true">"%1$s dagen"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Deze code is alleen beschikbaar voor nieuw aangemaakte accounts."</string>
+    <string name="promo_error_active_plan" formatted="false">"Dit account heeft al een actief lidmaatschap."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Dit account heeft deze promotie al gebruikt."</string>
+    <string name="promo_error_capacity" formatted="false">"Inwisselen is tijdelijk druk. Probeer het later opnieuw."</string>
+    <string name="promo_error_exhausted" formatted="false">"Deze code heeft de inwissellimiet bereikt."</string>
+    <string name="promo_error_expired" formatted="false">"Deze code is verlopen."</string>
+    <string name="promo_error_ineligible" formatted="false">"Dit account komt niet in aanmerking voor deze code."</string>
+    <string name="promo_error_paused" formatted="false">"Deze promotie is momenteel gepauzeerd."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Voltooi eerst de lopende aankoop op dit account voordat je een code inwisselt."</string>
+    <string name="promo_error_unavailable" formatted="false">"Deze code is ongeldig of niet langer beschikbaar."</string>
     <string name="promo_granted" formatted="false">"Promotioneel lidmaatschap"</string>
     <string name="promo_no_charge" formatted="false">"Geen automatische afschrijving na afloop."</string>
+    <string name="promo_pending" formatted="false">"Inwisseling verzonden. De lidmaatschapsvoordelen worden binnenkort geactiveerd."</string>
+    <string name="promo_preview_duration" formatted="false">"Duur"</string>
+    <string name="promo_preview_plan" formatted="false">"Abonnement"</string>
+    <string name="promo_redeem_action" formatted="false">"Inwisselen"</string>
+    <string name="promo_redeem_hint" formatted="false">"Voer een promotiecode in om lidmaatschapsvoordelen op dit account te bekijken en te activeren."</string>
+    <string name="promo_redeem_title" formatted="false">"Code inwisselen"</string>
     <string name="receive_closed" formatted="false">"Zolang de ontvangst is gesloten, kan niemand nieuwe brieven sturen."</string>
     <string name="receive_free" formatted="false">"Iedereen die je niet hebt geblokkeerd, kan gratis schrijven."</string>
     <string name="receive_selected" formatted="false">"Alleen geselecteerde accounts en mensen met een geldige uitnodiging kunnen schrijven."</string>

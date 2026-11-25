@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Transfert des blocs chiffrés"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferts chiffrés"</string>
     <string name="customize_fields" formatted="false">"Personnaliser les champs"</string>
+    <string name="delete_account_web" formatted="false">"Supprimer le compte sur le web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Si vous désinstallez dMsg ou perdez l\'accès à cet appareil, vous pouvez toujours demander la suppression du compte depuis la page web publique ci-dessus."</string>
+    <string name="demo_access_description" formatted="false">"Saisissez un code d\'accès pour créer sur cet appareil un espace cloud d\'exemple indépendant et chiffré, avec des avantages d\'abonnement vérifiés. Vous pouvez vous déconnecter ou supprimer ses données locales à tout moment."</string>
+    <string name="demo_access_link" formatted="false">"Espace d\'exemple"</string>
+    <string name="demo_access_title" formatted="false">"Ouvrir un espace d\'exemple"</string>
+    <string name="demo_code_label" formatted="false">"Code d\'accès"</string>
     <string name="device_content_signing" formatted="false">"Signature de contenu"</string>
     <string name="dynamic_color" formatted="false">"Couleurs dynamiques"</string>
     <string name="dynamic_color_detail" formatted="false">"Les couleurs suivent votre fond d\'écran."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Document long tronqué pour l’aperçu. Téléchargez-le ou ouvrez-le dans une autre application pour tout voir."</string>
     <string name="preview_unavailable" formatted="false">"Ce fichier n’est plus disponible."</string>
     <string name="preview_unsupported" formatted="false">"L’aperçu n’est pas pris en charge pour ce type de fichier."</string>
+    <string name="promo_applied" formatted="false">"Abonnement activé. Les limites de votre offre sont en cours d\'actualisation."</string>
+    <string name="promo_check_code" formatted="false">"Vérifier le code"</string>
+    <string name="promo_code_label" formatted="false">"Code promotionnel"</string>
+    <string name="promo_days_format" formatted="true">"%1$s jours"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Ce code est réservé aux comptes récemment créés."</string>
+    <string name="promo_error_active_plan" formatted="false">"Ce compte dispose déjà d\'un abonnement actif."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Ce compte a déjà bénéficié de cette promotion."</string>
+    <string name="promo_error_capacity" formatted="false">"Le service d\'utilisation de codes est temporairement saturé. Réessayez plus tard."</string>
+    <string name="promo_error_exhausted" formatted="false">"Ce code a atteint sa limite d\'utilisations."</string>
+    <string name="promo_error_expired" formatted="false">"Ce code a expiré."</string>
+    <string name="promo_error_ineligible" formatted="false">"Ce compte n\'est pas éligible à ce code."</string>
+    <string name="promo_error_paused" formatted="false">"Cette promotion est actuellement suspendue."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Terminez l\'achat en attente sur ce compte avant d\'utiliser un code."</string>
+    <string name="promo_error_unavailable" formatted="false">"Ce code n\'est pas valide ou n\'est plus disponible."</string>
     <string name="promo_granted" formatted="false">"Abonnement offert"</string>
     <string name="promo_no_charge" formatted="false">"Aucun prélèvement automatique à l’échéance."</string>
+    <string name="promo_pending" formatted="false">"Demande envoyée. Les avantages de l\'abonnement seront activés sous peu."</string>
+    <string name="promo_preview_duration" formatted="false">"Durée"</string>
+    <string name="promo_preview_plan" formatted="false">"Offre"</string>
+    <string name="promo_redeem_action" formatted="false">"Utiliser"</string>
+    <string name="promo_redeem_hint" formatted="false">"Saisissez un code promotionnel pour prévisualiser et activer les avantages d\'abonnement sur ce compte."</string>
+    <string name="promo_redeem_title" formatted="false">"Utiliser un code"</string>
     <string name="receive_closed" formatted="false">"Personne ne peut vous écrire tant que la réception est désactivée."</string>
     <string name="receive_free" formatted="false">"Toute personne que vous n’avez pas bloquée peut vous écrire gratuitement."</string>
     <string name="receive_selected" formatted="false">"Seuls les comptes sélectionnés ou les personnes ayant une invitation valide peuvent vous écrire."</string>

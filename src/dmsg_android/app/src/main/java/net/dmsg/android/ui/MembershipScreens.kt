@@ -163,7 +163,57 @@ import net.dmsg.android.platform.numericExpression
                 }
             }
             item { Section { ListRow(str(R.string.text_compare_all_plans_a6fbd12), icon = Icons.AutoMirrored.Outlined.ViewList) { client.navigation.push(Route("membership-compare")) } } }
+            if (state.session?.accountKind != "local") {
+                item { PromoRedeemCard(client, state.working("membership:promo")) }
+            }
             item { DetailCard { PlayPurchasePanel(client) } }
+        }
+    }
+}
+
+@Composable private fun PromoRedeemCard(client: ClientController, working: Boolean) {
+    val promo by client.membership.promo.collectAsStateWithLifecycle()
+    DetailCard(Modifier.testTag("promo-redeem-card")) {
+        Text(str(R.string.promo_redeem_title), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge)
+        Text(str(R.string.promo_redeem_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = promo.code,
+            onValueChange = client.membership::editPromoCode,
+            modifier = Modifier.fillMaxWidth().testTag("promo-code-input"),
+            label = { Text(str(R.string.promo_code_label)) },
+            singleLine = true,
+            enabled = !working,
+        )
+        if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
+        promo.preview?.let { preview ->
+            if (preview.eligible) {
+                preview.plan?.let { LabelValue(str(R.string.promo_preview_plan), it) }
+                preview.durationDays?.let { LabelValue(str(R.string.promo_preview_duration), str(R.string.promo_days_format, localizedNumber(it))) }
+                preview.expiresAt?.let { LabelValue(str(R.string.text_current_term_ends_b4c54ff), displayTime(it)) }
+                Text(str(R.string.promo_no_charge), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Text(errorText(preview.reason ?: "PROMO_UNAVAILABLE"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        promo.result?.let { result ->
+            when (result.status) {
+                "applied" -> Text(str(R.string.promo_applied), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                "pending" -> Text(str(R.string.promo_pending), style = MaterialTheme.typography.bodyMedium)
+                else -> Text(errorText(result.reason ?: "PROMO_UNAVAILABLE"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        promo.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = client.membership::previewPromo,
+                enabled = !working && promo.code.isNotBlank(),
+                modifier = Modifier.testTag("promo-preview-btn"),
+            ) { Text(str(R.string.promo_check_code)) }
+            Button(
+                onClick = client.membership::redeemPromo,
+                enabled = !working && promo.code.isNotBlank() && promo.preview?.eligible != false,
+                modifier = Modifier.testTag("promo-redeem-btn"),
+            ) { Text(str(R.string.promo_redeem_action)) }
         }
     }
 }

@@ -35,6 +35,7 @@ pub use notifications::{
 mod operation;
 mod passkey;
 mod platform;
+mod promo;
 mod recovery;
 mod safety;
 pub use safety::ReportInput;

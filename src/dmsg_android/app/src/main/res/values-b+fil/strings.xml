@@ -33,6 +33,12 @@
     <string name="cipher_transfer_running" formatted="false">"Inililipat ang mga naka-encrypt na block"</string>
     <string name="cipher_transfer_title" formatted="false">"Mga naka-encrypt na paglilipat"</string>
     <string name="customize_fields" formatted="false">"Iangkop ang mga field"</string>
+    <string name="delete_account_web" formatted="false">"Mag-delete ng account sa web"</string>
+    <string name="delete_account_web_hint" formatted="false">"Kung i-uninstall mo ang dMsg o mawalan ng access sa device na ito, maaari ka pa ring humiling ng pag-delete ng account mula sa pampublikong web page sa itaas."</string>
+    <string name="demo_access_description" formatted="false">"Maglagay ng access code upang gumawa ng hiwalay at naka-encrypt na halimbawang cloud workspace sa device na ito na may na-verify na benepisyo ng membership. Maaari kang mag-sign out o alisin ang lokal na data nito anumang oras."</string>
+    <string name="demo_access_link" formatted="false">"Halimbawang workspace"</string>
+    <string name="demo_access_title" formatted="false">"Magbukas ng halimbawang workspace"</string>
+    <string name="demo_code_label" formatted="false">"Access code"</string>
     <string name="device_content_signing" formatted="false">"Paglagda ng nilalaman"</string>
     <string name="dynamic_color" formatted="false">"Dynamic na kulay"</string>
     <string name="dynamic_color_detail" formatted="false">"Sumusunod ang mga kulay sa iyong wallpaper."</string>
@@ -107,8 +113,28 @@
     <string name="preview_truncated" formatted="false">"Pinaikli ang mahabang dokumento para sa preview. I-download o buksan sa labas upang makita ang buong nilalaman."</string>
     <string name="preview_unavailable" formatted="false">"Hindi na available ang file na ito."</string>
     <string name="preview_unsupported" formatted="false">"Hindi sinusuportahan ang preview para sa ganitong uri ng file."</string>
+    <string name="promo_applied" formatted="false">"Na-activate ang membership. Nire-refresh ang mga limitasyon ng iyong plan."</string>
+    <string name="promo_check_code" formatted="false">"Suriin ang code"</string>
+    <string name="promo_code_label" formatted="false">"Promotional code"</string>
+    <string name="promo_days_format" formatted="true">"%1$s araw"</string>
+    <string name="promo_error_account_too_old" formatted="false">"Available lamang ang code na ito para sa mga bagong gawang account."</string>
+    <string name="promo_error_active_plan" formatted="false">"May aktibong membership na ang account na ito."</string>
+    <string name="promo_error_already_claimed" formatted="false">"Nagamit na ng account na ito ang promosyon na ito."</string>
+    <string name="promo_error_capacity" formatted="false">"Pansamantalang abala ang pag-redeem. Subukan ulit mamaya."</string>
+    <string name="promo_error_exhausted" formatted="false">"Naabot na ng code na ito ang limitasyon ng pag-redeem."</string>
+    <string name="promo_error_expired" formatted="false">"Nag-expire na ang code na ito."</string>
+    <string name="promo_error_ineligible" formatted="false">"Hindi kwalipikado ang account na ito para sa code na ito."</string>
+    <string name="promo_error_paused" formatted="false">"Kasalukuyang naka-pause ang promosyon na ito."</string>
+    <string name="promo_error_purchase_pending" formatted="false">"Tapusin muna ang nakabinbing pagbili sa account na ito bago mag-redeem ng code."</string>
+    <string name="promo_error_unavailable" formatted="false">"Hindi wasto o hindi na available ang code na ito."</string>
     <string name="promo_granted" formatted="false">"Promosyonal na membership"</string>
     <string name="promo_no_charge" formatted="false">"Walang awtomatikong singil sa pag-expire."</string>
+    <string name="promo_pending" formatted="false">"Naisumite na ang pag-redeem. Malapit nang matapos ang pag-activate ng mga benepisyo ng membership."</string>
+    <string name="promo_preview_duration" formatted="false">"Tagal"</string>
+    <string name="promo_preview_plan" formatted="false">"Plan"</string>
+    <string name="promo_redeem_action" formatted="false">"I-redeem"</string>
+    <string name="promo_redeem_hint" formatted="false">"Maglagay ng promotional code upang i-preview at i-activate ang mga benepisyo ng membership sa account na ito."</string>
+    <string name="promo_redeem_title" formatted="false">"I-redeem ang code"</string>
     <string name="receive_closed" formatted="false">"Walang makakapagpadala ng bagong liham habang sarado ang pagtanggap."</string>
     <string name="receive_free" formatted="false">"Maaaring sumulat nang libre ang sinumang hindi mo hinarangan."</string>
     <string name="receive_selected" formatted="false">"Ang mga napiling account o taong may wastong imbitasyon lang ang maaaring sumulat."</string>
