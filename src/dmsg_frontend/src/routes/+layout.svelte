@@ -4,9 +4,10 @@
   import { t, locale } from '$lib/i18n'
   import '$lib/i18n/locale.css'
 
-  // The asset canister serves this shell for deep links too. Keep its static
-  // public overview until the correct client route has mounted successfully.
+  // Clean up any legacy static overview nodes or deep-link hiding class once
+  // the client layout mounts.
   onMount(() => {
+    document.documentElement.classList.remove('dmsg-deep-link')
     document.getElementById('dmsg-public-content')?.remove()
     document.getElementById('dmsg-reading-style')?.remove()
   })

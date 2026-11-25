@@ -80,11 +80,7 @@
   const RECOVERY = 'faq-recovery'
 
   let menuOpen = $state(false)
-  let compactNav = $state(
-    typeof matchMedia === 'function'
-      ? matchMedia('(max-width: 1280px)').matches
-      : false
-  )
+  let compactNav = $state(false)
   const nativePopover =
     typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype
   let menuButton = $state<HTMLButtonElement>()

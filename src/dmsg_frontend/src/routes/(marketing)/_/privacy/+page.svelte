@@ -1,5 +1,6 @@
 <script lang="ts">
   import LegalPage from '$lib/components/legal/LegalPage.svelte'
+  let { data } = $props()
 </script>
 
-<LegalPage kind="privacy" />
+<LegalPage kind="privacy" initialDoc={data.doc} />

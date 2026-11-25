@@ -9,12 +9,7 @@
   import '$lib/components/landing/site.css'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { locale, t } from '$lib/i18n'
-  import {
-    readBundle,
-    verifyBundle,
-    VerifyError,
-    type BundleReport
-  } from '$lib/verify'
+  import type { BundleReport } from '$lib/verify'
 
   let bundleFile = $state<File | null>(null)
   let originalFile = $state<File | null>(null)
@@ -33,6 +28,7 @@
     const originalInput = originalFile
     busy = true
     resetResult()
+    const { readBundle, verifyBundle, VerifyError } = await import('$lib/verify')
     try {
       const bundle = readBundle(await bundleInput.text())
       const file = originalInput

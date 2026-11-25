@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { JSDOM } from 'jsdom'
@@ -78,7 +78,15 @@ if (
     throw new Error(
       'Usage: indexnow.mjs [--submit] [canonical sitemap URLs...]'
     )
-  const read = (path) => readFileSync(resolve(directory, path), 'utf8')
+  const read = (path) => {
+    const exact = resolve(directory, path)
+    return readFileSync(
+      existsSync(exact) && !statSync(exact).isDirectory()
+        ? exact
+        : `${exact}.html`,
+      'utf8'
+    )
+  }
   const keys = readdirSync(directory)
     .filter((name) => /^[a-zA-Z0-9-]{8,128}\.txt$/.test(name))
     .filter((name) => read(name).trim() === name.slice(0, -4))

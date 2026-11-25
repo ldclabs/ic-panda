@@ -14,7 +14,10 @@
   } from '$lib/legal'
   import './legal.css'
 
-  let { kind }: { kind: LegalKind } = $props()
+  let {
+    kind,
+    initialDoc = null
+  }: { kind: LegalKind; initialDoc?: LegalDocument | null } = $props()
 
   const pages = $derived([
     {
@@ -59,7 +62,14 @@
     'dMsg Account ID or public handle (if known):\nPlease permanently delete my dMsg cloud service account.\n\nDo not include private keys, recovery materials, passwords, one-time codes or login sessions.\n'
   )}`
 
-  let doc = $state<LegalDocument | null>(null)
+  let loaded = $state<{
+    kind: LegalKind
+    requested: Locale
+    doc: LegalDocument
+  } | null>(null)
+  const doc = $derived(
+    loaded && loaded.kind === kind ? loaded.doc : initialDoc
+  )
   let failed = $state(false)
   let digestCopyState = $state<'idle' | 'copied' | 'failed'>('idle')
   let digestCopyStatus = $state('')
@@ -83,11 +93,13 @@
   async function load(target: LegalKind, language: Locale) {
     // A slower earlier language must not replace the latest choice.
     const id = ++request
-    doc = null
+    if (loaded?.kind !== target) loaded = null
     failed = false
     try {
       const next = await loadLegalDocument(target, language)
-      if (id === request) doc = next
+      if (id === request) {
+        loaded = { kind: target, requested: language, doc: next }
+      }
     } catch {
       if (id === request) failed = true
     }
@@ -144,7 +156,19 @@
   }
 
   $effect(() => {
-    void load(kind, $locale)
+    const language = $locale
+    if (loaded && loaded.kind === kind && loaded.requested === language) return
+    if (
+      !loaded &&
+      initialDoc &&
+      (initialDoc.locale === language ||
+        (kind === 'delete-account' &&
+          language !== 'zh' &&
+          initialDoc.locale === 'en'))
+    ) {
+      return
+    }
+    void load(kind, language)
   })
 
   // The root layout localizes the shared description; this page refines it.
