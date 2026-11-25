@@ -35,7 +35,7 @@ for (const route of [
 // 1. Verify the prerendered homepage (dist/index.html) without JavaScript.
 {
   const raw = read('index.html')
-  assert.ok(!/(?:href|import\()=["']\.\.?\//.test(raw), 'index.html: root-absolute asset URLs')
+  assert.ok(!/(?:href=|import\()["']\.\.?\//.test(raw), 'index.html: root-absolute asset URLs')
   assert.match(raw, /\/_app\/immutable\/entry\/start\./, 'index.html: SPA bootstrap preserved')
   assert.match(
     raw,
@@ -135,29 +135,61 @@ for (const route of [
 
 // 2. Verify prerendered static legal and utility pages at their IC paths.
 for (const page of [
-  { path: '_/privacy', file: '_/privacy', h1: 'dMsg Privacy Policy', legal: true },
+  {
+    path: '_/privacy',
+    file: '_/privacy',
+    title: 'Privacy Policy — dMsg',
+    h1: 'dMsg Privacy Policy',
+    legal: true
+  },
   {
     path: '_/terms',
     file: '_/terms.html',
+    title: 'Terms of Service — dMsg',
     h1: 'dMsg Terms of Service',
     legal: true
   },
-  { path: '_/support', file: '_/support', h1: 'Get help with dMsg', legal: true },
+  {
+    path: '_/support',
+    file: '_/support',
+    title: 'Support — dMsg',
+    h1: 'Get help with dMsg',
+    legal: true
+  },
   {
     path: '_/delete-account',
     file: '_/delete-account',
+    title: 'Delete account — dMsg',
     h1: 'Delete your dMsg account',
     legal: true
   },
-  { path: '_/verify', file: '_/verify', h1: 'Verify a dMsg signature', legal: false },
-  { path: '_/redeem', file: '_/redeem', h1: 'Redeem code', legal: false }
+  {
+    path: '_/verify',
+    file: '_/verify',
+    title: 'Verify a dMsg signature | dMsg',
+    h1: 'Verify a dMsg signature',
+    legal: false
+  },
+  {
+    path: '_/redeem',
+    file: '_/redeem',
+    title: 'Redeem code',
+    h1: 'Redeem code',
+    legal: false
+  }
 ]) {
   const raw = read(page.file)
-  assert.ok(!/(?:href|import\()=["']\.\.?\//.test(raw), `${page.path}: root-absolute asset URLs`)
+  assert.ok(!/(?:href=|import\()["']\.\.?\//.test(raw), `${page.path}: root-absolute asset URLs`)
   const url = `https://dmsg.net/${page.path}`
   const dom = new JSDOM(raw, { url })
   const document = dom.window.document
   assert.equal(document.querySelectorAll('title').length, 1, `${page.path}: single title`)
+  assert.equal(document.title, page.title, `${page.path}: page title`)
+  assert.equal(
+    document.querySelector('meta[property="og:title"]')?.content,
+    page.title,
+    `${page.path}: social title`
+  )
   assert.equal(document.querySelectorAll('link[rel="canonical"]').length, 1)
   assert.equal(document.querySelector('link[rel="canonical"]').href, url)
   assert.equal(document.querySelector('meta[property="og:url"]').content, url)

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { onMount } from 'svelte'
-  import { t, locale } from '$lib/i18n'
+  import { initLocale, t, locale } from '$lib/i18n'
   import '$lib/i18n/locale.css'
+
+  export let data: { prerendered?: boolean } = {}
 
   // Clean up any legacy static overview nodes or deep-link hiding class once
   // the client layout mounts.
@@ -10,6 +12,8 @@
     document.documentElement.classList.remove('dmsg-deep-link')
     document.getElementById('dmsg-public-content')?.remove()
     document.getElementById('dmsg-reading-style')?.remove()
+    // A prerendered page hydrated in English; now show the reader's locale.
+    if (data.prerendered) void initLocale()
   })
 
   // Localize the SPA fallback metadata in place, without duplicate tags.

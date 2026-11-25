@@ -95,6 +95,9 @@ const prerenderedRoutes = [
   },
   {
     path: '_/verify',
+    // Svelte's SSR drops the <title> of a page that binds a component prop
+    // (bind:file here), so name this page in the build.
+    title: 'Verify a dMsg signature | dMsg',
     description:
       'Verify an exported dMsg signature bundle locally in your browser without uploading the original file.'
   },
@@ -316,7 +319,7 @@ function finalizeSubpageHtml(html, { path, title, description, noindex }) {
 function finalizeIndexHtml(html, structuredData) {
   if (!html.includes('class="dmsg-site home"'))
     throw new Error('Expected prerendered Landing page in built dist/index.html')
-  if (/(?:href|import\()=["']\.\.?\//.test(html))
+  if (/(?:href=|import\()["']\.\.?\//.test(html))
     throw new Error(
       'Expected root-absolute asset paths in dist/index.html (set kit.paths.relative = false)'
     )

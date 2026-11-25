@@ -112,18 +112,22 @@ export async function setLocale(value: string, persist = true): Promise<void> {
     }
   }
 }
-export async function initLocale(): Promise<void> {
-  if (typeof navigator === 'undefined') return
+/** The saved choice, else the browser's languages. Call only in a browser. */
+export function preferredLocale(): Locale {
   let stored: string | null = null
   try {
     stored = localStorage.getItem(LOCALE_STORAGE_KEY)
   } catch {
     /* Private browsing. */
   }
-  const next = resolveLocale(
+  return resolveLocale(
     stored,
     navigator.languages?.length ? navigator.languages : [navigator.language]
   )
+}
+export async function initLocale(): Promise<void> {
+  if (typeof navigator === 'undefined') return
+  const next = preferredLocale()
   const initialization = revision + 1
   try {
     await setLocale(next, false)

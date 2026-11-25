@@ -75,7 +75,6 @@
   .field-top { justify-content: space-between; }
   strong { min-width: 0; }
   small { display: block; color: var(--muted); font-weight: 400; }
-  .copy-status:empty { display: none; }
   .field-actions .button { min-height: 40px; padding: 6px 14px; }
   pre { margin: 10px 0 0; padding: 12px; border-radius: 8px; background: var(--canvas);
     white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 ui-monospace, monospace; }
