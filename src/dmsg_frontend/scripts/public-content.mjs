@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import MarkdownIt from 'markdown-it'
+import { JSDOM } from 'jsdom'
 
 const frontend = fileURLToPath(new URL('..', import.meta.url))
 const repository = resolve(frontend, '../..')
@@ -196,6 +197,46 @@ md.renderer.rules.table_open = () =>
   '<div class="reading-table" tabindex="0" role="region" aria-label="Membership / 会员"><table>\n'
 md.renderer.rules.table_close = () => '</table></div>\n'
 
+function accountDeletionPage(shell, deletionPath) {
+  // Serve the Play listing URL itself, even when the SPA cannot start.
+  const deletion = new JSDOM(
+    shell.replace(
+      marker,
+      '<main id="dmsg-public-content" class="dmsg-site dmsg-reading" lang="en" dir="ltr"><article class="reading-body">' +
+        md.render(
+          read('src/dmsg_frontend/src/lib/legal/delete-account/en.md')
+        ) +
+        '</article></main>'
+    )
+  )
+  const doc = deletion.window.document
+  doc.title = doc.querySelector('main h1').textContent
+  const description =
+    'Request permanent deletion of your dMsg cloud service account, including after uninstalling the app.'
+  doc.querySelector('link[rel="canonical"]').href = `${origin}/${deletionPath}`
+  doc.querySelector('meta[property="og:url"]').content =
+    `${origin}/${deletionPath}`
+  for (const meta of doc.querySelectorAll(
+    'meta[property="og:title"], meta[name="twitter:title"]'
+  ))
+    meta.content = doc.title
+  for (const meta of doc.querySelectorAll(
+    'meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]'
+  ))
+    meta.content = description
+  for (const link of doc.querySelectorAll(
+    'link[rel="alternate"][type="text/markdown"]'
+  ))
+    link.remove()
+  doc.head.insertAdjacentHTML(
+    'beforeend',
+    '<link id="dmsg-reading-style" rel="stylesheet" href="/_assets/dmsg/reading.css">'
+  )
+  const html = deletion.serialize()
+  deletion.window.close()
+  return html
+}
+
 export function buildPublicContent(output = resolve(frontend, 'dist')) {
   const shellPath = join(output, 'index.html')
   const shell = readFileSync(shellPath, 'utf8')
@@ -371,6 +412,8 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
     }
   ]
   const lastModified = git('log', '-1', '--format=%cs', '--', ...inputs)
+  const deletionPath = '_/delete-account'
+  write(deletionPath, accountDeletionPage(shell, deletionPath))
   // Visible HTML, not noscript or a bot-specific response. The SPA removes it
   // only after mounting successfully; it remains readable if JS cannot run.
   write(

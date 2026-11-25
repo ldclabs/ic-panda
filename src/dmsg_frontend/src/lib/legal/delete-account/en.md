@@ -6,20 +6,21 @@ This page explains how to request permanent deletion of a **dMsg** cloud service
 
 ## 1. Delete inside the dMsg app (fastest)
 
-If you still have any authorized administrator device (Android, iOS or desktop) signed in to your dMsg account:
+On an authorized administrator device, open the **Account** tab in dMsg:
 
-- Open **dMsg** and go to **Settings › Account security › Delete service account**.
-- Review any unsynced changes, owned active channels or multisig wallet responsibilities.
-- Enter your Account ID and complete system confirmation to start permanent deletion immediately.
+- **Android:** Open **Account security › Delete service account**.
+- **iOS:** Open **Account security › Delete account**.
+- Review unsynced changes, active channels you own and any wallet responsibilities. Follow the instructions, enter the account ID shown and confirm the deletion request.
+
+Desktop users can use the email request below.
 
 Local-only workspaces (**Use on device**) never create a cloud service account. To erase a local-only workspace, remove it inside the app or uninstall the app and clear its device data.
 
 ## 2. Request deletion without the app
 
-If you have already uninstalled dMsg or no longer have access to an authorized device, send an email to [hi@yiwen.ai](mailto:hi@yiwen.ai?subject=dMsg%20Account%20Deletion%20Request) with the subject **dMsg Account Deletion Request** and include only the minimum information needed to locate your account and verify ownership:
+If you have already uninstalled dMsg or no longer have access to an authorized device, send an email to [hi@yiwen.ai](mailto:hi@yiwen.ai?subject=dMsg%20Account%20Deletion%20Request) with the subject **dMsg Account Deletion Request** and include only the minimum information needed to open a request:
 
 - Your **dMsg Account ID** (20-character identifier) or **public handle**, if you have it;
-- If you purchased a paid plan, your **Google Play order ID** (for example `GPA.xxxx-xxxx-xxxx-xxxx`) or **Apple App Store transaction reference**, so we can verify account ownership against the billing binding;
 - A short confirmation that you want to permanently delete the dMsg cloud service account.
 
 **Never send secrets.** Never include private keys, recovery materials, seed phrases, encrypted vault backups, backup passwords, one-time codes or login sessions. dMsg support will never ask for them, and no link in an email or webpage can execute irreversible deletion directly.
@@ -27,11 +28,10 @@ If you have already uninstalled dMsg or no longer have access to an authorized d
 ## 3. Verification and processing
 
 - We acknowledge your request by email and assign a tracking reference ID. Duplicate requests for the same account are linked to the same deletion job.
-- **Verification before erasure:**
-  - If you still have an authorized device, in-app deletion provides immediate cryptographic proof of account control.
-  - If you uninstalled the app and made a Google Play or App Store purchase, support verifies your order ownership against our billing records before triggering deletion.
-  - If you enabled on-chain recovery and still hold your bound Passkey or Internet Identity, you may also reinstall dMsg, complete the account's recovery delay, and delete the account directly in-app.
-  - Because dMsg is end-to-end encrypted and does not collect an email address or phone number when creating an account, support cannot verify ownership of a free anonymous account from an email address alone (to prevent unauthorized third parties from deleting someone else's account). If you have lost all authorized devices, have no billing record and did not enable on-chain recovery, uninstalling the app removes local device data and remaining cloud ciphertext cannot be decrypted by the service.
+- Before authorizing deletion, support must independently verify that you control the dMsg account. An account ID, public handle, sender address or store order reference alone cannot establish control. If support needs further information, it will reply with the verification steps.
+- If you still have an authorized administrator device, you can confirm deletion in the app. If you enabled on-chain recovery and retain your bound Passkey or Internet Identity, you can reinstall dMsg, complete recovery and then use in-app deletion.
+- You can submit an email request even if you lost your device. If account control cannot be verified, support will explain the outcome and leave the account intact. Removing the app does not request cloud deletion.
+
 - Once ownership is verified and any unsettled paid inbox orders are resolved, support triggers the same tracked server cleanup job used by in-app deletion (`requested` → `purging` → `deleted`) and replies with completion confirmation only after server cleanup finishes.
 
 ## 4. What is deleted and what is retained
@@ -46,7 +46,7 @@ When service-account deletion completes, dMsg permanently blocks further service
 The following data is **not** deleted or is retained under explicit limits:
 
 - **Other people's copies and other devices:** Messages or files already received and saved by other people, and local encrypted copies stored on other devices (remove local account data separately on each device).
-- **Immutable public blockchain records:** Public or certified on-chain records on Internet Computer (ICP) canisters and token ledgers cannot be erased by design.
+- **Public blockchain history:** Finalized ledger transactions and entries already recorded in immutable public history remain visible.
 - **Financial and anti-replay records:** Minimal settled transaction, billing, refund and anti-replay records are retained as needed for accounting, fraud prevention and legal obligations.
 - **Abuse reports:** Moderation and abuse report records are retained for up to **90 days** from creation and then automatically purged.
 

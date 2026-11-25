@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Brand from '$lib/components/landing/Brand.svelte'
   import Icon from '$lib/components/landing/Icon.svelte'
   import '$lib/components/landing/site.css'
@@ -55,7 +56,7 @@
   const supportEmail = 'hi@yiwen.ai'
   const deleteSubject = 'dMsg Account Deletion Request'
   const deleteMailto = `mailto:${supportEmail}?subject=${encodeURIComponent(deleteSubject)}&body=${encodeURIComponent(
-    'dMsg Account ID (or public handle):\nGoogle Play / App Store order ID (if applicable):\nConfirmation: Please permanently delete my dMsg cloud service account.\n\n(Never include private keys, seed phrases, recovery materials, backup passwords or login sessions.)\n'
+    'dMsg Account ID or public handle (if known):\nPlease permanently delete my dMsg cloud service account.\n\nDo not include private keys, recovery materials, passwords, one-time codes or login sessions.\n'
   )}`
 
   let doc = $state<LegalDocument | null>(null)
@@ -65,11 +66,18 @@
   let emailCopyStatus = $state('')
   let lastAnnouncement = ''
   let emailCopyTimer: ReturnType<typeof setTimeout> | undefined
+  let emailCopyRequest = 0
   let request = 0
+
+  onDestroy(() => {
+    ++emailCopyRequest
+    clearTimeout(emailCopyTimer)
+  })
 
   async function load(target: LegalKind, language: Locale) {
     // A slower earlier language must not replace the latest choice.
     const id = ++request
+    doc = null
     failed = false
     try {
       const next = await loadLegalDocument(target, language)
@@ -90,6 +98,7 @@
   }
 
   async function copySupportEmail() {
+    const id = ++emailCopyRequest
     clearTimeout(emailCopyTimer)
     let ok = false
     try {
@@ -98,13 +107,14 @@
     } catch {
       ok = false
     }
+    if (id !== emailCopyRequest) return
     emailCopyState = ok ? 'copied' : 'failed'
     let message = ok ? $t('Copied') : $t('Copy failed')
     if (message === lastAnnouncement) message += '\u00A0'
     lastAnnouncement = message
     emailCopyStatus = ''
     requestAnimationFrame(() => {
-      emailCopyStatus = message
+      if (id === emailCopyRequest) emailCopyStatus = message
     })
     emailCopyTimer = setTimeout(() => {
       emailCopyState = 'idle'

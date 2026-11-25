@@ -9,6 +9,17 @@ const directory = fileURLToPath(new URL('../dist/', import.meta.url))
 const read = (path) => readFileSync(join(directory, path), 'utf8')
 const manifest = JSON.parse(read('_/knowledge.json'))
 
+const deletionUrl = 'https://dmsg.net/_/delete-account'
+const deletion = new JSDOM(read('_/delete-account'), { url: deletionUrl })
+const guide = deletion.window.document
+assert.equal(guide.querySelector('link[rel="canonical"]').href, deletionUrl)
+assert.equal(
+  guide.querySelector('main h1').textContent,
+  'Delete your dMsg account'
+)
+assert.ok(guide.querySelector('main a[href^="mailto:hi@yiwen.ai?subject="]'))
+deletion.window.close()
+
 // Exercise the shipped HTML with JavaScript disabled, not Svelte source text.
 for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
   const dom = new JSDOM(read(path), { url: `https://dmsg.net/${path}` })
@@ -169,6 +180,7 @@ assert.equal(
 const rules = JSON.parse(read('.ic-assets.json'))
 for (const match of [
   'index.html',
+  '_/delete-account',
   '_/about*.html',
   'index*.md',
   '_/docs/*.md',
