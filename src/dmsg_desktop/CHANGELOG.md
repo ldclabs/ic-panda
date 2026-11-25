@@ -6,6 +6,26 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.0] - 2026-11-25
+
+- Keep vault items and files in a standalone local account, then review
+  what to import into a service account.
+- Join an existing account on a new device with an encrypted invitation.
+  Setup resumes after sign-in or an interrupted approval. Sync also resumes
+  after another device rotates the account key.
+- Preview the account, plan and duration before redeeming a membership
+  code. Eligible members can issue guest passes. Hosting the same Agent ID
+  on several devices uses one account seat. Check usage in Agents or with
+  `dmsg agent id quota`.
+- Search vault items, files, conversations and received letters from the
+  command palette using pinyin or initials. Open a matching message with
+  the surrounding conversation.
+- Browse images and Markdown in a full-window preview. File-type filters
+  now respond to clicks in the preview toolbar, and macOS window buttons
+  stay hidden until the preview closes.
+- The macOS app, daemon and secret-files extension are now signed by
+  Yiwen AI Limited. Versions 1.5.8 and 1.5.10 accept the new signature.
+
 ## [1.6.0-beta.4] - 2026-11-25
 
 - Search from the command palette (Cmd+K on macOS, Ctrl+K elsewhere) across
@@ -993,6 +1013,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.0]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0
 [1.6.0-beta.4]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.3...1.6.0-beta.4
 [1.6.0-beta.3]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.2...1.6.0-beta.3
 [1.6.0-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.1...1.6.0-beta.2
