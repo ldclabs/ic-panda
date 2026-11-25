@@ -11,17 +11,11 @@
   import { locale, t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
   import Brand from './Brand.svelte'
-  import CipherLanes from './CipherLanes.svelte'
-  import CollaborationStory from './CollaborationStory.svelte'
-  import ConnectFlow from './ConnectFlow.svelte'
   import Demo from './Demo.svelte'
   import DesktopTour from './DesktopTour.svelte'
-  import DeviceDuo from './DeviceDuo.svelte'
   import FileLibrary from './FileLibrary.svelte'
   import Glyph from './Glyph.svelte'
   import HeroArt from './HeroArt.svelte'
-  import AgentNetwork from './AgentNetwork.svelte'
-  import TeamWallet from './TeamWallet.svelte'
   import Membership from './Membership.svelte'
   import type { GlyphName } from './glyphs'
   import { MARK } from './hero-art.js'
@@ -86,7 +80,11 @@
   const RECOVERY = 'faq-recovery'
 
   let menuOpen = $state(false)
-  let menuButton: HTMLButtonElement
+  let compactNav = $state(false)
+  const nativePopover =
+    typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype
+  let menuButton = $state<HTMLButtonElement>()
+  let menu: HTMLElement
   let scrollY = $state(0)
   let install = $state<Method>('brew')
   let copied = $state('')
@@ -277,12 +275,39 @@
     }
   ])
 
-  function onEscape(event: KeyboardEvent) {
-    if (event.key === 'Escape' && menuOpen) {
-      menuOpen = false
-      menuButton.focus()
-    }
+  function closeMenu() {
+    if (menu?.popover === 'auto') menu.hidePopover()
+    menuOpen = false
   }
+
+  $effect(() => {
+    if (!menuOpen) return
+    function dismissOutside(event: Event) {
+      const target = event.target
+      if (
+        target instanceof Node &&
+        !menu.contains(target) &&
+        !menuButton?.contains(target)
+      )
+        closeMenu()
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        closeMenu()
+        menuButton?.focus()
+      }
+    }
+    document.addEventListener('focusin', dismissOutside)
+    if (!nativePopover) {
+      document.addEventListener('pointerdown', dismissOutside)
+      document.addEventListener('keydown', escape)
+    }
+    return () => {
+      document.removeEventListener('focusin', dismissOutside)
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('keydown', escape)
+    }
+  })
 
   async function copy(line: string) {
     clearTimeout(copyTimer)
@@ -299,6 +324,13 @@
 
   // The header marks the section in the middle of the screen.
   onMount(() => {
+    const compact = matchMedia('(max-width: 1280px)')
+    const updateNav = () => {
+      closeMenu()
+      compactNav = compact.matches
+    }
+    updateNav()
+    compact.addEventListener('change', updateNav)
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
@@ -318,6 +350,7 @@
     showRecovery()
     addEventListener('hashchange', showRecovery)
     return () => {
+      compact.removeEventListener('change', updateNav)
       observer.disconnect()
       removeEventListener('hashchange', showRecovery)
     }
@@ -325,7 +358,11 @@
 </script>
 
 <svelte:head><meta name="color-scheme" content="light" /></svelte:head>
-<svelte:window onkeydown={onEscape} bind:scrollY />
+<svelte:window bind:scrollY />
+
+{#snippet headerDownload()}
+  <a class="button primary header-action" href="#release">{$t('Download')}</a>
+{/snippet}
 
 <div class="dmsg-site home">
   <a class="skip" href="#main">{$t('Skip to content')}</a>
@@ -333,37 +370,46 @@
     <div class="wrap nav-wrap">
       <Brand />
       <LocaleSwitcher />
-      <nav
-        id="main-navigation"
-        class:open={menuOpen}
-        aria-label={$t('Main navigation')}
-      >
-        {#each navigation as item}
-          <a
-            href="#{item.id}"
-            aria-current={current === item.id ? 'true' : undefined}
-            onclick={() => (menuOpen = false)}>{$t(item.label)}</a
+      {#if compactNav}{@render headerDownload()}{/if}
+      <nav aria-label={$t('Main navigation')}>
+        {#if compactNav}
+          <button
+            bind:this={menuButton}
+            type="button"
+            class="icon-button menu-toggle"
+            aria-label={menuOpen
+              ? $t('Close navigation')
+              : $t('Open navigation')}
+            aria-expanded={menuOpen}
+            aria-controls="main-navigation"
+            popovertarget={nativePopover ? 'main-navigation' : undefined}
+            onclick={nativePopover ? undefined : () => (menuOpen = !menuOpen)}
           >
-        {/each}
-        <a
-          class="mobile-download"
-          href="#release"
-          onclick={() => (menuOpen = false)}>{$t('Download dMsg')}</a
+            <Glyph name={menuOpen ? 'close' : 'menu'} />
+          </button>
+        {/if}
+        <div
+          bind:this={menu}
+          id="main-navigation"
+          class="nav-links"
+          popover={compactNav && nativePopover ? 'auto' : undefined}
+          ontoggle={(event) =>
+            (menuOpen = compactNav && event.newState === 'open')}
+          class:open={!nativePopover && menuOpen}
         >
+          {#each navigation as item}
+            <a
+              href="#{item.id}"
+              aria-current={current === item.id ? 'location' : undefined}
+              onclick={closeMenu}>{$t(item.label)}</a
+            >
+          {/each}
+          <a class="mobile-download" href="#release" onclick={closeMenu}
+            >{$t('Download dMsg')}</a
+          >
+        </div>
       </nav>
-      <a class="button primary header-action" href="#release"
-        >{$t('Download')}</a
-      >
-      <button
-        bind:this={menuButton}
-        class="icon-button menu-toggle"
-        aria-label={menuOpen ? $t('Close navigation') : $t('Open navigation')}
-        aria-expanded={menuOpen}
-        aria-controls="main-navigation"
-        onclick={() => (menuOpen = !menuOpen)}
-      >
-        <Glyph name={menuOpen ? 'close' : 'menu'} />
-      </button>
+      {#if !compactNav}{@render headerDownload()}{/if}
     </div>
   </header>
 
@@ -733,9 +779,11 @@
             )}</p
           >
         </div>
-        <Demo id="story" title={$t('See a full project example')}
-          ><CollaborationStory /></Demo
-        >
+        <Demo
+          id="story"
+          title={$t('See a full project example')}
+          loadFigure={() => import('./CollaborationStory.svelte')}
+        />
 
         <div class="sub-head" use:reveal>
           <h3>{$t('Give your agents a way to work with others.')}</h3>
@@ -752,9 +800,11 @@
             >{$t('Read the open protocols')}<Glyph name="arrow-up-right" /></a
           >
         </div>
-        <Demo id="network" title={$t('Explore the agent network')}
-          ><AgentNetwork /></Demo
-        >
+        <Demo
+          id="network"
+          title={$t('Explore the agent network')}
+          loadFigure={() => import('./AgentNetwork.svelte')}
+        />
 
         <div class="sub-head" use:reveal>
           <h3>{$t('The app and CLI, working together.')}</h3>
@@ -764,9 +814,11 @@
             )}</p
           >
         </div>
-        <Demo id="terminal" title={$t('Explore the app and CLI example')}
-          ><DeviceDuo /></Demo
-        >
+        <Demo
+          id="terminal"
+          title={$t('Explore the app and CLI example')}
+          loadFigure={() => import('./DeviceDuo.svelte')}
+        />
       </div>
     </section>
 
@@ -851,8 +903,8 @@
         <Demo
           id="privacy"
           title={$t('See what your device, the cloud and ICP receive')}
-          ><CipherLanes /></Demo
-        >
+          loadFigure={() => import('./CipherLanes.svelte')}
+        />
         <div class="trust-grid">
           <article use:reveal style:--i={0}
             ><h3
@@ -899,22 +951,23 @@
           id="connect"
           title={$t('Review before you sign.')}
           label={$t('Interactive example · no real file is signed')}
+          loadFigure={() => import('./ConnectFlow.svelte')}
         >
           <p class="demo-intro"
             >{$t(
               'A connected website can request a signature. Review the application, file and request in dMsg, then approve or reject it. No browser extension is needed.'
             )}</p
           >
-          <ConnectFlow />
-          <p class="small"
-            >{$t(
-              'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.'
-            )}</p
-          >
+          {#snippet afterFigure()}<p class="small"
+              >{$t(
+                'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.'
+              )}</p
+            >{/snippet}
         </Demo>
         <Demo
           id="wallets"
           title={$t('Manage shared funds with clear approval rules.')}
+          loadFigure={() => import('./TeamWallet.svelte')}
           label={$t(
             'Wallet simulation · no funds move · no transaction is sent to a blockchain'
           )}
@@ -924,7 +977,6 @@
               'Set who can propose, who can approve and when a proposal can proceed. An agent can prepare a proposal; authorized members make the approval decisions.'
             )}</p
           >
-          <TeamWallet />
         </Demo>
       </div>
     </section>

@@ -19,7 +19,7 @@
   import SecretSnapshot from '$lib/components/site/SecretSnapshot.svelte'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
   import ShareAuthor from '$lib/components/site/ShareAuthor.svelte'
-  import { fileType, readText, renderMarkdown } from '$lib/share/preview'
+  import { fileType, readText } from '$lib/share/preview'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import Glyph from '$lib/components/landing/Glyph.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
@@ -55,6 +55,7 @@
   )
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
+  let passwordInput = $state<HTMLInputElement>()
   let file = $state<ShareFile | null>(null)
   let blob = $state<Blob | null>(null)
   let secretPackage = $state<SecretPackage | null>(null)
@@ -64,6 +65,7 @@
   let error = $state('')
   let canRetryMetadata = $state(false)
   let previewText = $state<string | null>(null)
+  let formatted = $state<string | null>(null)
   let previewUrl = $state('')
   let previewError = $state('')
   let source = $state(false)
@@ -85,11 +87,6 @@
     if (alive) fullscreenButton?.focus()
   }
   const type = $derived(file ? fileType(file) : null)
-  const formatted = $derived(
-    type?.kind === 'markdown' && previewText !== null
-      ? renderMarkdown(previewText)
-      : ''
-  )
 
   const ciphertextSize = $derived(
     descriptor ? descriptor.chunks.reduce((n, c) => n + c.size, 0) : 0
@@ -235,6 +232,10 @@
       await metadata()
     } catch (e) {
       fail(e)
+      if (e instanceof ShareError && e.code === 'WRONG_PASSWORD') {
+        await tick()
+        if (alive && document.activeElement === document.body) passwordInput?.focus()
+      }
     }
   }
 
@@ -307,21 +308,31 @@
       blob = new Blob([whole as BlobPart], {
         type: manifest.mime || 'application/octet-stream'
       })
-      phase = 'done'
       if (preview && type?.previewable) {
         if (type.kind === 'image') previewUrl = URL.createObjectURL(blob)
         else {
           try {
-            previewText = readText(whole)
-            await tick()
-            if (alive) reader?.focus()
+            const text = readText(whole)
+            if (type.kind === 'markdown') {
+              // The verified source is still readable if the formatter can't load.
+              const markdown = await import('$lib/share/markdown').catch(() => null)
+              if (!alive) return
+              formatted = markdown?.renderMarkdown(text) ?? null
+            }
+            previewText = text
           } catch {
             previewError = $t(
               'This file cannot be previewed here. You can still download it.'
             )
           }
         }
-      } else save()
+        phase = 'done'
+        await tick()
+        if (alive) reader?.focus()
+      } else {
+        phase = 'done'
+        save()
+      }
     } catch (e) {
       if (!alive) return
       fail(e)
@@ -335,6 +346,7 @@
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     previewUrl = ''
     previewText = null
+    formatted = null
     key?.fill(0)
     key = null
     password = ''
@@ -353,7 +365,7 @@
 
 {#snippet previewContent(expanded: boolean)}
   <div class="file-actions">
-    {#if previewText !== null && type?.kind === 'markdown'}
+    {#if formatted !== null}
       <button
         class="button secondary"
         aria-pressed={source}
@@ -390,7 +402,7 @@
       data-testid="share-reader"
       dir="auto"
     >
-      {#if type?.kind === 'markdown' && !source}<div class="markdown"
+      {#if formatted !== null && !source}<div class="markdown"
           >{@html formatted}</div
         >{:else}<pre>{previewText}</pre>{/if}
     </section>
@@ -498,9 +510,17 @@
         >
           <label>
             <span>{$t('This link needs a password.')}</span>
-            <input type="password" bind:value={password} autocomplete="off" />
+            <input
+              type="password"
+              bind:this={passwordInput}
+              bind:value={password}
+              autocomplete="off"
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? 'share-password-error' : undefined}
+              oninput={() => (error = '')}
+            />
           </label>
-          {#if error}<p class="utility-status error" role="alert">{error}</p
+          {#if error}<p id="share-password-error" class="utility-status error" role="alert">{error}</p
             >{/if}
           <button
             class="button primary utility-action"

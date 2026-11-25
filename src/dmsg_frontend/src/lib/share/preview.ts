@@ -1,4 +1,3 @@
-import markdownit from 'markdown-it'
 import type { ShareFile } from './decrypt'
 
 const TEXT_LIMIT = 2 * 1024 * 1024
@@ -65,21 +64,6 @@ export function fileType(file: Pick<ShareFile, 'name' | 'mime' | 'size'>) {
       kind !== null &&
       file.size <= (kind === 'image' ? IMAGE_LIMIT : TEXT_LIMIT)
   }
-}
-
-// A dedicated renderer: no raw HTML or automatic requests for embedded images.
-const md = markdownit({ html: false, linkify: true, breaks: true })
-md.renderer.rules['image'] = (tokens, index) =>
-  md.utils.escapeHtml(tokens[index]!.content)
-md.renderer.rules['link_open'] = (tokens, index, options, env, renderer) => {
-  tokens[index]!.attrSet('target', '_blank')
-  tokens[index]!.attrSet('rel', 'noopener noreferrer')
-  tokens[index]!.attrSet('referrerpolicy', 'no-referrer')
-  return renderer.renderToken(tokens, index, options)
-}
-
-export function renderMarkdown(text: string): string {
-  return md.render(text)
 }
 
 export function readText(bytes: Uint8Array): string {

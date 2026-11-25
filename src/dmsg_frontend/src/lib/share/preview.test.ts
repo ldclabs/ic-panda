@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
-import { fileType, readText, renderMarkdown } from './preview'
+import { renderMarkdown } from './markdown'
+import { fileType, readText } from './preview'
 
 it('offers bounded reading and raster previews, leaving active documents as text', () => {
   const kind = (name: string, mime: string, size = 100) =>

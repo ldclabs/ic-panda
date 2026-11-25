@@ -4,6 +4,7 @@
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
+  import CopyReceipt from '$lib/components/site/CopyReceipt.svelte'
   import { locale, t } from '$lib/i18n'
   import { readProfile, type ProfilePage } from '$lib/public-profile'
   import {
@@ -220,11 +221,15 @@
 
   onMount(load)
 
-  function warnLeaving(event: BeforeUnloadEvent) {
-    if (sending) event.preventDefault()
-  }
+  $effect(() => {
+    if (!sending) return
+    const warnLeaving = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warnLeaving)
+    return () => window.removeEventListener('beforeunload', warnLeaving)
+  })
 
   function addFiles(files: Iterable<File>, replaces: string | null = null) {
+    if (sending || status !== 'open') return
     notice = ''
     for (const file of files) {
       const refused =
@@ -402,14 +407,13 @@
   <title>{$t('Send files through dMsg')}</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
-<svelte:window onbeforeunload={warnLeaving} />
 
 <UtilityPage>
   {#snippet aside()}
     <FileInvite kind="request" ready={everSent} />
   {/snippet}
 
-  <div aria-busy={phase === 'loading' || sending}>
+  <div>
     <div class="utility-icon" aria-hidden="true"><IconFile /></div>
     <h1>
       {requesterName
@@ -522,7 +526,7 @@
           class:dragging
           ondragover={(event) => {
             event.preventDefault()
-            dragging = true
+            dragging = !sending
           }}
           ondragleave={() => (dragging = false)}
           ondrop={(event) => {
@@ -567,28 +571,27 @@
           {#each items as item (item.id)}
             <li>
               <div class="row">
-                <span class="file" dir="auto">{item.file.name}</span>
+                <span id={`request-file-${item.id}`} class="file" dir="auto"
+                  >{item.file.name}</span
+                >
                 <span class="quiet" dir="ltr">{size(item.file.size)}</span>
               </div>
               {#if item.state === 'working' && item.progress}
-                {@const percent = item.progress.total
-                  ? Math.floor((item.progress.done / item.progress.total) * 100)
-                  : 0}
-                <div
-                  class="bar"
-                  role="progressbar"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  aria-valuenow={percent}
-                  aria-label={item.file.name}
-                >
-                  <i style:inline-size={`${percent}%`}></i>
-                </div>
-                <p class="line" role="status">
-                  {item.progress.stage === 'preparing'
+                {@const percent = Math.floor(
+                  (item.progress.done / item.progress.total) * 100
+                )}
+                {@const progressText =
+                  item.progress.stage === 'preparing'
                     ? $t('Preparing… {percent}%', { percent })
                     : $t('Uploading… {percent}%', { percent })}
-                </p>
+                <progress
+                  class="bar"
+                  max="100"
+                  value={percent}
+                  aria-labelledby={`request-file-${item.id}`}
+                  aria-valuetext={progressText}
+                ></progress>
+                <p class="line">{progressText}</p>
               {:else if item.state === 'waiting'}
                 <p class="line">
                   {$t('Waiting')}
@@ -626,12 +629,10 @@
                   >
                 {/if}
                 {#if item.state === 'sent' && item.receipt && item.uploadId}
-                  {@const text = receiptText(item.uploadId, item.receipt)}
-                  <button
-                    class="link"
-                    onclick={() => navigator.clipboard.writeText(text)}
-                    >{$t('Copy receipt')}</button
-                  >
+                  <CopyReceipt
+                    text={receiptText(item.uploadId, item.receipt)}
+                    describedBy={`request-file-${item.id}`}
+                  />
                 {/if}
               </div>
             </li>
@@ -937,16 +938,29 @@
     color: #991b1b;
   }
   .bar {
-    height: 6px;
-    overflow: hidden;
+    appearance: none;
+    inline-size: 100%;
+    block-size: 6px;
+    border: 0;
+    overflow: clip;
     border-radius: 3px;
     background: var(--line);
   }
-  .bar i {
-    display: block;
-    height: 100%;
+  .bar::-webkit-progress-bar {
+    background: transparent;
+  }
+  .bar::-webkit-progress-value {
     border-radius: 3px;
     background: var(--action);
+  }
+  .bar::-moz-progress-bar {
+    border-radius: 3px;
+    background: var(--action);
+  }
+  @media (forced-colors: active) {
+    .bar {
+      appearance: auto;
+    }
   }
   .row-actions {
     display: flex;
@@ -957,7 +971,8 @@
   .row-actions:empty {
     display: none;
   }
-  .link {
+  .link,
+  .row-actions :global(.copy-receipt) {
     padding: 2px 0;
     min-height: 28px;
     border: 0;

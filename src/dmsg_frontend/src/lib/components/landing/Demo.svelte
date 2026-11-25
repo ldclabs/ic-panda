@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount, type Snippet } from 'svelte'
+  import { replaceState } from '$app/navigation'
+  import { page } from '$app/state'
+  import { onMount, type Component, type Snippet } from 'svelte'
   import { t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
 
@@ -10,14 +12,24 @@
     id,
     label,
     open = $bindable(false),
-    children
+    children,
+    loadFigure,
+    afterFigure
   }: {
     title: string
     id?: string
     label?: string
     open?: boolean
-    children: Snippet
+    children?: Snippet
+    loadFigure?: () => Promise<{ default: Component }>
+    afterFigure?: Snippet
   } = $props()
+
+  function reloadFigure() {
+    // Reload the entry as well: it may reference a chunk from an older deployment.
+    if (id) replaceState(`#${id}`, page.state)
+    location.reload()
+  }
 
   // A link to this demo opens it, so the target is never a closed heading.
   onMount(() => {
@@ -46,7 +58,20 @@
             $t('Interactive example · sample data · nothing is sent')}</p
         >
       {/if}
-      {@render children()}
+      {@render children?.()}
+      {#if loadFigure}
+        {#await loadFigure()}
+          <p role="status">{$t('Loading…')}</p>
+        {:then { default: Figure }}
+          <Figure />
+        {:catch}
+          <p role="alert">{$t('Could not load this page.')}</p>
+          <button type="button" class="button secondary" onclick={reloadFigure}
+            >{$t('Try again')}</button
+          >
+        {/await}
+      {/if}
+      {@render afterFigure?.()}
     </div>
   {/if}
 </details>

@@ -220,7 +220,8 @@ html[dir='rtl'] .dmsg-site :is(.glyph-arrow-right, .glyph-arrow-up-right) {
   top: 12px;
 }
 .dmsg-site .site-header {
-  height: 64px;
+  --header-height: 64px;
+  height: var(--header-height);
   border-bottom: 1px solid var(--line);
   background: rgba(247, 248, 244, 0.98);
   position: sticky;
@@ -347,27 +348,6 @@ html[dir='rtl'] .dmsg-site :is(.glyph-arrow-right, .glyph-arrow-up-right) {
   }
 }
 @media (max-width: 1000px) {
-  .dmsg-site .header-action {
-    margin-inline-start: auto;
-  }
-  .dmsg-site .icon-button.menu-toggle {
-    display: flex;
-  }
-  .dmsg-site .site-header nav {
-    display: none;
-    position: absolute;
-    top: 100%;
-    inset-inline: 0;
-    background: var(--canvas);
-    border-bottom: 1px solid var(--line);
-    padding: 16px 24px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-  }
-  .dmsg-site .site-header nav.open {
-    display: flex;
-  }
   .dmsg-site .wrap {
     padding: 0 32px;
   }
@@ -383,7 +363,7 @@ html[dir='rtl'] .dmsg-site :is(.glyph-arrow-right, .glyph-arrow-up-right) {
     padding: 0 24px;
   }
   .dmsg-site .site-header {
-    height: 56px;
+    --header-height: 56px;
   }
   .dmsg-site .brand {
     gap: 8px;

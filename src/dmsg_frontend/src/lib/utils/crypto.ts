@@ -127,7 +127,7 @@ export async function coseA256GCMDecrypt0(
     const msg = await Encrypt0Message.fromBytes(key, data, aad)
     return msg.payload
   } catch (err) {
-    throw new Error(`Failed to decrypt: ${err}`)
+    throw new Error(`Failed to decrypt: ${err}`, { cause: err })
   }
 }
 
