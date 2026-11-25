@@ -4,9 +4,11 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.view.ViewTreeObserver
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.core.content.FileProvider
+import androidx.core.view.WindowCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import net.dmsg.android.core.LoadedPreviewContent
@@ -33,7 +35,7 @@ class FullscreenPreviewUiTest {
         }
     }
 
-    private fun seedPreviewFiles(): Triple<String, String, String> {
+    private fun seedPreviewFiles(secondImage: String? = null): Triple<String, String, String> {
         val client = compose.activity.qaClient
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         val dir = File(app.cacheDir, "dmsg-shared/preview-qa-${UUID.randomUUID()}").apply { mkdirs() }
@@ -48,6 +50,12 @@ class FullscreenPreviewUiTest {
         val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(20, 92, 69) }
         canvas.drawCircle(450f, 300f, 88f, dotPaint)
         pngFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val nextImage = secondImage?.let { name ->
+            canvas.drawColor(Color.WHITE)
+            File(dir, name).also { file ->
+                file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            }
+        }
         bitmap.recycle()
 
         val mdName = "02-architecture-notes.md"
@@ -84,7 +92,7 @@ class FullscreenPreviewUiTest {
         val pdfFile = File(dir, pdfName)
         pdfFile.writeBytes("%PDF-1.4\n1 0 obj <<>> endobj\ntrailer <<>>\n%%EOF\n".toByteArray())
 
-        val uris = listOf(pngFile, mdFile, pdfFile).map { file ->
+        val uris = listOfNotNull(pngFile, nextImage, mdFile, pdfFile).map { file ->
             FileProvider.getUriForFile(app, app.packageName + ".files", file)
         }
         compose.runOnIdle {
@@ -95,7 +103,8 @@ class FullscreenPreviewUiTest {
         compose.waitUntil(25_000) {
             client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } &&
                 client.library.listing.value()?.files?.let { files ->
-                    files.any { it.name == pngName } && files.any { it.name == mdName } && files.any { it.name == pdfName }
+                    files.any { it.name == pngName } && files.any { it.name == mdName } && files.any { it.name == pdfName } &&
+                        (secondImage == null || files.any { it.name == secondImage })
                 } == true
         }
         dir.deleteRecursively()
@@ -112,6 +121,41 @@ class FullscreenPreviewUiTest {
                 compose.activity.resources.configuration.locales[0].toLanguageTag() == tag &&
                 compose.activity.hasWindowFocus()
         }
+    }
+
+    @Test fun statusBarStaysLightOnImagesAndRestoresAfterClosing() {
+        val client = compose.activity.qaClient
+        compose.waitUntil(20_000) { client.state.value.unlocked }
+        val second = "01-next.png"
+        val (first) = seedPreviewFiles(second)
+        compose.runOnIdle { client.dark(false); client.navigation.open("files") }
+        compose.onNodeWithText(first).performClick()
+        fun waitForImage(name: String) = compose.waitUntil(15_000) {
+            (client.fullscreenPreview.session.value?.content as? LoadedPreviewContent.Image)?.name == name
+        }
+        waitForImage(first)
+        val window = compose.activity.window
+        val decor = window.decorView
+        val bars = WindowCompat.getInsetsController(window, decor)
+        var sawDarkIcons = false
+        val onDraw = ViewTreeObserver.OnDrawListener {
+            if (bars.isAppearanceLightStatusBars) sawDarkIcons = true
+        }
+        compose.runOnIdle {
+            assertFalse(bars.isAppearanceLightStatusBars)
+            decor.viewTreeObserver.addOnDrawListener(onDraw)
+        }
+        try {
+            compose.onNodeWithTag("fullscreen-preview").performTouchInput { swipeLeft() }
+            waitForImage(second)
+            compose.onNodeWithTag("fullscreen-preview").performTouchInput { swipeRight() }
+            waitForImage(first)
+            compose.runOnIdle { assertFalse("Dark status icons appeared during image paging", sawDarkIcons) }
+        } finally {
+            compose.runOnIdle { decor.viewTreeObserver.removeOnDrawListener(onDraw) }
+        }
+        compose.onNodeWithTag("preview-close").performClick()
+        compose.runOnIdle { assertTrue(bars.isAppearanceLightStatusBars) }
     }
 
     @Test fun fullscreenPreviewFilterMarkdownAndVisualMatrix() {

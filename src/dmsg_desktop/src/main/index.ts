@@ -285,6 +285,12 @@ function showMain(route?: string) {
   })
   main = window
   harden(window)
+  if (process.platform === 'darwin') {
+    // A reload or renderer crash can remove the preview without running its cleanup.
+    const restoreWindowButtons = () => window.setWindowButtonVisibility(true)
+    window.webContents.on('did-navigate', restoreWindowButtons)
+    window.webContents.on('render-process-gone', restoreWindowButtons)
+  }
   // Shown once its first frame is ready, in the place it had, never a blank window.
   window.once('ready-to-show', () => {
     if (desktop.maximized && kept) window.maximize()
@@ -1098,6 +1104,10 @@ handle('dmsg:copy-image', 'main', async (_event, input: Uint8Array) => {
 /** What an MCP client runs to reach this daemon: the installed binary and its home. */
 handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
+handle('dmsg:file-preview-open', 'main', (_event, open) => {
+  if (typeof open !== 'boolean') throw new DaemonError('INVALID_INPUT', 'Expected a boolean')
+  if (process.platform === 'darwin') main?.setWindowButtonVisibility(!open)
+})
 handle('dmsg:updates', 'main', () => updates.info())
 handle('dmsg:set-update-channel', 'main', (_event, channel) => updates.setChannel(channel))
 handle('dmsg:check-updates', 'main', () => updates.check())

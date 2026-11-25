@@ -288,6 +288,8 @@ export interface DesktopBridge {
   previewFile(source: PreviewSource, requestId?: string): Promise<PreviewResult>
   /** Cancel an in-flight preview request (or all in-flight previews when omitted). */
   previewCancel(requestId?: string): Promise<void>
+  /** Hide the macOS title bar buttons while the file preview covers the main window. */
+  setFilePreviewOpen(open: boolean): Promise<void>
   /** The app's version and where its update stands; the main window only. `updates/changed` events follow it. */
   updates(): Promise<AppUpdates>
   /** Opt this installation into beta releases, or stop receiving them without downgrading. */

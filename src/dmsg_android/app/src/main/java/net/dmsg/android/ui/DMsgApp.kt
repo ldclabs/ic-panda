@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
     val previewSession by client.fullscreenPreview.session.collectAsStateWithLifecycle()
+    val activePreview = previewSession?.takeIf { state.unlocked && !state.concealed }
     var discardEditor by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
@@ -90,7 +91,7 @@ import kotlinx.coroutines.launch
     val filePickers = rememberFilePickers(client)
     val noticePermission = rememberNoticePermission(client)
     CompositionLocalProvider(LocalFilePickers provides filePickers, LocalNoticePermission provides noticePermission) {
-    DMsgTheme(state.dark, state.dynamicColor) {
+    DMsgTheme(state.dark, state.dynamicColor, lightSystemBarIcons = activePreview?.isImagePage == true) {
         Surface(Modifier.fillMaxSize().fileDropTarget(client, !state.concealed && (!state.unlocked || navigation.workspace == Workspace.FILES))) {
             when {
                 state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }
@@ -403,7 +404,7 @@ import kotlinx.coroutines.launch
             NoticeBanner(client)
             NoticeDestinationDialog(client)
             QrScannerHost(client, state.concealed)
-            previewSession?.takeIf { state.unlocked && !state.concealed }?.let { activePreview ->
+            if (activePreview != null) {
                 FullscreenFilePreviewOverlay(client, activePreview, browser, share, snackbar)
             }
             if (showEditor && state.unlocked && !state.concealed) Dialog(onDismissRequest = ::closeEditor,

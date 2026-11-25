@@ -17,6 +17,7 @@ const api: DesktopBridge = {
   shortcuts: () => unwrap(ipcRenderer.invoke('dmsg:shortcuts')),
   setShortcuts: (bindings) => unwrap(ipcRenderer.invoke('dmsg:set-shortcuts', bindings)),
   captureShortcut: (active) => unwrap(ipcRenderer.invoke('dmsg:shortcuts-capture', active)),
+  setFilePreviewOpen: (open) => unwrap(ipcRenderer.invoke('dmsg:file-preview-open', open)),
   cameraAccess: () => unwrap(ipcRenderer.invoke('dmsg:camera-access')),
   deviceQrImage: (source, invitation) => unwrap(ipcRenderer.invoke('dmsg:device-qr-image', source, invitation)),
   notificationPermission: () => unwrap(ipcRenderer.invoke('dmsg:notification-permission')),

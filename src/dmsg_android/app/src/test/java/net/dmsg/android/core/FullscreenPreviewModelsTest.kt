@@ -38,6 +38,23 @@ class FullscreenPreviewModelsTest {
         assertEquals(PreviewClass.TEXT, PreviewFilterLogic.classify("application/octet-stream", ".env"))
     }
 
+    @Test fun imageLayoutDuringPreviewLoading() {
+        val photo = item("photo", "photo.png", "image/png")
+        val text = item("text", "note.txt", "text/plain")
+        val cloudOnly = photo.copy(id = "cloud", canOpen = false)
+        val oversized = photo.copy(id = "large", size = PreviewFilterLogic.MAX_IMAGE_BYTES + 1uL)
+        val session = FullscreenPreviewSession(listOf(photo, text, cloudOnly, oversized), activeId = photo.id)
+        assertTrue(session.isImagePage)
+        assertTrue(session.copy(loadedForId = photo.id, content = LoadedPreviewContent.Loading(1uL, 2uL)).isImagePage)
+        assertFalse(session.copy(activeId = text.id).isImagePage)
+        assertFalse(session.copy(activeId = cloudOnly.id).isImagePage)
+        assertFalse(session.copy(activeId = oversized.id).isImagePage)
+
+        val fallback = LoadedPreviewContent.Fallback(PreviewFallbackReason.DECODE_FAILED, photo.mime, photo.name, photo.size, null)
+        assertFalse(session.copy(loadedForId = photo.id, content = fallback).isImagePage)
+        assertTrue(session.copy(loadedForId = text.id, content = fallback).isImagePage)
+    }
+
     @Test fun filterCountsAndNearestNeighborPreserveFocus() {
         val items = listOf(
             item("1", "archive.zip", "application/zip", 500uL),

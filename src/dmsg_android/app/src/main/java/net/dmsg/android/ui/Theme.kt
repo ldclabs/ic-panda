@@ -36,9 +36,14 @@ internal val LocalDarkTheme = staticCompositionLocalOf { false }
     }
 }
 
-@Composable fun DMsgTheme(isDark: Boolean?, dynamic: Boolean = false, content: @Composable () -> Unit) {
+@Composable fun DMsgTheme(
+    isDark: Boolean?,
+    dynamic: Boolean = false,
+    lightSystemBarIcons: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     val darkTheme = isDark ?: isSystemInDarkTheme()
-    SyncSystemBars(darkTheme)
+    SyncSystemBars(darkTheme || lightSystemBarIcons)
     val view = LocalView.current
     val locale = AppLanguage.locale()
     val typography = remember(locale) { dmsgTypography(locale) }

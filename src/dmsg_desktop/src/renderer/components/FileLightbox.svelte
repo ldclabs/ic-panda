@@ -152,6 +152,12 @@
 
   onDestroy(cleanup)
 
+  $effect(() => {
+    if (!open || window.dmsg.platform !== 'darwin') return
+    void window.dmsg.setFilePreviewOpen(true)
+    return () => { void window.dmsg.setFilePreviewOpen(false) }
+  })
+
   // Reset filter when opening a fresh session or closing.
   $effect(() => {
     if (!open) {
@@ -408,7 +414,7 @@
       class="fixed inset-0 z-40 bg-scrim backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
     />
     <Dialog.Content
-      class="@container fixed inset-0 z-40 flex flex-col outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+      class="@container fixed inset-0 z-40 flex flex-col outline-none [-webkit-app-region:no-drag] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
       data-testid="file-lightbox"
     >
       <Dialog.Title class="sr-only">{activeItem?.name ?? t('preview')}</Dialog.Title>
@@ -417,11 +423,11 @@
       </Dialog.Description>
 
       <!-- Top floating chrome -->
-      <header class="pointer-events-none relative z-10 flex items-center gap-3 px-4 pt-3.5 pb-2">
+      <header class="relative z-10 flex h-[60px] shrink-0 items-center gap-3 px-4">
         <!-- File name & counter pill -->
         {#if activeItem}
           <div
-            class="pointer-events-auto flex min-w-0 max-w-[min(40vw,360px)] items-center gap-2 rounded-full border border-lightbox-border bg-lightbox-bar px-3.5 py-1.5 text-lightbox-ink shadow-pop backdrop-blur-md"
+            class="flex h-9 min-w-0 max-w-[min(40vw,360px)] items-center gap-2 rounded-full border border-lightbox-border bg-lightbox-bar px-3.5 leading-4 text-lightbox-ink shadow-pop backdrop-blur-md"
             data-testid="lightbox-meta"
           >
             <Icon name={iconFor(activeItem)} class="size-4 shrink-0 text-lightbox-muted" />
@@ -437,7 +443,7 @@
 
         <!-- Filter bar: segmented on wide windows, dropdown pill on narrow windows -->
         {#if showFilterBar}
-          <div class="pointer-events-auto mx-auto hidden @min-[920px]:flex">
+          <div class="mx-auto hidden @min-[920px]:flex">
             <div
               class="inline-flex items-center gap-0.5 rounded-full border border-lightbox-border bg-lightbox-bar p-0.5 shadow-pop backdrop-blur-md"
               role="group"
@@ -467,7 +473,7 @@
             </div>
           </div>
 
-          <div class="pointer-events-auto mx-auto flex @min-[920px]:hidden">
+          <div class="mx-auto flex @min-[920px]:hidden">
             <DropdownMenu.Root dir={localeDir(locale())}>
               <DropdownMenu.Trigger
                 class="inline-flex h-8 items-center gap-1.5 rounded-full border border-lightbox-border bg-lightbox-bar px-3 text-caption font-medium text-lightbox-ink shadow-pop backdrop-blur-md outline-none hover:bg-lightbox-bar-hover focus-visible:ring-3 focus-visible:ring-focus/45"
@@ -503,7 +509,7 @@
         {/if}
 
         <!-- Top-right action controls (matching reference: floating circular controls + close) -->
-        <div class="pointer-events-auto ms-auto flex shrink-0 items-center gap-2">
+        <div class="ms-auto flex shrink-0 items-center gap-2">
           {#if loaded.kind === 'markdown'}
             <div
               class="inline-flex items-center gap-0.5 rounded-full border border-lightbox-border bg-lightbox-bar p-0.5 shadow-pop backdrop-blur-md"

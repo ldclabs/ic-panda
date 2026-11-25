@@ -63,6 +63,23 @@ final class PreviewModelsTests: XCTestCase {
         XCTAssertEqual(PreviewFilterLogic.pickNearest(items: list, currentID: "3", filter: .previewable).activeID, "4")
     }
 
+    func testImageLayoutDuringPreviewLoading() {
+        let loading = FullscreenFilePreviewView.LoadedContent.loading
+        let photo = makeItem(id: "photo", name: "photo.png", mime: "image/png", size: 200)
+        let text = makeItem(id: "text", name: "note.txt", mime: "text/plain", size: 200)
+        let cloudOnly = makeItem(id: "cloud", name: "photo.png", mime: "image/png", size: 200, canOpen: false)
+        let oversized = makeItem(id: "large", name: "photo.png", mime: "image/png", size: PreviewFilterLogic.maxImageBytes + 1)
+        XCTAssertTrue(loading.usesImageLayout(for: photo))
+        XCTAssertFalse(loading.usesImageLayout(for: text))
+        XCTAssertFalse(loading.usesImageLayout(for: cloudOnly))
+        XCTAssertFalse(loading.usesImageLayout(for: oversized))
+
+        let fallback = FullscreenFilePreviewView.LoadedContent.fallback(
+            reason: .decodeFailed, mime: photo.mime, name: photo.name, size: photo.size, sha256: nil
+        )
+        XCTAssertFalse(fallback.usesImageLayout(for: photo))
+    }
+
     func testDecodesSafeMarkdownAstJson() throws {
         let json = """
         {

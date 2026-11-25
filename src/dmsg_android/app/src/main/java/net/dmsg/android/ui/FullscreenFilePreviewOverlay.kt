@@ -68,7 +68,6 @@ import kotlinx.coroutines.flow.first
 ) {
     BackHandler { client.fullscreenPreview.close() }
     val isImagePage = session.isImagePage
-    SyncSystemBars(darkTheme = isImagePage || LocalDarkTheme.current)
 
     val filtered = session.filteredItems
     val pagerState = rememberPagerState(
@@ -354,9 +353,11 @@ import kotlinx.coroutines.flow.first
     } else {
         Modifier.statusBarsPadding().padding(top = 56.dp)
     }
+    val colors = MaterialTheme.colorScheme
+    val spinnerColor = if (session.isImagePage) colors.onViewerBackdrop else colors.primary
     if (item.id != session.activeId || session.loadedForId != item.id) {
         Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = spinnerColor)
         }
         return
     }
@@ -371,9 +372,10 @@ import kotlinx.coroutines.flow.first
                     if (loaded.total > 0uL) {
                         Progress((loaded.completed.toDouble() / loaded.total.toDouble()).toFloat().coerceIn(0f, 1f))
                     } else {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = spinnerColor)
                     }
-                    Text(str(R.string.vault_loading), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(str(R.string.vault_loading), style = MaterialTheme.typography.bodySmall,
+                        color = if (session.isImagePage) colors.onViewerBackdropMuted else colors.onSurfaceVariant)
                 }
             }
         }

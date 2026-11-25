@@ -471,6 +471,15 @@ try {
   await main.getByTestId('lightbox-image').waitFor()
   assert.equal(await main.getByTestId('lightbox-filename').innerText(), '01-design-mockup.png')
   assert.equal(await main.getByTestId('lightbox-counter').innerText(), '1 / 4')
+  const titleCentered = await main.getByTestId('lightbox-filename').evaluate((title) => {
+    const centerY = (node) => {
+      const { top, height } = node.getBoundingClientRect()
+      return top + height / 2
+    }
+    return Math.abs(centerY(title) - centerY(title.closest('header'))) <= 1
+  })
+  assert.ok(titleCentered, 'the filename is vertically centered in the preview toolbar')
+  assert.equal(await lightbox.evaluate((node) => getComputedStyle(node).getPropertyValue('app-region')), 'no-drag')
 
   // Verify zoom controls (+, reset)
   const beforeZoom = await main.getByTestId('lightbox-zoom-reset').innerText()
@@ -514,7 +523,8 @@ try {
   await main.getByTestId('lightbox-next').click()
   await main.getByTestId('lightbox-text').waitFor()
   assert.equal(await main.getByTestId('lightbox-filename').innerText(), '03-config.json')
-  await main.getByTestId('lightbox-filter-all').click()
+  await main.getByTestId('lightbox-filter-all').focus()
+  await main.keyboard.press('Space')
   assert.equal(await main.getByTestId('lightbox-counter').innerText(), '3 / 4')
   await main.getByTestId('lightbox-next').click()
   await main.getByTestId('lightbox-fallback').waitFor()

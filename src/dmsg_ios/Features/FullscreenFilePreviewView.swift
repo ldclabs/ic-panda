@@ -10,6 +10,7 @@ struct FullscreenFilePreviewView: View {
     let launch: FullscreenPreviewLaunch
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.layoutDirection) private var layoutDirection
 
@@ -20,6 +21,16 @@ struct FullscreenFilePreviewView: View {
         case text(text: String, original: Data?)
         case fallback(reason: PreviewFallbackReason, mime: String, name: String, size: UInt64, sha256: String?)
         case error(String)
+
+        func usesImageLayout(for item: FullscreenPreviewItem) -> Bool {
+            switch self {
+            case .loading:
+                // Keep the status bar backdrop and safe area stable while the image decodes.
+                PreviewFilterLogic.previewClass(for: item) == .image && PreviewFilterLogic.isPreviewable(item)
+            case .image: true
+            default: false
+            }
+        }
     }
 
     enum MarkdownMode { case reading, source }
@@ -63,12 +74,8 @@ struct FullscreenFilePreviewView: View {
         filteredItems.firstIndex(where: { $0.id == activeID }) ?? 0
     }
     private var activeItem: FullscreenPreviewItem? {
-        guard !filteredItems.isEmpty else { return nil }
-        return filteredItems[min(activeIndex, filteredItems.count - 1)]
-    }
-    private var isImagePage: Bool {
-        if case .image = loaded { return true }
-        return false
+        let items = filteredItems
+        return items.first { $0.id == activeID } ?? items.first
     }
     private var canShareCurrent: Bool {
         guard let item = activeItem else { return false }
@@ -85,6 +92,11 @@ struct FullscreenFilePreviewView: View {
     }
 
     var body: some View {
+        let isImagePage = activeItem.map { item in
+            let content = loadedForID == item.id ? loaded : .loading
+            return content.usesImageLayout(for: item)
+        } ?? false
+
         NavigationStack {
             ZStack {
                 (isImagePage ? Theme.viewerBackdrop : Theme.paper)
@@ -100,6 +112,7 @@ struct FullscreenFilePreviewView: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
+                    .environment(\.colorScheme, isImagePage ? .dark : colorScheme)
                     .ignoresSafeArea(edges: isImagePage ? .all : .bottom)
                 }
             }

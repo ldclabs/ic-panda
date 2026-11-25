@@ -67,7 +67,14 @@ data class FullscreenPreviewSession(
     val filteredItems: List<FullscreenPreviewItem> get() = allItems.filter { PreviewFilterLogic.matches(it, filter) }
     val activeIndex: Int get() = filteredItems.indexOfFirst { it.id == activeId }.takeIf { it >= 0 } ?: 0
     val activeItem: FullscreenPreviewItem? get() = filteredItems.getOrNull(activeIndex)
-    val isImagePage: Boolean get() = content is LoadedPreviewContent.Image
+    val isImagePage: Boolean
+        get() {
+            if (loadedForId == activeId && content !is LoadedPreviewContent.Loading) {
+                return content is LoadedPreviewContent.Image
+            }
+            val target = allItems.firstOrNull { it.id == activeId } ?: return false
+            return PreviewFilterLogic.previewClass(target) == PreviewClass.IMAGE && PreviewFilterLogic.isPreviewable(target)
+        }
     val canShareCurrent: Boolean
         get() {
             val item = activeItem ?: return false
