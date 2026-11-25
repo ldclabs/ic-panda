@@ -35,6 +35,7 @@
 .utility-site .utility-lead {
   margin: 16px 0 24px;
   font-size: 15px;
+  text-wrap: pretty;
 }
 .utility-site .utility-note {
   margin: 24px 0 0;

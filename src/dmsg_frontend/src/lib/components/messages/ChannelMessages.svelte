@@ -317,14 +317,9 @@
   }
 
   function onPromptKeydown(event: KeyboardEvent): void {
-    // https://www.zhangxinxu.com/wordpress/2023/02/js-enter-submit-compositionupdate/
-    if (
-      !event.shiftKey &&
-      !submitting &&
-      (event.keyCode == 13 ||
-        (!event.isComposing && ['Enter'].includes(event.code)))
-    ) {
+    if (event.key === 'Enter' && !event.shiftKey && !submitting) {
       event.preventDefault()
+      if (event.isComposing || event.keyCode === 229) return
       sendMessage()
     }
   }

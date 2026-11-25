@@ -89,7 +89,6 @@
   const completion = $derived(steps.at(-1))
   let running = $state(false)
   let ran = $state(false)
-  let copied = $state(false)
   let destroyed = false
   let log: HTMLOListElement
 
@@ -178,32 +177,60 @@
     running = false
   }
 
+  let copyState = $state<'idle' | 'copied' | 'failed'>('idle')
+  let copyStatus = $state('')
+  let lastCopyAnnouncement = ''
+  let copyRequest = 0
+  let copyTimer: ReturnType<typeof setTimeout>
+
   async function copy() {
+    const id = ++copyRequest
+    clearTimeout(copyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(COMMAND)
-      copied = true
-      setTimeout(() => (copied = false), 2000)
+      ok = true
     } catch {
-      copied = false
+      ok = false
     }
+    if (id !== copyRequest) return
+    copyState = ok ? 'copied' : 'failed'
+    let message = $t(ok ? 'Copied' : 'Copy failed')
+    if (message === lastCopyAnnouncement) message += '\u00A0'
+    lastCopyAnnouncement = message
+    copyStatus = ''
+    requestAnimationFrame(() => {
+      if (id === copyRequest) copyStatus = message
+    })
+    copyTimer = setTimeout(() => {
+      copyState = 'idle'
+      copyStatus = ''
+    }, 2000)
   }
 
   onDestroy(() => {
     destroyed = true
+    ++copyRequest
+    clearTimeout(copyTimer)
   })
 </script>
 
 <div class="connect-cmd">
   <span class="cc-label">{$t('Claude Code setup example')}</span>
-  <code>{COMMAND}</code>
-  <button
-    class="cc-copy"
-    onclick={copy}
-    aria-label={$t('Copy example command')}
-  >
-    <Glyph name={copied ? 'check' : 'copy'} size={16} />
-    <span>{copied ? $t('Copied') : $t('Copy')}</span>
+  <!-- Scrollable code block needs keyboard focus access (WCAG 2.1.1). -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <code tabindex="0">{COMMAND}</code>
+  <button type="button" class="cc-copy" onclick={copy}>
+    <Glyph name={copyState === 'copied' ? 'check' : 'copy'} size={16} />
+    <span
+      >{copyState === 'copied'
+        ? $t('Copied')
+        : copyState === 'failed'
+          ? $t('Copy failed')
+          : $t('Copy')}</span
+    >
   </button>
+  <span class="sr-only" role="status">{copyStatus}</span>
 </div>
 <p class="connect-note">
   {$t(

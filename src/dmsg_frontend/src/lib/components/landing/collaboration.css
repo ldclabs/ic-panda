@@ -749,7 +749,7 @@ html[dir='rtl'] .home .sec-head.reveal .kicker::after {
 .home .deep-dive > summary:hover > .glyph:first-child {
   transform: scale(1.15);
 }
-.home .deep-body {
+.home .deep-dive[open] .deep-body {
   animation: fade-up 0.5s var(--ease) both;
 }
 .home .trust-grid {

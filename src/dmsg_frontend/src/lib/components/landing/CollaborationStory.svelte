@@ -72,9 +72,9 @@
 >
   <header class="story-header">
     <button
+      type="button"
       class="chip-btn"
       onclick={() => (playing ? (playing = false) : play())}
-      aria-pressed={playing}
       ><Glyph name={playing ? 'pause' : 'play'} size={16} />{playing
         ? $t('Pause demo')
         : $t('Start demo')}</button
@@ -84,6 +84,7 @@
     {#each STEPS as item, i}
       <li
         ><button
+          type="button"
           class:current={step === i}
           class:playing
           aria-pressed={step === i}

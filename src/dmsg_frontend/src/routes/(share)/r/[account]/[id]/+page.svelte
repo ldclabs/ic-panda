@@ -46,6 +46,7 @@
 
   const HARD_LIMIT = 1000 * 1024 * 1024
   const PHONE_HINT = 100 * 1024 * 1024
+  const uid = $props.id()
   const account = $derived(page.params['account'] ?? '')
   const requestId = $derived(page.params['id'] ?? '')
   const phone =
@@ -440,8 +441,10 @@
     {:else if phase === 'blocked'}
       <p class="utility-status error" role="alert">{blocked}</p>
       {#if canRetryLoad}
-        <button class="button secondary utility-action" onclick={load}
-          >{$t('Try again')}</button
+        <button
+          type="button"
+          class="button secondary utility-action"
+          onclick={load}>{$t('Try again')}</button
         >
       {/if}
     {:else if descriptor}
@@ -495,9 +498,10 @@
 
       {#if status === 'open'}
         <div class="sender">
-          <label>
-            <span>{$t('Your name (optional)')}</span>
+          <div class="field">
+            <label for={`${uid}-name`}>{$t('Your name (optional)')}</label>
             <input
+              id={`${uid}-name`}
               bind:value={name}
               maxlength="80"
               autocomplete="name"
@@ -505,17 +509,18 @@
               disabled={sending}
               data-testid="request-name"
             />
-          </label>
-          <label>
-            <span>{$t('A note (optional)')}</span>
+          </div>
+          <div class="field">
+            <label for={`${uid}-note`}>{$t('A note (optional)')}</label>
             <textarea
+              id={`${uid}-note`}
               bind:value={note}
               maxlength="240"
               rows="2"
               dir="auto"
               disabled={sending}
               data-testid="request-note"></textarea>
-          </label>
+          </div>
           <p class="hint"
             >{$t('They see this with your files. dMsg does not verify it.')}</p
           >
@@ -523,6 +528,7 @@
 
         <label
           class="drop"
+          for={`${uid}-files`}
           class:dragging
           ondragover={(event) => {
             event.preventDefault()
@@ -538,6 +544,7 @@
           <Glyph name="download" size={20} />
           <span>{$t('Choose files or drop them here')}</span>
           <input
+            id={`${uid}-files`}
             bind:this={picker}
             class="picker"
             type="file"
@@ -577,9 +584,17 @@
                 <span class="quiet" dir="ltr">{size(item.file.size)}</span>
               </div>
               {#if item.state === 'working' && item.progress}
-                {@const percent = Math.floor(
-                  (item.progress.done / item.progress.total) * 100
-                )}
+                {@const percent = item.progress.total
+                  ? Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        Math.floor(
+                          (item.progress.done / item.progress.total) * 100
+                        )
+                      )
+                    )
+                  : 0}
                 {@const progressText =
                   item.progress.stage === 'preparing'
                     ? $t('Preparing… {percent}%', { percent })
@@ -611,6 +626,7 @@
               <div class="row-actions">
                 {#if item.state === 'failed' && item.file.size > 0 && item.file.size <= limit && status === 'open'}
                   <button
+                    type="button"
                     class="link"
                     onclick={() => retry(item)}
                     disabled={sending}>{$t('Try again')}</button
@@ -618,14 +634,17 @@
                 {/if}
                 {#if item.state === 'waiting' || item.state === 'failed'}
                   <button
+                    type="button"
                     class="link"
                     onclick={() => removeItem(item)}
                     disabled={sending}>{$t('Remove')}</button
                   >
                 {/if}
                 {#if item.state === 'working'}
-                  <button class="link" onclick={() => run?.abort()}
-                    >{$t('Stop')}</button
+                  <button
+                    type="button"
+                    class="link"
+                    onclick={() => run?.abort()}>{$t('Stop')}</button
                   >
                 {/if}
                 {#if item.state === 'sent' && item.receipt && item.uploadId}
@@ -644,6 +663,7 @@
           >
         {:else if waiting && status === 'open'}
           <button
+            type="button"
             class="button primary utility-action"
             onclick={sendAll}
             data-testid="request-send">{$t('Send files')}</button
@@ -689,18 +709,22 @@
                   <div class="row-actions">
                     <span class="line">{$t('Withdraw this file?')}</span>
                     <button
+                      type="button"
                       class="link danger"
                       onclick={() => withdraw(record.uploadId)}
                       >{$t('Withdraw')}</button
                     >
-                    <button class="link" onclick={() => (confirming = null)}
-                      >{$t('Cancel')}</button
+                    <button
+                      type="button"
+                      class="link"
+                      onclick={() => (confirming = null)}>{$t('Cancel')}</button
                     >
                   </div>
                 {:else if !closed}
                   <div class="row-actions">
                     {#if record.state === 'delivered'}
                       <button
+                        type="button"
                         class="link"
                         disabled={sending || status !== 'open'}
                         onclick={() => {
@@ -709,6 +733,7 @@
                         }}>{$t('Replace')}</button
                       >
                       <button
+                        type="button"
                         class="link"
                         disabled={sending}
                         onclick={() => (confirming = record.uploadId)}
@@ -717,6 +742,7 @@
                     {/if}
                     {#if record.state === 'saved' && status === 'open'}
                       <button
+                        type="button"
                         class="link"
                         disabled={sending}
                         onclick={() => {
@@ -730,8 +756,11 @@
               </li>
             {/each}
           </ul>
-          <button class="link" onclick={clearRecords} disabled={sending}
-            >{$t('Clear this list')}</button
+          <button
+            type="button"
+            class="link"
+            onclick={clearRecords}
+            disabled={sending}>{$t('Clear this list')}</button
           >
         </section>
       {/if}
@@ -824,9 +853,11 @@
     gap: 12px;
     margin-top: 24px;
   }
-  .sender label {
+  .sender .field {
     display: grid;
     gap: 6px;
+  }
+  .sender label {
     font-size: 14px;
     font-weight: 550;
   }
@@ -841,6 +872,7 @@
     background: #fff;
     color: var(--ink);
     font: inherit;
+    font-size: max(1rem, 1em);
     font-weight: 400;
     resize: vertical;
   }
@@ -953,6 +985,11 @@
     border-radius: 3px;
     background: var(--action);
   }
+  @media (prefers-reduced-motion: no-preference) {
+    .bar::-webkit-progress-value {
+      transition: inline-size 0.3s;
+    }
+  }
   .bar::-moz-progress-bar {
     border-radius: 3px;
     background: var(--action);
@@ -983,6 +1020,13 @@
     font-weight: 550;
     text-decoration: underline;
     cursor: pointer;
+  }
+  @media (pointer: coarse) {
+    .link,
+    .row-actions :global(.copy-receipt) {
+      min-block-size: 44px;
+      padding-block: 8px;
+    }
   }
   .link:disabled {
     color: var(--muted);

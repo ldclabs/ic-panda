@@ -30,12 +30,18 @@
       role={isAlert(toast) ? 'alert' : 'status'}
       onmouseenter={() => toast.hoverable && toastStore.pause(toast.id!)}
       onmouseleave={() => toast.hoverable && toastStore.resume(toast.id!)}
+      onfocusin={() => toastStore.pause(toast.id!)}
+      onfocusout={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          toastStore.resume(toast.id!)
+      }}
     >
       <p class="min-w-0 flex-1 text-sm break-words whitespace-pre-line">
         {toast.message}
       </p>
       {#if toast.action}
         <button
+          type="button"
           class="btn btn-sm variant-filled shrink-0"
           onclick={() => {
             toast.action?.response()
@@ -45,7 +51,8 @@
       {/if}
       {#if !toast.hideDismiss}
         <button
-          class="shrink-0 text-lg leading-none opacity-60 hover:opacity-100"
+          type="button"
+          class="inline-flex min-h-6 min-w-6 shrink-0 items-center justify-center text-lg leading-none opacity-60 hover:opacity-100"
           aria-label={$t('Dismiss notification')}
           onclick={() => toastStore.close(toast.id!)}>&times;</button
         >

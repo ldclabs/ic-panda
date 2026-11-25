@@ -510,8 +510,9 @@ it('opens a legacy vault snapshot once, labels its one populated field, and copi
     expect(target.textContent).not.toContain(value)
     expect(target.textContent).not.toMatch(/f0_|f1_|f2_/)
     click('.field-actions button:last-child')
-    await shown('.snapshot-field [role=status]')
-    expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('复制失败')
+    await vi.waitFor(() =>
+      expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('复制失败')
+    )
     click('.field-actions button:last-child')
     await vi.waitFor(() => expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('已复制'))
     expect(writeText).toHaveBeenLastCalledWith(value)

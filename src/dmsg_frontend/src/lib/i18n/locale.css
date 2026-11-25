@@ -33,6 +33,7 @@ html:is([lang='zh'], [lang='zh-Hant'], [lang='ja'], [lang='ko'], [lang='hi'], [l
 html:is([lang='zh'], [lang='zh-Hant'], [lang='ja'], [lang='ko'], [lang='hi'], [lang='ru'], [lang='ar'], [lang='th'], [lang='bn'], [lang='ur'])
   :is(.dmsg-site, .display, .font-mono, .eyebrow, .archive-account-menu) {
   font-family: var(--locale-font);
+  font-size-adjust: none;
 }
 html:is([lang='ar'], [lang='hi'], [lang='th'], [lang='bn'], [lang='ur']) :is(h1, h2, h3, .eyebrow, .display) {
   letter-spacing: normal;

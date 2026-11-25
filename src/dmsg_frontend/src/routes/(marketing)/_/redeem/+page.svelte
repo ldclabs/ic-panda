@@ -1,12 +1,17 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import { t, locale } from '$lib/i18n'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import { normalizePromo, publicPromo, type PublicPromo } from '$lib/promo'
+  const uid = $props.id()
   let draft = $state(''),
     copied = $state(false),
     failed = $state(false),
+    copyStatus = $state(''),
     info = $state<PublicPromo>({})
+  let lastAnnouncement = ''
+  let copyRequest = 0
+  let copyTimer: ReturnType<typeof setTimeout>
   let normalized = $derived(normalizePromo(draft))
   onMount(() => {
     const read = () => {
@@ -17,12 +22,17 @@
     window.addEventListener('hashchange', read)
     return () => window.removeEventListener('hashchange', read)
   })
+  onDestroy(() => {
+    ++copyRequest
+    clearTimeout(copyTimer)
+  })
   $effect(() => {
     const value = normalized,
       controller = new AbortController()
     info = {}
     copied = false
     failed = false
+    copyStatus = ''
     const timer = setTimeout(() => {
       void publicPromo(value, controller.signal)
         .then((r) => {
@@ -37,11 +47,30 @@
   })
   async function copy() {
     const value = normalized
+    const req = ++copyRequest
+    clearTimeout(copyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(value)
-      if (value === normalized) copied = true
+      ok = true
     } catch {
-      if (value === normalized) failed = true
+      ok = false
+    }
+    if (req !== copyRequest || value !== normalized) return
+    copied = ok
+    failed = !ok
+    let message = $t(ok ? 'Copied' : 'Could not copy')
+    if (message === lastAnnouncement) message += '\u00A0'
+    lastAnnouncement = message
+    copyStatus = ''
+    requestAnimationFrame(() => {
+      if (req === copyRequest) copyStatus = message
+    })
+    if (ok) {
+      copyTimer = setTimeout(() => {
+        copied = false
+        copyStatus = ''
+      }, 2500)
     }
   }
 </script>
@@ -57,15 +86,19 @@
   <p class="utility-lead"
     >{$t('Review and confirm in dMsg Desktop or the dmsg CLI.')}</p
   >
-  <label class="code-field"
-    >{$t('Membership code')}<input
+  <div class="code-field">
+    <label for={`${uid}-code`}>{$t('Membership code')}</label>
+    <input
+      id={`${uid}-code`}
       bind:value={draft}
       maxlength="96"
       autocomplete="off"
+      autocorrect="off"
+      autocapitalize="none"
       spellcheck="false"
       dir="ltr"
-    /></label
-  >
+    />
+  </div>
   {#if info.valid && info.plan && info.duration_days}<p
       >{info.title} · {info.plan} · {new Intl.NumberFormat($locale, {
         style: 'unit',
@@ -91,16 +124,18 @@
         rel="noreferrer"
         href={'dmsg://redeem#' + normalized}>{$t('Open dMsg Desktop')}</a
       >{/if}
-    <button class="button secondary" disabled={!normalized} onclick={copy}
-      >{$t(copied ? 'Copied' : 'Copy')}</button
+    <button
+      type="button"
+      class="button secondary"
+      disabled={!normalized}
+      onclick={copy}>{$t(copied ? 'Copied' : 'Copy')}</button
     >
     <a class="text-link" rel="noreferrer" href="/#release" data-sveltekit-reload
       >{$t('Download dMsg')}</a
     >
   </div>
-  {#if failed}<p role="status"
-      >{$t('Membership code')} · <code>{normalized}</code></p
-    >{/if}
+  <span class="sr-only" role="status">{copyStatus}</span>
+  {#if failed}<p>{$t('Membership code')} · <code>{normalized}</code></p>{/if}
 </UtilityPage>
 
 <style>
@@ -108,6 +143,8 @@
     display: grid;
     gap: 0.5rem;
     max-width: 28rem;
+  }
+  .code-field label {
     font-weight: 600;
   }
   .code-field input {
@@ -118,6 +155,7 @@
     border: 1px solid var(--line);
     border-radius: 0.5rem;
     font: inherit;
+    font-size: max(1rem, 1em);
   }
   .actions {
     display: flex;

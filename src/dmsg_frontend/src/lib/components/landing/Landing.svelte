@@ -80,14 +80,23 @@
   const RECOVERY = 'faq-recovery'
 
   let menuOpen = $state(false)
-  let compactNav = $state(false)
+  let compactNav = $state(
+    typeof matchMedia === 'function'
+      ? matchMedia('(max-width: 1280px)').matches
+      : false
+  )
   const nativePopover =
     typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype
   let menuButton = $state<HTMLButtonElement>()
   let menu: HTMLElement
-  let scrollY = $state(0)
+  let scrollSentinel = $state<HTMLDivElement>()
+  let scrolled = $state(false)
   let install = $state<Method>('brew')
   let copied = $state('')
+  let copyState = $state<'idle' | 'copied' | 'failed'>('idle')
+  let copyStatus = $state('')
+  let lastCopyAnnouncement = ''
+  let copyRequest = 0
   let copyTimer: ReturnType<typeof setTimeout>
   let recoveryOpen = $state(false)
 
@@ -276,7 +285,11 @@
   ])
 
   function closeMenu() {
-    if (menu?.popover === 'auto') menu.hidePopover()
+    if (
+      menu?.getAttribute('popover') === 'auto' &&
+      menu.matches(':popover-open')
+    )
+      menu.hidePopover()
     menuOpen = false
   }
 
@@ -310,17 +323,36 @@
   })
 
   async function copy(line: string) {
+    const req = ++copyRequest
     clearTimeout(copyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(line)
-      copied = line
-      copyTimer = setTimeout(() => (copied = ''), 1800)
+      ok = true
     } catch {
-      copied = ''
+      ok = false
     }
+    if (req !== copyRequest) return
+    copied = ok ? line : ''
+    copyState = ok ? 'copied' : 'failed'
+    let message = ok ? $t('Copied') : $t('Copy failed')
+    if (message === lastCopyAnnouncement) message += '\u00A0'
+    lastCopyAnnouncement = message
+    copyStatus = ''
+    requestAnimationFrame(() => {
+      if (req === copyRequest) copyStatus = message
+    })
+    copyTimer = setTimeout(() => {
+      copied = ''
+      copyState = 'idle'
+      copyStatus = ''
+    }, 2000)
   }
 
-  $effect(() => () => clearTimeout(copyTimer))
+  $effect(() => () => {
+    ++copyRequest
+    clearTimeout(copyTimer)
+  })
 
   // The header marks the section in the middle of the screen.
   onMount(() => {
@@ -331,6 +363,12 @@
     }
     updateNav()
     compact.addEventListener('change', updateNav)
+    const headerObserver = scrollSentinel
+      ? new IntersectionObserver(([entry]) => {
+          scrolled = !entry?.isIntersecting
+        })
+      : null
+    if (scrollSentinel && headerObserver) headerObserver.observe(scrollSentinel)
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
@@ -351,6 +389,7 @@
     addEventListener('hashchange', showRecovery)
     return () => {
       compact.removeEventListener('change', updateNav)
+      headerObserver?.disconnect()
       observer.disconnect()
       removeEventListener('hashchange', showRecovery)
     }
@@ -358,15 +397,19 @@
 </script>
 
 <svelte:head><meta name="color-scheme" content="light" /></svelte:head>
-<svelte:window bind:scrollY />
 
 {#snippet headerDownload()}
   <a class="button primary header-action" href="#release">{$t('Download')}</a>
 {/snippet}
 
 <div class="dmsg-site home">
+  <div
+    class="scroll-sentinel"
+    bind:this={scrollSentinel}
+    aria-hidden="true"
+  ></div>
   <a class="skip" href="#main">{$t('Skip to content')}</a>
-  <header class="site-header" class:scrolled={scrollY > 8}>
+  <header class="site-header" class:scrolled>
     <div class="wrap nav-wrap">
       <Brand />
       <LocaleSwitcher />
@@ -377,12 +420,11 @@
             bind:this={menuButton}
             type="button"
             class="icon-button menu-toggle"
-            aria-label={menuOpen
-              ? $t('Close navigation')
-              : $t('Open navigation')}
+            aria-label={$t('Main navigation')}
             aria-expanded={menuOpen}
             aria-controls="main-navigation"
             popovertarget={nativePopover ? 'main-navigation' : undefined}
+            popovertargetaction={nativePopover ? 'toggle' : undefined}
             onclick={nativePopover ? undefined : () => (menuOpen = !menuOpen)}
           >
             <Glyph name={menuOpen ? 'close' : 'menu'} />
@@ -462,7 +504,12 @@
       </div>
     </section>
 
-    <section class="section band" id="space" aria-labelledby="space-title">
+    <section
+      class="section band"
+      id="space"
+      aria-labelledby="space-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>01</b>{$t('Your private space')}</p>
@@ -531,6 +578,7 @@
       class="section desktop"
       id="desktop"
       aria-labelledby="desktop-title"
+      tabindex="-1"
     >
       <div class="wrap">
         <header class="sec-head" use:reveal>
@@ -603,6 +651,7 @@
       class="section band"
       id="collaboration"
       aria-labelledby="collaboration-title"
+      tabindex="-1"
     >
       <div class="wrap">
         <header class="sec-head" use:reveal>
@@ -699,7 +748,12 @@
       </div>
     </section>
 
-    <section class="section" id="agents" aria-labelledby="agents-title">
+    <section
+      class="section"
+      id="agents"
+      aria-labelledby="agents-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>04</b>{$t('AI, with clear permissions')}</p>
@@ -822,7 +876,12 @@
       </div>
     </section>
 
-    <section class="section dark" id="trust" aria-labelledby="trust-title">
+    <section
+      class="section dark"
+      id="trust"
+      aria-labelledby="trust-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>05</b>{$t('Privacy & Web3')}</p>
@@ -987,6 +1046,7 @@
       class="section release"
       id="release"
       aria-labelledby="release-title"
+      tabindex="-1"
     >
       <div class="wrap release-grid">
         <div class="sec-head" use:reveal>
@@ -1038,6 +1098,7 @@
               aria-label={$t('Install method')}
             >
               {#each METHODS as id}<button
+                  type="button"
                   aria-pressed={install === id}
                   onclick={() => (install = id)}>{INSTALL[id].label}</button
                 >{/each}
@@ -1046,11 +1107,10 @@
           <div class="install-body">
             {#each INSTALL[install].lines as line}<div class="install-line"
                 ><code dir="ltr"><span class="tp">$</span>{line}</code><button
+                  type="button"
                   class="cc-copy"
                   onclick={() => copy(line)}
-                  aria-label={copied === line
-                    ? $t('Copied')
-                    : $t('Copy command')}
+                  aria-label={$t('Copy command')}
                   ><Glyph
                     name={copied === line ? 'check' : 'copy'}
                     size={16}
@@ -1062,15 +1122,23 @@
                 'Each command installs the latest release and checks its SHA-256.'
               )}</p
             >
-            <span class="sr-only" role="status"
-              >{copied ? $t('Copied') : ''}</span
+            <p
+              class="install-status"
+              class:visible={copyState === 'failed'}
+              class:sr-only={copyState !== 'failed'}
+              role="status">{copyStatus}</p
             >
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section band" id="faq" aria-labelledby="faq-title">
+    <section
+      class="section band"
+      id="faq"
+      aria-labelledby="faq-title"
+      tabindex="-1"
+    >
       <div class="wrap two-col">
         <header class="sec-head" use:reveal
           ><p class="kicker"><b>08</b>{$t('A few useful answers')}</p><h2

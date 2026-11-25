@@ -44,6 +44,7 @@
   type Phase =
     'loading' | 'password' | 'ready' | 'working' | 'done' | 'gone' | 'error'
 
+  const uid = $props.id()
   const shareId = $derived(page.params['id'] ?? '')
   let phase = $state<Phase>('loading')
   let descriptor = $state<Descriptor | null>(null)
@@ -71,6 +72,7 @@
   let source = $state(false)
   let headline = $state<HTMLHeadingElement>()
   let reader = $state<HTMLElement>()
+  let imagePreview = $state<HTMLElement>()
   let fullScreen = $state(false)
   let previewDialog = $state<HTMLDialogElement>()
   let fullscreenButton = $state<HTMLButtonElement>()
@@ -328,7 +330,7 @@
         }
         phase = 'done'
         await tick()
-        if (alive) reader?.focus()
+        if (alive) (reader ?? imagePreview)?.focus()
       } else {
         phase = 'done'
         save()
@@ -367,23 +369,30 @@
   <div class="file-actions">
     {#if formatted !== null}
       <button
+        type="button"
         class="button secondary"
         aria-pressed={source}
         onclick={() => (source = !source)}
         >{$t(source ? 'Show formatted text' : 'Show source')}</button
       >
     {/if}
-    <button class="button secondary" onclick={save} data-testid="share-save"
+    <button
+      type="button"
+      class="button secondary"
+      onclick={save}
+      data-testid="share-save"
       ><Glyph name="download" size={18} />{$t('Download')}</button
     >
     {#if expanded}
       <button
+        type="button"
         class="button secondary"
         onclick={() => previewDialog?.close()}
         data-testid="share-exit-fullscreen">{$t('Exit full screen')}</button
       >
     {:else if previewText !== null || previewUrl}
       <button
+        type="button"
         class="button secondary"
         bind:this={fullscreenButton}
         onclick={expandPreview}
@@ -407,7 +416,11 @@
         >{:else}<pre>{previewText}</pre>{/if}
     </section>
   {:else if previewUrl}
-    <div class="image-preview" data-testid="share-image"
+    <div
+      class="image-preview"
+      tabindex="-1"
+      bind:this={imagePreview}
+      data-testid="share-image"
       ><img
         src={previewUrl}
         alt={file?.name ?? ''}
@@ -432,9 +445,7 @@
     <FileInvite kind="share" ready={phase === 'done'} />
   {/snippet}
 
-  <div
-    aria-busy={phase === 'working' || phase === 'loading'}
-  >
+  <div>
     <div class="utility-icon" aria-hidden="true">{#if isSnapshot}<Glyph name="lock" size={22} />{:else}<IconFile />{/if}</div>
     <h1 bind:this={headline} tabindex="-1" dir="auto">{secretPackage?.item.title ?? $t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</h1>
     {#if secretPackage}<p class="utility-lead">{$t('Secret snapshot fully verified.')}</p>
@@ -496,6 +507,7 @@
     {:else if phase === 'error'}
       <p class="utility-status error" role="alert">{error}</p>
       {#if canRetryMetadata}<button
+          type="button"
           class="button secondary utility-action"
           onclick={load}>{$t('Try again')}</button
         >{/if}
@@ -508,18 +520,22 @@
             void unlock()
           }}
         >
-          <label>
-            <span>{$t('This link needs a password.')}</span>
+          <div class="password-field">
+            <label for={`${uid}-password`}
+              >{$t('This link needs a password.')}</label
+            >
             <input
+              id={`${uid}-password`}
               type="password"
               bind:this={passwordInput}
               bind:value={password}
               autocomplete="off"
+              enterkeyhint="go"
               aria-invalid={error ? 'true' : undefined}
               aria-describedby={error ? 'share-password-error' : undefined}
               oninput={() => (error = '')}
             />
-          </label>
+          </div>
           {#if error}<p id="share-password-error" class="utility-status error" role="alert">{error}</p
             >{/if}
           <button
@@ -544,14 +560,16 @@
             )}</p
           >{/if}
         <div class="file-actions">
-          {#if isSnapshot}<button class="button primary" onclick={() => download()} data-testid="snapshot-open">{$t('Open')}</button>
+          {#if isSnapshot}<button type="button" class="button primary" onclick={() => download()} data-testid="snapshot-open">{$t('Open')}</button>
           {:else}{#if type?.previewable}<button
+              type="button"
               class="button primary"
               onclick={() => download(true)}
               data-testid="share-preview"
               >{$t(type.kind === 'image' ? 'Preview' : 'Read online')}</button
             >{/if}
           <button
+            type="button"
             class:primary={!type?.previewable}
             class:secondary={type?.previewable}
             class="button"
@@ -574,7 +592,7 @@
         {#each secretPackage.attachments as attachment, index}
           <div class="attachment">
             <span><bdi>{attachment.name}</bdi> · {size(attachment.size)}</span>
-            <button class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button>
+            <button type="button" class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button>
           </div>
         {/each}
         {#if !secretPackage.item.fields.some((f) => f.value) && !secretPackage.item.notes && !secretPackage.attachments.length}
@@ -616,8 +634,13 @@
     color: var(--ink);
     overflow: auto;
   }
+  .preview-dialog:modal {
+    overscroll-behavior: contain;
+  }
   .preview-dialog::backdrop {
     background: #fff;
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
   .fullscreen-content {
     max-width: 1000px;
@@ -769,6 +792,10 @@
     margin-top: 24px;
     text-align: center;
   }
+  .image-preview:focus-visible {
+    outline: 3px solid var(--action);
+    outline-offset: 3px;
+  }
   .image-preview img {
     display: block;
     max-width: 100%;
@@ -805,9 +832,11 @@
   .password {
     margin-top: 24px;
   }
-  .password label {
+  .password-field {
     display: grid;
     gap: 10px;
+  }
+  .password label {
     font-size: 14px;
   }
   .password input {
@@ -820,6 +849,7 @@
     background: #fff;
     color: var(--ink);
     font: inherit;
+    font-size: max(1rem, 1em);
   }
   @media (max-width: 540px) {
     .reader {

@@ -58,6 +58,7 @@
   class="section membership band"
   id="membership"
   aria-labelledby="membership-title"
+  tabindex="-1"
 >
   <div class="wrap">
     <header class="sec-head" use:reveal>
