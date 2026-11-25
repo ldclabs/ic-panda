@@ -249,11 +249,7 @@ struct SuccessionsView: View {
         case "native_addresses":
             Button("Check addresses") { Task { await run(task, step) } }.disabled(working)
             ForEach(found[task.id] ?? []) { address in
-                NavigationLink { WalletNativeMoveView(wallet: address.wallet, from: address.from) } label: {
-                    LabeledContent { Text("Move to this device") } label: {
-                        Text(verbatim: "\(address.wallet.prefix(11))… #\(address.from)").font(.footnote.monospaced())
-                    }
-                }
+                Text(verbatim: "\(address.wallet) #\(address.from)").font(.footnote.monospaced())
             }
             Button("Leave behind") {
                 leaving = Leaving(task: task, step: step, items: (found[task.id] ?? []).map { "\($0.wallet) #\($0.from)" })

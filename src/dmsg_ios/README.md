@@ -153,7 +153,7 @@ failure restores the controls and explains how to resume after checking the
 connection; completed steps are retained.
 
 Account groups identity and security, synchronization and storage, and app settings.
-Advanced contains agents, wallets, browser connections, hardware approval and local
+Advanced contains agents, browser connections, hardware approval and local
 activity. Pending approvals and unsynced changes have direct entries. Device names
 and public account thumbnails are kept in this device's protected preferences.
 The account switcher reads public names for every local account through the same
@@ -212,8 +212,7 @@ creates no approval, transaction or automatic execution.
 ## Multisig wallets
 
 Manage personal or shared assets across chains. Set approval thresholds and
-device co-signing requirements. The account entry, wallet list and device
-handover use the same name and all 23 locales as desktop and the website.
+device co-signing requirements. The mobile wallet entry is hidden. Use dMsg Desktop to open a wallet.
 Member approvals and device co-signing remain separate; one person can use
 multiple cosigner keys without counting as multiple members.
 
@@ -332,8 +331,7 @@ StoreKit alone supplies the localized price and billing period; cash catalogue
 prices are never used for an iOS offer.
 
 Compare all plans is a native screen with Free, Plus, Pro and Max, including
-backup limits, active upload links, conversations, execution allowance and wallet
-slots. Accessibility text uses stacked values rather than a four-column layout.
+backup limits, active upload links, conversations and execution allowance. Accessibility text uses stacked values rather than a four-column layout.
 The account membership badge opens this page's parent for every tier. Existing
 subscribers can manage billing in the current-plan section and retain the cards
 and upgrade differences; their actions open Apple's
@@ -862,8 +860,7 @@ scan or share. The old device reviews it in Devices → Replace a device
 (`successionReview`, with what only that device holds) and approves it once the
 person enters the new device's ID (`successionApprove`). Each side then runs
 its steps in order (`successions`, `successionRun`): steps that ask open the
-approval view, wallet bindings wait in Approvals, native addresses link to
-moving them, and local content moves with a device transfer or a copy import, or
+approval view, wallet bindings wait in Approvals, native addresses are listed for review, and local content moves with a device transfer or a copy import, or
 is left behind (`successionSkip`), which the revocation lists. Stopping
 (`successionCancel`) keeps what was done. What only this device holds
 (`localOnly`: versions without a cloud backup, unsynced changes, the last

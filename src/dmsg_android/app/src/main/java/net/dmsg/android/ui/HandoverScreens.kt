@@ -82,9 +82,7 @@ import net.dmsg.android.core.*
                                         Text(str(R.string.text_check_native_addresses_6942295))
                                     }
                                     client.handovers.addresses(task.id).forEach { address ->
-                                        ListRow(address.wallet + " #" + address.from, icon = Icons.Outlined.SwapHoriz) {
-                                            client.navigation.push(Route("wallet-native-move", address.wallet, sequence = address.from.toULong()))
-                                        }
+                                        Text(address.wallet + " #" + address.from, style = MaterialTheme.typography.bodySmall.code())
                                     }
                                     TextButton(onClick = { confirming = task to "native_addresses" }, enabled = fresh && !busy && results[task.id]?.get("addresses") is JsonArray) {
                                         Text(str(R.string.text_leave_native_addresses_behind_691ba11), color = MaterialTheme.colorScheme.error)

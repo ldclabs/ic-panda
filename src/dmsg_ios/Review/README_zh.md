@@ -11,7 +11,7 @@
 - Bundle ID：`net.dmsg.ios`；开发团队：`S9Z2WAMAV8`。
 - 当前版本与构建号以 `project.yml` 为准，内购开关为 `DMSG_IN_APP_PURCHASES_ENABLED=YES`。TestFlight 和 App Store 直接连接固定线上服务；商品查询、购买、恢复和交易投递已启用。
 - 内购实现使用 StoreKit；当前线上 commerce 商品映射只包含 Plus、Pro、Max 三个年度订阅，不包含存储包。应用 SKU 与 Apple ID **不是**商品 ID。
-- iOS 免费来信可发送；链上付费来信发送保持关闭。多签钱包是独立的资产管理功能，不用于解锁 iOS 数字服务。
+- iOS 免费来信可发送；链上付费来信发送保持关闭。iOS 现已隐藏多签钱包入口。
 
 ## 首次订阅送审与正式可用性
 
@@ -85,7 +85,7 @@ Apple 依据：[正式商店商品不可用排查 TN3188](https://developer.appl
 
 参考：[Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)，重点为 1.2、2.1、3.1.1、5.1.1。
 
-钱包新建仍遵守产品现有的暂停决定；现有钱包可以加入、查看、提出地址／成员／协签／阈值变更、转账、批准、冻结、执行和对账。本轮没有将独立 ICP 激活费伪装成已有套餐内购，也没有解除产品级的新建暂停。钱包控制提案需经过原有成员与时间锁规则，查看或创建提案不表示资金已经转出。
+当前移动端已隐藏钱包入口。管理已有多签钱包请使用 dMsg 桌面端。
 
 ## TestFlight 与业务环境
 

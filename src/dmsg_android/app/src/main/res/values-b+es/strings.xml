@@ -1004,7 +1004,7 @@
     <string name="text_length_889fe99" formatted="false">"Longitud: "</string>
     <string name="text_letters_cfbff5c" formatted="false">"Cartas"</string>
     <string name="text_light_f3bfabb" formatted="false">"Claro"</string>
-    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"Los límites corresponden al plan base. Los paquetes de almacenamiento son adicionales. Cambiar de plan no reinicia el uso mensual de ejecución. Los enlaces de archivos y los adjuntos de conversaciones tienen límites independientes. La activación de la cartera se cobra por separado."</string>
+    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"Los límites corresponden al plan base. Los paquetes de almacenamiento son adicionales. Cambiar de plan no reinicia el uso mensual de ejecución. Los enlaces de archivos y los adjuntos de conversaciones tienen límites independientes."</string>
     <string name="text_link_allowance_has_not_been_read_yet_63631ad" formatted="false">"Aún no se ha consultado la cuota de enlaces."</string>
     <string name="text_link_closed_89076c4" formatted="false">"Cerrado"</string>
     <string name="text_link_limits_653a1af" formatted="false">"Límites del enlace"</string>

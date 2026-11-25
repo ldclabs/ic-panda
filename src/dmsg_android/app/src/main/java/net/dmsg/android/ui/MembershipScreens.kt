@@ -83,7 +83,6 @@ import net.dmsg.android.platform.numericExpression
                     LabelValue(str(R.string.text_active_file_request_links_67f03f4), localizedNumber(benefit.requests))
                     LabelValue(str(R.string.text_conversation_limit_cdef0ca), localizedNumber(benefit.limits.channels))
                     LabelValue(str(R.string.text_monthly_execution_limit_096e8a4), localizedNumber(benefit.limits.executions))
-                    LabelValue(str(R.string.text_multisig_wallet_slots_50467bd), benefit.wallets?.let(::localizedNumber) ?: str(R.string.text_unavailable_4ae32d2))
                 }
             }
             item { Text(str(R.string.text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1), style = MaterialTheme.typography.bodySmall) }

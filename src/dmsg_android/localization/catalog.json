@@ -4262,8 +4262,8 @@
     "zh-Hans": "浅色"
   },
   "text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1": {
-    "en": "Limits are for the base plan. Storage packs are additional. Changing plans does not reset monthly execution usage. File links and conversation attachments have separate size limits. Wallet activation is charged separately.",
-    "zh-Hans": "以上为基础套餐权益，存储包另行叠加。变更套餐不重置本月执行用量。文件链接和会话附件有独立大小限制，钱包激活另行收费。"
+    "en": "Limits are for the base plan. Storage packs are additional. Changing plans does not reset monthly execution usage. File links and conversation attachments have separate size limits.",
+    "zh-Hans": "以上为基础套餐权益，存储包另行叠加。变更套餐不重置本月执行用量。文件链接和会话附件有独立大小限制。"
   },
   "text_link_allowance_has_not_been_read_yet_63631ad": {
     "en": "Link allowance has not been read yet.",

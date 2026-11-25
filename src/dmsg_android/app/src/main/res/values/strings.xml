@@ -1004,7 +1004,7 @@
     <string name="text_length_889fe99" formatted="false">"Length: "</string>
     <string name="text_letters_cfbff5c" formatted="false">"Letters"</string>
     <string name="text_light_f3bfabb" formatted="false">"Light"</string>
-    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"Limits are for the base plan. Storage packs are additional. Changing plans does not reset monthly execution usage. File links and conversation attachments have separate size limits. Wallet activation is charged separately."</string>
+    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"Limits are for the base plan. Storage packs are additional. Changing plans does not reset monthly execution usage. File links and conversation attachments have separate size limits."</string>
     <string name="text_link_allowance_has_not_been_read_yet_63631ad" formatted="false">"Link allowance has not been read yet."</string>
     <string name="text_link_closed_89076c4" formatted="false">"Link closed"</string>
     <string name="text_link_limits_653a1af" formatted="false">"Link limits"</string>

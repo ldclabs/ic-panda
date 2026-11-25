@@ -94,7 +94,7 @@ import net.dmsg.android.core.*
                             },
                         ) {
                             info.wallets.forEach { wallet ->
-                                ListRow(wallet.name, glyph = R.drawable.glyph_wallet) { client.navigation.push(Route("wallet", wallet.id)) }
+                                LabelValue(wallet.name, wallet.id, code = true)
                             }
                             NoticeSwitch(str(R.string.text_i_have_secured_wallet_access_and_external_credentials_6899552), draft.walletsReviewed, !working) {
                                 client.accountDeletion.edit(draft.copy(walletsReviewed = it))

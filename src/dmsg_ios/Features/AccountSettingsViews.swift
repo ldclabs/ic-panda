@@ -33,7 +33,6 @@ struct AdvancedAccountView: View {
     var body: some View {
         List {
             NavigationLink { AgentsView() } label: { Label("Agents", glyph: .agents) }
-            NavigationLink { WalletsView() } label: { Label("Multisig wallets", glyph: .coins) }
             NavigationLink { BrowserConnectionsView() } label: { Label("Connected browsers", glyph: .browser) }
             NavigationLink { HardwareSecurityView() } label: { Label("Hardware security", systemImage: "cpu") }.accessibilityIdentifier("account.hardware")
             NavigationLink { SecretActivityView() } label: { Label("Activity on this device", glyph: .audit) }

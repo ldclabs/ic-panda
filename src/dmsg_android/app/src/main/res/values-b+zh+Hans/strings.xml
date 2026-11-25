@@ -1004,7 +1004,7 @@
     <string name="text_length_889fe99" formatted="false">"长度："</string>
     <string name="text_letters_cfbff5c" formatted="false">"信件"</string>
     <string name="text_light_f3bfabb" formatted="false">"浅色"</string>
-    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"以上为基础套餐权益，存储包另行叠加。变更套餐不重置本月执行用量。文件链接和会话附件有独立大小限制，钱包激活另行收费。"</string>
+    <string name="text_limits_are_for_the_base_plan_storage_packs_are_additional_changin_41b82a1" formatted="false">"以上为基础套餐权益，存储包另行叠加。变更套餐不重置本月执行用量。文件链接和会话附件有独立大小限制。"</string>
     <string name="text_link_allowance_has_not_been_read_yet_63631ad" formatted="false">"尚未读取可用链接额度。"</string>
     <string name="text_link_closed_89076c4" formatted="false">"链接已关闭"</string>
     <string name="text_link_limits_653a1af" formatted="false">"链接限制"</string>

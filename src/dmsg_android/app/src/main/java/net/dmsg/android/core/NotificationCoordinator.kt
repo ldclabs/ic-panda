@@ -44,7 +44,6 @@ class NotificationCoordinator(private val client: ClientController) {
             "inbox" -> client.navigation.push(Route("inbox", id = target.id))
             "approval" -> client.approvals.open(target.id!!)
             "plan" -> client.navigation.push(Route("membership"))
-            "wallet" -> client.navigation.push(Route("wallet-proposal", target.wallet, sequence = canonicalNoticeVersion(target.id!!)))
             "recovery" -> client.navigation.push(Route("recovery", id = target.id))
             "task" -> client.navigation.push(Route(if (target.id!!.startsWith("conflicts:")) "conflicts" else "sync"))
             "service" -> client.navigation.push(Route(if (target.id!!.startsWith("network:")) "sync" else "notifications"))

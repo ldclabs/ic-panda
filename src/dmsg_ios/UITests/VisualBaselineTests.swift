@@ -41,6 +41,14 @@ final class VisualBaselineTests: XCTestCase {
             app.buttons[look.account].firstMatch.tap()
             XCTAssertTrue(app.buttons["account.profile"].waitForExistence(timeout: 5), look.name)
             shot(app, look, "account")
+            let advanced = app.buttons["account.advanced"]
+            for _ in 0..<7 where !advanced.isHittable { app.swipeUp() }
+            XCTAssertTrue(advanced.isHittable, look.name)
+            advanced.tap()
+            XCTAssertTrue(app.buttons["account.hardware"].waitForExistence(timeout: 5), look.name)
+            let walletLabel = ["zh-Hans": "多签钱包", "ar": "محافظ متعددة التوقيعات"][look.language] ?? "Multisig wallets"
+            XCTAssertFalse(app.buttons[walletLabel].exists, look.name)
+            shot(app, look, "advanced")
             app.terminate()
         }
     }

@@ -149,11 +149,15 @@ class AccountNavigationFlowTest {
 
         row(R.string.text_advanced).performClick()
         compose.onNodeWithText(str(R.string.text_agents_dcfd6ed)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.text_multisig_wallets_451404c)).assertDoesNotExist()
         row(R.string.text_cached_data_b29fb6f).performClick()
         compose.runOnIdle { assertEquals("display-cache", client.navigation.state.value.current.page) }
         back()
         compose.runOnIdle { assertEquals("advanced", client.navigation.state.value.current.page) }
         capture("advanced")
+        compose.runOnIdle { client.dark(true) }
+        capture("advanced-dark")
+        compose.runOnIdle { client.dark(false) }
         back()
         row(R.string.text_account_security_41c2886).performClick()
         row(R.string.text_remove_local_data_c45125e).performClick()

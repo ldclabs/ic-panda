@@ -162,7 +162,7 @@ struct MembershipComparisonView: View {
                     }
                 }
             }
-            ForEach(MembershipBenefit.allCases) { benefit in
+            ForEach(MembershipBenefit.allCases.filter { $0 != .wallets }) { benefit in
                 Section {
                     comparisonValues(benefit)
                 } header: { Text(benefit.title) }
@@ -172,7 +172,6 @@ struct MembershipComparisonView: View {
                 Text("Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.")
                 Text("The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.")
                 Text("Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.")
-                Text("Wallet activation is charged separately; check availability in the app.")
                 Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.")
             }.font(.footnote).foregroundStyle(.secondary)
         }.navigationTitle("Compare all plans").navigationBarTitleDisplayMode(.inline).privateScreen()

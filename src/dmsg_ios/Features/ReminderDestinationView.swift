@@ -115,8 +115,8 @@ struct ReminderDestinationView: View {
             else { MessagesView().task { model.route.messagesMode = 1 } }
         case .approval: if let approval { ApprovalDetailView(request: approval) }
         case .recovery: RecoveryView()
-        case .wallet(let wallet, let proposal):
-            if let id = UInt64(proposal) { WalletProposalView(wallet: wallet, proposal: id) }
+        case .wallet:
+            state(title: String(localized: "Reminder unavailable"), detail: String(localized: "This request requires a supported desktop client."), symbol: "bell.slash") { }
         case .plan: SubscriptionView()
         case .task(let id):
             if id.hasPrefix("conflicts:") { ConflictsView() }
@@ -146,6 +146,7 @@ struct ReminderDestinationView: View {
         let epoch = model.epoch
         loadedEpoch = epoch
         item = destination.item
+        if case .wallet = destination.target { ready = true; return }
         #if DEBUG
         if model.uiTesting {
             if ProcessInfo.processInfo.arguments.contains("--ui-reminder-failed") { failed = true; return }
@@ -183,9 +184,6 @@ struct ReminderDestinationView: View {
                 let value: ApprovalView = try model.decode(try await engine.approval(id: id))
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 approval = value
-            case .wallet(let wallet, let proposal):
-                if let id = UInt64(proposal) { _ = try await engine.walletProposal(wallet: wallet, proposal: id) }
-                else { unavailable = .missing }
             case .recovery(let digest):
                 await model.refreshRecoveryWarning()
                 guard epoch == model.epoch, !Task.isCancelled else { return }

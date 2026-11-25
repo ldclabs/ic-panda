@@ -103,7 +103,6 @@ import net.dmsg.core.*
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:advanced")).padding(pagePadding())) {
         Section {
             ListRow(str(R.string.text_agents_dcfd6ed), glyph = R.drawable.glyph_agents) { client.navigation.push(Route("agents")) }
-            ListRow(str(R.string.text_multisig_wallets_451404c), glyph = R.drawable.glyph_coins) { client.navigation.push(Route("wallets")) }
             ListRow(str(R.string.text_connected_browsers_e404840), glyph = R.drawable.glyph_browser) { client.navigation.push(Route("browser-connections")) }
             ListRow(str(R.string.text_hardware_security_04e42f4), icon = Icons.Outlined.Memory) { client.navigation.push(Route("hardware")) }
             ListRow(str(R.string.text_activity_on_this_device_288740a), glyph = R.drawable.glyph_audit) { client.navigation.push(Route("secret-activity")) }
