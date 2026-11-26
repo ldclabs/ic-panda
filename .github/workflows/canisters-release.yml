@@ -3,17 +3,34 @@ on:
   push:
     tags:
       - "canisters-v*"
+permissions:
+  contents: read
+
 jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Verify release source and CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/verify-release-source.sh
   test:
+    needs: verify-source
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Keep in step with rust-toolchain.toml; the Wasm hashes depend on it.
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - name: Build canisters
         run: |
           cargo install ic-wasm --version 0.11.1 --locked
@@ -56,10 +73,36 @@ jobs:
             echo "$SHA256" > "out/$CAN.wasm.gz.$SHA256.txt"
           done
           ls -lah out
-      - name: Release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: canister-release
+          path: out/*
+          if-no-files-found: error
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: canisters-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: canister-release
+          path: out
+      - name: Prepare complete release
+        id: upload
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: out/*
-          # The latest release is the dMsg client's (dmsg-release.yml), which
-          # `dmsg update` and the desktop app's update feed read.
+          fail_on_unmatched_files: true
+          draft: true
+          # Keep the dMsg client update bridge as Latest.
           make_latest: false
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ steps.upload.outputs.id }}
+        run: |
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            -F draft=false -f make_latest=false
