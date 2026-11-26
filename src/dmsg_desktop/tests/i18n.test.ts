@@ -25,6 +25,7 @@ import bn from '../src/renderer/i18n/messages/bn.ts'
 import ur from '../src/renderer/i18n/messages/ur.ts'
 import pl from '../src/renderer/i18n/messages/pl.ts'
 import nl from '../src/renderer/i18n/messages/nl.ts'
+import { windowsLabels } from '../src/renderer/i18n/windows.ts'
 import { locales as webLocales, matchLocale as webMatchLocale } from '../../dmsg_frontend/src/lib/i18n/locales.ts'
 
 test('the stored choice wins, then the system languages in order, then English', () => {
@@ -76,6 +77,25 @@ test('every window catalog has the labels and placeholders of the English one', 
   }
 })
 
+test('Windows shows its own hardware where a label names the Mac’s', () => {
+  const catalogs = { en, zh, ru, ar, fr, es, 'zh-Hant': zhHant, hi, id, 'pt-BR': ptBR, ja, de, ko, it, tr, vi, th, fil, ms, bn, ur, pl, nl }
+  const mac = /\bMacs?\b|Touch ID|Secure Enclave|Mac-/
+  for (const [name, catalog] of Object.entries(catalogs)) {
+    const messages: Record<string, string> = catalog.messages
+    for (const [label, windows] of Object.entries(windowsLabels)) {
+      assert.notEqual(windows, label)
+      assert.ok(!mac.test(messages[windows!]), `${name}.${windows} names the Mac`)
+      assert.deepEqual(placeholders(messages[windows!]), placeholders(messages[label]), `${name}.${windows}`)
+    }
+    assert.ok(!mac.test(catalog.sessionStates.moved_pc), `${name}.moved_pc names the Mac`)
+  }
+  // Each other label that names the Mac's hardware is about what Windows
+  // does not offer: biometry-only keys, the Mac password, approval keys and
+  // hardware wallet keys.
+  const elsewhere = ['afterApprovalKey', 'approvalKeysUnavailable', 'touchIdOnly', 'biometryOnly', 'twCosignerHint', 'wallet.softwareKeyBody', 'wallet.nativeHardware', 'wallet.nativeSoftwareBody', 'presencePassword']
+  const named = Object.keys(en.messages).filter((key) => /Touch ID|Secure Enclave|another Mac|Mac password/.test(en.messages[key as keyof typeof en.messages]))
+  assert.deepEqual(named.filter((key) => !(key in windowsLabels) && !elsewhere.includes(key)), [])
+})
 
 test('desktop and website use the same canonical tags and regional matching', () => {
   assert.deepEqual(locales, webLocales)

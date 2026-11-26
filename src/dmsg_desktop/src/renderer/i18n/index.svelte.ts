@@ -9,6 +9,7 @@
 import { defaultLocale, localeDir, type Locale } from '../../shared/locales'
 import { rememberFailures } from '../failure'
 import en, { type Catalog, type Label } from './messages/en'
+import { windowsLabels } from './windows'
 
 export type { Label }
 
@@ -53,9 +54,11 @@ export async function setLocale(next: Locale) {
   await show(next)
 }
 
+const windows = window.dmsg.platform === 'win32'
+
 /** A label in the current language, its `{name}` placeholders filled from `params`. */
 export function t(key: Label, params?: Record<string, string | number>): string {
-  const text = catalogs[current]!.messages[key]
+  const text = catalogs[current]!.messages[(windows && windowsLabels[key]) || key]
   if (!params) return text
   return text.replace(/\{(\w+)\}/g, (match, name: string) => (Object.hasOwn(params, name) ? String(params[name]) : match))
 }
@@ -69,7 +72,7 @@ export function stateLabel(state: string): string {
 /** A daemon session state for people; unknown states show as they are. */
 export function sessionLabel(state: string): string {
   const states: Record<string, string> = catalogs[current]!.sessionStates
-  return states[state] ?? state
+  return states[windows && state === 'moved' ? 'moved_pc' : state] ?? state
 }
 
 /** Dynamic vocabulary keys still use the same complete, checked catalogs. */

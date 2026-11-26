@@ -20,6 +20,7 @@
 | 工作区（SQLite）                     | 密钥封装、密文对象/文件块、封存记录、同步任务、运行元数据   | 私密载荷加密，不代表所有索引和状态都隐藏                                                   |
 | 操作系统凭据库                       | owner 凭证、快速解锁密钥（或其 Secure Enclave 句柄）、设备绑定槽位、常驻 Agent ID 的副本、提示令牌 | 保存打开工作区与锁定时常驻服务所需的秘密；`secure_storage = "file"` 时 owner 凭证改为只有所有者可读的文件，没有快速解锁、设备绑定、常驻 Agent ID 与 Secure Enclave 钥匙 |
 | Secure Enclave（macOS）              | 快速解锁与设备绑定的密钥协商钥匙、批准钥匙、钱包协签钥匙    | 私钥不可导出，只在 `secure_storage = "system"` 时使用；每次使用要求在场（Touch ID 或 Mac 登录密码，仅当前指纹的钥匙只认 Touch ID） |
+| TPM 2.0 与 Windows Hello（Windows）  | TPM：工作区硬件锚与 Passkey 登录钥匙；Windows Hello：快速解锁、设备绑定与高风险确认所用的一把用户钥匙 | 只在 `secure_storage = "system"` 且 daemon 启动时两者都可用时使用；TPM 钥匙不可导出、签名不询问；Windows Hello 每次使用要求人脸、指纹或 PIN，没有仅限指纹的钥匙，也不提供批准钥匙和钱包协签钥匙 |
 | 桥接页（connect.dmsg.net）           | 网页请求的转述、本地操作索引与结果解封密钥                  | 不持有账户或设备密钥；请求与结果对中继密封                                                 |
 | `dmsg_user`（账户所在 home）         | AccountId、认证绑定、设备、批准钥匙与硬件批准政策、根承诺、恢复、认证回执、解锁秘密 | 保存公钥、承诺和一个 `master_secret`，不保存内容根明文或 RootBundle 正文；批准钥匙只存公钥 |
 | `dmsg_cose`                          | 内容根 vetKD 公钥与恢复派生                                 | 只为已完成恢复登记的设备派生当前代根（直到它换根），返回传输加密结果；不是普通内容解密服务 |
@@ -49,8 +50,8 @@ AEAD 防止密文被无钥篡改，不能防止服务拒绝投递、隐藏记录
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `unlock_secret`        | user home：`digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥                                        |
 | 本地解锁钥 `LUK`       | `HKDF(unlock_secret, ["dmsg/local-unlock/2", name])`；只在 daemon 内存                                                    | 包装 LDK                                              |
-| 快速解锁钥 `K_fast`    | macOS：`HKDF(ECDH(Secure Enclave 密钥, 软件对端), ["dmsg/fast-unlock/1", name])`，凭据库只存 SE 句柄与对端公钥；其他平台：随机 32 字节，存于操作系统凭据库 | 包装 LDK 的第二份封装（登录解锁后默认开启） |
-| 设备绑定秘密 `S`       | 支持硬件的平台默认启用：Secure Enclave 密钥协商秘密，凭据库独立槽位 `<name>:device-bound` 只存句柄与对端公钥；`K_login = HKDF(LUK‖S, …)`、`K_fast = HKDF(S, …)` | 开启后替换只靠 LUK 的封装，每次解锁都需本机硬件       |
+| 快速解锁钥 `K_fast`    | macOS：`HKDF(ECDH(Secure Enclave 密钥, 软件对端), ["dmsg/fast-unlock/1", name])`，凭据库只存 SE 句柄与对端公钥；Windows：`HKDF(Windows Hello 对随机挑战的 RSASSA-PKCS1-v1_5 签名, "dmsg/windows-hello/v1")` 再按同一 `name` 派生，凭据库只存钥匙名与挑战；其他平台：随机 32 字节，存于操作系统凭据库 | 包装 LDK 的第二份封装（登录解锁后默认开启） |
+| 设备绑定秘密 `S`       | 支持硬件的平台默认启用：Secure Enclave 密钥协商秘密（Windows 为 Windows Hello 签名派生的秘密），凭据库独立槽位 `<name>:device-bound` 只存句柄与对端公钥；`K_login = HKDF(LUK‖S, …)`、`K_fast = HKDF(S, …)` | 开启后替换只靠 LUK 的封装，每次解锁都需本机硬件       |
 | 批准钥匙               | 可选，macOS：Secure Enclave P-256 签名钥匙，每台设备至多登记一把；句柄由 LDK 封存，公钥登记在 user home                    | 签署批准的硬件承诺 `dmsg/hardware-approval/v1`，账户政策要求的用途必须带 |
 | 临时键                 | 绑定账户前的随机 32 字节，明文保存在工作区                                                                                | 保护尚无内容的新设备密钥                              |
 | `LocalDataKey` / `LDK` | 客户端随机 32 字节                                                                                                        | 加密设备私钥、根、文件任务、操作日志等封存记录        |
@@ -124,6 +125,7 @@ name        = "dmsg:" + environment + ":" + account + ":" + deviceId   // 绑定
 | 本机保护 | 实现与边界 |
 | --- | --- |
 | Apple 硬件 | Secure Enclave P-256 密钥协商；每次解锁要求系统在场确认 |
+| Windows 硬件 | Windows Hello 对随机挑战的确定性签名派生秘密，新绑定先核对两次结果一致；每次解锁要求人脸、指纹或 PIN。硬件锚在 TPM 2.0 中，清除 TPM 或重置 Windows Hello 会失去钥匙 |
 | Android 硬件 | Android Keystore RSA-OAEP 封装随机秘密；核对硬件安全级别并要求逐次认证 |
 | 无硬件的凭据库兼容路径 | 随机 32 字节快速解锁钥匙，没有在场保证；距上次登录解锁满 30 天后要求重新登录 |
 | `secure_storage = "file"` | 不提供快速解锁 |

@@ -57,7 +57,9 @@ pub trait PresenceKey: Send + Sync {
     fn presence(&self) -> Option<Presence>;
 
     /// A new hardware key and a secret only it recovers: the key's opaque
-    /// handle, opaque platform context and the secret. Asks nothing. A
+    /// handle, opaque platform context and the secret. The Secure Enclave
+    /// and Keystore ask nothing; Windows Hello asks for the person, so a
+    /// login's new binding makes its key outside the client. A
     /// `biometry_only` key takes only the fingerprints enrolled now, never
     /// the device password.
     ///

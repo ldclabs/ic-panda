@@ -479,6 +479,18 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         client.set_presence_key(enclave.clone());
         client.set_hardware_anchor(enclave)?;
     }
+    // With the system credential store, a TPM 2.0 keeps the anchors and the
+    // Passkey login keys, and Windows Hello the fast-unlock and device-bound
+    // keys; both or neither, so an anchor never stands without the person's
+    // key. Approval keys and wallet cosigners stay unavailable here.
+    #[cfg(windows)]
+    if settings.storage == crate::home::Storage::System
+        && let Some(hardware) = crate::windows_hardware::WindowsHardware::detect()
+    {
+        let hardware = std::sync::Arc::new(hardware);
+        client.set_presence_key(hardware.clone());
+        client.set_hardware_anchor(hardware)?;
+    }
     let local_roots = match &settings.agent_ca {
         Some(path) => {
             vec![std::fs::read(path).map_err(|e| Error::InvalidInput(format!("agent_ca: {e}")))?]

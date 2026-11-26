@@ -279,10 +279,17 @@ fn render(request: &Value) -> String {
         lines.push(row(
             "risk",
             "风险",
-            tr!(
-                "high: confirmed with Touch ID or the login password where this Mac can ask",
-                "高：本机支持时须以 Touch ID 或登录密码确认"
-            ),
+            if cfg!(windows) {
+                tr!(
+                    "high: confirmed with Windows Hello where this PC can ask",
+                    "高：本机支持时须以 Windows Hello 确认"
+                )
+            } else {
+                tr!(
+                    "high: confirmed with Touch ID or the login password where this Mac can ask",
+                    "高：本机支持时须以 Touch ID 或登录密码确认"
+                )
+            },
         ));
     }
     if !request["error"].is_null() {

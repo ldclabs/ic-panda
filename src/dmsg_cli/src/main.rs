@@ -61,6 +61,8 @@ mod vault_commands;
 mod vault_methods;
 mod wallet_commands;
 mod wallet_methods;
+#[cfg(windows)]
+mod windows_hardware;
 
 use approval_commands::AttestCommand;
 use clap::{Parser, Subcommand};
@@ -182,8 +184,9 @@ enum Command {
     /// Unlock with the current login, or with --fast without one.
     Unlock {
         /// Use fast unlock (plain keys require login again after thirty days).
-        /// The Secure Enclave asks for Touch ID or the login password and
-        /// restores the login only while it remains valid.
+        /// Device hardware asks for the person (Touch ID or the login
+        /// password, or Windows Hello) and restores the login only while it
+        /// remains valid.
         #[arg(long)]
         fast: bool,
         /// Select this account's workspace first.
@@ -343,11 +346,13 @@ enum FastUnlockCommand {
 
 #[derive(Subcommand)]
 enum DeviceBoundCommand {
-    /// Bind this workspace to this Mac's Secure Enclave: from now on every
-    /// unlock needs it, as well as a login or fast unlock. Copies made
-    /// before keep opening with a login. Asks for Touch ID once.
+    /// Bind this workspace to this device's hardware (a Mac's Secure
+    /// Enclave, Windows Hello on a PC): from now on every unlock needs it,
+    /// as well as a login or fast unlock. Copies made before keep opening
+    /// with a login. Asks for Touch ID or Windows Hello once.
     Enable {
-        /// Take only the fingerprints enrolled now, never the login password.
+        /// Take only the fingerprints enrolled now, never the login password
+        /// (Touch ID only).
         #[arg(long)]
         biometry_only: bool,
     },

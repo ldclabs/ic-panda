@@ -127,6 +127,7 @@ password without it, and gives up after a minute unanswered; the login is
 kept sealed under the local data key and comes back only while valid. Expired
 login records are deleted; Touch ID/password still opens local content, including
 password copies, and only operations needing II identity require a new login.
+Windows with a TPM and Windows Hello works the same way (see below).
 Elsewhere the key sits in the credential store, nothing asks for the person,
 no login is kept, and fast unlock stops thirty days after the last login unlock. Multisig wallet cosigner keys use the Secure Enclave the same way.
 
@@ -173,6 +174,26 @@ pairs or recovers; `device/moved_list` lists the copies and
 `device/moved_discard {id}` deletes one. A workspace that already held
 Secure Enclave keys when its anchor was made counts as moved when the first of
 them fails on this Mac; the first that opens settles it.
+
+On Windows (`src/windows_hardware.rs`) the daemon uses this hardware only
+when, at start, the PC has a TPM 2.0 that makes P-256 keys and the Windows
+user has set up Windows Hello; otherwise it behaves as before and Passkey
+login stays hidden. The TPM, through the Microsoft Platform Crypto Provider,
+keeps the anchors and the Passkey login keys: non-exportable, signing
+without asking, named `dmsg-anchor-<id>` in the user's key store. One
+Windows Hello key of the user, `dmsg-presence-v1`, takes the place of the
+Secure Enclave for fast unlock, device binding and high-risk confirmation:
+each slot keeps a random challenge, and its secret comes from Windows
+Hello's signature over it (RSASSA-PKCS1-v1_5 is deterministic; a new
+binding checks this before anything depends on it). Making that key and
+every use of it ask for the face, fingerprint or PIN, so a login's new
+binding makes its key with the answer, outside the client. Windows Hello
+always accepts the PIN: there are no biometry-only keys, and approval keys
+and wallet cosigners stay unavailable. A cleared TPM or a reset Windows
+Hello loses the keys, which makes the workspace moved or its binding lost,
+as other hardware loss does. The Windows Credential Manager keeps at most
+2,560 bytes per credential; `src/secure.rs` keeps a longer secret, such as
+a Passkey login, in parts named after its digest behind a short index.
 
 Older Macs without Secure Enclave use a device-bound digest of IOPlatformUUID
 to detect ordinary system copies; this is weaker than an enclave anchor.

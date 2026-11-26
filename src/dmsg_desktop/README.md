@@ -43,6 +43,9 @@ desktop is one of its clients, like the CLI.
   the reactive Svelte translation layer. Both share `src/shared/locales.ts`.
   The catalogs themselves are pure modules; reusable text shared by both processes
   belongs in `src/shared`, while the renderer's runtime depends on Svelte and DOM APIs.
+  Labels that name the Mac's Touch ID, Secure Enclave or a copy from another Mac
+  have Windows texts (Windows Hello, this PC) that `t` shows on Windows, listed
+  in `i18n/windows.ts`; `tests/i18n.test.ts` checks that none of them names the Mac.
 
   The main window's shell (`shell/`) has a sidebar with the account
   switcher (this device's accounts, another login), the views in three

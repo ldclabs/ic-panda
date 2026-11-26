@@ -42,6 +42,17 @@ zeroize.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 tempfile = "3"
+# The TPM (CNG Platform Crypto Provider) and Windows Hello (WinRT).
+windows = { version = "0.62", features = [
+    "Foundation",
+    "Security_Credentials",
+    "Security_Cryptography",
+    "Storage_Streams",
+    "Win32_Foundation",
+    "Win32_Security_Cryptography",
+    "Win32_System_Com",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 fuse3 = { workspace = true, features = ["tokio-runtime", "unprivileged"] }

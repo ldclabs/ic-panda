@@ -117,11 +117,12 @@ async fn prepared_login_factor_cannot_unlock_after_lock_or_slot_replacement() {
     client.set_presence_key(hardware.clone());
     bind_offline(&mut client, &hardware, &storage, false);
     let slot = client.bound_slot().unwrap().unwrap();
-    let prepared = LoginUnlock {
-        presence: client.device_presence(slot).unwrap(),
-        secret: Zeroizing::new(crate::testing::SECRET),
-        initializing: None,
-    };
+    let prepared = client
+        .login_unlock(
+            Zeroizing::new(crate::testing::SECRET),
+            LoginKey::Bound(slot),
+        )
+        .unwrap();
     let key = prepared.open();
     client.lock();
     assert_eq!(
@@ -130,11 +131,12 @@ async fn prepared_login_factor_cannot_unlock_after_lock_or_slot_replacement() {
     );
     assert!(client.keys().is_err());
     let slot = client.bound_slot().unwrap().unwrap();
-    let prepared = LoginUnlock {
-        presence: client.device_presence(slot).unwrap(),
-        secret: Zeroizing::new(crate::testing::SECRET),
-        initializing: None,
-    };
+    let prepared = client
+        .login_unlock(
+            Zeroizing::new(crate::testing::SECRET),
+            LoginKey::Bound(slot),
+        )
+        .unwrap();
     let key = prepared.open();
     let mut replacement = client.bound_slot().unwrap().unwrap();
     replacement.handle = vec![99; 10].into();
@@ -572,7 +574,7 @@ async fn default_binding_requires_proven_hardware_before_releasing_content_keys(
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(prepared.initializing.is_some());
+        assert!(matches!(prepared.key, LoginKey::New(_)));
         assert_eq!(hardware.opened.load(SeqCst), 0);
         assert!(client.keys().is_err());
         assert!(client.root.is_none());
@@ -605,7 +607,7 @@ async fn default_binding_requires_proven_hardware_before_releasing_content_keys(
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(prepared.initializing.is_none());
+        assert!(matches!(prepared.key, LoginKey::Bound(_)));
         let device = prepared.open().unwrap();
         client
             .apply_login_keys(prepared, &device, now_ms())
@@ -637,13 +639,11 @@ async fn default_binding_reuses_old_hardware_proof_instead_of_blessing_a_copy() 
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(matches!(
-            prepared.initializing,
-            Some(BindingInitialization::Fast)
-        ));
+        assert!(matches!(prepared.key, LoginKey::Fast(_)));
         assert_eq!(hardware.made.load(SeqCst), made);
         hardware.forgot.store(moved, SeqCst);
-        let key = client.binding_hardware_key(&prepared.presence.slot, prepared.open());
+        let opened = prepared.open();
+        let key = client.binding_hardware_key(prepared.slot().unwrap(), opened);
         if moved {
             assert_eq!(key.err(), Some(Error::Forbidden));
             assert!(client.workspace.meta.anchor.as_ref().unwrap().foreign);
@@ -678,8 +678,9 @@ async fn a_new_binding_key_cannot_settle_an_older_late_anchor() {
         .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
         .unwrap()
         .unwrap();
+    let opened = prepared.open();
     let key = client
-        .binding_hardware_key(&prepared.presence.slot, prepared.open())
+        .binding_hardware_key(prepared.slot().unwrap(), opened)
         .unwrap();
     assert!(client.workspace.meta.anchor.as_ref().unwrap().late);
     client.apply_login_keys(prepared, &key, now_ms()).unwrap();
@@ -703,16 +704,15 @@ async fn default_binding_failure_never_falls_back_to_login_only_keys() {
         hardware.forgot.store(failure == "lost", SeqCst);
         hardware.wrong_secret.store(failure == "mismatch", SeqCst);
         hardware.create_fails.store(failure == "creation", SeqCst);
-        let prepared = client.prepare_login_keys(Zeroizing::new(crate::testing::SECRET));
-        if failure == "creation" {
-            assert!(matches!(prepared, Err(Error::Unavailable(_))));
-        } else {
-            let prepared = prepared.unwrap().unwrap();
-            let key = prepared.open();
-            assert!(key.is_err());
-            // Rejection happens before any network authorization or commit.
-            assert!(client.complete_login_unlock(prepared, key).await.is_err());
-        }
+        // A new binding makes its key with the answer, outside the client.
+        let prepared = client
+            .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+            .unwrap()
+            .unwrap();
+        let key = prepared.open();
+        assert!(key.is_err());
+        // Rejection happens before any network authorization or commit.
+        assert!(client.complete_login_unlock(prepared, key).await.is_err());
         assert!(client.keys().is_err());
         assert!(client.root.is_none());
         assert!(!client.workspace.bound().unwrap());
@@ -779,10 +779,12 @@ fn default_binding_does_not_treat_temporarily_unavailable_enclave_as_unsupported
     });
     hardware.no_presence.store(true, SeqCst);
     hardware.create_fails.store(true, SeqCst);
-    assert!(matches!(
-        client.prepare_login_keys(Zeroizing::new(crate::testing::SECRET)),
-        Err(Error::Unavailable(_))
-    ));
+    let prepared = client
+        .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(prepared.open(), Err(Error::Unavailable(_))));
+    assert!(prepared.slot().is_none());
     assert!(client.keys().is_err());
     assert!(!client.workspace.meta.bound_declined);
 }

@@ -631,7 +631,7 @@ Fast unlock opens the stored root without a login. Login unlock turns it on
 unless the person turned it off; only plain credential-store keys have a
 thirty-day deadline after login unlock. Online, the device checks that it is
 still approved. With a `PresenceKey`
-(`secure::PresenceKey`, the Secure Enclave in the daemon) the credential
+(`secure::PresenceKey`, the Secure Enclave or Windows Hello in the daemon) the credential
 store keeps only the hardware's handle and peer key, every fast unlock asks
 for the person, and the login of the last login unlock, sealed under the LDK,
 comes back until it expires. After expiry, that login is deleted while local
@@ -653,7 +653,8 @@ unbound workspace by default, using the unlock secret already queried.
 `prepare_login` / `prepare_unlock` return a `LoginUnlock` for either the
 existing factor or first-time verification; no content keys are released
 before the hardware answers. Hosts run its `open` outside the client and
-finish with `complete_login_unlock`. Account setup and recovery expose
+finish with `complete_login_unlock`; for a new binding `open` also makes the
+key, since Windows Hello asks for the person to make one. Account setup and recovery expose
 `prepare_initialize_account` / `prepare_recovery_complete` for the same
 split before completing root setup or recovery. Old unbound fast unlock
 requires login to migrate. Explicit unbinding persists `bound_declined` so
