@@ -1,6 +1,9 @@
 name: dMsg iOS
 on:
   workflow_dispatch:
+permissions:
+  contents: read
+
 jobs:
   simulator:
     runs-on: macos-latest
@@ -9,7 +12,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Require the reviewed SDK
         run: |
           test "$(uname -m)" = arm64
@@ -18,19 +21,19 @@ jobs:
           fi
           xcodebuild -version
           xcodebuild -version | head -1 | grep -Fx 'Xcode 27.1'
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
           components: clippy, rustfmt
           targets: aarch64-apple-ios,aarch64-apple-ios-sim
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: brew install xcodegen
       - name: Select an available iPhone simulator
         run: |
           simulator=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for values in devices.values() for d in values if d["name"].startswith("iPhone")))')
           echo "DMSG_TEST_SIMULATOR=$simulator" >> "$GITHUB_ENV"
       - run: bash scripts/ios/verify.sh "$DMSG_TEST_SIMULATOR"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: dmsg-ios-test-results
