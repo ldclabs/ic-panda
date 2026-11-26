@@ -1,6 +1,7 @@
 package net.dmsg.android
 
 import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor.AutoCloseInputStream
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -78,14 +79,19 @@ class VaultWindowTest {
 
     private fun capture(name: String, dark: Boolean, verify: (Bitmap) -> Unit = {}) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val automation = instrumentation.uiAutomation
         compose.waitForIdle()
         // The popup and its parent draw in separate system windows after Compose is idle.
-        instrumentation.uiAutomation.waitForIdle(250, 5_000)
-        val image = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
+        automation.waitForIdle(250, 5_000)
+        val image = checkNotNull(automation.takeScreenshot())
         val mode = if (dark) "dark" else "light"
         try {
-            File(instrumentation.targetContext.getExternalFilesDir(null), "$name-$mode.png").outputStream().use {
-                image.compress(Bitmap.CompressFormat.PNG, 100, it)
+            val file = File(instrumentation.targetContext.getExternalFilesDir(null), "$name-$mode.png")
+            file.outputStream().use { assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            // verify.sh collects screenshots from /sdcard/Download/dmsg-*.
+            val report = "/sdcard/Download/dmsg-qa"
+            for (command in listOf("mkdir -p $report", "cp ${file.absolutePath} $report/${file.name}")) {
+                AutoCloseInputStream(automation.executeShellCommand(command)).use { it.readBytes() }
             }
             verify(image)
         } finally { image.recycle() }
