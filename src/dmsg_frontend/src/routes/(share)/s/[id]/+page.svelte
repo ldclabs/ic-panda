@@ -19,7 +19,7 @@
   import SecretSnapshot from '$lib/components/site/SecretSnapshot.svelte'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
   import ShareAuthor from '$lib/components/site/ShareAuthor.svelte'
-  import { fileType, readText, renderMarkdown } from '$lib/share/preview'
+  import { fileType, readText } from '$lib/share/preview'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import Glyph from '$lib/components/landing/Glyph.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
@@ -44,6 +44,7 @@
   type Phase =
     'loading' | 'password' | 'ready' | 'working' | 'done' | 'gone' | 'error'
 
+  const uid = $props.id()
   const shareId = $derived(page.params['id'] ?? '')
   let phase = $state<Phase>('loading')
   let descriptor = $state<Descriptor | null>(null)
@@ -55,6 +56,7 @@
   )
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
+  let passwordInput = $state<HTMLInputElement>()
   let file = $state<ShareFile | null>(null)
   let blob = $state<Blob | null>(null)
   let secretPackage = $state<SecretPackage | null>(null)
@@ -64,11 +66,13 @@
   let error = $state('')
   let canRetryMetadata = $state(false)
   let previewText = $state<string | null>(null)
+  let formatted = $state<string | null>(null)
   let previewUrl = $state('')
   let previewError = $state('')
   let source = $state(false)
   let headline = $state<HTMLHeadingElement>()
   let reader = $state<HTMLElement>()
+  let imagePreview = $state<HTMLElement>()
   let fullScreen = $state(false)
   let previewDialog = $state<HTMLDialogElement>()
   let fullscreenButton = $state<HTMLButtonElement>()
@@ -85,11 +89,6 @@
     if (alive) fullscreenButton?.focus()
   }
   const type = $derived(file ? fileType(file) : null)
-  const formatted = $derived(
-    type?.kind === 'markdown' && previewText !== null
-      ? renderMarkdown(previewText)
-      : ''
-  )
 
   const ciphertextSize = $derived(
     descriptor ? descriptor.chunks.reduce((n, c) => n + c.size, 0) : 0
@@ -235,6 +234,10 @@
       await metadata()
     } catch (e) {
       fail(e)
+      if (e instanceof ShareError && e.code === 'WRONG_PASSWORD') {
+        await tick()
+        if (alive && document.activeElement === document.body) passwordInput?.focus()
+      }
     }
   }
 
@@ -307,21 +310,31 @@
       blob = new Blob([whole as BlobPart], {
         type: manifest.mime || 'application/octet-stream'
       })
-      phase = 'done'
       if (preview && type?.previewable) {
         if (type.kind === 'image') previewUrl = URL.createObjectURL(blob)
         else {
           try {
-            previewText = readText(whole)
-            await tick()
-            if (alive) reader?.focus()
+            const text = readText(whole)
+            if (type.kind === 'markdown') {
+              // The verified source is still readable if the formatter can't load.
+              const markdown = await import('$lib/share/markdown').catch(() => null)
+              if (!alive) return
+              formatted = markdown?.renderMarkdown(text) ?? null
+            }
+            previewText = text
           } catch {
             previewError = $t(
               'This file cannot be previewed here. You can still download it.'
             )
           }
         }
-      } else save()
+        phase = 'done'
+        await tick()
+        if (alive) (reader ?? imagePreview)?.focus()
+      } else {
+        phase = 'done'
+        save()
+      }
     } catch (e) {
       if (!alive) return
       fail(e)
@@ -335,6 +348,7 @@
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     previewUrl = ''
     previewText = null
+    formatted = null
     key?.fill(0)
     key = null
     password = ''
@@ -353,25 +367,32 @@
 
 {#snippet previewContent(expanded: boolean)}
   <div class="file-actions">
-    {#if previewText !== null && type?.kind === 'markdown'}
+    {#if formatted !== null}
       <button
+        type="button"
         class="button secondary"
         aria-pressed={source}
         onclick={() => (source = !source)}
         >{$t(source ? 'Show formatted text' : 'Show source')}</button
       >
     {/if}
-    <button class="button secondary" onclick={save} data-testid="share-save"
+    <button
+      type="button"
+      class="button secondary"
+      onclick={save}
+      data-testid="share-save"
       ><Glyph name="download" size={18} />{$t('Download')}</button
     >
     {#if expanded}
       <button
+        type="button"
         class="button secondary"
         onclick={() => previewDialog?.close()}
         data-testid="share-exit-fullscreen">{$t('Exit full screen')}</button
       >
     {:else if previewText !== null || previewUrl}
       <button
+        type="button"
         class="button secondary"
         bind:this={fullscreenButton}
         onclick={expandPreview}
@@ -390,12 +411,16 @@
       data-testid="share-reader"
       dir="auto"
     >
-      {#if type?.kind === 'markdown' && !source}<div class="markdown"
+      {#if formatted !== null && !source}<div class="markdown"
           >{@html formatted}</div
         >{:else}<pre>{previewText}</pre>{/if}
     </section>
   {:else if previewUrl}
-    <div class="image-preview" data-testid="share-image"
+    <div
+      class="image-preview"
+      tabindex="-1"
+      bind:this={imagePreview}
+      data-testid="share-image"
       ><img
         src={previewUrl}
         alt={file?.name ?? ''}
@@ -420,9 +445,7 @@
     <FileInvite kind="share" ready={phase === 'done'} />
   {/snippet}
 
-  <div
-    aria-busy={phase === 'working' || phase === 'loading'}
-  >
+  <div>
     <div class="utility-icon" aria-hidden="true">{#if isSnapshot}<Glyph name="lock" size={22} />{:else}<IconFile />{/if}</div>
     <h1 bind:this={headline} tabindex="-1" dir="auto">{secretPackage?.item.title ?? $t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</h1>
     {#if secretPackage}<p class="utility-lead">{$t('Secret snapshot fully verified.')}</p>
@@ -484,6 +507,7 @@
     {:else if phase === 'error'}
       <p class="utility-status error" role="alert">{error}</p>
       {#if canRetryMetadata}<button
+          type="button"
           class="button secondary utility-action"
           onclick={load}>{$t('Try again')}</button
         >{/if}
@@ -496,11 +520,23 @@
             void unlock()
           }}
         >
-          <label>
-            <span>{$t('This link needs a password.')}</span>
-            <input type="password" bind:value={password} autocomplete="off" />
-          </label>
-          {#if error}<p class="utility-status error" role="alert">{error}</p
+          <div class="password-field">
+            <label for={`${uid}-password`}
+              >{$t('This link needs a password.')}</label
+            >
+            <input
+              id={`${uid}-password`}
+              type="password"
+              bind:this={passwordInput}
+              bind:value={password}
+              autocomplete="off"
+              enterkeyhint="go"
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? 'share-password-error' : undefined}
+              oninput={() => (error = '')}
+            />
+          </div>
+          {#if error}<p id="share-password-error" class="utility-status error" role="alert">{error}</p
             >{/if}
           <button
             class="button primary utility-action"
@@ -524,14 +560,16 @@
             )}</p
           >{/if}
         <div class="file-actions">
-          {#if isSnapshot}<button class="button primary" onclick={() => download()} data-testid="snapshot-open">{$t('Open')}</button>
+          {#if isSnapshot}<button type="button" class="button primary" onclick={() => download()} data-testid="snapshot-open">{$t('Open')}</button>
           {:else}{#if type?.previewable}<button
+              type="button"
               class="button primary"
               onclick={() => download(true)}
               data-testid="share-preview"
               >{$t(type.kind === 'image' ? 'Preview' : 'Read online')}</button
             >{/if}
           <button
+            type="button"
             class:primary={!type?.previewable}
             class:secondary={type?.previewable}
             class="button"
@@ -554,7 +592,7 @@
         {#each secretPackage.attachments as attachment, index}
           <div class="attachment">
             <span><bdi>{attachment.name}</bdi> · {size(attachment.size)}</span>
-            <button class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button>
+            <button type="button" class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button>
           </div>
         {/each}
         {#if !secretPackage.item.fields.some((f) => f.value) && !secretPackage.item.notes && !secretPackage.attachments.length}
@@ -596,8 +634,13 @@
     color: var(--ink);
     overflow: auto;
   }
+  .preview-dialog:modal {
+    overscroll-behavior: contain;
+  }
   .preview-dialog::backdrop {
     background: #fff;
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
   .fullscreen-content {
     max-width: 1000px;
@@ -749,6 +792,10 @@
     margin-top: 24px;
     text-align: center;
   }
+  .image-preview:focus-visible {
+    outline: 3px solid var(--action);
+    outline-offset: 3px;
+  }
   .image-preview img {
     display: block;
     max-width: 100%;
@@ -785,9 +832,11 @@
   .password {
     margin-top: 24px;
   }
-  .password label {
+  .password-field {
     display: grid;
     gap: 10px;
+  }
+  .password label {
     font-size: 14px;
   }
   .password input {
@@ -800,6 +849,7 @@
     background: #fff;
     color: var(--ink);
     font: inherit;
+    font-size: max(1rem, 1em);
   }
   @media (max-width: 540px) {
     .reader {

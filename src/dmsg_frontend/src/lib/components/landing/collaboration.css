@@ -686,7 +686,7 @@ html:is([lang='zh'], [lang='ur'], [lang='bn'], [lang='th']) .home .sec-head h2 {
   display: none;
 }
 @media (max-width: 600px) {
-  .home .site-header nav.open .mobile-download {
+  .home .site-header nav .mobile-download {
     display: flex;
     color: var(--forest);
     font-weight: 650;
@@ -737,10 +737,10 @@ html[dir='rtl'] .home .sec-head.reveal .kicker::after {
   opacity: 1;
 }
 /* The header marks the section being read. */
-.home .site-header nav a[aria-current='true'] {
+.home .site-header nav a[aria-current='location'] {
   color: var(--forest);
 }
-.home .site-header nav a[aria-current='true']::after {
+.home .site-header nav a[aria-current='location']::after {
   transform: scaleX(1);
 }
 .home .deep-dive > summary > .glyph {
@@ -749,7 +749,7 @@ html[dir='rtl'] .home .sec-head.reveal .kicker::after {
 .home .deep-dive > summary:hover > .glyph:first-child {
   transform: scale(1.15);
 }
-.home .deep-body {
+.home .deep-dive[open] .deep-body {
   animation: fade-up 0.5s var(--ease) both;
 }
 .home .trust-grid {

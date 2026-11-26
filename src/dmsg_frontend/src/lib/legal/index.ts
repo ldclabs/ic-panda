@@ -75,14 +75,15 @@ export function renderDocument(source: string, locale: Locale): LegalDocument {
 
 export async function loadLegalDocument(
   kind: LegalKind,
-  locale: Locale
+  locale: Locale,
+  fetcher: typeof fetch = fetch
 ): Promise<LegalDocument> {
   if (kind === 'terms') {
     const translation =
       documents[`./terms/v${currentTerms.version}/${locale}.md`]
     if (locale !== 'en' && translation)
       return renderDocument(await translation(), locale)
-    const response = await fetch(currentTerms.path)
+    const response = await fetcher(currentTerms.path)
     if (!response.ok)
       throw new Error(`${currentTerms.path}: ${response.status}`)
     return renderDocument(await response.text(), 'en')

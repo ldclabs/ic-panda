@@ -26,7 +26,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - principal 变更推进 `account_version`，不推进 `security_epoch`。每次变更 `version` 加一，`updated_at = max(now, previous + 1)`；新记录的 `valid_from`、退役的 `retired_at` 都取该值。
 - 上限：当前 controller 不超过 8 个，终身记录不超过 32 条（退役记录不删除）。受限权限最多 8 个 scope（每个不超过 64 字节）与 4 个依赖方（HTTPS origin 或 Agent ID，每个不超过 256 字节），名称 1..64 字节。
 - home 与 directory 共用 64 KiB 文档的保守字节预算，计入配置 URL 的最大长度、所有 controller 后续退役/泄露字段及最大名称。超预算注册在 home 提交前返回 `QuotaExceeded`。
-- `publish_principal(account_id)` 任何人可调用，幂等地把当前状态推送到 directory；变更命令在本地提交后会立即尝试一次。`get_principal` 返回 `PrincipalInfo`：当前状态与已发布版本。`published_version < state.version` 时，变更尚未对外生效。
+- `publish_principal(account_id)` 任何人可调用，幂等地把当前状态推送到 directory；变更命令在本地提交后会立即尝试一次。`get_principal` 返回 `PrincipalInfo`：当前状态与已发布版本。`published_version < state.version` 时，目录文档尚未更新；controller 的退役等授权变更已在 home 生效。
 
 ### Controller 登记输入
 
@@ -56,7 +56,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 ## 安全快照
 
-`SecuritySnapshot` schema 4 含 `principal_updated_at`：账户当前 principal 状态的 `updated_at`，未启用时为 `null`。依赖方或服务若发现认证快照中的值大于 directory 文档的 `updated_at`，说明发布滞后，不应按旧文档接收新事件。
+`SecuritySnapshot` schema 4 与 5 均含 `principal_updated_at`：账户当前 principal 状态的 `updated_at`，未启用时为 `null`。依赖方或服务若发现认证快照中的值大于 directory 文档的 `updated_at`，说明发布滞后，不应按旧文档接收新事件。
 
 ## 示例文档
 
@@ -64,7 +64,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 {"aliases":["https://dmsg.net/<account_id>"],"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://api.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"Website","rel":"related","url":"https://example.com/"}],"name":"Panda","protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
 ```
 
-## 验证
+## 验证入口
 
 - `dmsg_protocol::agent` 单测：文档渲染经 SDK 校验、状态不变量、目录配置，以及注册批准和 controller PoP 摘要向量（`protocol_vectors.json` 的 `controller_pop_v1`）。
 - `dmsg_user` 单测：principal 生命周期的单调性、上限、重放与不推进 `security_epoch`；错误 PoP 被拒。
@@ -72,9 +72,9 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - 客户端 `dmsg_client` 单测：本机签名的 grant 与 revoke 通过 SDK 的 `validate_delegation_acceptance`（按 directory 渲染的文档），超出上限被拒，nonce 为 `max(last + 1, created_at)`，不早于 `valid_from`，有效期超过 366 天被拒；controller key 为固定 ID 的 vault 条目。
 - 桌面端到端 `tests/dmsg_integration/tests/desktop.rs` 的 `desktop_agents`：启用、登记、经真实 `dmsg_directory` 发布，授权提交回复丢失后原样重提被接收，依赖方核验 `usable`，撤销后不可用。
 
-以上为本地测试，不代表生产部署、容量实测或安全审计已经完成。
+以上列出仓库中的测试入口，本次文档审查未重跑这些测试；它们也不替代生产验收或安全审计。
 
-## 统一公开身份文档（2026-10-22）
+## 统一公开身份文档
 
 用户公开资料直接使用 `agent_protocols::delegation::PrincipalDocument`。`id.dmsg.net/<account_id>` 返回其 JCS JSON，`dmsg.net/<account_id>` 与经认证 handle 解析得到的 `dmsg.net/<handle>` 渲染同一份文档。规范 `id` 永远使用 principal origin，已有签名 issuer 和密钥派生域不变。`aliases` 自动包含稳定 HTML 地址，不复制可转移 handle 的权属。
 
@@ -82,24 +82,17 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 资料发布现在是一次账户变更加一次 directory 推送；普通消息、内容授权和文件读写仍不因此写链。`updated_at` 与内部版本单调递增，不推进设备 `security_epoch`。失败或回复未知时保留已提交版本，使用 `publish_principal` 重试；客户端不能把提交成功等同目录已发布。
 
-`principal_document(account_id)` 返回 `CertifiedBatch`，值是与 HTTP 完全相同的 JSON bytes，认证路径为 `[b"documents", account_id[12]]`。认证根为 `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`；两个读取面分别保留另一个分支的 pruned hash。SDK 与原生客户端独立核对 ICP 根、canister、60 秒证书时效、账户路径及规范文档 ID。HTTP 响应头与认证表达式不变。user 稳定布局为 schema 15、directory 为 schema 7。
+`principal_document(account_id)` 返回 `CertifiedBatch`，值是与 HTTP 完全相同的 JSON bytes，认证路径为 `[b"documents", account_id[12]]`。认证根为 `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`；两个读取面分别保留另一个分支的 pruned hash。SDK 与原生客户端独立核对 ICP 根、canister、60 秒证书时效、账户路径及规范文档 ID。HTTP 响应头与认证表达式不变。user 当前稳定布局为 schema 18，directory 为 schema 7；两者与认证叶的 schema 编号不同。
 
-已有线上数据使用原地 `upgrade`：directory 支持 6 → 7，逐条保留原 JSON 并建立新增认证树；user 支持 14 → 15，保留账户、解锁主密钥与全部原稳定表，仅为旧 principal 缺失的展示元数据提供 `{}` 默认值。先升级 directory，再升级各 home；目录发布输入的 `metadata` 为 optional bytes，缺省时兼容旧 home。旧状态摘要的同版本重试只接受原字段完全一致且元数据为空，不把已有文档改写成新渲染结果。后续新版本发布使用当前规则。其他旧 schema 不在本次迁移范围内。
+升级支持 user 14–17 → 18、directory 6 → 7。旧 principal 缺少的展示元数据默认 `{}`，已有文档正文不因升级而改写；目录发布输入的 `metadata` 为 optional bytes，以兼容旧 home。同版本重试必须与原状态一致，后续新版本发布才使用当前渲染规则。先升级 directory，再升级 home，保留原稳定状态。
 
-`scripts/test-dmsg-principal-upgrade.sh` 从固定提交 `70d67c86` 构建未修改的旧 Wasm，检查 Candid 升级兼容，并在 PocketIC 验证账户/设备/绑定、内容根、解锁密钥、执行证据、controller、原正文和认证查询在升级后保留，及后续编辑、重试和再次升级。
+历史 principal 迁移回归见 `scripts/test-dmsg-principal-upgrade.sh`；当前账户布局与根恢复规则见[账户合同](account_root_zh.md)。
 
 原 `dmsg/profile/v1` 用户资料命令、COSE Profile 对象与云端 CRUD 已移除。智能体自己的 `agent-profile/1.0` 保持独立。头像仍是明确公开的上传对象：提交后 URL 不变且持续可读，文档取消引用不会删除图片；普通对象回收拒绝已提交头像。桌面上传只返回 URL，发布文档才更换资料，避免覆盖编辑草稿。
 
-本次本地验证覆盖：
+## 客户端持久化与重试
 
-- PocketIC 资料更新与 controller 生命周期测试：HTTP 与 query 返回相同正文，修改资料保留 controller，旧编辑版本被拒绝；真实 Wasm 生成的认证证明由 TypeScript SDK 独立验证。
-- `desktop_principal_documents`、`desktop_content_and_sync` 和 `desktop_channels`：真实 daemon、canister 与本地中继贯通资料、头像、锁定权限、内容同步和频道名称读取。
-- Electron smoke：旧资料名称、具名链接和图片导入，头像操作保留草稿，目录发布待定与重试。最终 smoke 关闭了 macOS 原生全屏检查，其余检查通过。
-- 网页：真实 Wasm 证明在浏览器展示文档；篡改证明后拒绝显示。live share 与独立认证 fixture 检查不属于本次资料验证，未运行。
-
-## 0.12.6 客户端对齐
-
-- 规范向量、schema 和共享边界用例随 SDK 同步，来源与离线校验命令见 [vectors README](../../tests/vectors/agent-protocols/README.md)。本轮没有改变 canister 的 Candid 接口或稳定存储布局。
+- 规范向量、schema 和共享边界用例随 SDK 同步，来源与离线校验命令见 [vectors README](../../tests/vectors/agent-protocols/README.md)。
 - Mail 发布前由宿主原子保存连接器状态与加密密钥快照；重启先恢复，正常密钥存储确认后再清除快照。密钥不进入 MCP 输出。远程 owner inventory 与本地只读清单分开，前者按 relay grant 鉴权、分页并保存恢复的记录；恢复元数据不等于恢复密钥或旧明文。
 - 桌面读取公开 Agent Profile 时持久保存已验证的最大 nonce，拒绝旧版与同 nonce 冲突；discovery 不能改变配置的服务 origin。SDK 的 Profile pin 也随连接器快照持久保存。
 - controller 提交收到明确的 nonce 冲突后，最多按合法且有界的 `Max-Seen-Nonce` 重签一次。原审批承诺的 ID、generation、授权范围、依赖方和期限不变；重签前重查当前权限。重试次数先记入加密 journal，重启不重置。未知结果继续重投原字节，其余拒绝仍需新审批。

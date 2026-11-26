@@ -2,7 +2,7 @@
 
 English | [简体中文](integration_zh.md)
 
-Source contract reviewed on 2026-10-24. Dedicated authentication, typed application
+Dedicated authentication, typed application
 signing and checkout use the desktop approval flow through [dmsg-connect/1](connect-v1.md).
 Cash settlement and PANDA commitments use commerce 2 / membership 2. The
 [account adapter](../../examples/dmsg-account-product/README.md) and protocol

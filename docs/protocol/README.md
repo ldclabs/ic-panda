@@ -9,6 +9,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 | Area | Contract |
 | --- | --- |
 | Accounts, devices and recovery | [Account/root](account_root.md) · [II browser login](login-v1.md) · [Passkey](passkey-v1_zh.md) · [Device invitations](device_pairing.md) · [Device transfer](device_transfer.md) |
+| Native platforms | [Apple (中文)](mobile_zh.md) · [Android (中文)](android_zh.md) |
 | Web application connection | [dmsg-connect/1](connect-v1.md) |
 | Authentication and typed actions | [Integration](integration.md) · [App actions](app-action.md) · [Generated CDDL](integration.cddl) |
 | Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
@@ -66,7 +67,7 @@ To-be-signed bytes are strictly `CBOR(["Signature1", protected_bstr, h'', payloa
 | --- | --- | --- | --- |
 | Ed25519 | -19 | Direct signature over Sig_structure | OKP, crv=6, x=32 bytes |
 
-dMsg supports Ed25519 only; as of 2026-10-07 there are no ES256K, BIP340 endpoints or private algorithm tags. Failures do not trigger automatic algorithm switching. Public-only COSE_Key forbids private key `d` (-4); `alg` must match, `key_ops` if present must permit `verify`, and `kid` if present must match the protected header.
+The document signatures on this page use Ed25519 only, with no ES256K, BIP340 or private algorithm tags. Wallets and hardware approvals follow their own protocols. Failures do not trigger automatic algorithm switching. Public-only COSE_Key forbids private key `d` (-4); `alg` must match, `key_ops` if present must permit `verify`, and `kid` if present must match the protected header.
 
 Public key thumbprints follow RFC 9679 SHA-256 over the required public parameters `{1: 1, -1: 6, -2: x}`, excluding `kid`, `alg` and `key_ops`. dMsg formal documents are signed by the account's device Ed25519 keys, and the `kid` is that device key's thumbprint; whether the device belongs to the account and whether the account service authorized the signature is proven by the certified execution receipt, never by the key itself.
 
@@ -95,7 +96,7 @@ Protected headers, payload and approval context are frozen prior to signing. The
 
 Idempotency is scoped to `account_id/request_id`; requests with the same ID but differing parameters are rejected. A lost reply is replayed with `get_attestation(account_id, request_id)`, which returns the same artifact. Strict device sequence numbers and execution watermarks continue to prevent replay attacks after results are cleaned up; an exact replay of a cleaned request returns `ResultExpired`.
 
-`get_execution_receipt(account_id, request_id)` returns a certified ICP leaf; querying requires account authentication. The path is `b"execution/" || account_id[12] || request_id[32]`. `ExecutionReceipt` (schema 2) stores issuer, device/epoch, approval time/deadline, origin, SHA-256 of to-be-signed bytes, the device key thumbprint, and SHA-256 of raw signature bytes. It does not modify portable signature artifacts. Upgrades reconstruct leaves from stable execution records, and leaves are deleted when results are pruned; the query then returns a certified absence proof.
+`get_execution_receipt(account_id, request_id)` returns a certified ICP leaf; querying requires account authentication. The path is `b"execution/" || account_id[12] || request_id[32]`. `ExecutionReceipt` (schema 2) stores issuer, device/epoch, approval time/deadline, origin, SHA-256 of to-be-signed bytes, the device key thumbprint, and SHA-256 of raw signature bytes. It does not modify portable signature artifacts. The certification tree persists in stable memory; upgrades republish its root, and pruning results deletes their leaves; the query then returns a certified absence proof.
 
 Receipt verification requires first validating the specified user canister's IC certificate, witness, path, and leaf value, followed by matching the issuer, to-be-signed digest, public key thumbprint, and signature digest. The SDK `verifyExecutionReceipt` performs both steps; Rust `match_execution_receipt` performs only binding checks, leaving certificate validation to the caller. A COSE_Sign1 without a receipt only proves that some device key signed those bytes, not dMsg authorization. A receipt proves execution authorization recorded by this service; it does not automatically prove external project permissions or current device state.
 
@@ -125,10 +126,10 @@ Standards references for signatures, identity headers, and profiles: [RFC 9052](
 
 ## Agent Delegation
 
-A dMsg account can act as an Agent Delegation 1.0 principal: controllers are self-held Ed25519 keys kept in the client vault, registered with a proof of possession at the user home and used to sign events locally, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces and verification scope: [agent.md](agent.md) (Chinese).
+A dMsg account can act as an Agent Delegation 1.0 principal: controllers are self-held Ed25519 keys kept in the client vault, registered with a proof of possession at the user home and used to sign events locally, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces and verification scope: [agent.md](agent.md).
 
 ## Commercial Services
 
 The product-neutral `membership/2` and `dmsg-commerce/2` contracts are documented in [commerce.md](commerce.md), with generated [integration.cddl](integration.cddl) records and independent vectors. [commerce.cddl](commerce.cddl) retains only the resource/entitlement framing that still uses v1 domains. Paid delivery keeps its separate profile 2. These versions do not change formal statement or device attestation bytes.
 
-Multisig wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet.md](wallet.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.
+Multisig wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet.md](wallet.md). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.

@@ -14,7 +14,7 @@
 | commerce | `dmsg_commerce` | 登记应用与产品 `dmsg-wallet`；`refresh_entitlement` 提供创建者的套餐 |
 | 客户端 | `dmsg_client` | 读取外链参数、独立解码计划、协签、广播与回报 |
 
-钱包不做 HTTPS outcall。外链余额、UTXO、nonce 与 blockhash 由成员客户端读取；读错只会让交易在链上无效，不会让钱包签出与意图不同的交易。
+钱包不做 HTTPS outcall。外链余额、UTXO、nonce 与 blockhash 由成员客户端读取；钱包按已批准意图构造并约束交易，但不独立核验这些外链读数或最终结算。
 
 ## 成员与角色
 
@@ -28,7 +28,11 @@
 | Viewer | 否 | 否 | 否 |
 | Recovery | 仅成员变更 | 否；其提案无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | 否 |
 
-被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准为每台设备绑定一个调用 Principal（每成员最多 4 台设备）。`join(JoinArgs { evidence, device, replaces, exclusive })` 写明设备，并可接管 `replaces`（至多 4 个设备 ID，升序）的绑定，`exclusive` 为真时接管其余全部设备的绑定；同一设备再次加入即重新绑定，不对应任何绑定的 ID 直接忽略，因此重试仍成功。`unbind(UnbindArgs { evidence, devices })` 凭账户批准移除 1 到 4 台设备的绑定，批准中的 actor 不必已绑定；成员保持 Active，可再次加入。二者冻结时可用，都不推进授权版本；被移除的绑定审计为 `Unbound`，加入时写在 `Joined` 之前。创建钱包的 Principal 绑定时没有设备，从某台设备加入后才记录。Principal 成员只绑定自身，不写设备。之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。一个 Principal 只能代表一个成员；已加入并已绑定的 Principal 再次 `join` 直接返回成员记录。账户所在的 user home 不在钱包记录中时，钱包向 hub `get_user_homes` 补取一次后再核验。
+被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准为每台设备绑定一个调用 Principal（每成员最多 4 台设备）。`join(JoinArgs { evidence, device, replaces, exclusive })` 写明设备，并可接管 `replaces`（至多 4 个设备 ID，升序）的绑定，`exclusive` 为真时接管其余全部设备的绑定；同一设备再次加入即重新绑定，不对应任何绑定的 ID 直接忽略，因此重试仍成功。
+
+`unbind(UnbindArgs { evidence, devices })` 凭账户批准移除 1 到 4 台设备的绑定，批准中的 actor 不必已绑定；成员保持 Active，可再次加入。二者冻结时可用，都不推进授权版本；被移除的绑定审计为 `Unbound`，加入时写在 `Joined` 之前。创建钱包的 Principal 绑定时没有设备，从某台设备加入后才记录。Principal 成员只绑定自身，不写设备。之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。
+
+dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。一个 Principal 只能代表一个成员；已加入并已绑定的 Principal 再次 `join` 直接返回成员记录。账户所在的 user home 不在钱包记录中时，钱包向 hub `get_user_homes` 补取一次后再核验。
 
 ## 摘要与设备批准
 
@@ -141,7 +145,7 @@
 
 钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例；读不到 `accepted_upgrade()` 时先启动实例再报错。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。已退役的版本只有在未过期报价与未完成激活均不再引用时才能由 `admin_remove_version` 删除，版本号不复用。hub 持久维护版本引用，安装前重查模块；安装成功但回复丢失时按该激活唯一控制的实例状态继续。
 
-2026-11-07 存储迁移：钱包模块读取 schema 1 时，将成员 `principals` 转换为 `bindings`（原 Principal 保留，`device: None`、`bound_at_ms: 0`），升级时保存 schema 2 并重新认证钱包视图。成员权限、策略、地址、钥匙根、提案、审计与资金不重置；未知 schema 和混用的成员布局拒绝升级。需要由成员接受包含迁移的新发布版本及哈希，既有批准不授权更换模块字节。旧版实际 Wasm 的回归入口为 `scripts/test-dmsg-wallet-upgrade.sh`；源码支持不表示生产已升级。
+稳定布局升级：钱包模块读取 schema 1 时，将成员 `principals` 转换为 `bindings`（原 Principal 保留，`device: None`、`bound_at_ms: 0`），升级时保存 schema 2 并重新认证钱包视图。成员权限、策略、地址、钥匙根、提案、审计与资金不重置；未知 schema 和混用的成员布局拒绝升级。需要由成员接受包含迁移的新发布版本及哈希，既有批准不授权更换模块字节。旧版实际 Wasm 的回归入口为 `scripts/test-dmsg-wallet-upgrade.sh`；源码支持不表示生产已升级。
 
 ## cycles
 
@@ -160,9 +164,9 @@
 桌面结构化方法、多设备协签包、增量审计和加密频道提示的实现及边界见 [多签钱包桌面实现](../dMsg_wallet_zh.md)。客户端在创建付款前完成 `WalletCreate` 的 user home 核验；协签包导入只收集签名，不自动执行。
 
 
-2026-11-04 客户端兼容修正：认证钱包状态继续读取旧成员 `principals`，投影为 `device: None`、`bound_at_ms: 0` 的 `bindings`，不推断旧版没有记录的设备或时间。先验证原始响应的证书与 witness，再解码投影并核对钱包身份；未知字段、同时携带两种成员字段和畸形数据仍被拒绝。该兼容用于旧实例升级前的读取和审批，不改变链上批准规则。
+旧实例读取兼容：认证钱包状态继续读取旧成员 `principals`，投影为 `device: None`、`bound_at_ms: 0` 的 `bindings`，不推断旧版没有记录的设备或时间。先验证原始响应的证书与 witness，再解码投影并核对钱包身份；未知字段、同时携带两种成员字段和畸形数据仍被拒绝。该兼容用于旧实例升级前的读取和审批，不改变链上批准规则。
 
-## 2026-10-24 安全修订
+## 执行与升级保护
 
 - hub 的升级和锁定共用每钱包互斥锁。执行前调用仅 hub 可用的 `claim_code(expected)` 原子领取已接受记录，领取期间实例不能接受另一次升级或锁定；成功升级清除领取，失败并重启后经 `release_code()` 释放。清空 controllers 前确认实例 Running。
 - `AddAddress` 取公钥返回后重新验证授权版本、期限、冻结、地址容量和全部协签引用，普通 ChainKey 协签与原生 Taproot 都覆盖。
@@ -171,7 +175,7 @@
 - 客户端批准与协签通过 `get_proposal_certified` 认证完整提案，再按新认证钱包版本与当前时间计算过期/延时展示；仅重算自带 digest 不再作为权威提案读取。
 - 原生 EVM 与 ERC-20 预览、执行复用最终调用参数估算 gas，仍由实例强制执行费用上限。
 
-2026-10-27 升级修订：hub 对明确缺少 `claim_code`（IC0536）的旧钱包支持原地升级。它确认自己是唯一 controller，以系统执行版本包围一次新的 `accepted_upgrade()` 读取及停止过程，停止后只允许该 replicated query 和两次停止状态转换带来的 3 次版本递增；其他执行导致 `VersionConflict`，钱包重启后可重试。超时、其他拒绝或 `claim_code` 业务错误不会被忽略。已接受的发布版本和模块哈希继续生效，因此可先部署修复后的 hub，再安装钱包已接受版本；旧钱包锁定代码仍需先升级。旧版未绑定目标的取消/释放提案须重新创建。此处描述源码合同，不表示已部署生产。
+旧实例升级兼容：hub 对明确缺少 `claim_code`（IC0536）的旧钱包支持原地升级。它确认自己是唯一 controller，以系统执行版本包围一次新的 `accepted_upgrade()` 读取及停止过程，停止后只允许该 replicated query 和两次停止状态转换带来的 3 次版本递增；其他执行导致 `VersionConflict`，钱包重启后可重试。超时、其他拒绝或 `claim_code` 业务错误不会被忽略。已接受的发布版本和模块哈希继续生效，因此可先部署修复后的 hub，再安装钱包已接受版本；旧钱包锁定代码仍需先升级。旧版未绑定目标的取消/释放提案须重新创建。此处描述源码合同，不表示已部署生产。
 
 
 ## 策略用量与本地工作流

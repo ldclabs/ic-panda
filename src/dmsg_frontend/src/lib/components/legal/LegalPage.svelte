@@ -14,7 +14,10 @@
   } from '$lib/legal'
   import './legal.css'
 
-  let { kind }: { kind: LegalKind } = $props()
+  let {
+    kind,
+    initialDoc = null
+  }: { kind: LegalKind; initialDoc?: LegalDocument | null } = $props()
 
   const pages = $derived([
     {
@@ -59,9 +62,20 @@
     'dMsg Account ID or public handle (if known):\nPlease permanently delete my dMsg cloud service account.\n\nDo not include private keys, recovery materials, passwords, one-time codes or login sessions.\n'
   )}`
 
-  let doc = $state<LegalDocument | null>(null)
+  let loaded = $state<{
+    kind: LegalKind
+    requested: Locale
+    doc: LegalDocument
+  } | null>(null)
+  const doc = $derived(
+    loaded && loaded.kind === kind ? loaded.doc : initialDoc
+  )
   let failed = $state(false)
-  let copied = $state(false)
+  let digestCopyState = $state<'idle' | 'copied' | 'failed'>('idle')
+  let digestCopyStatus = $state('')
+  let lastDigestAnnouncement = ''
+  let digestCopyTimer: ReturnType<typeof setTimeout> | undefined
+  let digestCopyRequest = 0
   let emailCopyState = $state<'idle' | 'copied' | 'failed'>('idle')
   let emailCopyStatus = $state('')
   let lastAnnouncement = ''
@@ -70,6 +84,8 @@
   let request = 0
 
   onDestroy(() => {
+    ++digestCopyRequest
+    clearTimeout(digestCopyTimer)
     ++emailCopyRequest
     clearTimeout(emailCopyTimer)
   })
@@ -77,24 +93,41 @@
   async function load(target: LegalKind, language: Locale) {
     // A slower earlier language must not replace the latest choice.
     const id = ++request
-    doc = null
+    if (loaded?.kind !== target) loaded = null
     failed = false
     try {
       const next = await loadLegalDocument(target, language)
-      if (id === request) doc = next
+      if (id === request) {
+        loaded = { kind: target, requested: language, doc: next }
+      }
     } catch {
       if (id === request) failed = true
     }
   }
 
   async function copyDigest() {
+    const id = ++digestCopyRequest
+    clearTimeout(digestCopyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(currentTerms.sha256)
-      copied = true
-      setTimeout(() => (copied = false), 2000)
+      ok = true
     } catch {
-      // Clipboard blocked: the digest remains selectable.
+      ok = false
     }
+    if (id !== digestCopyRequest) return
+    digestCopyState = ok ? 'copied' : 'failed'
+    let message = ok ? $t('Copied') : $t('Copy failed')
+    if (message === lastDigestAnnouncement) message += '\u00A0'
+    lastDigestAnnouncement = message
+    digestCopyStatus = ''
+    requestAnimationFrame(() => {
+      if (id === digestCopyRequest) digestCopyStatus = message
+    })
+    digestCopyTimer = setTimeout(() => {
+      digestCopyState = 'idle'
+      digestCopyStatus = ''
+    }, 2000)
   }
 
   async function copySupportEmail() {
@@ -123,7 +156,19 @@
   }
 
   $effect(() => {
-    void load(kind, $locale)
+    const language = $locale
+    if (loaded && loaded.kind === kind && loaded.requested === language) return
+    if (
+      !loaded &&
+      initialDoc &&
+      (initialDoc.locale === language ||
+        (kind === 'delete-account' &&
+          language !== 'zh' &&
+          initialDoc.locale === 'en'))
+    ) {
+      return
+    }
+    void load(kind, language)
   })
 
   // The root layout localizes the shared description; this page refines it.
@@ -185,12 +230,29 @@
                   <dt>SHA-256</dt>
                   <dd class="digest-value">
                     <code dir="ltr">{currentTerms.sha256}</code>
-                    <button
-                      class="icon-button"
-                      onclick={copyDigest}
-                      aria-label={copied ? $t('Copied') : $t('Copy SHA-256')}
-                      ><Icon name={copied ? 'check' : 'copy'} /></button
-                    >
+                    <span class="copy-control">
+                      <button
+                        type="button"
+                        class="icon-button"
+                        onclick={copyDigest}
+                        aria-label={$t('Copy SHA-256')}
+                        data-copied={digestCopyState === 'copied'
+                          ? ''
+                          : undefined}
+                        data-failed={digestCopyState === 'failed'
+                          ? ''
+                          : undefined}
+                        ><Icon
+                          name={digestCopyState === 'copied' ? 'check' : 'copy'}
+                        /></button
+                      >
+                      <span
+                        class="copy-status"
+                        class:visible={digestCopyStatus !== ''}
+                        class:failed={digestCopyState === 'failed'}
+                        role="status">{digestCopyStatus}</span
+                      >
+                    </span>
                   </dd>
                 </div>
               </dl>
@@ -199,7 +261,9 @@
                   'To verify this version, download the English text and compute its SHA-256:'
                 )}</p
               >
-              <pre dir="ltr"><code>{verifyCommand}</code></pre>
+              <!-- Scrollable code block needs keyboard focus access (WCAG 2.1.1). -->
+              <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+              <pre dir="ltr" tabindex="0"><code>{verifyCommand}</code></pre>
               <div class="terms-links">
                 <a
                   class="text-link"
@@ -293,6 +357,7 @@
           {:else if failed}
             <p role="alert">{$t('Could not load this page.')}</p>
             <button
+              type="button"
               class="button secondary"
               onclick={() => void load(kind, $locale)}>{$t('Try again')}</button
             >

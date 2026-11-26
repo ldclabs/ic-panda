@@ -2,13 +2,11 @@
 
 English | [简体中文](dmsg_canisters_zh.md)
 
-Reviewed against public source `9fd70dca` on 2026-10-24. This is a guide to the current implementation, not a deployment inventory or an audit report. Architecture and measured capacity are in [dmsg_architecture.md](dmsg_architecture.md); exact interfaces and bytes are in the canister Candid files and [public protocols](protocol/README.md).
-
-2026-11-09: added Passkey issuance and desktop/iOS integration. The production auth ID is not configured and no deployment has occurred. See [Passkey validation](passkey-validation_zh.md); other components retain their historical baselines.
+This index covers public canister responsibilities, interfaces and upgrades. See the [documentation index](README.md) for the source-review baseline and [architecture](dmsg_architecture.md) for topology and capacity. Deployment state needs separate verification.
 
 ## Components
 
-The control plane has eight service roles, plus a multisig wallet factory and per-multisig wallet instances. The client, bridge page and private cloud have separate responsibilities.
+The table separates shared libraries, control services and wallet services. Clients and the private cloud are outside the canister control plane.
 
 | Package | Responsibilities | Documentation |
 | --- | --- | --- |
@@ -20,7 +18,7 @@ The control plane has eight service roles, plus a multisig wallet factory and pe
 | dmsg_cose | Content-root vetKD public key and recovery derivations | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
 | dmsg_handle | Name ownership, imports, pricing, and transfers | [README](../src/dmsg_handle/README.md) / [Candid](../src/dmsg_handle/dmsg_handle.did) |
 | membership | PANDA SNS qualification, cross-product occupancy, and durable entitlement decisions | [README](../src/membership/README.md) / [Candid](../src/membership/membership.did) |
-| dmsg_commerce | Tier plans, cash orders, refunds, and certified resource entitlements | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
+| dmsg_commerce | Plans, cash orders, refunds, fixed-duration grants and certified resource entitlements | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | Fixed-term escrow, deposit verification, mutually exclusive fund decisions, and disbursements | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 | dmsg_directory | Certified HTTP publication of Agent Delegation principal documents | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
 | dmsg_wallet_hub | Multisig wallet activation, creation, version registry, upgrades, locks and member index | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
@@ -29,20 +27,22 @@ The control plane has eight service roles, plus a multisig wallet factory and pe
 ## Current contracts
 
 - **Accounts and devices:** `dmsg_user` issues 12-byte Xid accounts, controls login bindings, device capabilities, content-root commitments and delayed recovery. Clients discover user homes through `dmsg_handle` and query them in parallel. Cross-home login Principal uniqueness is intentionally not enforced.
-- **Content and recovery:** devices generate content roots and wrap them for authorized devices and recovery. `dmsg_cose` performs vetKD only for recovery after all devices are lost; it does not sign ordinary documents or Agent Delegation events.
+- **Content and recovery:** devices generate content roots and wrap them for authorized devices. On-chain recovery is disabled by default for new accounts; recovery envelopes are added only when enabled. `dmsg_cose` performs vetKD only for recovery after all devices are lost; it does not sign ordinary documents or Agent Delegation events.
 - **Signatures:** devices sign COSE statements and application actions locally. `attest` and `attest_app_action` verify the signature and device approval, charge the execution allowance and publish a certified receipt. A bare public key is not proof of account authority. See [statements and receipts](protocol/README.md).
 - **Public identity:** user homes store the official PrincipalDocument display fields and controller records; `dmsg_directory` publishes certified JSON. Display edits write on chain; public avatar bytes remain in cloud storage. Agent controllers are self-held Ed25519 keys in the client vault. See [Agent Delegation](protocol/agent.md).
 - **Names:** the registry owns canonical names, preserves optional display casing and handles registration, legacy claims and account-approved transfers. Registration fees go directly to the configured revenue account.
-- **Payments and subscriptions:** `dmsg_payment` settles paid-letter escrows; `dmsg_commerce` handles commerce-2 cash checkout, resource entitlements and automatic settlement; shared `membership` handles membership-2 PANDA qualification and cross-product commitments. See [commerce](protocol/commerce.md). These are separate from everyday encrypted delivery.
+- **Payments and subscriptions:** `dmsg_payment` settles paid-letter escrows; `dmsg_commerce` handles commerce-2 cash checkout, resource entitlements, automatic settlement, admitted Apple/Google Play facts and authorized fixed-duration grants; shared `membership` handles membership-2 PANDA qualification and cross-product commitments. See [commerce](protocol/commerce.md). These are separate from everyday encrypted delivery.
 - **Multisig wallets:** the hub activates instances and manages registered code versions; each wallet controls its own proposals, approvals, funds, chain-key signatures and audit. Upgrades require the wallet's prior acceptance. Desktop creation is currently paused; existing-wallet operations remain available. See [wallet protocol](protocol/wallet.md) and [desktop scope](dMsg_wallet.md).
 
-Ordinary messages, files, vault edits and channel control do not add per-item ICP updates. The desktop app, CLI and MCP use the Rust daemon; web applications use [dmsg-connect/1](protocol/connect-v1.md). Cloud interoperability is described by [cloud.md](protocol/cloud.md), not by private implementation details.
+Ordinary messages, files, vault edits and channel control do not add per-item ICP updates. Desktop, CLI and MCP use the Rust daemon; iOS and Android directly reuse the core through UniFFI ([mobile](protocol/mobile_zh.md), [Android](protocol/android_zh.md)). Web applications use [dmsg-connect/1](protocol/connect-v1.md). Cloud interoperability is described by [cloud.md](protocol/cloud.md), not by private implementation details.
 
 ## Persistence and upgrades
 
 Public Candid/CBOR and private stable encodings are distinct. `dmsg_runtime::stable_types` and each canister's `stable_codec.rs` use compact integer-key maps without changing signed bytes or certified values. Current schema constants and supported predecessors live in each canister's storage and upgrade code; a version number alone does not establish upgrade compatibility.
 
-**`dmsg_user` and `dmsg_directory` already hold production user data.** Layout changes must preserve it through an in-place upgrade and an old-Wasm-to-new-Wasm test. The implemented user 14 → 15 and directory 6 → 7 upgrades preserve existing data; directory's first conversion builds the additional document certification tree. Reinstallation is not a migration. The [principal upgrade check](../scripts/test-dmsg-principal-upgrade.sh) exercises these transitions and the associated handle changes.
+**Existing production state must survive upgrades.** Current user schema 18 supports in-place upgrades from 14–17. Legacy accounts without an explicit recovery switch retain enabled recovery and schema 4 security leaves; new accounts and explicit policies use schema 5 leaves. The first directory 6 → 7 conversion builds its document tree; handle 10 → 11 builds its owner index; wallet 1 → 2 preserves member bindings. Unknown layouts are rejected. Reinstallation is not migration.
+
+Regression entry points: [principal](../scripts/test-dmsg-principal-upgrade.sh), [hardware approval](../scripts/test-dmsg-hardware-upgrade.sh), [device succession](../scripts/test-dmsg-succession-upgrade.sh), [wallet](../scripts/test-dmsg-wallet-upgrade.sh). Check each script's old-module baseline separately from the current stable version; a passing test does not establish direct upgrades from every historical version.
 
 For other canisters, follow their documented supported layouts and recovery procedures. Never use a reinstall to repair an instance containing accounts, escrow, accounting or irreplaceable records. Unknown cross-canister outcomes retain their original request and ledger parameters for reconciliation. Canister configuration, module hashes, controllers and operational readiness must be checked against the target deployment separately.
 

@@ -12,7 +12,14 @@ export default defineConfig({
       process.env.NODE_ENV === 'production' ? '"production"' : '"development"'
   },
   build: {
-    emptyOutDir: true
+    emptyOutDir: true,
+    modulePreload: {
+      // Let import() fetch its own entry. In WebKit a failed modulepreload
+      // for that same URL can keep a later import from retrying the request.
+      resolveDependencies(file, deps, { hostType }) {
+        return hostType === 'js' ? deps.filter((dep) => dep !== file) : deps
+      }
+    }
   },
   optimizeDeps: {
     esbuildOptions: {

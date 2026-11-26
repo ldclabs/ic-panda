@@ -2,7 +2,7 @@
 
 English | [简体中文](secrets_zh.md)
 
-2026-10-24. This describes the public client implementation, not deployment or real-GitHub acceptance.
+This describes the public client implementation, not deployment or real-GitHub acceptance.
 
 ## Scope and permissions
 
@@ -51,7 +51,7 @@ Creation generates a random 32-character lowercase hex ID. Update/delete require
 | `secrets/policies/disable` | `id` → disabled policy |
 | `secrets/uses/get` | `request_id` → status/filtered result and owner approval; only ID/status when locked |
 | `secrets/uses/cancel` | `request_id` → cancel awaiting_user only |
-| `secrets/uses/list` | `before?` (last request ID on previous page), `actor?, kind?, limit?` (≤100); P0 kind is secret_use only → `{uses,next,device_local:true}` |
+| `secrets/uses/list` | `before?` (last request ID on previous page), `actor?, kind?, limit?` (≤100); kind accepts only `secret_use` → `{uses,next,device_local:true}` |
 | `secrets/uses/mark_reviewed` | `request_id` → adds reviewed_at only to lost, without changing execution outcome |
 
 ```text

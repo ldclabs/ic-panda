@@ -1,343 +1,199 @@
 # dMsg 技术架构
 
-2026-11-09 增量：第 3、4.9、8.2 节加入 Passkey 登录签发与按需续期；以本次工作树为准，未部署。验证记录见 [Passkey](passkey-validation_zh.md)，其他组件保留各自核对基线。
-
 [English](dmsg_architecture.md) | 简体中文
 
-核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文概述桌面/iOS/CLI/MCP 客户端、公开合同、canister 职责与扩容方式；接口与实测容量以各组件 README 和 Candid 为准。历史容量样本保留原测量范围，不包含后来新增的资料元数据，也不证明生产吞吐。私有服务只通过公开合同描述；源码核对不等于部署核验或安全审计。
-
-2026-11-22 赠予补充：[commerce](../src/dmsg_commerce/README.md) 新增由治理登记发放方的固定时长会员赠予（Plus、Pro、Max，30 或 365 天），默认关闭。获赠账户与购买账户一样创建受益主体，并计入 `max_subjects`；正式合同优先于赠予，赠予优先于沙盒；会员展示改用 `get_membership_terms_v3`。本说明描述源码，不代表已部署或已开放赠予；下述历史容量数据不包含此增量。
-
-2026-11-16 Android 商业补充：独立 [Google Play 合同](protocol/google_play_zh.md) 复用 commerce 认证权益，订阅账期与存储加购分别去重；新增配置、观察与回执保留在 commerce，未修改 user/directory 稳定布局。当前仅完成本地协议、Wasm 与升级回归，不代表 Google 服务或购买已上线；下述历史容量数据不包含此增量。
-
-2026-10-27 移动补充：iOS 通过 UniFFI 复用 Rust 核心，扩展只读取有时限的显式导出副本；后台传输只处理密文。APNs/App Attest、StoreKit 验证与 commerce 权益、删除／举报合同见 [mobile](protocol/mobile_zh.md)，实际验证边界见 [iOS 验证记录](../src/dmsg_ios/VALIDATION.md)。未完成 Apple 外部配置和真机验收；下面的历史容量数字不包含新增交易观察。
+本文说明当前公开源码的职责、数据流和扩容边界。审查基线见[文档索引](README_zh.md)；部署状态与容量测量须另查对应记录。精确接口以 Candid、公开类型和[协议合同](protocol/README_zh.md)为准。
 
 ## 1. 设计原则
 
-1. **内容离链，权威上链。** 明文和内容密钥只在已授权的设备（dMsg 客户端）上。云端保存并投递密文，承担频道协作和收件箱；ICP 只保存需要公开验证、跨服务一致的权威状态：账户与设备、内容根承诺、名称权属、正式认证回执、资金终态和商业权益。
-2. **日常操作不写链。** 消息、文件、vault 编辑和频道控制不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
-3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，常规升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长；directory 6 → 7 首次迁移例外，需要逐条为原文档建立新增认证树。
-4. **按 user home 横向扩展。** 账户 ID 内嵌分配它的 user home 指纹，各服务据此路由，新增 home 不会重映射已有账户。需要全局唯一性的服务（名称、PANDA 神经元占用、principal 文档域名）保持单实例。
-5. **明确治理与维护。** 控制服务的管理方法核验配置的 controller/governance，并提供验证 query。多签钱包由成员提案决定，hub 升级前须取得钱包接受记录。commerce 定时归集和派发到期资金；其他清理与对账通过有界维护入口执行。
+- **客户端加密，云端保存密文。** 内容根、对象钥匙与文件钥匙由授权设备生成和使用。
+- **控制权与资金终态上链。** ICP 保存账户、设备、名称、根承诺、认证回执、商业权益和托管资金状态。
+- **普通内容操作不逐条写链。** 消息、文件、保险库编辑和频道控制不逐条调用 ICP update、vetKD 或阈值签名；认证安全快照通过 query 按需读取。
+- **账户按 home 分区。** 新增 user home 不改变已有账户的路由；需要全局唯一性的名称与神经元占用分别由注册表管理。
 
 ## 2. 信任域
 
-| 信任域 | 职责 | 不由它决定 |
+| 组件 | 职责 | 信任边界 |
 | --- | --- | --- |
-| dMsg 客户端（[dmsg_cli](../src/dmsg_cli/README.md) 的 daemon 与 CLI、[桌面应用](../src/dmsg_desktop/README.md)，核心为 [dmsg_client](../src/dmsg_client/README.md)） | 生成和使用内容根、对象与文件密钥；加解密；设备签名与批准（审批中心，含网页与智能体的请求）；本机 SQLite 工作区、同步任务与对账日志 | 客户端自报的设备、会员或付款状态不能代替认证证据 |
-| 桥接页（[dmsg_connect](../src/dmsg_connect/README.md)，connect.dmsg.net，资产 canister） | 网页应用与设备之间的 [dmsg-connect/1](protocol/connect-v1_zh.md)：核对应用登记，转述浏览器报告的 origin，保存本地操作索引与结果解封密钥 | 不持有账户或设备密钥，不能批准请求；它转述的 origin 不是密码学证明 |
-| 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据；网页请求的连接邮箱（只见密文）、给锁定设备的提示通道、MCP Events 中继 | 账户根授权、名称权属、正式认证和资金终态 |
-| ICP canisters（本仓库） | 第 3 节的控制服务与多签钱包服务 | 不保存频道成员、消息和文件正文；用户 PrincipalDocument 展示字段随账户状态上链 |
+| 桌面、CLI、MCP | 共用 Rust daemon，负责密钥、工作区、同步和审批 | 解锁后的进程与操作系统可接触明文 |
+| iOS、Android | 经 UniFFI 直接调用 `dmsg_mobile` / `dmsg_client`，系统能力由原生宿主提供 | 不运行桌面 daemon；硬件保护取决于平台能力 |
+| connect.dmsg.net | 转述网页请求，保存配对与结果解封密钥 | 不持有账户密钥、不批准请求；转述的 origin 不是密码学证明 |
+| 私有云端 | 密文存储与投递、频道、收件箱、资源配额、通知与连接中继 | 可见业务元数据，可拒绝服务或隐藏更新；不能据此授予账户控制权 |
+| ICP canisters | 账户和设备权威、认证证明、资金与权益 | 依赖 ICP 证书、部署配置及 controller / governance 的升级权限 |
 
-内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller 可以升级 canister、改变规则，并能读出 user home 的 `master_secret`；主网上各控制服务的唯一 controller 是 ICPanda SNS root（2026-11-12 核对），这些改动须经 SNS 提案。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
+加密不隐藏账户、设备、尺寸、时序及服务执行所需的关系信息。签名与本地版本检查能发现部分篡改和回滚，不能证明中继给出了全部最新历史。治理能升级控制服务；`unlock_secret` 的服务端主密钥也属于这一信任域。详见[加密说明](dmsg_encryption_zh.md)。
 
 ## 3. 组件
 
 ```mermaid
-flowchart LR
-  EXT["dMsg 客户端<br/>加解密 · 设备签名 · 审批"]
-  BR["桥接页 connect.dmsg.net<br/>网页请求转述"]
-  CLOUD["私有云端<br/>密文 · 频道 · 收件箱 · 连接邮箱"]
-  subgraph ICP["ICP canisters（SNS 治理）"]
-    H["dmsg_handle<br/>名称注册表 · home 列表"]
-    U["dmsg_user × N<br/>user home"]
-    K["dmsg_cose<br/>内容根 vetKD"]
-    D["dmsg_directory<br/>principal 文档"]
-    P["dmsg_payment<br/>来信托管"]
-    C["dmsg_commerce<br/>结账与权益"]
-    M["membership<br/>PANDA 资格"]
-    WH["dmsg_wallet_hub<br/>钱包激活 · 版本"]
-    W["dmsg_wallet × N<br/>多签钱包"]
-  end
-  EXT -- "home 列表 · 名称" --> H
-  EXT -- "账户 · 设备 · 根 · 认证" --> U
-  EXT -- "开单 · 退款" --> P
-  EXT -- "结账" --> C
-  EXT -- "PANDA 申请" --> M
-  EXT -- "签名命令 · 密文" --> CLOUD
-  BR -- "密封请求 · 回复" --> CLOUD
-  BR -- "应用登记" --> C
-  CLOUD -- "安全快照" --> U
-  CLOUD -- "权益 · 目录" --> C
-  CLOUD -- "托管状态" --> P
-  CLOUD -- "HTTPS 读取" --> D
-  H -- "消费名称意图" --> U
-  U -- "恢复派生" --> K
-  U -- "发布" --> D
-  U -- "执行额度" --> C
-  P -- "核验收款报价" --> U
-  C -- "核对授权" --> U
-  M -- "产品决定" --> C
-  M -- "神经元资格" --> SNS["PANDA SNS"]
-  H -- "ICRC" --> L["账本"]
-  P -- "ICRC" --> L
-  C -- "ICRC" --> L
-  EXT -- "提案 · 执行 · 回报" --> W
-  EXT -- "报价 · 创建" --> WH
-  WH -- "创建 · 安装 · 升级" --> W
-  W -- "核验成员批准" --> U
-  W -- "ICRC · 链密钥签名" --> L
-  EXT -- "读取 · 广播" --> X["BTC / EVM / SOL 网络"]
+flowchart TB
+  WEB["网页应用"] --> BR["连接桥接页"]
+  BR --> RELAY["云端密封请求中继"]
+  RELAY <--> CLIENT["桌面 / 移动端 / CLI"]
+  CLIENT <--> CLOUD["密文内容服务"]
+  CLIENT --> AUTH["Passkey 签发服务"]
+  CLIENT --> USER["账户 home"]
+  CLIENT --> BUSINESS["名称 / 商业 / 支付"]
+  USER --> COSE["恢复派生"]
+  USER --> DIRECTORY["公开身份目录"]
+  CLIENT --> WALLET["钱包实例"]
+  HUB["钱包工厂"] --> WALLET
+  WALLET --> USER
 ```
 
-| Canister | 权威数据 | 部署数量 | 单实例主要上限 |
-| --- | --- | --- | --- |
-| [dmsg_auth](../src/dmsg_auth/README.md) | Passkey 身份、硬件会话及 12 小时 delegation；按需续期不查询账户 | 全局 1 个 | 每身份 16 个会话；部署总量按实测配置 |
-| [dmsg_user](../src/dmsg_user/README.md) | 登录绑定、设备与能力、恢复申请、内容根承诺、认证回执、执行月账、本机解锁秘密、Agent principal 记录 | 每部署 1–64 个（user home） | `max_accounts` ≤ 2,100 万 |
-| [dmsg_handle](../src/dmsg_handle/README.md) | 规范化名称 → `AccountId`、注册收费、旧名认领与转移；部署的 home 列表 | 全局 1 个 | 1,000 万活跃名称 |
-| [dmsg_cose](../src/dmsg_cose/README.md) | 内容根 vetKD 公钥、恢复派生的去重与预算 | 通常 1 个，服务全部 home | 100 万个做过恢复派生的账户 |
-| [dmsg_directory](../src/dmsg_directory/README.md) | 已发布的 Agent Delegation principal 文档 | 全局 1 个 | 未在大规模下实测 |
-| [dmsg_payment](../src/dmsg_payment/README.md) | 付费来信托管单、入金、资金决定与出金 | 1 个或多个，每个 home 绑定 1 个 | 1,000 万订单 |
-| [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用与产品注册、目录、现金订单、固定时长赠予、受益主体（购买或获赠）与资源权益 | 1 个或多个，每个 home 属于 1 个 | 受益主体、累计订单各 1,000 万 |
-| [membership](../src/membership/README.md) | PANDA 神经元的跨产品占用与产品决定 | 每个 SNS 1 个 | 完整记录 100 万、累计操作 1,000 万 |
-| [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | 激活订单、钱包模块版本、钱包记录与成员索引 | 全局 1 个 | 每成员索引 256 个钱包，16 个模块版本 |
-| [dmsg_wallet](../src/dmsg_wallet/README.md) | 一个钱包的成员、策略、地址、协签人、提案、计划与审计 | 每个钱包 1 个，由 hub 创建 | 成员 64、地址 256、协签人 64、提案超 1 万触发有界清理 |
+| 服务 | 权威数据与职责 | 实例关系 |
+| --- | --- | --- |
+| [dmsg_auth](../src/dmsg_auth/README.md) | Passkey 身份、硬件登录会话、12 小时 IC delegation | 固定 issuer；每身份最多 16 个会话 |
+| [dmsg_user](../src/dmsg_user/README.md) | 认证绑定、设备、根承诺、恢复、正式回执与执行月账 | 每部署 1–64 个 home |
+| [dmsg_cose](../src/dmsg_cose/README.md) | 内容根 vetKD 公钥与恢复派生 | 一个实例可服务多个 home；不签普通文档 |
+| [dmsg_handle](../src/dmsg_handle/README.md) | 名称、旧名认领、收费、转移、home 列表 | 部署内共享注册表 |
+| [dmsg_directory](../src/dmsg_directory/README.md) | 认证发布 PrincipalDocument | 固定 principal origin 对应的目录 |
+| [dmsg_payment](../src/dmsg_payment/README.md) | 付费来信托管、入金、结算与退款 | 每个 home 绑定一个实例 |
+| [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用/产品、结账、订阅、赠予及资源权益 | 每个 home 属于一个实例 |
+| [membership](../src/membership/README.md) | PANDA SNS 资格、神经元跨产品占用与授益决定 | 每个 SNS 共享一个登记服务 |
+| [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | 钱包激活、版本、升级与成员索引 | 工厂管理独立钱包实例 |
+| [dmsg_wallet](../src/dmsg_wallet/README.md) | 成员、策略、提案、资金、链密钥签名与审计 | 每个钱包一个 canister |
 
-共享库：[dmsg_types](../src/dmsg_types/README_zh.md) 定义公开数据合同，[dmsg_protocol](../src/dmsg_protocol/README_zh.md) 提供确定性编码、批准摘要与验签，[dmsg_runtime](../src/dmsg_runtime/README.md) 提供稳定存储、认证树、预算、账本适配和有界调用。
+共享库：`dmsg_types` 定义数据，`dmsg_protocol` 负责编码与验证，`dmsg_runtime` 提供稳定存储、认证树和调用工具。源码和接口入口见 [canister 索引](dmsg_canisters_zh.md)。
 
 ## 4. 主要流程
 
-用户资料使用官方 PrincipalDocument：更新写入 user home 并发布到 directory，公开头像使用不可变云端 URL。普通加密文件通过认证 API 领取短期 S3 GET URL 后直读密文，客户端验证大小、摘要与加密完整性；根/vault/epoch 信封仍使用认证读取。见[云端合同](protocol/cloud_zh.md)。
-
 ### 4.1 注册与定位账户
 
-1. 客户端启动时读取 `dmsg_handle.get_handle_config()`：`user_homes` 是部署的权威 home 列表，`registration_homes` 是当前接收新账户的子集。daemon 使用 `config.toml` 的部署配置，没有该文件时使用内置 `production.toml`。可选的 `user_homes` 钉定值必须都在注册表中；其余 home 以注册表为准。
-2. 注册时随机选择一个注册 home 调用 `create_account`；该 home 配置了准入公钥时，先向云端取一张绑定 home 与登录 Principal 的准入票据。账户、登录路由、日配额和 ID 分配器在同一消息内提交，重试返回原账户。
-3. 登录时对全部 home 并行调用 `my_account`，命中即连接该 home。任一查询失败视为结果未知，不会转去注册。
+客户端从 `dmsg_handle.get_handle_config()` 取得权威 `user_homes` 和可注册子集 `registration_homes`。登录时并行查询全部 home 的 `my_account`，全部成功后选择列表中首个命中；任一失败均视为未知，不转去注册。新账户随机选择一个可注册 home，配置要求时先取得绑定 home 与登录 Principal 的准入票据。
 
-账户的 `home_user` 和 `home_cose` 永久固定。
+账户的 `home_user`、`home_cose` 固定。客户端从所在 home 的 `user_config` 读取 commerce、membership、payment 等服务地址；不再依赖旧网页配置中的单实例地址。
 
 ### 4.2 设备、内容根与恢复
 
-- 账户变更经 `mutate_account` 提交，同时要求登录 Principal 和设备 Ed25519 批准；批准绑定 home、账户、`security_epoch`、设备序号和期限（最长 5 分钟）。
-- 换根时 home 只保存承诺：`ReserveRoot` 预留代次，客户端为每台持有 `VaultUnlock` 的活跃设备做 HPKE 封装，并用 COSE 的内容根公钥做一份 IBE 恢复信封，RootBundle 交给云端保存，`CommitRoot` 校验接收者与摘要。注册、新设备和换根都不调用链上密钥。
-- 恢复由已绑定的登录身份发起，默认等待 3 天（可设 1–7 天），任一有效设备都可以取消。完成后恢复设备经 `derive_root` 让 COSE 做一次 vetKD 派生，取回当前根后换根。
+账户变更需要登录身份与设备批准，绑定版本、序号、用途和期限。内容根由客户端随机生成，按认证设备表 HPKE 封装给持有 `VaultUnlock` 的活跃设备，再上传并提交链上承诺。新账户默认关闭链上恢复；主动开启后才添加 vetKD IBE 恢复信封。
+
+设备接收者或恢复开关变化后需要换根。已开启恢复且全部设备丢失时，绑定登录可申请恢复，等待默认 3 天（可设 1–7 天），旧设备可争议取消；完成后新设备派生当前代恢复钥匙、解开根并换根。详见[账户与根](protocol/account_root_zh.md)。
 
 ### 4.3 正式认证
 
-`attest` / `attest_app_action` 接收设备签名的 COSE_Sign1 和批准。user home 在一条消息内验签、扣减月度额度、保存产物并写入认证回执，没有跨 canister 的签名调用；月度额度租约过期时才向 commerce 刷新，至少每小时核对一次。验证方用 `get_execution_receipt` 的认证叶证明这次签名经过账户授权。user home 只在批准期限后保留结果一天，客户端因此把产物与回执作为内容对象随内容根加密保存并同步到账户的其他设备；导出的证据包（`dmsg-attestation/1`）可由 CLI、`dmsg-sdk/bundle` 或网页 `dmsg.net/_/verify` 离开 dMsg 逐项核验。
+设备先签署 COSE 声明，再提交 `attest` / `attest_app_action`。user home 核验设备批准、签名与额度，保存产物和认证回执；必要时先刷新商业租约或核验应用动作。外部等待后重新检查时间与状态。
 
-### 4.4 云端读取认证证据
+公钥验签只证明该钥匙签过这些字节；认证回执才绑定账户授权。服务端结果有保留期限，客户端保存加密产物与回执；导出的 `dmsg-attestation/1` 证据包可独立验证。见[声明协议](protocol/README_zh.md)。
 
-- 账户：`security_snapshot_batch` 每次 1–64 个账户，认证响应不超过 256 KiB；验证方核对 IC 证书、canister ID、witness 和 60 秒新鲜度，再用快照中的 `devices_root` 核对 `get_device_bundle`。
-- 权益：commerce 的 `get_entitlement_batch` 对从未购买或获赠的账户返回不存在证明，配合认证目录即为 Free；云端至少每小时用 query 重读已保存的权益投影。
-- 读取量随需要校验的不同账户数增长，按账户去重、批量读取并缓存到证书截止，不随在线连接数或频道数成倍增加。
+### 4.4 认证读取与内容
 
-### 4.5 名称、付费来信与商业
+`security_snapshot_batch` 每批 1–64 个账户、最多 256 KiB。读取方验证 IC certificate、witness、设备承诺和从证书时间起最多 60 秒的新鲜度。更高已知版本不能回退。
 
-- **名称**：账户先在 home 记录精确的名称意图，60 秒有效，转移任一方的意图为十分钟；handle 注册、认领或转移时向账户所在 home 消费意图，并通过 PANDA 账本的 ICRC-2 扣款。
-- **付费来信**：云端按收件人签名的收款报价签发 Quote；付款方 `open_escrow` 时，payment 向收款账户的 home 核验报价，付款方向订单独有的子账户转账；云端受理密文后签发受理收据，`finalize_receipt` 结算给收件人和平台，受理期限过后未结算的订单退款。
-- **现金购买**：commerce 报价、开单、核验子账户入金，交付时在一条消息内写入合同、资源权益和回执。
-- **PANDA 抵扣**：membership 核验神经元资格，保证同一神经元在所有产品中同时只支撑一份权益，再回调产品 adapter；PANDA 支撑的租约不超过 1 天，在用会员约每天读取一次 SNS。
+云端保存加密内容；普通文件可经认证 API 获取短期 S3 GET URL 直读密文，客户端仍验证摘要和 AEAD。根、vault、epoch 信封继续认证读取。详见[云端合同](protocol/cloud_zh.md)。
 
-### 4.6 Agent principal
+### 4.5 名称、付费来信与会员
 
-principal 的启用、controller 登记与退役在账户所在 home 提交，随后推送到 `dmsg_directory`；失败时任何人可用 `publish_principal` 补发。文档经 ICP HTTP 网关以认证响应发布在固定的自定义域下，协议见 [agent_zh.md](protocol/agent_zh.md)。
+- 名称操作消费账户 home 中的精确授权；新注册通过 PANDA 账本收费，旧名按冻结权属认领。
+- 付费来信由 `dmsg_payment` 托管资金，云端受理收据触发结算；逾期未结算可退款，与会员订单独立。
+- `dmsg_commerce` 处理现金结账、Apple / Google Play 事实和授权发放方的固定时长赠予，发布认证权益。
+- `membership` 验证 PANDA SNS 资格和神经元占用，再向产品提交决定；资格租约最多一天，普通内容操作不逐条读取 SNS。
+
+详见[商业合同](protocol/commerce_zh.md)。
+
+### 4.6 Agent 身份
+
+账户 home 管理 PrincipalDocument 与 controller 公钥，directory 负责认证发布。controller 私钥在客户端 vault 中，Delegation 事件本机签名，普通 grant/revoke 不上链。Agent Profile 与 Mail 等服务使用各自协议身份。见 [Agent 合同](protocol/agent_zh.md)。
 
 ### 4.7 多签钱包
 
-hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设备批准与收款后创建并安装钱包，钱包只以 hub 为 controller。成员以 `WalletJoin` 批准绑定客户端的钱包密钥 Principal；提案的每个决定是一次 `WalletProposal` 设备批准，钱包向成员所在 home 核验。ICP/ICRC 由钱包直接转账；BTC/EVM/SOL 由钱包从意图构造交易、以 `key_1` 签名，客户端独立解码复核后广播并回报。升级与锁定须钱包先以管理类提案接受。合同见 [wallet_zh.md](protocol/wallet_zh.md)。
+hub 核验创建批准与付款，创建独立实例。钱包按成员批准和策略执行：ICP/ICRC 直接转账，BTC/EVM/SOL 签名计划由客户端复核、广播并回报。升级与锁定先经钱包管理提案接受。桌面当前暂停新建，已有钱包继续使用。见[钱包范围](dMsg_wallet_zh.md)与[合同](protocol/wallet_zh.md)。
 
-桌面以结构化提案管理成员、策略、地址与运行资源；转账先读取 `preview_intent`，多设备协签绑定同一计划。daemon 的钱包网络步骤通过 Hold 释放共享客户端锁。审计页以认证链头核验，频道通知只传加密提示。实现与验证范围见 [桌面钱包记录](dMsg_wallet_zh.md)。
+### 4.8 凭据使用与本机数据
 
-### 4.8 本设备凭据使用
+本地策略约束 Agent 的凭据使用；进程交付、SSH、文件挂载和快照分享各有明确批准范围。结果不确定时不自动重发外部动作。CLI、桌面和 MCP 不共享无条件明文取密权限。见 [Secrets](protocol/secrets_zh.md)。
 
-owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定 GitHub issue 创建，再由人核对完整计划。核心复用原审批记录保存提交点和受限结果，网络在客户端锁外执行；不确定结果终结为 lost，不自动重发。策略、权限与记录不跨设备，不新增 canister 或链上热路径。MCP 不提供 `vault.secret` 明文入口。owner 审批的进程交付、SSH/Git 签名、机密文件挂载、快照分享/导入、扫描和轮换依赖核对也已实现；它们不向 MCP 开放通用明文取密。挂载可用性取决于 OS、打包的原生模块及平台实测。接口与验证见[凭据使用合同](protocol/secrets_zh.md)。
+`.dmsgvault` 是普通保险库内容的独立口令加密备份，可导入已解锁的工作区；它不备份账户控制权或设备身份。见[备份格式](protocol/vault_backup.md)。
 
-### 4.9 Passkey 登录与静默续期
+### 4.9 登录续期
 
-配置 `auth` 后，具备硬件能力的桌面与 iOS 优先使用 Passkey，II 继续提供。`dmsg_auth` 单实例只签发登录身份，账户与内容设备权限仍由 user home 检查。客户端在需要在线身份时才调用共享 `ensure_login`；缓存父委托未到期时本机派生会话，过期后用独立硬件钥匙续期。锁定保留登录凭据但清除内容密钥；本机读取和复制秘密不触发续期。服务端结束会话不撤销已经签发的委托，最长仍有效 12 小时。公开合同、部署与验证边界见 [Passkey](protocol/passkey-v1_zh.md) 和 [dmsg_auth](../src/dmsg_auth/README.md)。
+客户端支持 II 与 Passkey。生产配置已包含 `dmsg_auth`；Passkey 是否可用还取决于平台硬件、origin 与部署配置。Passkey 登录会话按需续期，每份 delegation 有效 12 小时；锁定不等于退出登录。撤销会话不使已签发 delegation 立即失效。见 [Passkey](protocol/passkey-v1_zh.md)。
 
-## 5. 链上负载画像
+## 5. 链上负载
 
-| 操作 | ICP 上的工作 |
+| 操作 | ICP 工作 |
 | --- | --- |
-| 消息、文件、vault 编辑、频道控制 | 没有 update；云端可能查询认证安全快照 |
-| 用户 PrincipalDocument 编辑 | 账户 update 加 directory 发布；不调用 vetKD 或阈值签名 |
-| 登录解锁 | 一次 `unlock_secret` query |
-| 账户创建、新设备、换根、恢复 | user home 的低频 update；换根不调用链上密钥 |
-| 正式认证 | user home 一次 update；月度租约过期时另有一次 commerce 调用 |
-| 全设备丢失恢复 | user → COSE 一次 vetKD 派生，PocketIC 测得成本上界约 68.26B cycles、实际扣费约 26.15B |
-| 名称注册与转移 | handle update、home 核对与账本扣款 |
-| 付费来信 | 每单约一次授权、一次查账、一次结算提交与两笔出金 |
-| 现金购买 | commerce 开单、查账与交付，之后按租约续期 |
-| PANDA 会员 | 每名在用会员约每天一次 SNS 读取和一次续期写入 |
+| 消息、文件、vault、频道控制 | 按需 query 安全证据，无逐条业务 update |
+| 登录解锁 | 查询 `unlock_secret`；必要时先续期登录 |
+| 账户、设备、根策略、公开资料 | 低频 update；资料另发布到 directory |
+| 正式认证 | user home update；必要时刷新额度或核验应用动作 |
+| 全设备丢失恢复 | 恢复设备经 user → COSE 执行 vetKD |
+| 名称、来信、会员、钱包 | 各自批准、账本、资格或链密钥调用 |
 
-## 6. 存储与升级模型
+普通内容路径不写链，不等于整个客户端或云端服务从不调用 update。
 
-- **地址空间**：各 canister 的 `MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。这是地址容量，不是业务容量；平台的 stable memory 上限和子网存储余量另行约束。
-- **紧凑表示**：每个 canister 用私有的 `stable_codec.rs` 以 CBOR 整数 key 保存记录，不影响公开 Candid、签名摘要和认证叶编码。
-- **认证树**：user、payment、commerce、membership 和 directory 使用 `dmsg_runtime::cert_map`，一棵存在 stable memory 的 crit-bit Merkle 前缀树，只保存 key、认证值哈希和 201 字节定长的内部节点槽位。认证值在查询时由记录重新生成并与已认证的哈希核对，写入只重算一条路径。100 万个 key 时，一次写入的 stable 读从 B 树节点布局的 4,394 次降到 167 次。handle 使用按名称哈希分成 2^20 个桶的 `name_tree`，节点哈希存在定长数组中，写入只重算一个桶和一条路径。
-- **有界集合**：每个账户最多 16 条设备记录（活跃设备上限：Free 2、Plus 3、Pro 5、Max 10；降级保留已有设备）、8 个登录、4 条待接受绑定、16 条操作回执和 64 条执行保留；认证批量响应不超过 256 KiB。普通账户操作不读取历史执行载荷。
-- **升级**：稳定记录是权威；每个 canister 明确支持的 schema 转换。`dmsg_user` 与 `dmsg_directory` 已有线上数据：user 14 → 15、directory 6 → 7 原地保留数据，并有旧 Wasm 升级验证；directory 首次转换会构建额外的认证树。不支持的布局拒绝加载。见[升级边界](dmsg_canisters_zh.md#持久化与升级)，重装不能代替迁移。
+## 6. 存储与升级
 
-`post_upgrade` 实测（PocketIC 16.0.0、release Wasm；大规模样本由主机用各 canister 自己的存储代码构建 stable 镜像后上传）：
+业务记录与认证索引主要放在 stable memory，公开 wire 编码与内部紧凑编码分开。常规升级重新加载配置和认证根；迁移可能另有遍历，例如 handle schema 10 → 11 建 owner 索引、directory 6 → 7 建文档认证树。
 
-| Canister | 规模 | `post_upgrade` 指令数 | 一次升级的 cycles |
-| --- | --- | ---: | ---: |
-| dmsg_user | 1 万 / 100 万账户 | 138 万 / 140 万 | 约 8.4B（停止、升级、启动） |
-| dmsg_handle | 1,000 → 1,000 万名称 | 115 万 → 116 万 | 约 4.04B |
-| dmsg_payment | 10 万 / 100 万订单 | 154 万 / 162 万 | 约 11.66B |
-| dmsg_commerce | 10 万 / 100 万付费主体 | 约 184 万 | 约 19.44B |
-| membership | 10 万 / 100 万申请 | 128 万 / 131 万 | 约 11.87B |
+当前 user schema 为 18，支持从 14–17 保留数据升级；旧账户保留恢复状态和原有认证叶，新账户或显式恢复策略使用 schema 5 安全叶。钱包 schema 1 → 2 保留成员绑定。稳定布局版本与 wire schema 不是同一编号。
 
-升级 cycles 主要是安装 Wasm 模块，与数据规模无关。
+已有账户、根秘密、资金和账务必须保留，不能用重装代替迁移。升级脚本与边界见[canister 文档](dmsg_canisters_zh.md#持久化与升级)。
 
-## 7. 单实例容量
+## 7. 容量
 
-| Canister | 承载对象 | 上限 | 实测与估算 | 先遇到的约束 |
-| --- | --- | --- | --- | --- |
-| dmsg_user | 本 home 分配的账户 | `max_accounts` 1–2,100 万；每 UTC 日新账户 `daily_new_accounts` 1–10 万；两者可由治理调整 | 100 万账户（五分之一活跃）stable 1.77 GiB，写入 cycles 只比 1 万账户多 4%–16%；新账户约 0.8 KB、活跃账户约 2.7–4.1 KB，推算 2,100 万账户 40–86 GB | 开放注册前须配置注册准入；2,100 万规模与主网吞吐没有实测 |
-| dmsg_handle | 活跃名称加未决扣款 | 1,000 万 | 1,000 万名称：仅名称表与认证树约 1.8 GB，计入收费操作和事件历史估算 6–7 GB；一次转移的 cycles 只比 1,000 名称时多约 13%；64 名称的认证响应约 81 KB | 更大规模须重新实测或按名称分片（未实现） |
-| dmsg_cose | 做过恢复派生的账户 | 100 万，所有 home 合计 | 只在全设备丢失恢复时留下记录 | 全网 vetKD 吞吐约 18 次/秒 |
-| dmsg_payment | 终身订单，与注册用户数无关 | 1,000 万 | 100 万单 3.25 GB，约 3.2 KB/单；推算 1,000 万单约 32 GB | 账本调用额度：`ledger_writes_per_minute` 为 200 时约 100 单/分钟 |
-| dmsg_commerce | 受益主体（购买或获赠）与累计订单；从未购买或获赠的 Free 账户不占状态 | 各 1,000 万 | 100 万主体 2.28 GB；主体约 1.3 KB，热订单连同索引约 9 KB | 价格发布、逐单收入归集和 PANDA 刷新集中在一个实例 |
-| membership | PANDA 抵扣申请，与账户数无关 | 完整记录 100 万，累计操作 1,000 万 | 100 万条 `Active` 申请 4.7 GB，每条约 4.7 KB | PANDA SNS 神经元上限为 20 万；默认每分钟 200 次 SNS 读取约可支撑 28 万名在用会员 |
-| dmsg_directory | 启用 principal 的账户 | 没有总数常量；单文档 ≤ 64 KiB | 只有小样本 | 大规模没有实测 |
+| 服务 | 代码上限 | 测量入口 |
+| --- | --- | --- |
+| user | 每 home 最多 2,100 万账户；每日新账户最多 10 万 | [账户容量](../src/dmsg_user/README.md#容量与成本) |
+| handle | 1,000 万活跃名称 | [名称容量](../src/dmsg_handle/README.md#容量与成本) |
+| COSE | 100 万个做过恢复派生的账户，所有 home 合计 | [恢复容量](../src/dmsg_cose/README.md#容量与扩展) |
+| payment | 1,000 万累计订单，不归档 | [支付容量](../src/dmsg_payment/README.md#上限) |
+| commerce | 受益主体和累计订单各 1,000 万 | [商业服务](../src/dmsg_commerce/README.md) |
+| membership | 完整记录 100 万、累计操作 1,000 万 | [资格服务](../src/membership/README.md) |
+| directory | 单文档最多 64 KiB，未设总数常量 | [目录](../src/dmsg_directory/README.md) |
+| wallet | 成员 64、地址 256、协签人 64 | [钱包](../src/dmsg_wallet/README.md) |
 
-超过 100 万的规模只有 handle 实测到 1,000 万；user 的 2,100 万和其他服务的 1,000 万上限按每单位存储推算，100 万档的实测验证了增长趋势。
+这些是防护上限，不是生产吞吐承诺。历史 PocketIC 样本中，user 测到 100 万账户，handle 测到 1,000 万名称；负载构成、schema、存储和 cycles 原始记录留在组件 README。新增字段与交易类型须重新测量，不把历史单价外推成当前容量保证。
 
-## 8. 多实例与分片
+## 8. 多实例与扩容
 
-### 8.1 账户 ID 与路由
+### 8.1 路由
 
-账户 ID 是 12 字节 Xid：`秒级时间戳[4] ‖ 分配器指纹[5] ‖ 计数[3]`。指纹取 `account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节，即 `digest("dmsg/account-id-generator/v1", ("dmsg", environment, issuer_namespace, home))`。
+账户 Xid 是 `时间戳[4] ‖ 分配器指纹[5] ‖ 计数[3]`。指纹来自环境、issuer namespace 与创建 home；各服务的 `user_homes` 只追加、最多 64 项，并拒绝指纹冲突。新 home 不重映射已有账户。
 
-- handle、cose、directory、payment 和 commerce 各自保存只能追加的 `user_homes`（最多 64 个，指纹互不相同），按账户 ID 第 4–9 字节找到账户所属的 home，不需要路由表。新增 home 不改变已有账户的路由。
-- 同一部署的全部 home 和服务必须使用相同的 `environment` 与 `issuer_namespace`。账户的 issuer URI 是 `issuer_namespace` 加账户 ID，不含 home，所以账户位于哪个 home 不影响已签发文档的 issuer。
-- 已有 home 不能从任何服务的 `user_homes` 中移除，它分配的账户仍要靠它路由。
+### 8.2 实例策略
 
-### 8.2 各服务的实例策略
+user 按账户分区；每个 home 绑定一个 commerce、payment 和 COSE。多个 home 可共用这些实例，也可为新 home 配置另一组。handle 维持名称唯一性，membership 维持神经元跨产品占用，directory 维持固定 principal URL。客户端按 home 读取服务地址；云端也须接受对应证书权威和路由。
 
-| 服务 | 实例数 | 与 user home 的关系 | 原因 |
-| --- | --- | --- | --- |
-| dmsg_auth | 1 | 客户端 `auth` 配置固定 issuer | canister ID 与 salt 决定 Principal；不分片 |
-| dmsg_user | 1–64 | — | 账户状态按 home 分区，home 之间没有共享写入 |
-| dmsg_handle | 1 | `user_homes` 列出全部 home，`registration_homes` 选出接收新账户的 home | 规范化名称必须全局唯一；它同时是客户端读取 home 列表的权威 |
-| dmsg_directory | 1 | `user_homes` 列出全部 home；已发布账户的 home 记录固定 | 一个 ICP 自定义域只能指向一个 canister，文档 URL 必须等于其 `id`，不能重定向到分片 |
-| membership | 每个 SNS 1 个 | `commerce_homes` 把每个 home 映射到它的 commerce，最多 64 项 | 神经元的跨产品唯一占用只能在一张占用表里成立 |
-| dmsg_cose | 通常 1 个 | 每个 home 的 `home_cose` 固定；一个 COSE 可服务全部 home | 内容根公钥由 COSE canister ID、`key_1` 和 `environment` 决定，账户的恢复信封永久绑定它 |
-| dmsg_payment | 1 个或多个 | 每个 home 的 `payment_canister` 固定；一个 payment 最多服务 64 个 home | 订单 ID 和子账户含实例 ID，报价的 `home_payment` 只指向一个实例 |
-| dmsg_commerce | 1 个或多个 | 每个 home 只列在一个 commerce 的 `user_homes` 中 | 每个实例独立持有注册、结算资产、价格、目录、订单和认证叶 |
+### 8.3 新增 home
 
-```mermaid
-flowchart TB
-  H["dmsg_handle（全局）<br/>user_homes · registration_homes"]
-  D["dmsg_directory（全局）"]
-  K["dmsg_cose（全局）"]
-  M["membership（每个 SNS）<br/>commerce_homes"]
-  subgraph A["分区 A"]
-    U1["dmsg_user 01"]
-    U2["dmsg_user 02"]
-    C1["dmsg_commerce A"]
-    P1["dmsg_payment A"]
-  end
-  subgraph B["分区 B"]
-    U3["dmsg_user 03"]
-    C2["dmsg_commerce B"]
-    P2["dmsg_payment B"]
-  end
-  H -.->|路由| U1
-  H -.->|路由| U2
-  H -.->|路由| U3
-  U1 --> C1
-  U2 --> C1
-  U1 --> P1
-  U2 --> P1
-  U3 --> C2
-  U3 --> P2
-  U1 --> K
-  U2 --> K
-  U3 --> K
-  U1 --> D
-  U2 --> D
-  U3 --> D
-  M --> C1
-  M --> C2
-```
+1. 安装 home，核对环境、命名空间和依赖实例。
+2. 在 handle、COSE、directory、payment、commerce 的 home 列表登记它。
+3. 更新 commerce 产品的受益权威，以及 membership 的 `commerce_homes`。
+4. 配置云端接受的 home、服务映射和证书权威。
+5. 验证路由后再加入 `registration_homes`。旧 home 可停止接收新账户，但继续服务已有账户。
 
-按当前代码上限，一个部署最多 64 个 user home，账户总数上限为 64 × 2,100 万；活跃名称另受 handle 的 1,000 万上限约束。分区 B 这类独立的 commerce/payment 实例目前只在 canister 层支持，客户端限制见 8.5。
+具体管理参数和 `validate_*` 入口见各组件 README。
 
-### 8.3 新增 user home
+### 8.4 扩容依据
 
-以下管理调用都接受 controller 或 SNS governance，并有同参数的 `validate_*` 供提案预演。
-
-1. **选择分区**：沿用现有 payment 和 commerce，或为新 home 部署新实例。新 commerce 需要治理分别登记应用、产品和结算资产，价格权威也要向它发布价格，商户要在它上面归集收入。
-2. **安装 home**：新 `dmsg_user` 的 `environment`、`issuer_namespace` 和 `principal_origin` 与部署一致，`home_cose`、`handle_canister`、`payment_canister`、`commerce_canister`、`membership_canister`、`directory_canister` 指向所选实例。各服务无法在链上读取新 home 的配置，提案人和投票者用它的 `user_config` 核对；`validate_admin_add_user_home` 显示新 home 的指纹，确认它与已有 home 不冲突。
-3. **登记 home**：在 handle、cose、directory、payment 和该 commerce 上调用 `admin_add_user_home(home)`。登记之前，该 home 的账户在这些服务上返回 `NotFound` 或 `Forbidden`。
-4. **登记受益权威**：把新 home 追加到该 commerce 中 dMsg 产品登记的 `beneficiary_authorities`（`config_version + 1`）。不需要新的应用登记。
-5. **登记 PANDA 路由**：在 membership 的 `configure_panda_service` 中，向 `commerce_homes` 末尾追加 `{ user_home; commerce_canister }`，其他字段保持不变。
-6. **登记云端**：私有云端把新 home 加入接受认证证据的 home 列表，并配置该 home 对应的 commerce 和 payment。
-7. **开放注册**：用 `admin_set_registration_homes` 把新 home 加入注册入口。接近上限的旧 home 可以同时移出注册入口，继续服务已有账户。客户端从 handle 读取 home 列表，无需重新构建即可发现新 home。
-
-### 8.4 何时扩容
-
-- **监控**：`user_stats`、`cose_stats`、`payment_stats`、`commerce_stats`、`membership_stats` 和 `directory_stats` 都是公开 query，报告记录数、配置上限、stable 页数和 cycles 余额，`user_stats` 另报最近 12 个有扣费月份的执行汇总；handle 的配置与 home 列表用 `get_handle_config` 读取。
-- **先调额度**：用量接近配置上限的 60% 时，先在代码上限以内提高治理额度：user 的 `admin_set_account_limits`，payment 和 commerce 的 `admin_set_limits`，membership 的 `configure_panda_service`。
-- **再加实例**：home 的账户数接近 2,100 万时新增 home 并调整注册入口；payment 订单数或 commerce 的受益主体（含获赠）、累计订单接近 1,000 万（或 stable memory 余量不足）时，让新 home 指向新的 payment 或 commerce 实例，不继续提高旧实例的上限。
-- **吞吐**：单个 canister 顺序执行消息；多个 canister 可以并行，但同一子网的 canister 共享子网资源，大规模时把 home 分布到不同子网。提高每分钟额度前，按目标负载在测试网核对子网吞吐和 cycles；跨子网部署、链上密钥和账本的吞吐需要单独测量。
+通过 `*_stats`、home 配置、账本限流、stable memory 与 cycles 监控实际负载。先在代码上限内调整额度；需要新增实例时让新 home 使用新实例。同一子网仍共享资源，热点、跨子网与账本吞吐须分别测试。
 
 ### 8.5 尚未支持
 
-- **账户迁移**：`home_user`、`home_cose` 和 directory 记录的 home 都不可更改，没有 home 之间的账户迁移（handoff）。
-- **跨 home 的登录唯一性**：同一登录 Principal 可以在不同 home 各建一个账户。客户端先在全部 home 定位再注册，但服务端不强制。
-- **客户端选择 commerce、payment 和 COSE**：构建配置 `dmsg.config.json` 只固定一个 commerce、一个 payment 和一个 COSE（含 `coseRootPublicKey`）。客户端按账户 home 选择这些实例之前，所有 home 应指向同一组实例；8.2 图中的分区 B 需要先完成这项客户端工作。
-- **名称分片**：handle 单实例上限 1,000 万活跃名称，按名称桶分片没有实现。
-- **订单压缩**：payment 订单不归档，终身计入上限；commerce 的订单 ID 和区块去重记录也永不回收。
+没有已有账户的 home handoff、跨 home 登录 Principal 全局唯一性或名称分片。payment 的终身订单和 commerce 的永久去重记录仍计入容量。客户端发现多个 home 不等于提供账户迁移。
 
-## 9. 限流与防滥用
+## 9. 限流与失败处理
 
-| 服务 | 额度 | 调整方式 |
-| --- | --- | --- |
-| dmsg_user | 每 UTC 日新账户；注册准入票据（配置准入公钥后）；每账户 4 条待接受绑定；每账户每小时 60 次外部批准、120 次跨 canister 调用；每账户每日正式执行 ≤ 64 次 | `admin_set_account_limits`（账户上限与每日新账户）、`admin_set_admission_key`（准入公钥），其余为代码常量或账户政策 |
-| dmsg_cose | 全局每日派生次数与 cycles；单账户每日 100 次、1.1T cycles（防御性上界，user 侧的每日执行次数先到） | 全局用 `admin_set_daily_budget`，单账户为代码常量 |
-| dmsg_handle | 全局未决扣款 `max_pending` ≤ 1 万，每个账户同时 1 笔 | 安装参数 |
-| dmsg_payment | 授权、账本读取、账本出金的每分钟全局额度和每调用方份额；每日开单；每付款方未决订单 ≤ 16 | `admin_set_limits` |
-| dmsg_commerce | 资金与产品调用、授权、PANDA 刷新的每分钟额度；每日订单；每调用方份额 | `admin_set_limits` |
-| membership | 授权、激活、产品调用、资格读取的每分钟额度；每小时新申请 ≤ 1 万；`max_claims` | `configure_panda_service` |
+账户注册、批准、恢复派生、账本和 SNS 调用各有独立限额；详见服务配置与公开类型。准入票据约束注册成本，不授予内容权限。`canister_inspect_message` 只做提前拒绝，入口仍须完整鉴权。
 
-- user、cose、payment 和 directory 用 `canister_inspect_message` 在执行前拒绝方法必定拒绝的 ingress，canister 不为这些消息支付接收费。它只在单个副本上运行，不是安全边界，方法内仍各自检查调用者。
-- 全局额度只影响可用性，不影响资金或权属。大量非匿名 Principal 可以在短时间内耗尽全局额度；user home 配置准入公钥后，新账户须持有云端按来源限流签发的票据，批量建号无法占满每日新账户与账户上限。
-- 跨 canister 调用使用有界等待（COSE 的 vetKD 派生除外）。每次 `await` 返回后重新读取时间和状态；结果未知时用原请求对账，不换新 ID 重签或重发资金调用。
+跨服务等待后重新校验时间、状态和版本。调用结果未知时保存原 ID 与参数对账；资金调用不换时间戳盲重试，内容上传不以传输完成代替业务提交。
 
 ## 10. 治理与运维
 
-- **治理**：控制服务的管理方法都接受 controller 和初始化固定的 `governance`（生产为 PANDA SNS governance），每个管理方法都有同参数的 `validate_*` query，可登记为 SNS 通用函数的验证方法。`environment`、`issuer_namespace`、`governance` 等身份与派生相关的字段安装后不可修改；升级不读取初始化参数。
-- **定期任务**：commerce 自动归集并派发已分配的出金；下表其余任务由运维或任何人调用：
+管理调用受 controller / governance 授权；验证入口帮助审核参数，不证明部署成功。升级前核对支持的 schema，等待在途调用并保留快照；COSE 使用无界等待的跨 canister 派生，升级前须先停止实例。
 
-| 任务 | 入口 | 节奏 |
-| --- | --- | --- |
-| user 过期数据清理 | `prune_executions(after)`、`prune_external_approvals(after)` | 定期，分页直到结束；账户写入时也会惰性清理 |
-| COSE 结果清理 | `prune_executions(after)`，或 `scripts/cose-prune.mjs` | 定期，分页直到结束 |
-| payment 出金派发 | `list_pending_transfers` 后逐条 `process_transfer` | 至少每小时，须在出金腿创建后 24 小时内 |
-| commerce 价格发布 | `publish_settlement_price` | controller、governance 或价格权威，在上一价格过期前重发；有效期最长一年，controller 或 governance 可直接发布长期价格，不需要定时任务 |
-| commerce 收入归集与归档 | canister 定时归集与派发；`collectable_checkouts` 监控，`sweep_checkout_history` 归档 | 服务实际结束后自动归集和退回费用准备；每分钟有界处理，异常出金保留对账；归档定期调用到返回 0 |
-| commerce 目录证书 | `refresh_catalog` | 新目录生效后一次 |
-| membership 释放与压缩 | `sweep_panda_commitments` | 建议每 5 分钟，调用到返回 0 |
-| directory 补发 | `publish_principal` | home 发布失败时 |
-| 钱包 cycles | hub `list_wallets(after, take)` 遍历，逐个调钱包 `refuel()`；hub `wallet_health(wallet)` 读取实例状态 | 低于策略 `min_cycles` 时；钱包冻结阈值 365 天 |
-| 钱包激活收入 | `collectable_activations(after, take)` 后逐条 `collect_revenue(quote_id)` | 订单就绪后；`hub_stats.uncollected` 为待归集数 |
-| 钱包成员索引 | `sync_wallet(wallet)` | 成员变更后 |
+执行记录清理、未决出金对账、目录刷新、membership 清理和钱包补充 cycles 都有各自维护入口。commerce 有自动归集与派发流程，不能据此假定其他服务的未决任务会自动完成。操作步骤以各 canister README 为准。
 
-- **升级**：只使用代码支持的 schema 转换；布局变化必须提供保留数据的迁移和旧 Wasm 升级验证。先停止 canister，等在途的跨 canister 调用完成，对持有资金或不可重建数据的 canister 创建快照，再按该组件的升级参数执行、启动并查看日志。控制服务通常用 `()`；钱包实例经 hub 以已接受的版本号升级。COSE 的派生是无界等待，升级前必须停止；未停止就升级时，丢失回调的执行按 `Unknown` 处理，不会重新派生。
-- **不可逆操作**：不要重装 user home、directory 或含资金/账务的实例；重装会清空账户、文档或财务记录。不要删除 COSE canister，删除后所有恢复信封都无法打开。
-- **cycles**：user home 为账户创建和设备批准付费，COSE 支付 vetKD 费用，directory 支付发布执行与文档存储。user、cose、payment 和 directory 的部署步骤把 freezing threshold 设为 90 天；运行中按 `*_stats` 监控余额。
+## 11. 验证边界
 
-## 11. 当前状态
+[集成测试](../tests/dmsg_integration/README.md)、[客户端向量](../tests/vectors/client/README.md)、平台验证记录和源码审查覆盖不同范围。模拟账本、PocketIC、软件硬件替身与协议向量不证明真实资金、真机保护、生产容量或线上模块状态。
 
-- 桌面端与 CLI 已有发布版本。源码、发布工件和已部署的 canister/云端版本分别演进；已有 user 与 directory 数据须原地保留。可丢弃的开发 fixture 不构成生产迁移政策。
-- 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
-- 多签钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
-- Rust 与 TypeScript 客户端使用 Agent Protocols SDK 0.13.0 及已提交的共享向量：daemon 在每次发布前将加密 Mail 密钥与连接器状态一同提交，后续调用先恢复中断的尝试，并保存已认证的邮箱清单分页和已验证的 owner Profile pin；controller 提交遇到有界 nonce 冲突时可重签一次，不改变原批准内容。canister 接口与稳定布局不变。
-- 本次核对未验证现网模块、生产 `key_1`、真实资金与外链路径、签名桌面端/网页/云端端到端、原生机密文件挂载或子网吞吐。安全审查结果见[源码审查与修复报告](../DMSG_SECURITY_AUDIT_REPORT.md)；容量结论仍限于组件 README 记录的具体负载。
+本次审查以源码和文档检查为主；实际执行的检查在提交说明中列出。历史测试记录保留其日期和适用范围。
 
-## 12. 参考
+## 12. 继续阅读
 
-- [dmsg_canisters_zh.md](dmsg_canisters_zh.md)：当前 canister 职责、升级要求与验证入口。
-- [protocol/README_zh.md](protocol/README_zh.md)：声明、签名、执行批准与 Xid 发号规则。
-- [protocol/account_root_zh.md](protocol/account_root_zh.md)、[dmsg_encryption_zh.md](dmsg_encryption_zh.md)：账户控制、根封装与加密设计。
-- [protocol/cloud_zh.md](protocol/cloud_zh.md)：客户端与云端的 wire 合同；[protocol/connect-v1_zh.md](protocol/connect-v1_zh.md)：网页应用经桥接页接入的合同。
-- [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
-- [protocol/wallet_zh.md](protocol/wallet_zh.md)：多签钱包合同。
-- 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。
-- [dmsg_agent](../src/dmsg_agent/README.md) 与 [Agent Protocols 向量](../tests/vectors/agent-protocols/README.md)：连接器持久化、SDK 对齐与可执行验证样本。
+- [Canisters](dmsg_canisters_zh.md)：接口与升级入口。
+- [加密](dmsg_encryption_zh.md)：本地保护、内容密钥和恢复边界。
+- [协议索引](protocol/README_zh.md)：签名、云端、设备、商业和 Agent 合同。
+- [客户端核心](../src/dmsg_client/README.md)、[移动核心](../src/dmsg_mobile/README.md)：客户端实现与验证。

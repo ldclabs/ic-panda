@@ -52,7 +52,9 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 
 ### v1 请求字段
 
-安装持有证明使用独立 Ed25519 密钥，私钥保存在宿主安全存储，`installation = SHA256(public_key)`。登记的 canonical CBOR 外层为 `{installation, public_key, proof, platform, language, apple}`：公钥为小写 hex，proof 为无 padding base64url，platform 为 `desktop/ios/android`，apple 为 `null` 或 `{installation: UUID, revision}`。iOS 的 apple 引用已通过 App Attest 验证的 APNs 登记，不接受绕过原平台证明的 token。Android 使用独立 `android:{installation,revision}` 引用，`apple:null`，安装为外层通知安装摘要；详见 [dmsg-android/1](android_zh.md)。其他平台不发送 android 字段，原签名字节不变。服务未声明 Android 能力时明确拒绝登记。
+安装持有证明使用独立 Ed25519 密钥，私钥保存在宿主安全存储，`installation = SHA256(public_key)`。登记的 canonical CBOR 外层为 `{installation, public_key, proof, platform, language, apple}`：公钥为小写 hex，proof 为无 padding base64url，platform 为 `desktop/ios/android`，apple 为 `null` 或 `{installation: UUID, revision}`。
+
+iOS 的 apple 引用已通过 App Attest 验证的 APNs 登记，不接受绕过原平台证明的 token。Android 使用独立 `android:{installation,revision}` 引用，`apple:null`，安装为外层通知安装摘要；详见 [dmsg-android/1](android_zh.md)。其他平台不发送 android 字段，原签名字节不变。服务未声明 Android 能力时明确拒绝登记。
 
 证明签名输入为 `SHA256(canonical-CBOR([1, "dmsg/notification/installation/v1", details]))`；details 为除 proof 外的登记字段，加上 `account`、`device`、HTTP PoP 的 `request_id`、服务的 `environment`（local/staging/production）及 `application: "dmsg"`。HTTP PoP 仍覆盖完整请求体。返回 `{protocol, installation, registration, revision, expires_at, receiver, scopes}`；租期 7 天，续期需要有效设备认证，不通过接收凭据续租。
 
@@ -61,6 +63,8 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 设置写入 `{scope, installation, expected_revision, value}`；scope 是 `global`、`account` 或 `resource`。value 分别使用核心安装设置（不含 revision）、账户设置（不含 revision/remote_revision）或 `{resource, muted, hidden?, until}`，返回已提交 `revision`。全局及账户开关首次默认关闭；桌面从没有通知设置的旧版本升级时，为所选账户沿用旧版的默认开启。resource 的版本按账户资源共享。观察请求是 `{installation, id, version}`，撤销是 `{installation, expected_revision}`。通知版本：频道用原日志水位；不可变来信事项用 `1`；恢复用认证账户版本。读、归档等终态不新增来信版本。
 
 偏好包括本安装总开关、暂停、IANA 时区每日免打扰、安全例外、四类开关/声音、账户登记、跨设备合并和资源静音/截止。服务在 provider 调用前过滤。本机未确认修改显示待同步，不保证撤回已经入 provider 队列的通知。
+
+资源偏好中的 `hidden` 缺省为 false；隐藏期间过滤不受定时静音到期影响。带 `resource` query 的设备认证 `GET /v1/notifications/settings` 返回该账户资源的 `{revision, value}`。feed 可附带当前页涉及资源的 `resource_preferences`（resource/revision/muted/hidden/until），旧回包不得覆盖更高已知版本。确认后的偏好另用既有根加密对象同步，kind 为 `notification_preferences`，对象 ID 为 `digest("dmsg/notification/preference/v1", [account, channel])`；原频道 keyring 格式保持不变。
 
 ## 统一策略与平台
 
@@ -81,5 +85,3 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 ## 验证边界
 
 策略向量只证明纯决策一致性；字节/PoP 测试证明附加字段绑定和旧格式保持。设备授权、provider、安装包、冷启动及真机展示须分别集成验收。无平台可靠回调时只报告“已提交”，不伪造“已送达”。
-
-资源偏好中的 `hidden` 缺省为 false；隐藏期间过滤不受定时静音到期影响。带 `resource` query 的设备认证 `GET /v1/notifications/settings` 返回该账户资源的 `{revision, value}`。feed 可附带当前页涉及资源的 `resource_preferences`（resource/revision/muted/hidden/until），旧回包不得覆盖更高已知版本。确认后的偏好另用既有根加密对象同步，kind 为 `notification_preferences`，对象 ID 为 `digest("dmsg/notification/preference/v1", [account, channel])`；原频道 keyring 格式保持不变。

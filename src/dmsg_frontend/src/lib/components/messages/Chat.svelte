@@ -92,12 +92,19 @@
         <ChannelDetail {channelId} {myState} {myInfo} />
       {:else}
         <div class="flex h-full flex-col items-center justify-center">
-          <img class="w-16" src="/_assets/dmsg/mark.svg" alt="dMsg" />
+          <img
+            class="w-16"
+            src="/_assets/dmsg/mark.svg"
+            alt="dMsg"
+            width="64"
+            height="73"
+          />
           {#if !isReady}
             <p class="mt-4 px-6 text-center text-sm"
               >{$t('Unlock your existing keys to read this archive.')}</p
             >
             <button
+              type="button"
               class="button primary mt-4"
               onclick={() => {
                 unlockHistory()

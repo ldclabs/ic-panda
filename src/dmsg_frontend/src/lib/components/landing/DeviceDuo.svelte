@@ -409,6 +409,7 @@
   function onKey(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       event.preventDefault()
+      if (event.isComposing || event.keyCode === 229) return
       const value = input
       input = ''
       run(value)
@@ -491,6 +492,7 @@
           : $t('Unlocked')}</span
       >
       <button
+        type="button"
         class="win-lock"
         onclick={() => setLocked(!locked, 'window')}
         aria-label={locked ? $t('Unlock the example') : $t('Lock the example')}
@@ -646,6 +648,7 @@
                   <p class="as-note">{$t('Unlock to review this request.')}</p>
                   <div class="as-actions">
                     <button
+                      type="button"
                       class="button primary"
                       onclick={() => setLocked(false, 'window')}
                       >{$t('Unlock')}</button
@@ -654,11 +657,13 @@
                 {:else}
                   <div class="as-actions">
                     <button
+                      type="button"
                       class="button secondary"
                       onclick={() => settle(false, 'window')}
                       >{$t('Reject')}</button
                     >
                     <button
+                      type="button"
                       class="button primary"
                       onclick={() => settle(true, 'window')}
                       >{$t('Approve')}</button
@@ -721,13 +726,14 @@
           aria-label={$t('Type a dmsg command')}
           autocomplete="off"
           autocapitalize="off"
+          enterkeyhint="send"
           spellcheck="false"
         />
       </label>
     </div>
     <div class="term-chips">
       {#each SUGGESTIONS as command}
-        <button disabled={typing} onclick={() => type(command)}
+        <button type="button" disabled={typing} onclick={() => type(command)}
           >{command}</button
         >
       {/each}

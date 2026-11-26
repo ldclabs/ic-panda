@@ -4,7 +4,7 @@ English | [简体中文](README_zh.md)
 
 dMsg is an ICPanda DAO product for private collaboration between people and agents. Start with the [product overview and downloads](../README.md#-dmsg--private-collaboration), then choose the implementation or protocol guide below.
 
-This index was reviewed against public source `9fd70dca` on 2026-10-24. Documents describe source behavior unless they identify a specific release, deployment or measurement. Source changes, installable releases, production deployment and independent audits are separate facts. Internal design documents are located through [AGENTS.md](../AGENTS.md); their contents are not published here.
+Reviewed on 2026-11-26 against public source `2899c99e`. These documents describe that source baseline; historical measurements retain their dates and scope. Live deployments were not checked in this review. Private designs are located through [AGENTS.md](../AGENTS.md) to check design/implementation differences; their contents are not published here.
 
 ## Use and build
 
@@ -14,7 +14,8 @@ This index was reviewed against public source `9fd70dca` on 2026-10-24. Document
 | Desktop workspace | [Desktop app](../src/dmsg_desktop/README.md) · [Current design system](../src/dmsg_desktop/DESIGN.md) |
 | Credentials and file references | [Desktop IDs, references, developer workflows and verification (简体中文)](dmsg_secrets_tutorial_zh.md) |
 | Command line and MCP | [CLI and daemon](../src/dmsg_cli/README.md) · [Agent connector](../src/dmsg_agent/README.md) |
-| Reusable Rust core | [dmsg_client](../src/dmsg_client/README.md) |
+| Mobile apps | [iOS](../src/dmsg_ios/README.md) · [Android](../src/dmsg_android/README.md) · [Mobile contract (中文)](protocol/mobile_zh.md) · [Android services (中文)](protocol/android_zh.md) |
+| Reusable Rust core | [dmsg_client](../src/dmsg_client/README.md) · [dmsg_mobile](../src/dmsg_mobile/README.md) |
 | Web and application integration | [SDK](../packages/dmsg-sdk/README.md) · [Account adapter example](../examples/dmsg-account-product/README.md) · [Bridge page](../src/dmsg_connect/README.md) |
 | Local verification | [Integration tests](../tests/dmsg_integration/README.md) · [Client vectors](../tests/vectors/client/README.md) · [Agent vectors](../tests/vectors/agent-protocols/README.md) |
 
@@ -28,13 +29,15 @@ This index was reviewed against public source `9fd70dca` on 2026-10-24. Document
 | Encryption and recovery boundaries | [Encryption](dmsg_encryption.md) · [Accounts and roots](protocol/account_root.md) |
 | Approved credential use and secret sharing | [Secrets contract and verification](protocol/secrets.md) |
 | Multisig wallets | [Product scope](dMsg_wallet.md) · [Public contract](protocol/wallet.md) · [Desktop implementation](../src/dmsg_desktop/README.md) |
+| Offline vault backup | [`.dmsgvault` format and import boundaries](protocol/vault_backup.md) |
+| Login and validation | [Passkey contract (中文)](protocol/passkey-v1_zh.md) · [Validation guide (中文)](passkey-validation_zh.md) |
 | Legacy data and migration | [Read-only inventory](legacy_inventory.md) · [Personal archives](protocol/legacy_archive.md) · [Freeze evidence](protocol/legacy_freeze.md) |
 
 The [protocol index](protocol/README.md#protocol-map) also covers cloud delivery, channels, browser login, dmsg-connect, commerce 2, Agent Delegation and Mail events. Each canister README owns its detailed limits, measurements and operations; Candid and shared vectors define the executable interface.
 
 ## Current boundaries
 
-- The main clients are the desktop app and CLI, sharing the Rust daemon. Web applications use dmsg-connect/1; the former browser extension is retired. There is no mobile app yet.
+- Desktop, CLI and MCP share a Rust daemon. iOS and Android reuse the Rust core directly through UniFFI. Web applications use dmsg-connect/1; the former browser extension is retired. Platform READMEs and validation records describe releases and device testing.
 - `dmsg_user` and `dmsg_directory` already contain production user data. Stable-layout changes require data-preserving upgrades and old-Wasm verification, never reinstallation.
 - Multisig wallet creation is paused in the desktop app. Existing wallets remain accessible; this does not change the CLI, daemon or hub's creation interfaces. Native secret-file mounts have separate OS, packaging and validation requirements.
 - Legacy personal archives remain readable and importable. The old shared-channel inheritance workflow was removed from the public clients; the current channel protocol and legacy evidence formats still serve different purposes.
@@ -50,4 +53,4 @@ Completed design iterations and one-time investigations live in `archived/docs/`
 
 Superseded daily canister increments are retained in Git history. New behavior belongs in its current topic section, with versioned evidence where needed; do not append a second, conflicting contract. Keep English/Chinese architecture section numbers aligned, update incoming links when moving a document, and regenerate `protocol/integration.cddl` from its script rather than editing it manually.
 
-Every Markdown topic in this directory has an English `name.md` and Simplified Chinese `name_zh.md` counterpart with matching sections. Follow the language switch at the top of each page. CDDL files are shared machine-readable contracts; both languages link to the same definitions.
+Most topics have English `name.md` and Simplified Chinese `name_zh.md` counterparts with a language switch. Tutorials, some mobile contracts and validation records currently have one language only. Both languages share the same machine-readable CDDL.

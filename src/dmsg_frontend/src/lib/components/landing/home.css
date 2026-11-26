@@ -84,6 +84,14 @@
   color: var(--muted);
   max-width: 620px;
   margin: 0;
+  text-wrap: pretty;
+}
+
+.home .scroll-sentinel {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  pointer-events: none;
 }
 
 .home .section {
@@ -96,6 +104,7 @@
 
 /* ——— Header ——— */
 .home .site-header {
+  anchor-name: --landing-header;
   transition: box-shadow 0.25s;
 }
 .home .site-header.scrolled {
@@ -103,6 +112,11 @@
 }
 .home .site-header nav a {
   position: relative;
+}
+.home .nav-links {
+  display: flex;
+  align-items: center;
+  gap: inherit;
 }
 .home .site-header nav a::after {
   content: '';
@@ -122,7 +136,7 @@
   height: 22px;
 }
 /* Six translated links need the compact menu before the content stacks. */
-@media (1000px < width <= 1280px) {
+@media (max-width: 1280px) {
   .home .header-action {
     margin-inline-start: auto;
   }
@@ -130,10 +144,20 @@
     display: flex;
   }
   .home .site-header nav {
+    margin-inline-start: 0;
+  }
+  .home .nav-links {
     display: none;
-    position: absolute;
-    top: 100%;
-    inset-inline: 0;
+    position: fixed;
+    inset: var(--header-height) 0 auto;
+    inset-block-start: anchor(--landing-header bottom);
+    width: auto;
+    margin: 0;
+    max-block-size: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    color: inherit;
     background: var(--canvas);
     border-bottom: 1px solid var(--line);
     padding: 16px 24px;
@@ -141,8 +165,14 @@
     align-items: stretch;
     gap: 0;
   }
-  .home .site-header nav.open {
+  .home .nav-links:is(.open, :popover-open) {
     display: flex;
+  }
+}
+@media (forced-colors: active) {
+  .home .site-header nav a[aria-current='location']::after {
+    background: currentColor;
+    forced-color-adjust: none;
   }
 }
 
@@ -738,8 +768,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   overflow-y: auto;
   font: 12.5px/1.68 var(--mono);
   cursor: text;
-  scrollbar-width: thin;
-  scrollbar-color: #2a463b transparent;
+  scrollbar-color: #5a8474 transparent;
 }
 .home .tl {
   white-space: pre-wrap;
@@ -804,7 +833,6 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   padding: 10px 12px 12px;
   overflow-x: auto;
   border-top: 1px solid var(--night-line);
-  scrollbar-width: none;
 }
 .home .term-chips button {
   flex-shrink: 0;
@@ -1558,7 +1586,6 @@ html[dir='rtl'] .home .fl-bar {
   min-width: 0;
   white-space: nowrap;
   overflow-x: auto;
-  scrollbar-width: none;
   font-size: 13px;
 }
 .home .cc-copy {
@@ -1773,7 +1800,6 @@ html[dir='rtl'] .home .switch-row input:checked + .switch::after {
   gap: 8px;
   max-height: 330px;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 .home .call {
   padding: 9px 12px;
@@ -2510,7 +2536,6 @@ html[dir='rtl'] .home .switch-row input:checked + .switch::after {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  scrollbar-width: none;
 }
 .home .install-tabs button {
   flex-shrink: 0;
@@ -2555,6 +2580,11 @@ html[dir='rtl'] .home .switch-row input:checked + .switch::after {
   margin: 16px 0 0;
   font-size: 12.5px;
   color: #8fe0b5;
+}
+.home .install-status.visible {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: #f3a690;
 }
 
 /* ——— FAQ ——— */
@@ -2627,18 +2657,20 @@ html[dir='rtl'] .home .switch-row input:checked + .switch::after {
   font-size: 15px;
 }
 @supports (interpolate-size: allow-keywords) {
-  .home .faq {
-    interpolate-size: allow-keywords;
-  }
   .home .faq details::details-content {
-    height: 0;
+    interpolate-size: allow-keywords;
     overflow: clip;
-    transition:
-      height 0.35s var(--ease),
-      content-visibility 0.35s allow-discrete;
+    contain: layout;
   }
-  .home .faq details[open]::details-content {
-    height: auto;
+  .home .faq details:not([open])::details-content {
+    block-size: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .home .faq details::details-content {
+      transition:
+        block-size 0.35s var(--ease),
+        content-visibility 0.35s allow-discrete;
+    }
   }
 }
 

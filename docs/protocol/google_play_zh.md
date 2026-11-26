@@ -1,6 +1,6 @@
 # dmsg-google-play/1
 
-Google Play 独立购买合同，配合 [Android 安装证明](android_zh.md)。当前处于接入开发；合同、类型与本地测试不表示商品已配置、服务已部署或真实购买已经验收。Apple 路径保持独立，不能把 Google 结果包装成 Apple 交易。
+Google Play 独立购买合同，配合 [Android 安装证明](android_zh.md)。本文描述公开实现；合同、类型与本地测试不表示商品已配置、服务已部署或真实购买已经验收。Apple 路径保持独立，不能把 Google 结果包装成 Apple 交易。
 
 ## 渠道和信任
 

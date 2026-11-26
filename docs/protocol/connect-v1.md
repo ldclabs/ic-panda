@@ -2,7 +2,7 @@
 
 English | [简体中文](connect-v1_zh.md)
 
-Drafted 2026-10-12, reviewed against public source 2026-10-24. Relay, device (`dmsg_protocol::connect`, `dmsg_client::connect`), bridge (`src/dmsg_connect`, asset canister dmsg_connect) and page SDK (`dmsg-sdk/connect`) are implemented. Production domains/artifacts/relay configuration require separate [release verification](../../src/dmsg_connect/README.md#release); this document does not establish the live version. It replaces retired dmsg-extension/4 (section 9). dMsg has no browser extension: applications use `https://connect.dmsg.net` to request approval on desktop, and later mobile, devices. [connect-v1 vectors](../../tests/vectors/client/connect-v1.json) define exact bytes.
+Web applications use `https://connect.dmsg.net` to request approval on a dMsg desktop or mobile client. Implementations are in `dmsg_protocol::connect`, `dmsg_client::connect`, `src/dmsg_connect` and `dmsg-sdk/connect`. Deployment acceptance follows the [bridge release guide](../../src/dmsg_connect/README.md#release); normative bytes are in the [connect vectors](../../tests/vectors/client/connect-v1.json).
 
 Unchanged: three document profiles and action signing bytes, device execution approvals/certified receipts ([public protocol](README.md)), AuthenticationRequest, AppAction, CheckoutRequest, commerce contracts and AppRegistration in dmsg_commerce. Only page/device transport, origin verification and operation recovery change.
 
@@ -436,20 +436,14 @@ Respond requires version=current+1, otherwise 409 VERSION_CONFLICT and reread/re
 
 ### 7.4 Relay states
 
-```text
-create:
-  pending ──authorize（CAS）──▶ authorized ──respond(closed)──▶ closed
-     │                            ├──pinned device revoked──▶ device_revoked
-     │                            └──no terminal result 7 days after expires_at──▶ abandoned
-     ├──respond(closed)──▶ closed          (pre-display rejection or duplicate-create terminal snapshot)
-     ├──cancel──▶ cancelled
-     └──expiry before authorization──▶ expired
-
-read / open:
-  pending ──respond(closed)──▶ closed
-     ├──all recipients respond(unknown)──▶ unknown
-     └──expiry──▶ expired
-```
+| Request | Current state | Event | Next state |
+| --- | --- | --- | --- |
+| create | pending | authorize CAS | authorized |
+| create | pending | respond(closed) / cancel / expiry | closed / cancelled / expired |
+| create | authorized | respond(closed) | closed |
+| create | authorized | Pinned device revoked | device_revoked |
+| create | authorized | No terminal result 7 days after expires_at | abandoned |
+| read / open | pending | respond(closed) / all recipients unknown / expiry | closed / unknown / expired |
 
 - respond(open) advances version/replaces sealed without changing relay state; used for authorized/execution_unknown intermediates and additional-channel snapshots.
 - Authorized requests do not expire and cannot be cancelled.
@@ -492,22 +486,9 @@ Desktop registers the dmsg: scheme:
 
 Any site can trigger these links, so they only navigate. Devices execute nothing from the link and still read/verify via PoP. After submission, the bridge offers Confirm in dMsg using the second link and notes that users can also use the approval center or dmsg approvals. Platforms without the scheme, such as CLI-only Linux, cannot use the button. Mobile universal/app links under https://connect.dmsg.net/app/… are deferred.
 
-## 9. Differences from dmsg-extension/4
+## 9. Compatibility
 
-dmsg-extension/4 retired with the extension; its deleted contract remains in Git history. Migration comparison:
-
-| Area | dmsg-extension/4 | dmsg-connect/1 |
-| --- | --- | --- |
-| Transport | chrome.runtime.connect port | Popup/postMessage, bridge→relay→device |
-| Origin | Chrome sender: origin/documentId/tab/frame | Bridge-signed MessageEvent.origin; no documentId |
-| Proof | dmsg/browser-proof/v1 with documentId | dmsg/connect-proof/v1 with connectionId |
-| Operation digest | dmsg/browser-operation/v1 | dmsg/connect-operation/v1, unchanged fields |
-| Approval | Separate extension window | Desktop and later mobile approval center |
-| Records | Extension local storage | Device authoritative, bridge local index, relay sealed replies |
-| Browsers | Chromium only | Chrome/Edge, Firefox and Safari meeting 4.1 |
-| `SignatureRequest.protocol` | `dmsg-extension/4` | `dmsg-connect/1` |
-| Added | — | Pairing; NOT_PAIRED, NO_APPROVING_DEVICE, DEVICE_UNAVAILABLE, DEVICE_REVOKED, NOT_CANCELLABLE, POLICY_STALE, LOCKED, UNSUPPORTED_BROWSER; value.error |
-| Removed | — | requiresUnlock; locked devices appear as awaiting_user |
+The retired `dmsg-extension/4` and `dmsg-sdk/browser` have no fallback. Integrators use `dmsg-connect/1`, `dmsg-sdk/connect` and this contract's pairing and recovery flows. The old extension contract remains in Git history.
 
 ## 10. SDK
 
@@ -533,7 +514,6 @@ Outside /1:
 - requestDelegation/registerController, the phase-3 Agent Protocols browser entry points.
 - Application reads under content grants through cloud proxy-file/proxy-read.
 - Redirect mode using registered callback URIs when embedded browsers block popups.
-- Mobile universal links and push.
 - Pairing renewal.
 
 New methods may stay in /1 and be advertised through capabilities if existing frames/digests/state semantics stay unchanged. Changes to existing bytes require a protocol-version upgrade.

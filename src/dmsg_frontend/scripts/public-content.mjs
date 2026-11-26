@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { dirname, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import MarkdownIt from 'markdown-it'
@@ -10,7 +16,6 @@ const frontend = fileURLToPath(new URL('..', import.meta.url))
 const repository = resolve(frontend, '../..')
 const origin = 'https://dmsg.net'
 const github = 'https://github.com/ldclabs/ic-panda'
-export const marker = '<!-- dmsg:public-content -->'
 
 // Explicit public files only. Never discover documents from sibling repositories,
 // environment variables, arbitrary directories or the private design baseline.
@@ -62,6 +67,62 @@ export const sources = [
   path,
   url: `${origin}/_/docs/${id}.md`
 }))
+
+// Prerendered SvelteKit pages published at extensionless paths for the IC asset canister.
+const prerenderedRoutes = [
+  {
+    path: '_/privacy',
+    description:
+      'How dMsg handles your content, metadata, payments and device data, and the choices you have.'
+  },
+  {
+    path: '_/terms',
+    // static/_/terms/v1.txt occupies the _/terms/ directory on disk; IC asset
+    // canister aliasing (enable_aliasing: true) serves _/terms.html at /_/terms.
+    outputPath: '_/terms.html',
+    description:
+      'The terms for using dMsg, including plans, payments and refunds, with the published digest of each version.'
+  },
+  {
+    path: '_/support',
+    description:
+      'Where to get help with dMsg, what to include in a report and how to report a security issue.'
+  },
+  {
+    path: '_/delete-account',
+    description:
+      'How to permanently delete your dMsg cloud service account and data, including after uninstalling the app.'
+  },
+  {
+    path: '_/verify',
+    // Svelte's SSR drops the <title> of a page that binds a component prop
+    // (bind:file here), so name this page in the build.
+    title: 'Verify a dMsg signature | dMsg',
+    description:
+      'Verify an exported dMsg signature bundle locally in your browser without uploading the original file.'
+  },
+  {
+    path: '_/redeem',
+    description:
+      'Review a dMsg membership code and open dMsg Desktop or the CLI to confirm redemption.'
+  }
+]
+
+// Client-only fixed routes served from the clean SPA shell instead of falling back to index.html.
+const shellRoutes = [
+  {
+    path: '_/login',
+    title: 'Sign in to dMsg',
+    description:
+      'Sign in to dMsg with Internet Identity or a passkey to authorize your local dMsg client.'
+  },
+  {
+    path: 'legacy',
+    title: 'dMsg — Legacy archive',
+    description:
+      'Read-only archive entry for migrating messages and channels from the previous dMsg web app.'
+  }
+]
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex')
 const read = (path) => readFileSync(resolve(repository, path), 'utf8')
@@ -197,29 +258,37 @@ md.renderer.rules.table_open = () =>
   '<div class="reading-table" tabindex="0" role="region" aria-label="Membership / 会员"><table>\n'
 md.renderer.rules.table_close = () => '</table></div>\n'
 
-function accountDeletionPage(shell, deletionPath) {
-  // Serve the Play listing URL itself, even when the SPA cannot start.
-  const deletion = new JSDOM(
-    shell.replace(
-      marker,
-      '<main id="dmsg-public-content" class="dmsg-site dmsg-reading" lang="en" dir="ltr"><article class="reading-body">' +
-        md.render(
-          read('src/dmsg_frontend/src/lib/legal/delete-account/en.md')
-        ) +
-        '</article></main>'
-    )
-  )
-  const doc = deletion.window.document
-  doc.title = doc.querySelector('main h1').textContent
-  const description =
-    'Request permanent deletion of your dMsg cloud service account, including after uninstalling the app.'
-  doc.querySelector('link[rel="canonical"]').href = `${origin}/${deletionPath}`
-  doc.querySelector('meta[property="og:url"]').content =
-    `${origin}/${deletionPath}`
+function deduplicateTitle(doc, overrideTitle) {
+  const titles = [...doc.head.querySelectorAll('title')]
+  if (overrideTitle) {
+    for (const extra of titles.slice(1)) extra.remove()
+    if (titles[0]) titles[0].textContent = overrideTitle
+    else {
+      const title = doc.createElement('title')
+      title.textContent = overrideTitle
+      doc.head.append(title)
+    }
+    return overrideTitle
+  }
+  // Keep the route-specific <svelte:head> title (last) and drop the app.html fallback.
+  const keep = titles.at(-1)
+  for (const title of titles.slice(0, -1)) title.remove()
+  return keep?.textContent?.trim() ?? ''
+}
+
+function finalizeSubpageHtml(html, { path, title, description, noindex }) {
+  const dom = new JSDOM(html)
+  const doc = dom.window.document
+  const resolvedTitle = deduplicateTitle(doc, title)
+  const canonicalUrl = `${origin}/${path}`
+  const canonical = doc.querySelector('link[rel="canonical"]')
+  if (canonical) canonical.href = canonicalUrl
+  const ogUrl = doc.querySelector('meta[property="og:url"]')
+  if (ogUrl) ogUrl.content = canonicalUrl
   for (const meta of doc.querySelectorAll(
     'meta[property="og:title"], meta[name="twitter:title"]'
   ))
-    meta.content = doc.title
+    meta.content = resolvedTitle
   for (const meta of doc.querySelectorAll(
     'meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]'
   ))
@@ -228,20 +297,82 @@ function accountDeletionPage(shell, deletionPath) {
     'link[rel="alternate"][type="text/markdown"]'
   ))
     link.remove()
-  doc.head.insertAdjacentHTML(
-    'beforeend',
-    '<link id="dmsg-reading-style" rel="stylesheet" href="/_assets/dmsg/reading.css">'
+  if (noindex) {
+    const robots = doc.querySelector('meta[name="robots"]')
+    if (robots) robots.content = 'noindex'
+    else {
+      const meta = doc.createElement('meta')
+      meta.name = 'robots'
+      meta.content = 'noindex'
+      doc.head.append(meta)
+    }
+    doc.head.insertAdjacentHTML(
+      'beforeend',
+      '<style>html,body{margin:0;background:#f7f8f4}</style>'
+    )
+  }
+  const output = dom.serialize()
+  dom.window.close()
+  return output
+}
+
+function finalizeIndexHtml(html, structuredData) {
+  if (!html.includes('class="dmsg-site home"'))
+    throw new Error('Expected prerendered Landing page in built dist/index.html')
+  if (/(?:href=|import\()["']\.\.?\//.test(html))
+    throw new Error(
+      'Expected root-absolute asset paths in dist/index.html (set kit.paths.relative = false)'
+    )
+
+  // Drop the app.html fallback <title> when SvelteKit's <svelte:head> already rendered one.
+  const titles = html.match(/<title>[\s\S]*?<\/title>/g) ?? []
+  if (titles.length > 1) {
+    html = html.replace(/<title>[\s\S]*?<\/title>/, '')
+  }
+
+  // The IC asset canister serves index.html as the fallback for dynamic deep
+  // links (/s/*, /r/*, /<handle>). Hide the prerendered homepage before first
+  // paint on non-root paths, then clear it and let SvelteKit navigate directly
+  // instead of hydrating the homepage route.
+  const deepLinkHead =
+    `<style id="dmsg-deep-link-style">html.dmsg-deep-link,html.dmsg-deep-link body{margin:0;background:#f7f8f4}html.dmsg-deep-link #dmsg-app{display:none!important}</style>\n` +
+    `    <script id="dmsg-deep-link-guard">if(location.pathname!=='/'&&location.pathname!=='/index.html')document.documentElement.classList.add('dmsg-deep-link')</script>`
+  if (!html.includes('</script>'))
+    throw new Error('Expected locale pre-paint script in dist/index.html')
+  html = html.replace('</script>', `</script>\n    ${deepLinkHead}`)
+
+  const hydratePattern = /kit\.start\(app,\s*element,\s*\{/
+  if (!hydratePattern.test(html))
+    throw new Error(
+      'Expected prerendered SvelteKit hydration call in dist/index.html'
+    )
+  html = html.replace(
+    hydratePattern,
+    `const __dmsgDeepLink = document.documentElement.classList.contains('dmsg-deep-link');\n` +
+      `\t\t\t\t\t\tif (__dmsgDeepLink) {\n` +
+      `\t\t\t\t\t\t\telement.innerHTML = '';\n` +
+      `\t\t\t\t\t\t\tdocument.documentElement.classList.remove('dmsg-deep-link');\n` +
+      `\t\t\t\t\t\t\tdocument.getElementById('dmsg-deep-link-style')?.remove();\n` +
+      `\t\t\t\t\t\t}\n` +
+      `\t\t\t\t\t\tkit.start(app, element, __dmsgDeepLink ? undefined : {`
   )
-  const html = deletion.serialize()
-  deletion.window.close()
-  return html
+
+  const jsonLd = structuredData
+    .map(
+      (data) =>
+        `<script type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`
+    )
+    .join('\n')
+  return html.replace('</head>', `${jsonLd}\n</head>`)
 }
 
 export function buildPublicContent(output = resolve(frontend, 'dist')) {
-  const shellPath = join(output, 'index.html')
-  const shell = readFileSync(shellPath, 'utf8')
-  if (shell.split(marker).length !== 2)
-    throw new Error('Expected one public-content marker in the built SPA shell')
+  const indexPath = join(output, 'index.html')
+  const indexHtml = readFileSync(indexPath, 'utf8')
+  const shellPath = join(output, '200.html')
+  if (!existsSync(shellPath))
+    throw new Error('Expected clean SPA fallback shell at dist/200.html')
+  const cleanShell = readFileSync(shellPath, 'utf8')
 
   const membershipPath =
     'src/dmsg_frontend/src/lib/components/landing/membership.json'
@@ -343,7 +474,6 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
       '\n' +
       read('src/dmsg_frontend/content/reading.css')
   )
-  const overview = `<section id="dmsg-public-content" class="dmsg-site dmsg-reading" lang="en" dir="ltr">${body(guides[0])}</section>`
   const description = plainText(guides[0].text.split('\n\n')[1])
   const publisher = {
     '@type': 'Organization',
@@ -411,24 +541,32 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
       mainEntity: faqEntries(guides[0].text, 'Frequently asked questions')
     }
   ]
+
+  // Publish prerendered routes at their IC asset paths (extensionless where
+  // possible, or .html with enable_aliasing where a subdirectory exists).
+  for (const route of prerenderedRoutes) {
+    const builtHtmlPath = join(output, `${route.path}.html`)
+    if (!existsSync(builtHtmlPath))
+      throw new Error(`Expected prerendered page at ${builtHtmlPath}`)
+    const rendered = readFileSync(builtHtmlPath, 'utf8')
+    const destination = route.outputPath ?? route.path
+    if (destination !== `${route.path}.html`) rmSync(builtHtmlPath)
+    write(destination, finalizeSubpageHtml(rendered, route))
+  }
+
+  // Publish clean non-indexable SPA shells for fixed dynamic/auth routes.
+  for (const route of shellRoutes) {
+    write(route.path, finalizeSubpageHtml(cleanShell, { ...route, noindex: true }))
+  }
+  rmSync(shellPath)
+
+  write('index.html', finalizeIndexHtml(indexHtml, structuredData))
+
   const lastModified = git('log', '-1', '--format=%cs', '--', ...inputs)
-  const deletionPath = '_/delete-account'
-  write(deletionPath, accountDeletionPage(shell, deletionPath))
-  // Visible HTML, not noscript or a bot-specific response. The SPA removes it
-  // only after mounting successfully; it remains readable if JS cannot run.
-  write(
-    'index.html',
-    shell
-      .replace(marker, overview)
-      .replace(
-        '</head>',
-        `<link id="dmsg-reading-style" rel="stylesheet" href="/_assets/dmsg/reading.css">\n${structuredData.map((data) => `<script type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`).join('\n')}\n</head>`
-      )
-  )
   write('_/knowledge.json', JSON.stringify(manifest, null, 2) + '\n')
   write(
     'llms.txt',
-    `# dMsg\n\n> dMsg is a private workspace for passwords, notes and files, with an encrypted vault across authorized devices, explicit file backups, secure file exchange and permissioned AI agent access. It uses the Internet Computer for verifiable account and device authorization and supports open Agent Protocols. dMsg is a product of ICPanda DAO, which governs upgrades to its on-chain rules through public proposals.\n\n## Key facts\n\n- Category: end-to-end encrypted vault, file library, file sharing and AI agent permissions.\n- Platforms: iPhone and iPad (App Store), Mac with Apple Silicon, Windows x64; command line also on Linux. Android is in development.\n- Price: ${priceFact(membership, false)}\n- Recipients need no account to open a shared file link or to upload through a file request link. File requests require Plus or above.\n- Vault records sync across authorized devices. Local library files upload only when the owner backs up or shares a copy.\n- AI agents connect through MCP with their own Agent ID and granted capabilities. They can request a formal signature; only the owner approves it.\n- Governance: each dMsg control canister lists the ICPanda SNS root as its only controller (checked 2026-11-12); see https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai. Apps and the cloud service are released and operated outside that vote.\n- On-chain recovery is off by default for new accounts and must be enabled in advance.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
+    `# dMsg\n\n> dMsg is a private workspace for passwords, notes and files, with an encrypted vault across authorized devices, explicit file backups, secure file exchange and permissioned AI agent access. It uses the Internet Computer for verifiable account and device authorization and supports open Agent Protocols. dMsg is a product of ICPanda DAO, which governs upgrades to its on-chain rules through public proposals.\n\n## Key facts\n\n- Category: end-to-end encrypted vault, file library, file sharing and AI agent permissions.\n- Platforms: iPhone and iPad (App Store), Mac with Apple Silicon, Windows x64; command line also on Linux. Android is in development.\n- Price: ${priceFact(membership, false)}\n- Recipients need no account to open a shared file link or to upload through a file request link. File requests require Plus or above.\n- Vault records sync across authorized devices. Local library files upload only when the owner backs up or shares a copy.\n- AI agents connect through MCP with their own Agent ID and granted capabilities. They can request a formal signature; only you can approve it.\n- Governance: each dMsg control canister lists the ICPanda SNS root as its only controller (checked 2026-11-12); see https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai. Apps and the cloud service are released and operated outside that vote.\n- On-chain recovery is off by default for new accounts and must be enabled in advance.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
   )
   write(
     'llms-full.txt',
@@ -438,11 +576,21 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
     'robots.txt',
     `User-agent: *\nAllow: /\nDisallow: /legacy\nDisallow: /_/login\nDisallow: /_/connect\nDisallow: /_/channel\nDisallow: /_/setting\nDisallow: /s/\nDisallow: /r/\n\nSitemap: ${origin}/sitemap.xml\n`
   )
-  // List real HTML documents only. Do not advertise dynamic profiles or
-  // login/share URLs whose unauthenticated response is the generic SPA shell.
+  // List real static HTML documents only. Do not advertise dynamic profiles or
+  // login/share/redeem URLs.
+  const sitemapPaths = [
+    '/',
+    '/_/about.html',
+    '/_/about.zh.html',
+    '/_/privacy',
+    '/_/terms',
+    '/_/support',
+    '/_/delete-account',
+    '/_/verify'
+  ]
   write(
     'sitemap.xml',
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/_/about.html', '/_/about.zh.html'].map((path) => `  <url><loc>${origin}${path}</loc><lastmod>${lastModified}</lastmod></url>`).join('\n')}\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapPaths.map((path) => `  <url><loc>${origin}${path}</loc><lastmod>${lastModified}</lastmod></url>`).join('\n')}\n</urlset>\n`
   )
   return manifest
 }

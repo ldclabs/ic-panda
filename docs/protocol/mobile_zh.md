@@ -1,6 +1,6 @@
 # dMsg 原生 Apple 客户端接口
 
-版本：1；日期：2026-11-14。此次补充付款前校验与设备证明中断恢复，客户端签名字节与用途域不变。描述公开客户端实际使用的接口与边界，不表示服务已部署或 Apple 验收通过。账号、设备和内容权限继续遵守现有[云端合同](cloud_zh.md)、[账号合同](account_root_zh.md)及[钱包合同](wallet_zh.md)。
+接口版本：1。描述公开客户端实际使用的接口与边界，不表示服务已部署或 Apple 验收通过。账号、设备和内容权限继续遵守现有[云端合同](cloud_zh.md)、[账号合同](account_root_zh.md)及[钱包合同](wallet_zh.md)。
 
 ## 1. 基础授权
 
@@ -114,11 +114,7 @@ Widget 和 App Intents 仅提供通用导航及显式暂存，不返回秘密、
 
 Android 的 gms 与 none 渠道能力、独立安装证明和 Google Play 权威链路分别见 [Android 合同](android_zh.md) 与 [Play 合同](google_play_zh.md)。Google 测试交易由 Developer API 判定，不能从构建环境推导；Android 不提交 Apple 证明或伪造 StoreKit 交易。
 
-## 7. 验证边界
-
-本地单元测试、Wasm 与模拟器检查不替代真实 App Attest、APNs、StoreKit、签名 entitlement 和系统扩展验收。配置与审核步骤见 [iOS 审核说明](../../src/dmsg_ios/Review/README_zh.md)，实际运行结果见 [验证记录](../../src/dmsg_ios/VALIDATION.md)。
-
-## 8. 本地信件与会话入口（2026-11-03）
+## 7. 本地信件与会话入口
 
 iOS 的信件目录包含收件、已发送、待发送、草稿和归档。未发送草稿与发信原文、编号、时间、结果保存在当前账户的加密工作区；不加入账户内容的自动复制，也不由当前记录传输导入器搬走，与已有发送意图一样计入留在源设备的记录。清除可重新下载的展示缓存不删除这些记录。旧发信日志没有正文或时间时不得补造。
 
@@ -129,3 +125,7 @@ iOS 整理信件调用既有 `dmsg/inbox/mark/v1` 时显式设置 `reopen_contac
 `dmsg://channel/join#<base64url-json>` 仅携带现有频道邀请。iOS 解析后展示目标账号、名称与到期时间；未登录时保留原导航请求，登录后仍须用户明确选择加入，并由共享核心校验邀请与权限。不同账号不能静默切换或自动加入。创建邀请后修改接收账号会使旧分享结果失效。
 
 会话编辑器按已验证的频道状态限制发布与邀请，附件选择不触发发送，正式入队时保留回复引用。搜索对正文与附件名使用一致范围并提供历史分页。提醒打开内容时先读取已有本地消息，再独立尝试网络刷新。
+
+## 8. 验证边界
+
+本地单元测试、Wasm 与模拟器检查不替代真实 App Attest、APNs、StoreKit、签名 entitlement 和系统扩展验收。配置与审核步骤见 [iOS 审核说明](../../src/dmsg_ios/Review/README_zh.md)，实际运行结果见 [验证记录](../../src/dmsg_ios/VALIDATION.md)。

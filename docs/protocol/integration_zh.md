@@ -2,7 +2,7 @@
 
 [English](integration.md) | 简体中文
 
-源码合同核对日期：2026-10-24。专用认证、类型化应用签署与结账通过 [dmsg-connect/1](connect-v1_zh.md) 使用桌面审批。现金结算和 PANDA 承诺采用 commerce 2 / membership 2。[账户适配器](../../examples/dmsg-account-product/README.md) 与协议 fixture 展示接入方式；各外部产品的部署与真实资金验收须独立核对。旧商业端点和会员变更/买断路径已删除，不提供 v2 到 v1 转换；运行方法见 [commerce 2](commerce_zh.md)。
+源码合同核对专用认证、类型化应用签署与结账通过 [dmsg-connect/1](connect-v1_zh.md) 使用桌面审批。现金结算和 PANDA 承诺采用 commerce 2 / membership 2。[账户适配器](../../examples/dmsg-account-product/README.md) 与协议 fixture 展示接入方式；各外部产品的部署与真实资金验收须独立核对。旧商业端点和会员变更/买断路径已删除，不提供 v2 到 v1 转换；运行方法见 [commerce 2](commerce_zh.md)。
 
 ## 版本与职责
 

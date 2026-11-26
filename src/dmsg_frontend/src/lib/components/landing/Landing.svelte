@@ -11,17 +11,11 @@
   import { locale, t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
   import Brand from './Brand.svelte'
-  import CipherLanes from './CipherLanes.svelte'
-  import CollaborationStory from './CollaborationStory.svelte'
-  import ConnectFlow from './ConnectFlow.svelte'
   import Demo from './Demo.svelte'
   import DesktopTour from './DesktopTour.svelte'
-  import DeviceDuo from './DeviceDuo.svelte'
   import FileLibrary from './FileLibrary.svelte'
   import Glyph from './Glyph.svelte'
   import HeroArt from './HeroArt.svelte'
-  import AgentNetwork from './AgentNetwork.svelte'
-  import TeamWallet from './TeamWallet.svelte'
   import Membership from './Membership.svelte'
   import type { GlyphName } from './glyphs'
   import { MARK } from './hero-art.js'
@@ -86,10 +80,19 @@
   const RECOVERY = 'faq-recovery'
 
   let menuOpen = $state(false)
-  let menuButton: HTMLButtonElement
-  let scrollY = $state(0)
+  let compactNav = $state(false)
+  const nativePopover =
+    typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype
+  let menuButton = $state<HTMLButtonElement>()
+  let menu: HTMLElement
+  let scrollSentinel = $state<HTMLDivElement>()
+  let scrolled = $state(false)
   let install = $state<Method>('brew')
   let copied = $state('')
+  let copyState = $state<'idle' | 'copied' | 'failed'>('idle')
+  let copyStatus = $state('')
+  let lastCopyAnnouncement = ''
+  let copyRequest = 0
   let copyTimer: ReturnType<typeof setTimeout>
   let recoveryOpen = $state(false)
 
@@ -277,28 +280,91 @@
     }
   ])
 
-  function onEscape(event: KeyboardEvent) {
-    if (event.key === 'Escape' && menuOpen) {
-      menuOpen = false
-      menuButton.focus()
-    }
+  function closeMenu() {
+    if (
+      menu?.getAttribute('popover') === 'auto' &&
+      menu.matches(':popover-open')
+    )
+      menu.hidePopover()
+    menuOpen = false
   }
+
+  $effect(() => {
+    if (!menuOpen) return
+    function dismissOutside(event: Event) {
+      const target = event.target
+      if (
+        target instanceof Node &&
+        !menu.contains(target) &&
+        !menuButton?.contains(target)
+      )
+        closeMenu()
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        closeMenu()
+        menuButton?.focus()
+      }
+    }
+    document.addEventListener('focusin', dismissOutside)
+    if (!nativePopover) {
+      document.addEventListener('pointerdown', dismissOutside)
+      document.addEventListener('keydown', escape)
+    }
+    return () => {
+      document.removeEventListener('focusin', dismissOutside)
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('keydown', escape)
+    }
+  })
 
   async function copy(line: string) {
+    const req = ++copyRequest
     clearTimeout(copyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(line)
-      copied = line
-      copyTimer = setTimeout(() => (copied = ''), 1800)
+      ok = true
     } catch {
-      copied = ''
+      ok = false
     }
+    if (req !== copyRequest) return
+    copied = ok ? line : ''
+    copyState = ok ? 'copied' : 'failed'
+    let message = ok ? $t('Copied') : $t('Copy failed')
+    if (message === lastCopyAnnouncement) message += '\u00A0'
+    lastCopyAnnouncement = message
+    copyStatus = ''
+    requestAnimationFrame(() => {
+      if (req === copyRequest) copyStatus = message
+    })
+    copyTimer = setTimeout(() => {
+      copied = ''
+      copyState = 'idle'
+      copyStatus = ''
+    }, 2000)
   }
 
-  $effect(() => () => clearTimeout(copyTimer))
+  $effect(() => () => {
+    ++copyRequest
+    clearTimeout(copyTimer)
+  })
 
   // The header marks the section in the middle of the screen.
   onMount(() => {
+    const compact = matchMedia('(max-width: 1280px)')
+    const updateNav = () => {
+      closeMenu()
+      compactNav = compact.matches
+    }
+    updateNav()
+    compact.addEventListener('change', updateNav)
+    const headerObserver = scrollSentinel
+      ? new IntersectionObserver(([entry]) => {
+          scrolled = !entry?.isIntersecting
+        })
+      : null
+    if (scrollSentinel && headerObserver) headerObserver.observe(scrollSentinel)
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
@@ -318,6 +384,8 @@
     showRecovery()
     addEventListener('hashchange', showRecovery)
     return () => {
+      compact.removeEventListener('change', updateNav)
+      headerObserver?.disconnect()
       observer.disconnect()
       removeEventListener('hashchange', showRecovery)
     }
@@ -325,45 +393,61 @@
 </script>
 
 <svelte:head><meta name="color-scheme" content="light" /></svelte:head>
-<svelte:window onkeydown={onEscape} bind:scrollY />
+
+{#snippet headerDownload()}
+  <a class="button primary header-action" href="#release">{$t('Download')}</a>
+{/snippet}
 
 <div class="dmsg-site home">
+  <div
+    class="scroll-sentinel"
+    bind:this={scrollSentinel}
+    aria-hidden="true"
+  ></div>
   <a class="skip" href="#main">{$t('Skip to content')}</a>
-  <header class="site-header" class:scrolled={scrollY > 8}>
+  <header class="site-header" class:scrolled>
     <div class="wrap nav-wrap">
       <Brand />
       <LocaleSwitcher />
-      <nav
-        id="main-navigation"
-        class:open={menuOpen}
-        aria-label={$t('Main navigation')}
-      >
-        {#each navigation as item}
-          <a
-            href="#{item.id}"
-            aria-current={current === item.id ? 'true' : undefined}
-            onclick={() => (menuOpen = false)}>{$t(item.label)}</a
+      {#if compactNav}{@render headerDownload()}{/if}
+      <nav aria-label={$t('Main navigation')}>
+        {#if compactNav}
+          <button
+            bind:this={menuButton}
+            type="button"
+            class="icon-button menu-toggle"
+            aria-label={$t('Main navigation')}
+            aria-expanded={menuOpen}
+            aria-controls="main-navigation"
+            popovertarget={nativePopover ? 'main-navigation' : undefined}
+            popovertargetaction={nativePopover ? 'toggle' : undefined}
+            onclick={nativePopover ? undefined : () => (menuOpen = !menuOpen)}
           >
-        {/each}
-        <a
-          class="mobile-download"
-          href="#release"
-          onclick={() => (menuOpen = false)}>{$t('Download dMsg')}</a
+            <Glyph name={menuOpen ? 'close' : 'menu'} />
+          </button>
+        {/if}
+        <div
+          bind:this={menu}
+          id="main-navigation"
+          class="nav-links"
+          popover={compactNav && nativePopover ? 'auto' : undefined}
+          ontoggle={(event) =>
+            (menuOpen = compactNav && event.newState === 'open')}
+          class:open={!nativePopover && menuOpen}
         >
+          {#each navigation as item}
+            <a
+              href="#{item.id}"
+              aria-current={current === item.id ? 'location' : undefined}
+              onclick={closeMenu}>{$t(item.label)}</a
+            >
+          {/each}
+          <a class="mobile-download" href="#release" onclick={closeMenu}
+            >{$t('Download dMsg')}</a
+          >
+        </div>
       </nav>
-      <a class="button primary header-action" href="#release"
-        >{$t('Download')}</a
-      >
-      <button
-        bind:this={menuButton}
-        class="icon-button menu-toggle"
-        aria-label={menuOpen ? $t('Close navigation') : $t('Open navigation')}
-        aria-expanded={menuOpen}
-        aria-controls="main-navigation"
-        onclick={() => (menuOpen = !menuOpen)}
-      >
-        <Glyph name={menuOpen ? 'close' : 'menu'} />
-      </button>
+      {#if !compactNav}{@render headerDownload()}{/if}
     </div>
   </header>
 
@@ -416,7 +500,12 @@
       </div>
     </section>
 
-    <section class="section band" id="space" aria-labelledby="space-title">
+    <section
+      class="section band"
+      id="space"
+      aria-labelledby="space-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>01</b>{$t('Your private space')}</p>
@@ -485,6 +574,7 @@
       class="section desktop"
       id="desktop"
       aria-labelledby="desktop-title"
+      tabindex="-1"
     >
       <div class="wrap">
         <header class="sec-head" use:reveal>
@@ -557,6 +647,7 @@
       class="section band"
       id="collaboration"
       aria-labelledby="collaboration-title"
+      tabindex="-1"
     >
       <div class="wrap">
         <header class="sec-head" use:reveal>
@@ -653,7 +744,12 @@
       </div>
     </section>
 
-    <section class="section" id="agents" aria-labelledby="agents-title">
+    <section
+      class="section"
+      id="agents"
+      aria-labelledby="agents-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>04</b>{$t('AI, with clear permissions')}</p>
@@ -733,9 +829,11 @@
             )}</p
           >
         </div>
-        <Demo id="story" title={$t('See a full project example')}
-          ><CollaborationStory /></Demo
-        >
+        <Demo
+          id="story"
+          title={$t('See a full project example')}
+          loadFigure={() => import('./CollaborationStory.svelte')}
+        />
 
         <div class="sub-head" use:reveal>
           <h3>{$t('Give your agents a way to work with others.')}</h3>
@@ -752,9 +850,11 @@
             >{$t('Read the open protocols')}<Glyph name="arrow-up-right" /></a
           >
         </div>
-        <Demo id="network" title={$t('Explore the agent network')}
-          ><AgentNetwork /></Demo
-        >
+        <Demo
+          id="network"
+          title={$t('Explore the agent network')}
+          loadFigure={() => import('./AgentNetwork.svelte')}
+        />
 
         <div class="sub-head" use:reveal>
           <h3>{$t('The app and CLI, working together.')}</h3>
@@ -764,13 +864,20 @@
             )}</p
           >
         </div>
-        <Demo id="terminal" title={$t('Explore the app and CLI example')}
-          ><DeviceDuo /></Demo
-        >
+        <Demo
+          id="terminal"
+          title={$t('Explore the app and CLI example')}
+          loadFigure={() => import('./DeviceDuo.svelte')}
+        />
       </div>
     </section>
 
-    <section class="section dark" id="trust" aria-labelledby="trust-title">
+    <section
+      class="section dark"
+      id="trust"
+      aria-labelledby="trust-title"
+      tabindex="-1"
+    >
       <div class="wrap">
         <header class="sec-head" use:reveal>
           <p class="kicker"><b>05</b>{$t('Privacy & Web3')}</p>
@@ -851,8 +958,8 @@
         <Demo
           id="privacy"
           title={$t('See what your device, the cloud and ICP receive')}
-          ><CipherLanes /></Demo
-        >
+          loadFigure={() => import('./CipherLanes.svelte')}
+        />
         <div class="trust-grid">
           <article use:reveal style:--i={0}
             ><h3
@@ -899,22 +1006,23 @@
           id="connect"
           title={$t('Review before you sign.')}
           label={$t('Interactive example · no real file is signed')}
+          loadFigure={() => import('./ConnectFlow.svelte')}
         >
           <p class="demo-intro"
             >{$t(
               'A connected website can request a signature. Review the application, file and request in dMsg, then approve or reject it. No browser extension is needed.'
             )}</p
           >
-          <ConnectFlow />
-          <p class="small"
-            >{$t(
-              'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.'
-            )}</p
-          >
+          {#snippet afterFigure()}<p class="small"
+              >{$t(
+                'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.'
+              )}</p
+            >{/snippet}
         </Demo>
         <Demo
           id="wallets"
           title={$t('Manage shared funds with clear approval rules.')}
+          loadFigure={() => import('./TeamWallet.svelte')}
           label={$t(
             'Wallet simulation · no funds move · no transaction is sent to a blockchain'
           )}
@@ -924,7 +1032,6 @@
               'Set who can propose, who can approve and when a proposal can proceed. An agent can prepare a proposal; authorized members make the approval decisions.'
             )}</p
           >
-          <TeamWallet />
         </Demo>
       </div>
     </section>
@@ -935,6 +1042,7 @@
       class="section release"
       id="release"
       aria-labelledby="release-title"
+      tabindex="-1"
     >
       <div class="wrap release-grid">
         <div class="sec-head" use:reveal>
@@ -986,6 +1094,7 @@
               aria-label={$t('Install method')}
             >
               {#each METHODS as id}<button
+                  type="button"
                   aria-pressed={install === id}
                   onclick={() => (install = id)}>{INSTALL[id].label}</button
                 >{/each}
@@ -994,11 +1103,10 @@
           <div class="install-body">
             {#each INSTALL[install].lines as line}<div class="install-line"
                 ><code dir="ltr"><span class="tp">$</span>{line}</code><button
+                  type="button"
                   class="cc-copy"
                   onclick={() => copy(line)}
-                  aria-label={copied === line
-                    ? $t('Copied')
-                    : $t('Copy command')}
+                  aria-label={$t('Copy command')}
                   ><Glyph
                     name={copied === line ? 'check' : 'copy'}
                     size={16}
@@ -1010,15 +1118,23 @@
                 'Each command installs the latest release and checks its SHA-256.'
               )}</p
             >
-            <span class="sr-only" role="status"
-              >{copied ? $t('Copied') : ''}</span
+            <p
+              class="install-status"
+              class:visible={copyState === 'failed'}
+              class:sr-only={copyState !== 'failed'}
+              role="status">{copyStatus}</p
             >
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section band" id="faq" aria-labelledby="faq-title">
+    <section
+      class="section band"
+      id="faq"
+      aria-labelledby="faq-title"
+      tabindex="-1"
+    >
       <div class="wrap two-col">
         <header class="sec-head" use:reveal
           ><p class="kicker"><b>08</b>{$t('A few useful answers')}</p><h2

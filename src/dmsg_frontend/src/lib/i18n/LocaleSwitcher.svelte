@@ -197,7 +197,6 @@
     color: #13181e;
     font-family: var(--locale-font, Inter, Archivo, ui-sans-serif, sans-serif);
     box-shadow: 0 8px 32px rgb(9 11 15 / 16%);
-    scrollbar-width: thin;
     animation: locale-picker-enter 140ms cubic-bezier(0.2, 0.6, 0.2, 1);
   }
   :global(.locale-picker-item) {
@@ -258,7 +257,7 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
   }

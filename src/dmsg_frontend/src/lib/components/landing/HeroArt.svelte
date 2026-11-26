@@ -493,10 +493,14 @@
                 ><i style:transform="scaleX({shown ? left : 1})"></i></span
               >{/if}
             <div class="ticket-actions">
-              <button class="ticket-reject" onclick={() => decide('reject')}
+              <button
+                type="button"
+                class="ticket-reject"
+                onclick={() => decide('reject')}
                 >{$t('Reject this example')}</button
               >
               <button
+                type="button"
                 class="ticket-approve"
                 class:ready
                 aria-disabled={!ready}
@@ -529,9 +533,9 @@
     >
     {#if !reduced}
       <button
+        type="button"
         class="art-motion"
         aria-label={enabled ? $t('Pause animation') : $t('Play animation')}
-        aria-pressed={!enabled}
         onclick={() => (enabled = !enabled)}
         ><Glyph name={enabled ? 'pause' : 'play'} size={16} /></button
       >

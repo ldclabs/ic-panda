@@ -31,6 +31,9 @@
     <img
       src={profile.document.avatar_url}
       alt={$t('Public profile avatar')}
+      width="40"
+      height="40"
+      decoding="async"
       referrerpolicy="no-referrer"
       onerror={() => (avatarFailed = true)}
     />

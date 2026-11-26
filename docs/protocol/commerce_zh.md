@@ -75,7 +75,7 @@ Local 之外只支持 ckUSDT `cngnf-vqaaa-aaaar-qag4q-cai` 与 ckUSDC `xevnm-gaa
 
 Apply 前未使用申请可取消；准备 Apply 后 Unknown 不可按定时取消或释放。成功 Apply 后，包括尚未开始的续期，`committed_until_ms = original E` 不可撤回，Upgrade/Replace/Buyout/提前 Close/治理编辑均不能缩短。已终止认领保持占用到失格观察前发出的租约到期，之后释放；原承诺终点本身不继续占用。到期逐引用只释放一次，释放当前期不会删除已承诺下一期。
 
-资格租约最多一小时且不超过 E。已知失格立即停止新权益并终止认领；Unverifiable 停止新权益但不终止，也不延长旧租约。终止期间不复活；原租约到期且资格恢复后可重新申请。已终止产品合同不再预留旧账单区间，原条款与回执保留为历史证据。SNS 配置验证超过一小时或失效后才返回的神经元读取，不发租约，也不清承诺。`refresh_panda_claim`/`reconcile_panda_claim` 保留原认领/决定。
+资格租约最多一天且不超过 E。已知失格立即停止新权益并终止认领；Unverifiable 停止新权益但不终止，也不延长旧租约。终止期间不复活；原租约到期且资格恢复后可重新申请。已终止产品合同不再预留旧账单区间，原条款与回执保留为历史证据。SNS 配置验证超过一小时或失效后才返回的神经元读取，不发租约，也不清承诺。`refresh_panda_claim`/`reconcile_panda_claim` 保留原认领/决定。
 
 暂时的产品预留失败保留已接受申请供对账。reserve、回执查询、Apply、release 仅在真正派发时消耗产品调用预算：全局 `product_calls_per_minute` 和每经济操作者 10 次。报价和申请共享 `authorizations_per_minute`；激活有同大小的独立额度，报价不能挤占已接受申请。三项由 PandaServiceConfig 治理配置，配置前均为 200。同一认领只能有一个在途产品调用序列，重叠重试返回 Pending；暂停准入不停止恢复。SNS 配置核验同时只派发一个，并发调用者返回 Pending，重试可复用其缓存。
 
@@ -99,6 +99,14 @@ dMsg 自用账户也使用这些服务，基础套餐和存储资源是已接受
 
 从未购买的账户没有 commerce 记录或认证权益叶；不存在证明加认证目录表示 Free，其执行权益由目录与 home 的创建时间计算，lease revision 为 0，已存主体从 1 开始。工作历史只保留当前月及仍有效/未来的资源区间，并保存最后服务截止用于到期投影。资格刷新、退款或降级不重置预留/已扣单位。根恢复/派生使用独立于付费执行单位的安全预算。
 
+## 商店与赠予来源
+
+Apple 和 Google Play 使用各自的验证者、交易事实与恢复规则，见 [Apple 合同](mobile_zh.md)与 [Google Play 合同](google_play_zh.md)，不伪装成现金订单或 PANDA 申请。
+
+赠予的公开类型见 [promo.rs](../../src/dmsg_types/src/promo.rs)。治理配置 `PromoConfig` 的验证者才能提交 `apply_promo_grant`；`PromoGrant` 固定受益人、Plus/Pro/Max 档位、30 或 365 天区间及唯一 `grant_id`。同 ID 同条款返回原回执，异条款冲突。回执区分 `Applied`、`Rejected`、`Revoked`；客户端不能靠兑换码预览自行开通会员。
+
+当前客户端用 `get_membership_terms_v3` 读取开放的 `source_kind` 与显式沙盒字段。该接口只用于展示，资源准入仍按认证权益租约。冻结的 v1/v2 查询在遇到无法表达的来源时返回 `UnsupportedProtocol`，不能静默省略合同。兑换码规则由服务决定，本文只描述公开客户端与 canister 边界。
+
 ## 操作恢复与部署
 
 私有分页 `checkout_operations`、`checkout_transfers`、`panda_operations` 复用读者/owner/商户/收款人/适配器或治理权限，包括订单冻结的商户。稳定读者索引只返回可读记录，仅有更多可读记录时给游标。`checkout_deposits(order_id, after, take)` 以不透明 hash 游标返回最多 128 笔入金。这些页面展示按账本义务、Unknown 决定、费用阻塞、过期租约与承诺，不是交付回执；客户端不得提供清空 Unknown 或提前结束已 Apply PANDA 承诺的操作。
@@ -113,6 +121,6 @@ dMsg 自用账户也使用这些服务，基础套餐和存储资源是已接受
 
 暂停准入不影响原订单对账、原路退款、既有转账恢复、资格刷新和到期释放。不能以重装解决已接受财务/承诺状态错误。开发 schema 可从空状态初始化，但没有旧商业 API 迁移层；协调已接受操作的发布必须保留原记录。
 
-`make test-dmsg` 覆盖原生规则、真实 Wasm、编码向量与 SDK。独立[账户产品](../../examples/dmsg-account-product/README.md)验证不改核心即可支持第二种主体。外部产品负责自己的回调、权威与发布验收。[集成指南](../../tests/dmsg_integration/README.md)说明本地检查；真实浏览器使用临时配置，生产钱包 origin、神经元控制权、已批准 R/预算及有界真实资金转账须另留部署证据。
+`make test-dmsg` 覆盖原生规则、真实 Wasm、编码向量与 SDK。独立[账户产品](../../examples/dmsg-account-product/README.md)验证不改核心即可支持第二种主体。外部产品负责自己的回调、权威与发布验收。[集成指南](../../tests/dmsg_integration/README.md)说明本地检查；真实浏览器使用临时配置，生产钱包 origin、神经元控制权、已批准的 R 政策及有界真实资金转账须另留部署证据。
 
 独立消息投递服务保持 delivery profile 2 与 `dmsg/quote/v2` / `dmsg/admission-receipt/v2`，不作为订阅回退或 PANDA 提前退出路径。

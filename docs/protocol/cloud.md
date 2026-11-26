@@ -35,7 +35,7 @@ Protected headers are `1=-19`, `2=[15,16]`, `3="application/cbor"`, `4=device ID
 - Submission requires `now < deadline <= now+60000`, also bounded by the evidence's validity. Recheck expiry after the device-signature callback.
 - Business and HTTP request_id must match. Re-signing HTTP PoP changes neither command nor operation ID. Query original operations for unknown results; never automatically use a new ID.
 
-dmsg-connect/1 and hints add seven actions, with routes/rules in [connect-v1](connect-v1.md) sections 7.3/7.5: `dmsg/connect/invite/v1`, `dmsg/connect/pairing/grant/v1`, `dmsg/connect/pairing/revoke/v1`, `dmsg/connect/authorize/v1`, `dmsg/connect/respond/v1`, `dmsg/hint/token/create/v1`, `dmsg/hint/token/revoke/v1`. Pairing grants/revocations, authorization and replies require `FormalApprove` in the certified device table; capability checks are action-specific. The respond body is `{cose_sign1, sealed}`, with sealed response beside the command, at most 512 KiB; payload commits only its SHA-256. This is the sole command body allowing a field beside cose_sign1.
+dmsg-connect/1 and hints add seven actions, with routes/rules in [connect-v1](connect-v1.md) sections 7.3/7.5: `dmsg/connect/invite/v1`, `dmsg/connect/pairing/grant/v1`, `dmsg/connect/pairing/revoke/v1`, `dmsg/connect/authorize/v1`, `dmsg/connect/respond/v1`, `dmsg/hint/token/create/v1`, `dmsg/hint/token/revoke/v1`. Pairing grants/revocations, authorization and replies require `FormalApprove` in the certified device table; capability checks are action-specific. The respond body is `{cose_sign1, sealed}`, with sealed response beside the command, at most 512 KiB; payload commits only its SHA-256. This is an explicit exception to the command envelope; the [notification contract](notifications_zh.md) also permits notification extensions bound by signed digests. No other fields may be added implicitly.
 
 `dmsg_client::cloud::sign_command` builds command envelopes and `sign_http` HTTP PoP. User profiles do not use this command channel. Each resource contract defines action payloads, authority and transitions; generic encoding grants no additional capability.
 
@@ -70,11 +70,11 @@ Evidence bridge shape:
 
 value/witness/certificate contain raw certified bytes; devices is canonical CBOR of the entire device map. Cache expiry is certificate time +60 seconds, never refreshed by reads/submissions. Choose only nonrevoked, suitably capable devices from verified records; returned records are not all active authorizations.
 
-User profiles are official `PrincipalDocument` values managed by `dmsg_user` and published by `dmsg_directory`; reads/certification are in [the principal contract](agent.md#unified-public-identity-document-2026-10-22). Cloud user Profile storage and `dmsg/profile/v1` are removed; avatar uploads retain device PoP and object-commit verification.
+User profiles are official `PrincipalDocument` values managed by `dmsg_user` and published by `dmsg_directory`; reads/certification are in [the principal contract](agent.md#unified-public-identity-document). Cloud user Profile storage and `dmsg/profile/v1` are removed; avatar uploads retain device PoP and object-commit verification.
 
 ## Local content and cloud mapping
 
-Accounts, devices and roots follow the [account/root contract](account_root.md). `content` creates persistent jobs per local version; `sync` uploads ciphertext and submits signed revisions. Workspaces without account/device authority cannot write content. Current mappings are:
+Accounts, devices and roots follow the [account/root contract](account_root.md). `content` creates persistent jobs per local version; `sync` uploads ciphertext and submits signed revisions. Cloud writes require account and device authority. Standalone local workspaces store content locally without synchronization. Current mappings are:
 
 | Local source | Cloud target | Mapping and checks |
 | --- | --- | --- |
@@ -179,9 +179,9 @@ A dedicated Web Worker reads configuration/handle/document in parallel and check
 
 JSON/HTML share source, fields and update time, with independent browser verification of directory certificates. Named links and `extra["dmsg.link_images"]` display together. Avatar/link images use document HTTPS URLs with `referrerpolicy="no-referrer"`; deployment CSP img-src must permit those origins. Legacy import creates a draft of name, description, named links, image extensions and avatar URL; only user publication writes it on chain.
 
-Old public profiles remain `/legacy/users/<username>`, the owner's profile `/legacy/profile`. Missing new mappings may query frozen reservations to offer the old-profile link, never treating old owners as new accounts. Only public-avatar GET/HEAD/OPTIONS retains credential-free CORS; device APIs are not browser-accessible. See [PrincipalDocument](agent.md#unified-public-identity-document-2026-10-22).
+Old public profiles remain `/legacy/users/<username>`, the owner's profile `/legacy/profile`. Missing new mappings may query frozen reservations to offer the old-profile link, never treating old owners as new accounts. Only public-avatar GET/HEAD/OPTIONS retains credential-free CORS; device APIs are not browser-accessible. See [PrincipalDocument](agent.md#unified-public-identity-document).
 
-## Cloud-copy management (2026-10-22)
+## Cloud-copy management
 
 UploadPlan optionally carries `management:{generation,ciphertext}`, at most 16 KiB of ciphertext. Uploaders encrypt JSON provenance/recovery metadata under the account root using COSE_Encrypt0 AES-256-GCM with canonical external AAD `['dmsg/storage-management/1',account_id,upload_id,object_id,version_id,generation]`. It records source file/version, name/size and link/attachment publication recovery information. The service lacks keys/plaintext. Without historical roots, show IDs, not invented names/links. Absent optional fields are omitted, leaving existing signature vectors unchanged.
 
@@ -198,7 +198,7 @@ Accepted deletion is separate from physical deleted and quota released. Show fre
 
 The desktop Cloud storage interface was removed on 2026-10-28. The generic daemon APIs `files/storage`, `files/storage_refresh` and `files/storage_action` are **deprecated** and remain callable for explicit clients. Membership shows usage through `files/cloud_usage`; Files keeps dedicated Links and Cloud backups views, using their content-specific APIs. The underlying HTTP contracts above remain supported for encrypted provenance, recovery and deletion synchronization. Local deletion does not affect cloud copies; cloud deletion cannot recall downloads. Inventory scans are not atomic across resources; discrepancies require refreshing, never editing quotas. `print_storage_management_vector` emits Rust interoperability vectors.
 
-## Direct private-file reads (2026-10-23)
+## Direct private-file reads
 
 Ordinary backup/file/share authorization is `GET /v1/{accounts|channels}/:resource/objects/:upload/download` with HTTP PoP. Success data is `{upload_id,expires_at,manifest:{url,size,digest},chunks:[{url,size,digest},...]}`. URLs authorize GET of exact objects for at most 60 seconds, bounded by request/evidence expiry. Clients compare correspondence, actual size, SHA-256 and decrypted integrity to the uploader-signed plan/authenticated manifest; download responses do not replace uploader signatures.
 
@@ -216,7 +216,7 @@ Share creation (`dmsg/share/create/v1`) optionally accepts `show_profile: true`.
 
 The page links to `/<sharer_account>` and independently reads the certified public profile. Delayed, unpublished or failed profile reads do not block metadata, reading or downloading; anonymous links make no profile lookup. Profile certification verifies the account's document, while the share-to-account association comes from the service's authenticated creation record; neither labels the file as safe or proves its authorship. Deploy the service's optional-field support before updated creation clients. Existing content/crypto vectors retain their original bytes and provenance.
 
-## File requests (2026-11-06)
+## File requests
 
 Plus and above can make upload-only links, `<site>/r/<account>/<request_id>#<page_key>`. The sender needs no account; `request_id` is 32 bytes of hex and `page_key` 32 bytes of base64url in the fragment, sent to no server. Formats and cross-language vectors are in `tests/vectors/client/request-v1.json`:
 
@@ -291,3 +291,11 @@ Cache collection uses the whole local reference index and pending jobs.
 storage quota. `upload_error` describes paused uploads while reads continue;
 manual retry or improved available storage resumes them. Wire vectors:
 [sync-v1.json](../../tests/vectors/client/sync-v1.json).
+
+## Membership redemption operations
+
+Public preview is `POST /public/promos/preview` with JSON `{code, surface:"landing"}`. It requires no login and grants no entitlement. Client normalization removes whitespace and hyphens and uppercases ASCII; the result must contain 4–32 alphanumeric characters, with at most 96 bytes in the original input.
+
+Account operations use `/v1/accounts/:account/promos/`: `preview`, `redeem` and `guest-passes` require HTTP PoP and signed commands `dmsg/promo/preview/v1`, `dmsg/promo/redeem/v1` and `dmsg/promo/guest-pass/v1`; `history` is an authenticated GET. Redemption seals the canonical code and original request ID before dispatch, reusing that ID after unknown results or restart. An unfinished redemption cannot be replaced by another code. Replies must still match the account and session generation. Preview and local journals establish neither issuance eligibility nor deployment state.
+
+See [commerce.rs](../../src/dmsg_client/src/commerce.rs) and the authoritative sources in the [commerce contract](commerce.md).

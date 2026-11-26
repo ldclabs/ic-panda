@@ -2,7 +2,7 @@
 
 English | [简体中文](legacy_archive_zh.md)
 
-2026-10-13. This contract covers implemented read-only collection, client-encrypted handoff, desktop storage, offline reading and frozen comparison. It neither proves that old services are frozen nor grants name, device or shared-channel ownership. Recovery of real Local/ECDH/VetKey accounts still requires acceptance using authorized samples.
+This contract covers implemented read-only collection, client-encrypted handoff, desktop storage, offline reading and frozen comparison. It neither proves that old services are frozen nor grants name, device or shared-channel ownership. Recovery of real Local/ECDH/VetKey accounts still requires acceptance using authorized samples.
 
 ## Read boundary
 
@@ -46,7 +46,7 @@ Missing keys, corruption or inaccessible content mark only the affected content;
 
 The desktop profile page can prefill a name and description from an imported archive, then publish through the existing public-profile operation after user review. Import itself neither overwrites nor publishes an existing public profile.
 
-Cloud sync carries archives to approved devices of the account, which can also read them offline; pairing seeds and device private keys are excluded. There is no offline recovery package, so a new device still requires on-chain approval. Archive gaps and final-cutover state are recorded independently.
+Cloud sync carries archives to approved devices of the account, which can also read them offline; pairing seeds and device private keys are excluded. A new device needs on-chain approval to obtain archives through this sync path. Separate [vault backups](vault_backup.md) do not replace device approval. Archive gaps and final-cutover state are recorded independently.
 
 After freezing, the original site exports final historical proofs per channel: CBOR containing that channel's `ChannelAuthority` pages, all `Messages` pages and attachment-manifest pages. The device checks certificates against the reviewed freeze batch and lists changed, new or missing messages, channel-key changes and attachment differences per channel, recording results in `migration`. A channel without freeze proof counts as a difference. Existing freeze-proof verification remains, but the legacy website no longer provides shared-channel plans, approval or member claims.
 

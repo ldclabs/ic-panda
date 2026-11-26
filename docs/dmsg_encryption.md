@@ -2,26 +2,21 @@
 
 English | [简体中文](dmsg_encryption_zh.md)
 
-> Reviewed 2026-10-25 against public source `fcfcc46d`. This follows actual call paths through the public canister, desktop and cloud contracts; it is not deployment evidence or a complete security audit. Locate internal designs through [AGENTS.md](../AGENTS.md). Only encryption mechanisms explained by public source and necessary cloud interface boundaries are documented here.
+This document explains keys, storage and recovery from public client and canister source. See the [documentation index](README.md) for the review baseline and [accounts and roots](protocol/account_root.md) for the exact account contract.
 
-## 1. How to read this document
+## 1. Scope
 
-Three states are distinguished: **implemented in the client** means callable local workspace flows; **implemented in service/SDK** means service/library code exists but may not be wired into the client; **awaiting acceptance** means local tests passed but real-environment validation remains.
+Service-account login, device authorization, content decryption and formal attestation are separate permissions. Login identities and handles are not content keys. Clients generate content roots; daily content operations do not invoke vetKD. Only a replacement device completing previously enabled recovery can request recovery derivation.
 
-Key conclusions:
+Clients also support a standalone workspace without login. It uses independent keys and hardware protection, or a local password on supported desktop hosts, without cloud or account-canister calls. References below to homes, device approvals and on-chain recovery concern service accounts; standalone mode is described in §5.1.
 
-1. Login authentication, device authorization, content decryption and formal attestation are separate. Neither names nor login Principals are content keys.
-2. Local content uses a random content root and a random key per immutable version. The account-issued login unlock secret or platform fast-unlock key protects the local data key; macOS uses Secure Enclave, other supported platforms a random credential-store key. Devices with a credential store and supported hardware bind by default on login, requiring local hardware for every unlock; an explicit unbind preserves the compatibility path.
-3. Roots are HPKE-wrapped per device and, only with on-chain recovery enabled, vetKD-IBE-wrapped per generation for recovery. Registration, adding devices and rotation make no chain-key service call; recovery after losing all devices performs one vetKD derivation.
-4. Desktop, iOS and Android can save ordinary vault entries and their linked files in a password-encrypted `.dmsgvault` backup. An authorized, unlocked workspace can import that content offline, including into another account. The backup password unlocks only the file. Account control, content roots, device keys and dMsg wallet signing keys remain in their respective systems. On-chain account recovery defaults off. [Backup format and import rules](protocol/vault_backup.md)
-5. Devices sign formal documents and the user home records certified receipts and charges usage. Agent controller keys remain in the vault and sign locally. Neither path uses threshold signing anymore.
-6. An account can turn on hardware approval: account, device and Agent principal control (optionally payments and formal attestations) then also needs a signature from the device's approval key, a P-256 key in the macOS Secure Enclave, which the user home verifies. Login recovery is not blocked by it and retires every approval key when it completes.
+A `.dmsgvault` backup contains ordinary vault entries and linked attachments, excluding account control, device identities and dMsg-managed signing keys. It imports into an unlocked destination workspace and is not account recovery.
 
 ## 2. Trust boundaries and data location
 
 | Component | Responsibilities | Encryption and authority boundary |
 | ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Daemon (`dmsg daemon`) | Login, unlock, encryption/decryption, root wrapping, approval/execution and sync | Holds unlocked keys in memory; CLI/desktop obtain display plaintext through loopback and owner credentials. Binary/runtime are trusted endpoints |
+| Rust client (desktop daemon / mobile core) | Login, unlock, encryption/decryption, root wrapping, approval/execution and sync | Holds unlocked keys in memory; CLI/desktop obtain display plaintext through loopback and owner credentials. Binary/runtime are trusted endpoints |
 | Workspace (SQLite) | Key envelopes, encrypted objects/chunks, sealed records, sync jobs and runtime metadata | Private payload encryption does not hide every index or state |
 | OS credential store | Owner credential, fast-unlock key or Secure Enclave handle, device-bound slot, resident Agent ID copies, hint token | Stores what opens the workspace and what resident services need while locked; with `secure_storage = "file"` the owner credential is an owner-readable file and there is no fast unlock, device binding, resident Agent ID or Secure Enclave key |
 | Secure Enclave (macOS) | Agreement keys for fast unlock and device binding, approval keys, wallet cosigner keys | Private keys cannot be exported and are used only with `secure_storage = "system"`; every use needs presence (Touch ID or the Mac password; fingerprint-only keys accept only Touch ID) |
@@ -43,7 +38,7 @@ AEAD prevents keyless ciphertext tampering, not refusal to deliver, hidden recor
 | ------------------------- | -------------------------------------------------------------------------------------- |
 | ICP Principal | Authenticated caller; accounts may bind independent login identities |
 | On-chain `AccountId` | 12-byte Xid, canonical 20-character text, allocated by `dmsg_user`; bytes 4..9 identify its allocating home |
-| Content `subjectId` | Account Xid in content AAD; there is no content before device binding |
+| Content `subjectId` | Account Xid in content AAD; standalone content uses the reserved zero ID |
 | `deviceId` | 32-byte device identifier, a separate field from the device public key |
 | Handle | Transferable name, never a key-derivation root |
 | `account.issuer` | Account URI under an explicit namespace; formal statement signer identity |
@@ -64,33 +59,13 @@ AEAD prevents keyless ciphertext tampering, not refusal to deliver, hidden recor
 | File-version key | Random 32 bytes per new import | Encrypts chunks of one version; stored in encrypted manifest |
 | Device signing seed | Random 32 bytes, LDK-sealed | Ed25519 account approvals, documents, root bundles and cloud commands |
 | Device HPKE seed | Random 32 bytes, LDK-sealed | X25519 root envelopes, channel epochs and web requests |
-| II session key | Generated each login; presence-protected fast unlock may LDK-seal the restricted login | II delegation session key, usable before unlock |
+| Login key | II uses a client-generated session key; Passkey uses an independent hardware P-256 key and short-lived delegation | Separate from content keys; see [II](protocol/login-v1.md) / [Passkey](protocol/passkey-v1_zh.md) |
 | Controller key | Random 32 bytes in a vault entry | Local Agent Delegation signing, synced under the root |
 | Hosted Agent ID seed | Random 32 bytes in a vault entry whose ID its label determines; a resident Agent ID keeps a copy in the credential store | The Agent ID's Ed25519 signatures; while locked only resident Agent IDs sign |
 | Wallet cosigner key | macOS: a Secure Enclave P-256 key; otherwise a software P-256 key sealed under the LDK and declared non-hardware | Multisig wallet cosigning; see the [wallet contract](protocol/wallet.md) |
 | vetKD derived public key | COSE fixed-context public key; client checks name/fingerprint | IBE recovery-envelope encryption |
 
-Local protection chain:
-
-```mermaid
-flowchart LR
-  II[II login] --> S[unlock_secret]
-  S --> L[HKDF → LUK]
-  OS[OS credential store] --> KP[K_fast]
-  SE[Device-bound slot → S] --> KB[K_login / bound K_fast]
-  L -->|not bound| D[Unwrap LDK]
-  L -->|device-bound| KB
-  KP -->|not bound| D
-  KB --> D
-  D --> B[Open sealed records]
-  B --> R[Content root VRK]
-  B --> K[Device signing / HPKE private keys]
-  R --> V[Unwrap object-version key]
-  V --> C[Decrypt private payload]
-  C --> F[FileKey in file manifest]
-  F --> X[Decrypt and verify file chunks]
-```
-
+The service-account protection chain is: login unlock material or hardware fast unlock → LDK → device keys and content roots → object-version keys → content. A file manifest also contains its chunk FileKey. Device binding adds a hardware secret to the LDK unlock requirements.
 Like legacy `myIV`, `unlock_secret` is a canister-held secret: subnet node operators can read it, controller/SNS upgrades can expose `master_secret`, and API boundary nodes relay it as an ordinary query response in plaintext. These parties also need a device workspace copy for it to be useful; with device binding on, a copy made after binding also needs this Mac's Secure Enclave. `master_secret` has no rotation mechanism. Issuance depends on login Principal, not a device signature, which would let someone with a stolen workspace use its device key to fetch the secret.
 
 ## 4. Primitives, encoding and context
@@ -125,6 +100,12 @@ result = base64url(CBOR([
 
 ### 5.1 Initialization and binding
 
+A **standalone workspace** lives at `<home>/<environment>/local-account/`. Its reserved zero AccountId is `00000000000000000000`; each installation generates independent device, vault and file keys. It is neither an on-chain account nor a provisional login workspace. Versions remain `local_only` with no cloud sync jobs.
+
+Protection is fixed at creation. Hardware and a system credential store provide user-presence protection where available. Desktop hosts permitting password mode use NFC UTF-8 passwords, at least 12 extended grapheme clusters at creation and at most 256 bytes. Argon2id uses a random 16-byte salt, 64 MiB memory, three iterations and four lanes to derive a 32-byte wrapping key. Temporary hardware failure never switches protection to password mode. Losing the only unlock credential leaves previously exported content backups as the recovery option. See [local.rs](../src/dmsg_client/src/local.rs).
+
+The following initialization applies to a **service-account workspace**.
+
 A new workspace (`dmsg_client::workspace`) generates the device ID, signing/HPKE seeds, LDK and provisional key:
 
 ```text
@@ -134,25 +115,28 @@ device      = E(LDK, CBOR({signing, hpke}), ["dmsg/local-private/1", hex(deviceI
 name        = "dmsg:" + environment + ":" + account + ":" + deviceId   // after account binding
 ```
 
-Other records, including current/historical roots, import plans, rotation jobs, account/approval journals and MCP events, are LDK-sealed under `["dmsg/local-private/1", hex(deviceId), record_name]`. Writes before binding are rejected, so the provisional key protects only device keys not yet recognized by an account. First use requires II through dmsg.net ([dmsg-login/1](protocol/login-v1.md)): create a new account at a registration home with its initial device, or have an administrator device approve pairing to an existing account in the approval center (high-risk; with presence hardware the person must confirm, and approving adds the device and rotates the root). The client then queries `unlock_secret(account, device)`, rewraps the same LDK with `LUK` under `["dmsg/local-key/2", name]`, and deletes the provisional key.
+Other records, including current/historical roots, import plans, rotation jobs, account/approval journals and MCP events, are LDK-sealed under `["dmsg/local-private/1", hex(deviceId), record_name]`. Writes before binding are rejected, so the provisional key protects only device keys not yet recognized by an account. Service-account use requires a bound II ([dmsg-login/1](protocol/login-v1.md)) or [Passkey](protocol/passkey-v1_zh.md) login: create a new account at a registration home with its initial device, or have an administrator device approve pairing to an existing account in the approval center (high-risk; with presence hardware the person must confirm, and approving adds the device and rotates the root). The client then queries `unlock_secret(account, device)`, rewraps the same LDK with `LUK` under `["dmsg/local-key/2", name]`, and deletes the provisional key.
 
-Local key cleanup (2026-10-31 addition): account binding, device binding and replacement or removal of an LDK wrapping must complete `wal_checkpoint(TRUNCATE)` after commit before reporting success. `secure_delete` clears old records in current database pages but does not itself erase historical WAL pages. Opening an existing writable workspace and releasing its unlocked keys also perform this cleanup, covering older releases and interruptions after commit. A blocking database reader makes cleanup fail; a committed hardware binding keeps its credential-store slot so a later unlock can retry. Moved copies opened as read-only import sources remain unchanged. This does not erase earlier workspace copies, filesystem snapshots or keys already obtained.
+Local key cleanup: account binding, device binding and replacement or removal of an LDK wrapping must complete `wal_checkpoint(TRUNCATE)` after commit before reporting success. `secure_delete` clears old records in current database pages but does not itself erase historical WAL pages. Opening an existing writable workspace and releasing its unlocked keys also perform this cleanup, covering older releases and interruptions after commit. A blocking database reader makes cleanup fail; a committed hardware binding keeps its credential-store slot so a later unlock can retry. Moved copies opened as read-only import sources remain unchanged. This does not erase earlier workspace copies, filesystem snapshots or keys already obtained.
 
-### 5.2 Everyday unlock
+### 5.2 Daily unlock
 
-- General path: II login with a daemon-generated/held session key independent of unlock → `unlock_secret` → LUK → LDK → sealed records, all in memory; repeat after lock. `login_unlocked_at` records the time.
-- Fast path: defaults on after login unlock, remaining off if disabled, and wraps a second LDK copy with `["dmsg/local-key/2", "fast:" + name]`. On macOS, Secure Enclave P-256 agreement recovers `K_fast`. The SE key uses `.userPresence`: Touch ID, or the Mac password when unavailable, is required each time. Its CryptoKit `dataRepresentation` handle opens only on the same SE, without a keychain entry or entitlement. No answer within 60 seconds withdraws the prompt and counts as refusal. When the Secure Enclave reports that it cannot ask now (for example, no usable Touch ID), fast unlock stays on; only a key that can no longer be used turns it off and asks for a login. Platforms without hardware-presence support store a random 32-byte K_fast without presence checks; reading it permits unlock. Only plain credential-store keys require the general path at 30 days after login unlock. Hardware-presence unlock on macOS/iOS has no such deadline. Online fast unlock verifies the certified device table and clears local data if revoked.
-- Login retention: with presence-required fast unlock, login unlock seals the target-restricted login key and 30-day delegation chain as `login` under LDK. Lock clears memory only; fast unlock restores it until expiry. After expiry it is deleted; local unlock and reads continue, while operations requiring II identity ask for a login. Devices without presence checks do not save login. Disabling fast unlock or resetting deletes it.
-- Device binding (default with a credential store and supported hardware): keeps the same LDK; a Secure Enclave key-agreement secret `S` from a credential-store slot of its own joins the LUK to derive the login wrapping key, and alone derives the fast-unlock wrapping key. The wrap under the LUK alone is deleted in the same transaction, so login and fast unlock both need this Mac's hardware and the person's presence; II authorization still expires within 30 days, independently of local fast unlock. Signing out, disabling fast unlock and failures never delete the slot or fall back to the old wrap; only resetting the workspace or unbinding deletes it, and unbinding wraps the LDK under the LUK again. It protects only copies made after binding: earlier copies still open the same LDK with a login. The device signing key kept in memory for background online and resident Agent IDs' credential-store copies are outside it, and turning it on lists them. Exact encoding is in the [account contract](protocol/account_root.md#local-unlock).
-- Fingerprint-only (optional): the device-bound slot and approval keys can use `.biometryCurrentSet`, accepting only the fingerprints enrolled at creation and never the Mac password; the client stores the SHA-256 of `evaluatedPolicyDomainState` from then. After the enrolled fingerprints change the key is lost for good (reported as an integrity failure); when Touch ID cannot ask now it is only reported unavailable. Neither case deletes the slot or key or falls back.
+A service account uses a bound II or Passkey identity to obtain `unlock_secret` and derive LUK. With device binding enabled, it also needs this device's hardware secret `S` to unwrap LDK; copying the workspace and login identity is insufficient. Unwrapped keys remain in client-core memory.
 
-Default binding (2026-10-31 addition): joining after registration, pairing or recovery, and logging into an existing account, reuse the current `unlock_secret` query result to bind; there is no extra update or everyday vetKD derivation. The new hardware key must first open with user presence before content keys are released. Cancellation, creation failure and hardware errors do not fall back to login-only unlock. An existing hardware anchor distinguishes temporarily unavailable presence from unsupported hardware. Old unbound fast unlock requires a login to migrate. An explicit unbind persists `bound_declined`; manually binding again clears it. Devices without a credential store or supported hardware keep the compatibility path. Desktop and mobile hosts run confirmation outside the client executor and recheck the account, session and device state before accepting it.
+| Local protection | Implementation and boundary |
+| --- | --- |
+| Apple hardware | Secure Enclave P-256 key agreement, with system user-presence verification for each unlock |
+| Android hardware | Android Keystore RSA-OAEP wraps a random secret; hardware security level and per-use authentication are checked |
+| Credential-store compatibility without hardware | Random 32-byte fast-unlock key, without user-presence assurance; requires login again 30 days after the last login unlock |
+| `secure_storage = "file"` | No fast unlock |
 
-Migration scope: while the old device is available, unlock it and use device approval plus `dmsg-device-transfer/1` to transfer local data securely; the new device has independent device keys and hardware binding. Without the old device, previously enabled login recovery restores content already uploaded to the cloud; a copied hardware-bound workspace cannot recover its unuploaded local files. Default binding first verifies and reuses an existing hardware fast-unlock key when present, preserving its evidence about a moved copy. A newly created key cannot establish the origin of an older hardware anchor.
+Registration, pairing, recovery and ordinary login bind the device by default when hardware and a credential store are available. Login wrapping uses both `LUK` and `S`; fast wrapping uses `S`, with context binding environment, account, device and slot. Exact derivation formulas are in the [account contract](protocol/account_root.md). Cancellation or temporarily unavailable hardware never falls back to weaker wrapping; unbinding is explicit.
+
+Fast unlock defaults on and stays off when disabled by the user. Hardware-presence unlock permits continued reads of local copies while login delegations expire independently. Once online, the client checks the certified device table and clears a revoked device's local data; it cannot recall copies already taken. See the locking section for resident-Agent and background-online boundaries.
 
 ### 5.3 Plaintext storage boundary
 
-Each account workspace is `<environment>/accounts/<account>/` under home; unbound logins use `logins/<principal>/`, renamed once an account is obtained. `workspace.sqlite` stores sealed records, objects, sync chunks and jobs. Library ciphertext chunks live separately in `blobs/`, with independent reference tracking/collection. Accounts share neither workspace, device keys nor LDK; different logins of one account share its workspace.
+Service-account workspaces live at `<home>/<environment>/accounts/<account>/`, unbound logins at `logins/<principal>/`, and standalone workspaces at `local-account/`. `workspace.sqlite` holds sealed records, encrypted objects and jobs; library ciphertext chunks live in `blobs/`. Accounts do not share device keys or LDKs. Different logins for one account share its local workspace.
 
 | Data | At-rest protection |
 | ---------------------------------------------------------------------------- | ------------------------------------------------ |
@@ -169,7 +153,7 @@ Hosted Agent ID connector state lives in `agents.sqlite` beside the account work
 
 ### 5.4 Locking
 
-Unlocked keys reside only in daemon memory (`Zeroizing`); a file lock permits one daemon per home. Default idle lock is 15 minutes (`idle_lock_minutes`) and discards login/account-content keys. Explicit background-online mode retains the device signing key to submit already-sealed versions and receive hints, not read content. Resident Agents may separately retain authorized-service keys; Mail watch subscription keys contain no account content root, as described in [Mail events](protocol/mail_events.md). CLI/desktop use loopback and owner credentials; renderers obtain necessary display plaintext through the daemon. This is process isolation: the Secure Enclave keeps only the keys listed in section 2, while the unlocked LDK and content keys stay in daemon memory.
+Unlocked keys live in Rust client memory and use `Zeroizing` for cleanup. Desktop permits one daemon per home and defaults to a 15-minute idle lock; mobile hosts manage their session lifecycle. Lock clears content keys and in-memory login, while independent Passkey renewal credentials may remain. Explicit background-online mode may retain device signing keys and resident Agents may retain independent service keys, without keeping the account content root. Desktop renderers obtain display plaintext through controlled IPC/daemon interfaces; Secure Enclave does not perform ordinary content decryption.
 
 Sources: [workspace.rs](../src/dmsg_client/src/workspace.rs), [store.rs](../src/dmsg_client/src/store.rs), [client.rs](../src/dmsg_client/src/client.rs), [secure.rs](../src/dmsg_client/src/secure.rs), [daemon.rs](../src/dmsg_cli/src/daemon.rs), [enclave.rs](../src/dmsg_cli/src/enclave.rs).
 
@@ -192,7 +176,7 @@ Reads check the digest, unwrap the version key and decrypt. After rotation, hist
 
 ## 7. File encryption and integrity
 
-Plaintext chunks are 1 MiB; every new file version has a fresh random FileKey, file ID and version. Whole-file `files.rs` entry points allow 100 MiB. The desktop library imports in chunks with a configurable `files_max_bytes` default of 4 GiB. Cloud backups, sharing and secret snapshot packages still allow 100 MiB; local import limits do not imply equal upload limits.
+Plaintext chunks are 1 MiB. Each new file version gets an independent FileKey, file ID and version. Whole-file interfaces allow 100 MiB; chunked desktop-library import defaults to 4 GiB via `files_max_bytes`. Cloud backups and file requests depend on the certified plan: 100 MiB for ordinary tiers, 1000 MiB for an active Max plan. Existing backups restore up to 1000 MiB. Sharing and secret packages retain separate 100 MiB limits. A local import limit is not an upload limit.
 
 ```text
 nonce_i = 0x644d7367 || uint64_be(i)
@@ -228,15 +212,15 @@ New accounts start with on-chain recovery off; existing accounts retain their po
 
 | Situation | Recoverable scope |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Local data remains and a bound II login is accessible | `unlock_secret` opens local content and device keys; with device binding on, this Mac's Secure Enclave slot is needed too |
+| Local data remains and a bound login is accessible | `unlock_secret` opens local content and device keys; with device binding on, this Mac's Secure Enclave slot is needed too |
 | Local data remains with fast unlock enabled | Hardware-presence unlock keeps local content accessible after II expiry; plain credential-store keys require login again after 30 days |
 | Device-bound slot lost or invalid (such as a fingerprint-only key after the fingerprints change) | This copy no longer opens and does not fall back to the old wrap; reset the workspace and recover the content as a new device through pairing or recovery |
 | New device with an administrator device available | Administrator approves pairing in the approval center (high-risk) and rotates; the new device downloads and opens its envelope. If the account requires hardware approval, the administrator device's approval key is needed too |
 | Hardware approval required and a device's approval key lost | That device cannot perform protected operations; it can make a new key and token locally for an administrator device with a key to register; with no usable key left, only previously enabled login recovery remains |
-| All devices lost, II retained, recovery enabled beforehand | Request recovery → waiting period (default 3 days, cancellable by any old device) → replace devices/bindings, retire every approval key and turn hardware approval off → one vetKD derivation opens recovery envelope → rotate |
-| All authorized devices lost with recovery off | Content is unrecoverable even with the login |
-| II and all devices lost | Unrecoverable |
-| dMsg service unavailable | No service-independent recovery path |
+| All devices lost, a bound login retained, recovery enabled beforehand | Request recovery → waiting period (default 3 days, cancellable by any old device) → replace devices/bindings, retire every approval key and turn hardware approval off → one vetKD derivation opens recovery envelope → rotate |
+| All authorized devices lost with recovery off | A login cannot recover content; an independent backup restores only its exported content |
+| Bound logins and all devices lost | Account control is unrecoverable; content backups can still import into another workspace |
+| dMsg service unavailable | Read accessible local content or import a `.dmsgvault` into a standalone workspace; this does not recover on-chain control or unbacked cloud content |
 
 Only the device registered by `complete_recovery` may derive the current generation. Before rotation, a new approval may derive again, consuming daily execution count; rotation removes that authority. When recovery is enabled, the waiting period mitigates stolen II: no device response during the delay exposes content.
 
@@ -259,7 +243,7 @@ Approval.hardware = { key_id, signature = P256(approval_key, H) }
 - A purpose the account's policy requires needs a valid proof by the currently registered key; a proof that comes along otherwise is verified too. Only account state decides what is required, so once on, old clients (Candid without the `hardware` field) are refused.
 - Purposes: `AccountControl` (approval keys, both policies, recovery delay, login bindings), `DeviceControl` (adding and revoking devices, changing capabilities) and `PrincipalControl` (enabling the Agent principal, registering and retiring controllers) are always included once on; `Payment` (cash checkout and PANDA subscription application approvals, `AuthorizeHandle`) and `Attestation` (`attest`, `attest_app_action`, third-party authentication) are optional. Root rotation, recovery disputes, the principal display document, controller renames and compromise marks, multisig wallet approvals and recovery derivation are not protected.
 - Registration needs the new key's proof of possession over `digest("dmsg/approval-key/v1", (home, account, device_id, public_key))`, and one key cannot be registered to two devices. Any active device manages its own key; registering or retiring another device's key needs an administrator. Revoking a device retires its key. Turning the policy on needs a valid proof from the approving device itself.
-- Approval keys and the policy live in account state and are returned by `AccountInfo`; they are not in `Device`, `devices_root` or the security leaf, so cloud and `dmsg_directory` security evidence is unchanged. The user home's stable layout is schema 17 (device successions, likewise only in account state), upgraded in place from 14, 15 and 16.
+- Approval keys and the policy live in account state and are returned by `AccountInfo`; they are not in `Device`, `devices_root` or the security leaf, so cloud and `dmsg_directory` security evidence is unchanged. The user home's stable layout is schema 18, with in-place upgrades from 14–17; stable-layout and security-leaf versions are distinct.
 
 ## 10. Device signatures, formal attestation and external requests
 
@@ -275,22 +259,15 @@ sealed     = HPKE-Auth.Seal(skS = responding_device_hpke_private_key, pkR = resu
                             info = aad = ["dmsg/connect-response/v1", account_id, pairing_id, request_id, version, device_id])
 ```
 
-Locked devices retain original envelopes, opening and checking pairing grants/page signatures only after unlock before approval. Replies use HPKE Auth to the bridge's per-operation non-exportable result key: relays cannot read them and parties without the responding device HPKE key cannot forge them. Page origin is a pairing-key-signed bridge claim displayed after registration checks, not cryptographic origin proof. MCP Events are likewise relay-sealed to device HPKE keys and signature-checked before LDK storage. Login requests a 30-day target-restricted delegation including ledgers; the session key is discarded, while the restricted key remains in memory and is persisted under LDK only for presence-required fast unlock. Signatures prove device approval of fixed data, not that a human read it.
+Locked devices retain original envelopes, opening and checking pairing grants/page signatures only after unlock before approval. Replies use HPKE Auth to the bridge's per-operation non-exportable result key: relays cannot read them and parties without the responding device HPKE key cannot forge them. Page origin is a pairing-key-signed bridge claim displayed after registration checks, not cryptographic origin proof. MCP Events are likewise relay-sealed to device HPKE keys and signature-checked before LDK storage. II requests a 30-day target-restricted delegation including ledgers. Passkey uses an independent 12-hour parent delegation and a restricted local session; see the respective login contracts. Signatures prove device approval of fixed data, not that a human read it.
 
 Where the account requires an approval key (section 9), the person answers once: without holding the client lock, the daemon obtains presence through the approval key (an evaluated Secure Enclave `LAContext`), then assembles the approval, signs Ed25519, and signs `H` with the same answer, so waiting for the person holds no device sequence and no second prompt appears. Formal attestations the account protects likewise ask before signing. Without a registered key on this device, a protected operation is refused locally before submission (`APPROVAL_KEY_REQUIRED`). Once the policy is on, a device without a usable key can make a key locally and sign a `dmsg-approval-key/1` token with its proof of possession; an administrator device with a key checks the device ID and approves the registration. Hardware approval means a stolen device software key and login together cannot immediately perform protected operations, but previously enabled login recovery can still take over after its waiting period, during which any old device can dispute it. It proves that the registered key took part in the approval, not the model of hardware holding it or the person's intent.
 
 ## 11. Verification boundaries
 
-| Area | Source and test entry points | Separate evidence still needed |
-| --- | --- | --- |
-| Login/fast unlock | `workspace`, `client`, `secure`, unit tests and desktop login/lock flows | Real II origin, Touch ID, platform credentials and distribution builds |
-| Approval keys/device binding | `dmsg_user` unit tests and PocketIC (enforcement, old Candid, recovery, schema 15 upgrade); `approval_key`, `workspace`, `client` unit tests (software stand-ins); P-256 vectors checked independently in JS | Real Touch ID, Secure Enclave access control and error codes, fingerprint-change detection, the desktop key UI |
-| Root bundles/recovery | `root` / `recovery`, PocketIC; desktop request/cancel/complete/rotate flows | Real-user loss-of-all-devices drills and production vetKD configuration/cost |
-| Multiple homes | `account::find_account` queries all homes in parallel; any failure means unknown | Production failures/throughput; cross-home Principal uniqueness is intentionally not guaranteed |
-| Files/credential use | `library` / `secrets` chunk integrity, independent sharing, approval/revocation tests; the development-signed production macOS FSKit module tested for real | Developer ID-distributed and notarized mount module, Linux FUSE, real external services and already obtained copies |
-| Agent Mail | Atomic connector state/encrypted Mail-key persistence and interrupted publication recovery | Production relay and specific MCP host scheduling |
+Fixed vectors, independent JavaScript verification and Rust tests cover primitives and encoding; PocketIC regressions cover account authorization and upgrades. Check platform records separately for hardware, signed distribution, real services and recovery drills. Software substitutes do not prove hardware non-exportability, and a valid signature does not prove a person read the approved content.
 
-This was documentation/source review; cryptography, PocketIC, desktop and platform suites were not rerun. Existing tests do not mean this review ran them successfully or replace independent auditing.
+This documentation review did not rerun cryptographic, PocketIC or platform suites. Existing test definitions are not results from this review.
 
 ## 12. Source and verification entry points
 

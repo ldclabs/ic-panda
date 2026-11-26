@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { t } from '$lib/i18n'
   import { packageFieldName, type SecretPackage } from '$lib/share/package'
 
@@ -6,7 +7,10 @@
   const uid = $props.id()
   const fields = $derived(item.fields.filter((f) => f.value !== ''))
   let visible = $state(new Set<number>())
-  let copied = $state<{ index: number; ok: boolean } | null>(null)
+  let copied = $state<{ index: number; status: string } | null>(null)
+  let lastAnnouncement = ''
+  let copyRequest = 0
+  let copyTimer: ReturnType<typeof setTimeout>
 
   function toggle(index: number) {
     const next = new Set(visible)
@@ -16,13 +20,32 @@
   }
 
   async function copy(index: number, value: string) {
+    const id = ++copyRequest
+    clearTimeout(copyTimer)
+    let ok = false
     try {
       await navigator.clipboard.writeText(value)
-      copied = { index, ok: true }
+      ok = true
     } catch {
-      copied = { index, ok: false }
+      ok = false
     }
+    if (id !== copyRequest) return
+    let message = $t(ok ? 'Copied' : 'Could not copy')
+    if (message === lastAnnouncement) message += '\u00A0'
+    lastAnnouncement = message
+    copied = { index, status: '' }
+    requestAnimationFrame(() => {
+      if (id === copyRequest) copied = { index, status: message }
+    })
+    copyTimer = setTimeout(() => {
+      copied = null
+    }, 2500)
   }
+
+  onDestroy(() => {
+    ++copyRequest
+    clearTimeout(copyTimer)
+  })
 </script>
 
 {#snippet row(index: number, label: string, section: string, value: string)}
@@ -30,14 +53,14 @@
     <div class="field-top">
       <strong id={`${uid}-name-${index}`} dir="auto">{#if section.trim()}<small>{section}</small>{/if}{label}</strong>
       <div class="field-actions">
-        <button class="button secondary" aria-expanded={visible.has(index)}
+        <button type="button" class="button secondary" aria-expanded={visible.has(index)}
           aria-describedby={`${uid}-name-${index}`} onclick={() => toggle(index)}>{$t(visible.has(index) ? 'Hide' : 'Reveal')}</button>
-        <button class="button secondary" aria-describedby={`${uid}-name-${index}`}
+        <button type="button" class="button secondary" aria-describedby={`${uid}-name-${index}`}
           onclick={() => copy(index, value)}>{$t('Copy')}</button>
       </div>
     </div>
     {#if visible.has(index)}<pre dir="auto">{value}</pre>{/if}
-    {#if copied?.index === index}<small role="status">{$t(copied.ok ? 'Copied' : 'Could not copy')}</small>{/if}
+    <small class="copy-status" role="status">{copied?.index === index ? copied.status : ''}</small>
   </section>
 {/snippet}
 

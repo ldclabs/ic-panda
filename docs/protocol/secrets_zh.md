@@ -2,7 +2,7 @@
 
 [English](secrets.md) | 简体中文
 
-日期：2026-10-24。本文描述公开客户端实现；不是部署或真实 GitHub 验收声明。
+本文描述公开客户端实现；不是部署或真实 GitHub 验收声明。
 
 ## 范围与权限
 
@@ -51,7 +51,7 @@ Vault 现有加密粒度为整个条目。元数据校验会在可信核心内�
 | `secrets/policies/disable` | `id` → 禁用后的策略 |
 | `secrets/uses/get` | `request_id` → 状态/受限结果和 owner 审批视图；锁定时只有 ID、状态 |
 | `secrets/uses/cancel` | `request_id` → 只取消 awaiting_user |
-| `secrets/uses/list` | `before?`（上一页末请求 ID）, `actor?, kind?, limit?`（≤100）；P0 kind 仅 secret_use → `{uses,next,device_local:true}` |
+| `secrets/uses/list` | `before?`（上一页末请求 ID）, `actor?, kind?, limit?`（≤100）；kind 只接受 `secret_use` → `{uses,next,device_local:true}` |
 | `secrets/uses/mark_reviewed` | `request_id` → 仅给 lost 添加 reviewed_at，不修改执行结果 |
 
 ```text
@@ -149,7 +149,11 @@ SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.co
 
 扩展通过签名团队 App Group 容器 `<TEAM>.net.dmsg.secrets` 中专用 0700 目录里的 Unix socket 连接 daemon（App Sandbox 只允许扩展连接该容器内的 socket），目录不存密钥或明文 backing file。daemon 必须由同一团队签名，发布版 `dmsg` 带该 App Group entitlement；未签名或 ad-hoc 签名的 daemon 无法提供挂载。
 
-macOS 不会自动启用文件系统扩展：首次使用前，用户须在“系统设置 → 通用 → 登录项与扩展 → 按类别 → 文件系统扩展”中启用 “dMsg secret files”。`secrets/mounts/list` 的 `daemon_ready` 表示 daemon 能否服务扩展；`start` 失败时返回并在 `status.error` 保留固定原因，直到下一次启动：`FSKIT_EXTENSION_DISABLED`（已安装但未启用）、`FSKIT_EXTENSION_MISSING`（本 dMsg 未包含扩展）、`FSKIT_EXTENSION_REFUSED`（扩展与 daemon 不是同一签名版本）、`FSKIT_DAEMON_UNSIGNED`（daemon 缺团队签名或 App Group）、`FSKIT_UNAVAILABLE`（其他）。前三者取自 `/sbin/mount` 的固定报错格式。桌面端据此显示操作步骤，并经 main 进程打开系统设置的“登录项与扩展”。从 1.6.0-beta.1 起，macOS 发布流程嵌入带 Yiwen Developer ID 签名和分发描述文件的 `SecretsFS.appex`，并在最终更新 ZIP 中复核。该模块使用 macOS 27。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。锁定、退出登录与切换账户会停止并卸载全部机密挂载，项目别名在此期间悬空；解锁后不会自动重新挂载，需要 owner 再次启动，之后每次读取仍须重新批准。来源变更时每次读取立即拒绝，daemon 的周期检查随后停止该卷。
+macOS 不会自动启用文件系统扩展：首次使用前，用户须在“系统设置 → 通用 → 登录项与扩展 → 按类别 → 文件系统扩展”中启用 “dMsg secret files”。`secrets/mounts/list` 的 `daemon_ready` 表示 daemon 能否服务扩展；`start` 失败时返回并在 `status.error` 保留固定原因，直到下一次启动：`FSKIT_EXTENSION_DISABLED`（已安装但未启用）、`FSKIT_EXTENSION_MISSING`（本 dMsg 未包含扩展）、`FSKIT_EXTENSION_REFUSED`（扩展与 daemon 不是同一签名版本）、`FSKIT_DAEMON_UNSIGNED`（daemon 缺团队签名或 App Group）、`FSKIT_UNAVAILABLE`（其他）。
+
+前三者取自 `/sbin/mount` 的固定报错格式。桌面端据此显示操作步骤，并经 main 进程打开系统设置的“登录项与扩展”。从 1.6.0-beta.1 起，macOS 发布流程嵌入带 Yiwen Developer ID 签名和分发描述文件的 `SecretsFS.appex`，并在最终更新 ZIP 中复核。该模块使用 macOS 27。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。
+
+失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。锁定、退出登录与切换账户会停止并卸载全部机密挂载，项目别名在此期间悬空；解锁后不会自动重新挂载，需要 owner 再次启动，之后每次读取仍须重新批准。来源变更时每次读取立即拒绝，daemon 的周期检查随后停止该卷。
 
 ### 快照发送与接收
 

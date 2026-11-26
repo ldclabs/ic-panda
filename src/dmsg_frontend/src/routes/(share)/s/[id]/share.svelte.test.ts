@@ -252,6 +252,25 @@ it('shows the full name and type before content, reads inline, and saves without
   ).toHaveTextContent('Plus')
 })
 
+it('keeps the verified source and download when the Markdown module fails to load', async () => {
+  vi.doMock('$lib/share/markdown', () => {
+    throw new TypeError('Module unavailable')
+  })
+  try {
+    start()
+    await shown('[data-testid="share-preview"]')
+    click('[data-testid="share-preview"]')
+    await shown('.reader pre')
+    expect(target.querySelector('.reader pre')?.textContent).toBe(body)
+    expect(target.querySelector('button[aria-pressed]')).toBeNull()
+    click('[data-testid="share-save"]')
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(network.bytes).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.doUnmock('$lib/share/markdown')
+  }
+})
+
 it('keeps metadata behind the password and allows a retry after a wrong password', async () => {
   descriptor.password = true
   descriptor.key_wrap = 'wrapped'
@@ -268,9 +287,17 @@ it('keeps metadata behind the password and allows a retry after a wrong password
     .dispatchEvent(new Event('submit', { cancelable: true }))
   await shown('[role="alert"]')
   expect(network.metadata).not.toHaveBeenCalled()
-  input.value = 'correct'
-  input.dispatchEvent(new Event('input', { bubbles: true }))
+  const retryInput = target.querySelector<HTMLInputElement>(
+    'input[type="password"]'
+  )!
+  expect(retryInput).toHaveFocus()
+  expect(retryInput).toHaveAttribute('aria-invalid', 'true')
+  expect(retryInput).toHaveAccessibleDescription('Wrong password')
+  retryInput.value = 'correct'
+  retryInput.dispatchEvent(new Event('input', { bubbles: true }))
   flushSync()
+  expect(retryInput).not.toHaveAttribute('aria-invalid')
+  expect(target.querySelector('[role="alert"]')).toBeNull()
   target
     .querySelector('form')!
     .dispatchEvent(new Event('submit', { cancelable: true }))
@@ -483,8 +510,9 @@ it('opens a legacy vault snapshot once, labels its one populated field, and copi
     expect(target.textContent).not.toContain(value)
     expect(target.textContent).not.toMatch(/f0_|f1_|f2_/)
     click('.field-actions button:last-child')
-    await shown('.snapshot-field [role=status]')
-    expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('复制失败')
+    await vi.waitFor(() =>
+      expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('复制失败')
+    )
     click('.field-actions button:last-child')
     await vi.waitFor(() => expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('已复制'))
     expect(writeText).toHaveBeenLastCalledWith(value)

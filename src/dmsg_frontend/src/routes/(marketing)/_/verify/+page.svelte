@@ -9,12 +9,7 @@
   import '$lib/components/landing/site.css'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { locale, t } from '$lib/i18n'
-  import {
-    readBundle,
-    verifyBundle,
-    VerifyError,
-    type BundleReport
-  } from '$lib/verify'
+  import type { BundleReport } from '$lib/verify'
 
   let bundleFile = $state<File | null>(null)
   let originalFile = $state<File | null>(null)
@@ -33,15 +28,19 @@
     const originalInput = originalFile
     busy = true
     resetResult()
+    let verifier: typeof import('$lib/verify') | undefined
     try {
-      const bundle = readBundle(await bundleInput.text())
+      verifier = await import('$lib/verify')
+      const bundle = verifier.readBundle(await bundleInput.text())
       const file = originalInput
         ? new Uint8Array(await originalInput.arrayBuffer())
         : undefined
-      report = await verifyBundle(bundle, file)
+      report = await verifier.verifyBundle(bundle, file)
     } catch (e) {
       error =
-        e instanceof VerifyError && e.reason === 'not_bundle'
+        verifier &&
+        e instanceof verifier.VerifyError &&
+        e.reason === 'not_bundle'
           ? 'This is not a dMsg attestation bundle.'
           : 'Could not reach the Internet Computer. Try again.'
     } finally {

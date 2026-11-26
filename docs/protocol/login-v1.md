@@ -2,7 +2,9 @@
 
 English | [简体中文](login-v1_zh.md)
 
-Drafted and implemented in desktop work package W1 on 2026-10-12. The login page is `/_/login` in `src/dmsg_frontend`; the client side is `dmsg daemon`, using `src/dmsg_client`'s `login` module and the callback in `src/dmsg_cli`. Revised on 2026-10-14 for actual Internet Identity behavior: II's `icrc34_delegation` does not support `targets` and issues unrestricted delegations. Requests therefore omit targets; the daemon uses the session private key to append a target-restricted delegation (section 4). Desktop and future mobile clients do not embed II login. They open `https://dmsg.net/_/login` in the system browser, where II delegates directly to the client's session public key and the result returns to the client. The page has no login state, reads/saves no dmsg.net session and holds no usable private key.
+The login page is `/_/login` in `src/dmsg_frontend`, with shared logic in `dmsg_client::login`. Desktop receives a loopback callback through the daemon; iOS and Android use native system-browser callbacks. The page asks II to delegate to the client session key, then the client appends a target-restricted delegation (section 4). The page neither reads nor saves site login state and never holds the session private key.
+
+Passkey login and renewable hardware sessions use the separate [dmsg-passkey/1 contract](passkey-v1_zh.md). This document covers II only.
 
 ## 1. Why dmsg.net hosts the page
 

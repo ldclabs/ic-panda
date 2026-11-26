@@ -53,7 +53,64 @@
         }
     },
     {
+        "match": "_/privacy",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "_/terms.html",
+        "enable_aliasing": true,
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "_/support",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
         "match": "_/delete-account",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "_/verify",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "_/redeem",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "_/login",
+        "cache": { "max_age": 0 },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+    },
+    {
+        "match": "legacy",
         "cache": { "max_age": 0 },
         "headers": {
             "Content-Type": "text/html; charset=utf-8",

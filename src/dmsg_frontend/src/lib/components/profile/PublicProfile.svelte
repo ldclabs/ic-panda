@@ -129,6 +129,7 @@
               )}">{$t('View legacy profile')}</a
             >
           {:else}<button
+              type="button"
               class="button primary"
               onclick={() => {
                 refreshFor = identifier
@@ -141,6 +142,8 @@
           {#if profile?.avatar_url && !avatarFailed}
             <img
               class="avatar"
+              width="88"
+              height="88"
               fetchpriority="high"
               decoding="async"
               src={profile?.avatar_url}
@@ -184,6 +187,8 @@
                     referrerpolicy="no-referrer"
                     >{#if linkImages[link.url]}<img
                         class="link-image"
+                        width="40"
+                        height="40"
                         loading="lazy"
                         decoding="async"
                         src={linkImages[link.url]}

@@ -4,6 +4,7 @@
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
+  import CopyReceipt from '$lib/components/site/CopyReceipt.svelte'
   import { locale, t } from '$lib/i18n'
   import { readProfile, type ProfilePage } from '$lib/public-profile'
   import {
@@ -45,6 +46,7 @@
 
   const HARD_LIMIT = 1000 * 1024 * 1024
   const PHONE_HINT = 100 * 1024 * 1024
+  const uid = $props.id()
   const account = $derived(page.params['account'] ?? '')
   const requestId = $derived(page.params['id'] ?? '')
   const phone =
@@ -220,11 +222,15 @@
 
   onMount(load)
 
-  function warnLeaving(event: BeforeUnloadEvent) {
-    if (sending) event.preventDefault()
-  }
+  $effect(() => {
+    if (!sending) return
+    const warnLeaving = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warnLeaving)
+    return () => window.removeEventListener('beforeunload', warnLeaving)
+  })
 
   function addFiles(files: Iterable<File>, replaces: string | null = null) {
+    if (sending || status !== 'open') return
     notice = ''
     for (const file of files) {
       const refused =
@@ -402,14 +408,13 @@
   <title>{$t('Send files through dMsg')}</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
-<svelte:window onbeforeunload={warnLeaving} />
 
 <UtilityPage>
   {#snippet aside()}
     <FileInvite kind="request" ready={everSent} />
   {/snippet}
 
-  <div aria-busy={phase === 'loading' || sending}>
+  <div>
     <div class="utility-icon" aria-hidden="true"><IconFile /></div>
     <h1>
       {requesterName
@@ -436,8 +441,10 @@
     {:else if phase === 'blocked'}
       <p class="utility-status error" role="alert">{blocked}</p>
       {#if canRetryLoad}
-        <button class="button secondary utility-action" onclick={load}
-          >{$t('Try again')}</button
+        <button
+          type="button"
+          class="button secondary utility-action"
+          onclick={load}>{$t('Try again')}</button
         >
       {/if}
     {:else if descriptor}
@@ -491,9 +498,10 @@
 
       {#if status === 'open'}
         <div class="sender">
-          <label>
-            <span>{$t('Your name (optional)')}</span>
+          <div class="field">
+            <label for={`${uid}-name`}>{$t('Your name (optional)')}</label>
             <input
+              id={`${uid}-name`}
               bind:value={name}
               maxlength="80"
               autocomplete="name"
@@ -501,17 +509,18 @@
               disabled={sending}
               data-testid="request-name"
             />
-          </label>
-          <label>
-            <span>{$t('A note (optional)')}</span>
+          </div>
+          <div class="field">
+            <label for={`${uid}-note`}>{$t('A note (optional)')}</label>
             <textarea
+              id={`${uid}-note`}
               bind:value={note}
               maxlength="240"
               rows="2"
               dir="auto"
               disabled={sending}
               data-testid="request-note"></textarea>
-          </label>
+          </div>
           <p class="hint"
             >{$t('They see this with your files. dMsg does not verify it.')}</p
           >
@@ -519,10 +528,11 @@
 
         <label
           class="drop"
+          for={`${uid}-files`}
           class:dragging
           ondragover={(event) => {
             event.preventDefault()
-            dragging = true
+            dragging = !sending
           }}
           ondragleave={() => (dragging = false)}
           ondrop={(event) => {
@@ -534,6 +544,7 @@
           <Glyph name="download" size={20} />
           <span>{$t('Choose files or drop them here')}</span>
           <input
+            id={`${uid}-files`}
             bind:this={picker}
             class="picker"
             type="file"
@@ -567,28 +578,35 @@
           {#each items as item (item.id)}
             <li>
               <div class="row">
-                <span class="file" dir="auto">{item.file.name}</span>
+                <span id={`request-file-${item.id}`} class="file" dir="auto"
+                  >{item.file.name}</span
+                >
                 <span class="quiet" dir="ltr">{size(item.file.size)}</span>
               </div>
               {#if item.state === 'working' && item.progress}
                 {@const percent = item.progress.total
-                  ? Math.floor((item.progress.done / item.progress.total) * 100)
+                  ? Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        Math.floor(
+                          (item.progress.done / item.progress.total) * 100
+                        )
+                      )
+                    )
                   : 0}
-                <div
-                  class="bar"
-                  role="progressbar"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  aria-valuenow={percent}
-                  aria-label={item.file.name}
-                >
-                  <i style:inline-size={`${percent}%`}></i>
-                </div>
-                <p class="line" role="status">
-                  {item.progress.stage === 'preparing'
+                {@const progressText =
+                  item.progress.stage === 'preparing'
                     ? $t('Preparing… {percent}%', { percent })
                     : $t('Uploading… {percent}%', { percent })}
-                </p>
+                <progress
+                  class="bar"
+                  max="100"
+                  value={percent}
+                  aria-labelledby={`request-file-${item.id}`}
+                  aria-valuetext={progressText}
+                ></progress>
+                <p class="line">{progressText}</p>
               {:else if item.state === 'waiting'}
                 <p class="line">
                   {$t('Waiting')}
@@ -608,6 +626,7 @@
               <div class="row-actions">
                 {#if item.state === 'failed' && item.file.size > 0 && item.file.size <= limit && status === 'open'}
                   <button
+                    type="button"
                     class="link"
                     onclick={() => retry(item)}
                     disabled={sending}>{$t('Try again')}</button
@@ -615,23 +634,24 @@
                 {/if}
                 {#if item.state === 'waiting' || item.state === 'failed'}
                   <button
+                    type="button"
                     class="link"
                     onclick={() => removeItem(item)}
                     disabled={sending}>{$t('Remove')}</button
                   >
                 {/if}
                 {#if item.state === 'working'}
-                  <button class="link" onclick={() => run?.abort()}
-                    >{$t('Stop')}</button
+                  <button
+                    type="button"
+                    class="link"
+                    onclick={() => run?.abort()}>{$t('Stop')}</button
                   >
                 {/if}
                 {#if item.state === 'sent' && item.receipt && item.uploadId}
-                  {@const text = receiptText(item.uploadId, item.receipt)}
-                  <button
-                    class="link"
-                    onclick={() => navigator.clipboard.writeText(text)}
-                    >{$t('Copy receipt')}</button
-                  >
+                  <CopyReceipt
+                    text={receiptText(item.uploadId, item.receipt)}
+                    describedBy={`request-file-${item.id}`}
+                  />
                 {/if}
               </div>
             </li>
@@ -643,6 +663,7 @@
           >
         {:else if waiting && status === 'open'}
           <button
+            type="button"
             class="button primary utility-action"
             onclick={sendAll}
             data-testid="request-send">{$t('Send files')}</button
@@ -688,18 +709,22 @@
                   <div class="row-actions">
                     <span class="line">{$t('Withdraw this file?')}</span>
                     <button
+                      type="button"
                       class="link danger"
                       onclick={() => withdraw(record.uploadId)}
                       >{$t('Withdraw')}</button
                     >
-                    <button class="link" onclick={() => (confirming = null)}
-                      >{$t('Cancel')}</button
+                    <button
+                      type="button"
+                      class="link"
+                      onclick={() => (confirming = null)}>{$t('Cancel')}</button
                     >
                   </div>
                 {:else if !closed}
                   <div class="row-actions">
                     {#if record.state === 'delivered'}
                       <button
+                        type="button"
                         class="link"
                         disabled={sending || status !== 'open'}
                         onclick={() => {
@@ -708,6 +733,7 @@
                         }}>{$t('Replace')}</button
                       >
                       <button
+                        type="button"
                         class="link"
                         disabled={sending}
                         onclick={() => (confirming = record.uploadId)}
@@ -716,6 +742,7 @@
                     {/if}
                     {#if record.state === 'saved' && status === 'open'}
                       <button
+                        type="button"
                         class="link"
                         disabled={sending}
                         onclick={() => {
@@ -729,8 +756,11 @@
               </li>
             {/each}
           </ul>
-          <button class="link" onclick={clearRecords} disabled={sending}
-            >{$t('Clear this list')}</button
+          <button
+            type="button"
+            class="link"
+            onclick={clearRecords}
+            disabled={sending}>{$t('Clear this list')}</button
           >
         </section>
       {/if}
@@ -823,9 +853,11 @@
     gap: 12px;
     margin-top: 24px;
   }
-  .sender label {
+  .sender .field {
     display: grid;
     gap: 6px;
+  }
+  .sender label {
     font-size: 14px;
     font-weight: 550;
   }
@@ -840,6 +872,7 @@
     background: #fff;
     color: var(--ink);
     font: inherit;
+    font-size: max(1rem, 1em);
     font-weight: 400;
     resize: vertical;
   }
@@ -937,16 +970,34 @@
     color: #991b1b;
   }
   .bar {
-    height: 6px;
-    overflow: hidden;
+    appearance: none;
+    inline-size: 100%;
+    block-size: 6px;
+    border: 0;
+    overflow: clip;
     border-radius: 3px;
     background: var(--line);
   }
-  .bar i {
-    display: block;
-    height: 100%;
+  .bar::-webkit-progress-bar {
+    background: transparent;
+  }
+  .bar::-webkit-progress-value {
     border-radius: 3px;
     background: var(--action);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .bar::-webkit-progress-value {
+      transition: inline-size 0.3s;
+    }
+  }
+  .bar::-moz-progress-bar {
+    border-radius: 3px;
+    background: var(--action);
+  }
+  @media (forced-colors: active) {
+    .bar {
+      appearance: auto;
+    }
   }
   .row-actions {
     display: flex;
@@ -957,7 +1008,8 @@
   .row-actions:empty {
     display: none;
   }
-  .link {
+  .link,
+  .row-actions :global(.copy-receipt) {
     padding: 2px 0;
     min-height: 28px;
     border: 0;
@@ -968,6 +1020,13 @@
     font-weight: 550;
     text-decoration: underline;
     cursor: pointer;
+  }
+  @media (pointer: coarse) {
+    .link,
+    .row-actions :global(.copy-receipt) {
+      min-block-size: 44px;
+      padding-block: 8px;
+    }
   }
   .link:disabled {
     color: var(--muted);
