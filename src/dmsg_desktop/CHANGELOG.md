@@ -6,6 +6,15 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.1-beta.1] - 2026-11-26
+
+- Require timestamped Authenticode signatures from Yiwen AI Limited on the
+  Windows desktop app, installer and CLI. The standalone CLI download is the
+  same executable bundled with the desktop app.
+- For releases after 1.6.0, the Windows PowerShell installer and `dmsg update`
+  verify the CLI signature against that release's publisher certificate. To try this beta
+  with the installer, set `$env:DMSG_VERSION = '1.6.1-beta.1'` before running it.
+
 ## [1.6.0] - 2026-11-25
 
 - Keep vault items and files in a standalone local account, then review
@@ -1013,6 +1022,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.1-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.1
 [1.6.0]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0
 [1.6.0-beta.4]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.3...1.6.0-beta.4
 [1.6.0-beta.3]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.2...1.6.0-beta.3
