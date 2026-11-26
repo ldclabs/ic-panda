@@ -2,13 +2,11 @@
 
 [English](dmsg_canisters.md) | 简体中文
 
-核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文导航当前实现，不是部署清单或审计报告。整体架构与实测容量见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)；精确接口与字节以各 canister 的 Candid 和[公开协议](protocol/README_zh.md)为准。
-
-2026-11-09 新增 Passkey 签发服务与桌面/iOS 接入；生产 auth ID 未配置，未部署。新增服务及客户端验证记录见 [Passkey 验证](passkey-validation_zh.md)，其他组件保留各自历史基线。
+本文导航公开 canister 的职责、接口与升级要求。源码审查基线见[文档索引](README_zh.md)，架构与容量见[架构说明](dmsg_architecture_zh.md)。部署状态须独立核验。
 
 ## 组件
 
-控制面有八类服务，另有多签钱包工厂与各自独立的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
+下表区分共享库、控制服务与钱包服务；客户端和私有云端不属于 canister 控制面。
 
 | 包 | 职责 | 文档 |
 | --- | --- | --- |
@@ -36,13 +34,15 @@
 - **支付与订阅**：`dmsg_payment` 结算付费来信托管；`dmsg_commerce` 实现 commerce 2 现金结账、资源权益与自动归集，并接收登记验证方的 Apple / [Google Play](protocol/google_play_zh.md) 交易事实，也支持授权发放者的固定时长赠予。共享 `membership` 实现 membership 2 的 PANDA 资格与跨产品占用。见[商业合同](protocol/commerce_zh.md)。这些职责独立于日常加密投递。
 - **多签钱包**：hub 激活实例并管理已登记的代码版本；各钱包管理自己的提案、批准、资金、链上密钥签名与审计；成员按设备绑定调用身份，可接管或解绑其他设备的绑定，协签钥匙可由旧钥匙原地轮换，或经 Admin 提案替换。升级先由钱包接受。桌面端当前暂停新建，已有钱包操作继续提供，见[钱包合同](protocol/wallet_zh.md)与[桌面范围](dMsg_wallet_zh.md)。
 
-普通消息、文件、保险库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；[iOS](../src/dmsg_ios/README.md) 通过 UniFFI 直接复用客户端核心，Apple 与系统能力见 [mobile 合同](protocol/mobile_zh.md)；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
+普通消息、文件、保险库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；[iOS](../src/dmsg_ios/README.md) 和 [Android](../src/dmsg_android/README.md) 通过 UniFFI 直接复用客户端核心，平台接口见 [mobile](protocol/mobile_zh.md) 和 [Android](protocol/android_zh.md) 合同；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
 
 ## 持久化与升级
 
 公开 Candid/CBOR 与私有稳定编码分开。`dmsg_runtime::stable_types` 和各 canister 的 `stable_codec.rs` 使用整数键紧凑表示，不改变签名字节或认证值。当前 schema 常量与可接受的旧布局以存储及升级代码为准；版本号相同或递增本身不能证明兼容。
 
-**`dmsg_user` 和 `dmsg_directory` 已有线上用户数据。** 布局变化必须提供保留数据的原地升级，并验证旧版 Wasm 到新版 Wasm。现有 user 14 → 15 → 16 → 17、directory 6 → 7 升级保留原数据；directory 首次转换会构建新增的文档认证树；user 16 新增的批准钥匙与硬件批准政策、user 17 新增的继任表对旧账户读为空，认证值不变。不得以重装代替迁移。[Principal 升级检查](../scripts/test-dmsg-principal-upgrade.sh)覆盖 14 → 当前、directory 转换及相关 handle 变化，[批准钥匙升级检查](../scripts/test-dmsg-hardware-upgrade.sh)从 schema 15 的实际模块升级并核对账户、认证叶、解锁秘密与操作回放，[继任升级检查](../scripts/test-dmsg-succession-upgrade.sh)从 schema 16 的实际模块升级并核对同样的内容与升级后的继任。
+**已有线上状态必须保留。** 当前 user schema 18 支持从 14–17 原地升级；缺少恢复开关的旧账户保留开启状态及 schema 4 安全叶，新账户或显式策略使用 schema 5 安全叶。directory 6 → 7 首次转换建立文档认证树；handle 10 → 11 首次转换建立 owner 索引；wallet 1 → 2 保留旧成员绑定。未知布局拒绝加载，不能重装代替迁移。
+
+回归入口：[Principal](../scripts/test-dmsg-principal-upgrade.sh)、[硬件批准](../scripts/test-dmsg-hardware-upgrade.sh)、[设备继任](../scripts/test-dmsg-succession-upgrade.sh)、[钱包](../scripts/test-dmsg-wallet-upgrade.sh)。脚本中的旧模块基线与当前稳定版本分别核对；一次通过不证明所有历史版本都能直接升级。
 
 其他 canister 遵循各自支持的布局与恢复流程。含账户、托管资金、账务或不可重建记录的实例，不得通过重装修复。跨 canister 结果未知时保留原请求与账本参数对账。目标部署的配置、模块哈希、controllers 和运行就绪状态须另外核验。
 

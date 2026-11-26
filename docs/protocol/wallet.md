@@ -14,7 +14,7 @@ This describes public interfaces, approval bytes, address derivation and externa
 | Commerce | `dmsg_commerce` | Registers dmsg-wallet app/product; refresh_entitlement supplies creator plan |
 | Client | `dmsg_client` | Reads external-chain inputs, independently decodes plans, cosigns, broadcasts and reports |
 
-Wallets make no HTTPS outcalls. Member clients read balances, UTXOs, nonces and blockhashes; wrong inputs can make transactions invalid on chain but cannot make the wallet sign a transaction differing from intent.
+Wallets make no HTTPS outcalls. Member clients read balances, UTXOs, nonces and blockhashes; the wallet constrains transactions to the approved intent, but does not independently verify those reads or final settlement.
 
 ## Members and roles
 
@@ -141,7 +141,7 @@ A cosigner's key changes in place, keeping its ID and every policy naming it. Th
 
 An administrative AcceptUpgrade { version, module_hash } proposal with 24-hour delay accepts a hub-registered version. Anyone calls upgrade_wallet; hub reads `accepted_upgrade()`, checks version/hash, stops, chunk-installs with the accepted version as post_upgrade argument (clearing matching acceptance), then starts. Stop failure restarts immediately; inability to read acceptance attempts start before erroring. Effective LockCode lets lock_wallet clear controllers, preventing upgrades/deletion. Only modules whose hashes governance registered through admin_register_version are installed; controller/governance/designated uploader uploads them. Retired versions can be admin_remove_version-deleted only without unexpired quotes/unfinished activations, and version numbers are never reused. Hub persists references and rechecks modules before install; lost successful-install replies recover from the uniquely controlled instance's state.
 
-2026-11-07 storage migration: the wallet module reads schema 1 member Principal lists as schema 2 bindings, preserving each Principal with `device: None` and `bound_at_ms: 0`. Upgrade saves schema 2 and recertifies the wallet view without resetting roles, policy, addresses, key roots, proposals, audit history or funds. Unknown schemas and mixed member layouts are rejected. Members must accept the exact version and hash of a new release containing the migration; an existing acceptance does not authorize replacing module bytes. `scripts/test-dmsg-wallet-upgrade.sh` tests the actual released v3.1.2 Wasm. Source support does not establish production deployment.
+Stable-layout upgrade: the wallet module reads schema 1 member Principal lists as schema 2 bindings, preserving each Principal with `device: None` and `bound_at_ms: 0`. Upgrade saves schema 2 and recertifies the wallet view without resetting roles, policy, addresses, key roots, proposals, audit history or funds. Unknown schemas and mixed member layouts are rejected. Members must accept the exact version and hash of a new release containing the migration; an existing acceptance does not authorize replacing module bytes. `scripts/test-dmsg-wallet-upgrade.sh` tests the actual released v3.1.2 Wasm. Source support does not establish production deployment.
 
 ## cycles
 
@@ -160,7 +160,7 @@ Sending, CMC notification and reconciliation are serialized per job; concurrent 
 Structured desktop methods, multi-device packages, incremental audit and encrypted channel hints are described in the [multisig wallet guide](../dMsg_wallet.md). Client creation verifies WalletCreate at the home before payment; importing cosignatures never executes automatically.
 
 
-## Security revisions on 2026-10-24
+## Execution and upgrade safeguards
 
 - Hub upgrade/lock share one per-wallet mutex. Before execution, hub-only claim_code(expected) atomically claims acceptance; while claimed, instances cannot accept another upgrade/lock. Successful upgrade clears it; failed operations `release_code()` after restarting. Verify Running before clearing controllers.
 - After AddAddress public-key retrieval, recheck authorization version, expiry, freeze, capacity and all cosigner references, for ordinary ChainKey and native Taproot alike.
@@ -169,7 +169,7 @@ Structured desktop methods, multi-device packages, incremental audit and encrypt
 - Client approval/cosigning authenticates the full proposal through get_proposal_certified, deriving expiry/delay from freshly certified wallet version/time. Recomputing a supplied digest is not authoritative reading.
 - Native EVM/ERC-20 preview and execution estimate gas using the same final call parameters; instances still enforce fee ceilings.
 
-2026-10-27 upgrade revision: the hub can upgrade older wallets that explicitly lack `claim_code` (IC0536). It verifies that it is the sole controller, reads the system execution version before a fresh `accepted_upgrade()` call, and permits only three increments through stopping: the replicated query and the two stop transitions. Any additional execution returns `VersionConflict` and restarts the wallet for a retry. Timeouts, other rejections and claim business errors are not ignored. The accepted release version and module hash remain binding, so the fixed hub can be deployed first and then install the already accepted wallet version. Older wallets must still upgrade before locking their code. Old cancellation/release proposals without target binding must be recreated. These are source contracts, not production deployment claims.
+Older-instance upgrade compatibility: the hub can upgrade older wallets that explicitly lack `claim_code` (IC0536). It verifies that it is the sole controller, reads the system execution version before a fresh `accepted_upgrade()` call, and permits only three increments through stopping: the replicated query and the two stop transitions. Any additional execution returns `VersionConflict` and restarts the wallet for a retry. Timeouts, other rejections and claim business errors are not ignored. The accepted release version and module hash remain binding, so the fixed hub can be deployed first and then install the already accepted wallet version. Older wallets must still upgrade before locking their code. Old cancellation/release proposals without target binding must be recreated. These are source contracts, not production deployment claims.
 
 
 ## Policy usage and local workflows

@@ -201,7 +201,7 @@ observation has expired, then releases it; the original commitment end alone
 does not hold the neuron. Expiry releases each remaining reference exactly once;
 releasing the current term does not remove an already committed next term.
 
-Qualification leases last at most one hour and never pass E. Known ineligibility
+Qualification leases last at most one day and never pass E. Known ineligibility
 stops new rights and terminates the claim immediately; `Unverifiable` stops new
 rights without terminating and never extends an old lease. A terminated term
 never revives; after the issued lease ends the user may apply again with a
@@ -311,6 +311,14 @@ last service-end time is retained for the expired resource projection. Qualifica
 refund or downgrade does not reset held/charged units. Root recovery/derivation
 continues to use protected safety budgets, independent of paid execution units.
 
+## Store and promotional sources
+
+Apple and Google Play use their own verifiers, transaction facts and recovery rules; see the [Apple](mobile_zh.md) and [Google Play](google_play_zh.md) contracts. They are not represented as cash orders or PANDA claims.
+
+Public grant types are in [promo.rs](../../src/dmsg_types/src/promo.rs). Only verifiers admitted by governed `PromoConfig` may call `apply_promo_grant`. A `PromoGrant` fixes its beneficiary, Plus/Pro/Max tier, 30- or 365-day interval and unique `grant_id`. Identical retries return the receipt; different terms conflict. Receipts distinguish `Applied`, `Rejected` and `Revoked`; a code preview cannot grant membership.
+
+Current clients read `get_membership_terms_v3`, with open `source_kind` identifiers and explicit sandbox fields. It is display-only; resource admission still uses certified entitlement leases. Frozen v1/v2 queries return `UnsupportedProtocol` for sources they cannot represent instead of silently omitting contracts. Redemption rules belong to the service; this document covers the public client and canister boundary.
+
 ## Operation recovery and deployment
 
 Private paginated `checkout_operations`, `checkout_transfers` and
@@ -377,7 +385,7 @@ The independent [account product](../../examples/dmsg-account-product/README.md)
 exercises a second subject type without core changes. External products own
 their callback, authority and release acceptance. The [integration guide](../../tests/dmsg_integration/README.md)
 describes local checks; real browser probes use disposable profiles;
-production wallet origins, neuron control, approved R/budgets and bounded real
+production wallet origins, neuron control, approved R policiess and bounded real
 fund transfers require their own deployment evidence.
 
 The separate message-delivery service retains delivery profile 2 and its

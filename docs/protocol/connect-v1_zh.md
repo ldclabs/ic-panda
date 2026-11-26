@@ -2,7 +2,7 @@
 
 [English](connect-v1.md) | 简体中文
 
-2026-10-12 起草，2026-10-24 核对公开源码。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；生产域名、资产工件和中继配置须按 [桥接页发布说明](../../src/dmsg_connect/README.md#release)单独核对；本文不判定现网版本。本协议取代已退役的扩展桥 `dmsg-extension/4`（差异见第 9 节）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
+网页应用通过 `https://connect.dmsg.net` 桥接页，将请求交给 dMsg 桌面或移动端审批。实现位于 `dmsg_protocol::connect`、`dmsg_client::connect`、`src/dmsg_connect` 与 `dmsg-sdk/connect`。生产部署另按[桥接页发布说明](../../src/dmsg_connect/README.md#release)验收，规范字节见[连接向量](../../tests/vectors/client/connect-v1.json)。
 
 不变的部分：三种文档 profile 与应用动作的签名字节、设备执行批准与认证回执（见 [公开协议](README_zh.md)）、`AuthenticationRequest`、`AppAction`、`CheckoutRequest` 与商业合同，以及应用在 `dmsg_commerce` 的登记（`AppRegistration`）。改变的只有三件事：页面与 dMsg 之间的传输、来源的核实方式、操作的恢复方式。
 
@@ -436,20 +436,14 @@ sealed = CBOR { enc: bstr .size 32, ciphertext: bstr }
 
 ### 7.4 中继状态
 
-```text
-create:
-  pending ──authorize（CAS）──▶ authorized ──respond(closed)──▶ closed
-     │                            ├──钉定设备被撤销──▶ device_revoked
-     │                            └──expires_at 之后 7 天仍无终态──▶ abandoned
-     ├──respond(closed)──▶ closed          （设备展示前拒绝、重复创建的终态快照）
-     ├──cancel──▶ cancelled
-     └──到期且未授权──▶ expired
-
-read / open:
-  pending ──respond(closed)──▶ closed
-     ├──全部接收设备 respond(unknown)──▶ unknown
-     └──到期──▶ expired
-```
+| 请求 | 当前状态 | 事件 | 下一状态 |
+| --- | --- | --- | --- |
+| create | pending | authorize CAS | authorized |
+| create | pending | respond(closed) / cancel / 到期 | closed / cancelled / expired |
+| create | authorized | respond(closed) | closed |
+| create | authorized | 钉定设备撤销 | device_revoked |
+| create | authorized | expires_at 后 7 天仍无终态 | abandoned |
+| read / open | pending | respond(closed) / 全部接收设备 unknown / 到期 | closed / unknown / expired |
 
 - `respond(open)` 不改变中继状态，只推进 `version` 并替换 `sealed`；用于 `authorized` 后的中间状态（`authorized`、`execution_unknown`）和附加投递通道的快照。
 - 授权后的请求不会过期，也不能取消。
@@ -462,7 +456,7 @@ read / open:
 
 - 设备在持有签名钥时（解锁，或开启“后台在线”）生成 32 字节随机 token，以设备命令 `dmsg/hint/token/create/v1 {token_hash, expires_at}` 登记它的 SHA-256（`POST /v1/accounts/:account/hint-tokens`，有效期不超过 30 天），token 本身存入 OS 凭据库（没有凭据库时存在工作区的明文元数据中：它只能收无内容的提示）。剩余期限不足 7 天时轮换。每台设备同时最多 2 个有效 token（轮换重叠期）。`dmsg/hint/token/revoke/v1 {token_hash}`（`POST /v1/accounts/:account/hint-tokens/revoke`）撤销 token；设备被撤销时，它的 token 全部失效。
 - 设备以 `GET /v1/hints/ws?account=<xid>` 加 `Authorization: Bearer <base64url token>` 升级为 WebSocket。服务器只发送 `{type: "hint", account, kind}`，`channel` 提示另带 `resource`（频道 ID）与 `event`（`message` 或 `control`），`content` 提示另带 `cursor`（账户内容移到的位置），`read` 提示另带 `resource`（频道 ID）；心跳由设备发起：设备至少每 30 秒发送 `ping`，中继回 `pong`（不唤醒休眠的连接），60 秒收不到任何消息即重连。`kind` 为 `connect`、`mcp-event`（中继收到了 MCP Events 投递，见 [cloud 合同](cloud_zh.md) “MCP Events 中继端点”）、`channel`（账户所在的频道有新消息，同一频道至多每 5 秒提示一次；或控制状态变了：成员变化、纪元激活、中继要求换代，每次都提示）、`inbox`（有一封来信对收件人可见：免费来信受理时，或付费来信入账后）、`content`（账户的保险库有新版本，每账户至多每 5 秒提示一次，不触发移动端推送）与 `read`（本账户的其他设备把某频道读得更远，只发给本账户，不触发移动端推送）。设备应忽略未知的 `kind`。提示不含请求 ID、发信人、origin 或任何内容；`channel` 提示只多出它所在频道的 ID，账户本是该频道成员。`connect` 提示只发给持有 `FormalApprove` 的设备的 token。已解锁的设备收到 `channel` 提示即读取它点名的频道（消息提示受 5 秒合并，设备在几秒后再读一次），锁定的设备只对 `message` 告诉用户“有新内容”，从不为 `control` 通知。已解锁且尚未读到 `cursor` 的设备收到 `content` 提示即读取账户增量，并在几秒后再读一次；已到达 `cursor` 的设备（通常是产生这个版本的设备）只做后一次读取。已解锁的设备收到 `read` 提示即读取该频道的 head，取得本账户的已读位置。提示通道在线时，定时读取只作为提示丢失时的兜底。iOS 只在前台解锁时连接提示通道，后台不读取内容，回到前台时补读。没有频道各自的 WebSocket。
-- 提示只是唤醒信号，设备收到后仍须用 PoP 读取。移动端推送（APNs/FCM）承载同样的内容，留到移动端阶段定义。
+- 提示只是唤醒信号，设备收到后仍须用 PoP 读取。移动端 APNs/FCM 使用独立的[通知合同](notifications_zh.md)，不能直接把 WebSocket 提示当作推送正文。
 
 ### 7.6 限额与保留
 
@@ -490,24 +484,11 @@ read / open:
 | `dmsg://connect/pair?account=<xid>` | 打开"连接浏览器"界面；桥接页不知道目标账户时（如 `authenticate`）省略 `account` |
 | `dmsg://connect/request?account=<xid>&request=<hex>` | 打开审批中心并定位到该请求 |
 
-任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。iOS 已使用 https://connect.dmsg.net/app/pair 与 /app/request，参数与上表一致；它们仅定位原账号及已验证请求。未安装／同域 Safari 导航时，落地页提供显式 dmsg: 导航按钮，不自动跳转任意回调。桥接页切回前台后刷新原操作；应用取回结果仍需原会话证明。配对与请求恢复不会自动批准。这里的 App 切换导航不替代第 11 节预留的注册 redirect URI 协议模式。
+任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。iOS 与 Android 使用 `https://connect.dmsg.net/app/pair` 与 `/app/request`，参数与上表一致；它们仅定位原账号及已验证请求。未安装／同域 Safari 导航时，落地页提供显式 dmsg: 导航按钮，不自动跳转任意回调。桥接页切回前台后刷新原操作；应用取回结果仍需原会话证明。配对与请求恢复不会自动批准。这里的 App 切换导航不替代第 11 节预留的注册 redirect URI 协议模式。
 
-## 9. 与 `dmsg-extension/4` 的差异
+## 9. 兼容性
 
-扩展桥 `dmsg-extension/4` 随扩展一起退役，其合同已删除（见 Git 历史）。下表供仍在使用它的应用迁移。
-
-| 项目 | `dmsg-extension/4` | dmsg-connect/1 |
-| --- | --- | --- |
-| 传输 | `chrome.runtime.connect` 端口 | 弹窗与 `postMessage`；桥接页经中继转给设备 |
-| 来源 | Chrome sender（origin、documentId、tab、frame） | `MessageEvent.origin`，由桥接页签名转述；没有 documentId |
-| 证明消息 | `dmsg/browser-proof/v1`，含 documentId | `dmsg/connect-proof/v1`，含 connectionId |
-| 操作承诺 | `dmsg/browser-operation/v1` | `dmsg/connect-operation/v1`，字段不变 |
-| 审批位置 | 扩展的独立窗口 | dMsg 桌面端（以后包括移动端）的审批中心 |
-| 操作记录 | 扩展本地 | 设备为权威；桥接页保存本地索引；中继保存密封回复 |
-| 浏览器 | 仅 Chromium | 4.1 基线以上的 Chrome/Edge、Firefox、Safari |
-| `SignatureRequest.protocol` | `dmsg-extension/4` | `dmsg-connect/1` |
-| 新增 | — | 配对；`NOT_PAIRED`、`NO_APPROVING_DEVICE`、`DEVICE_UNAVAILABLE`、`DEVICE_REVOKED`、`NOT_CANCELLABLE`、`POLICY_STALE`、`LOCKED`、`UNSUPPORTED_BROWSER`；`value.error` |
-| 删除 | — | `requiresUnlock`：设备锁定只表现为 `awaiting_user` |
+旧 `dmsg-extension/4` 和 `dmsg-sdk/browser` 已移除，不提供回退。接入方使用 `dmsg-connect/1`、`dmsg-sdk/connect` 及本合同的配对和恢复流程；旧扩展合同可查 Git 历史。
 
 ## 10. SDK
 
@@ -533,7 +514,6 @@ button.onclick = async () => {
 - `requestDelegation` 与 `registerController`（Agent Protocols 第 3 阶段的浏览器入口）。
 - 内容 grant 下的应用读取（云端的 `proxy-file`、`proxy-read`）。
 - 重定向模式：内置浏览器拦截弹窗时，按登记的 redirect URI 回调。
-- 移动端 universal link 与推送。
 - 配对续期。
 
 新增方法只要不改变已有的帧、摘要与状态语义，就留在 /1 内，通过 `capabilities` 公布；改变已有字节时升级协议版本。

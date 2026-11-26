@@ -2,9 +2,9 @@
 
 [English](device_transfer.md) | 简体中文
 
-2026-10-30 起草。协议核心实现于 `dmsg_client::transfer`，字节规则由
+协议核心实现于 `dmsg_client::transfer`，字节规则由
 [transfer-v1 向量](../../tests/vectors/transfer/transfer-v1.json)固定。宿主的传输
-（macOS 与 iOS 上的 TCP 监听和 Bonjour）只负责承载，不改变本文描述的字节。
+（TCP 监听、Apple Bonjour 与 Android NSD）只负责承载，不改变本文描述的字节。
 
 同一账户的两台已验证设备之间，经本地连接一次性、端到端加密地传送本机内容。它传送
 账户云端没有的内容，例如 dMsg Files 文件库，用于新设备接替旧设备（继任）或与之并

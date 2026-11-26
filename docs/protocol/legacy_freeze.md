@@ -2,7 +2,7 @@
 
 English | [简体中文](legacy_freeze_zh.md)
 
-First written 2026-09-22; reorganized 2026-10-24. This document describes the legacy-service freeze and evidence contract. The client's built-in source channels, name identity and cutover are in [production.toml](../../src/dmsg_client/production.toml), which lists no OSS bucket. Actual deployment status requires inventory evidence and cannot be inferred from this document or source code.
+This document describes the legacy-service freeze and evidence contract. The client's built-in source channels, name identity and cutover are in [production.toml](../../src/dmsg_client/production.toml), which lists no OSS bucket. Actual deployment status requires inventory evidence and cannot be inferred from this document or source code.
 
 ## Messages, profiles, channels and name identity
 
@@ -20,25 +20,21 @@ Existing reads, original `my_iv`, channel download tokens, name-identity `sign_i
 
 Scopes include public names/frozen roles and profiles, channels and messages readable under the original caller's permissions. Each page contains at most 64 records and 128 KiB; missing message slots are explicit None values. Names and other ordered collections have fixed ordering; original profile HashMaps are converted to ordered representations. Each row preserves original Candid bytes; source version, cutover and scope are committed. The name-event tip is additional context and cannot replace the complete name-map digest.
 
-## Boundaries of the proposed COSE and OSS extensions
+## External COSE and OSS services
 
-The COSE candidate starts from the deployed-use v0.9.3 baseline and adds `admin_legacy_drain_namespace` / `admin_legacy_seal_namespace`. It closes data/permission writes and new business signatures only for the specified namespace; asynchronous business signatures recheck freeze state before returning. Original settings, keyId, ownership, derivation paths, roots and context remain unchanged, and ECDH/vetKD recovery stays available. Freeze retains setting/historical-payload digests. Global root configuration still used by legacy recovery must not be silently changed.
+COSE namespace and OSS folder freeze capabilities belong to their own repositories and deployment versions; they are not established by this repository. No OSS bucket is built into the client configuration, so archive attachments may lack frozen comparison evidence. Ordinary queries are not certified freeze proofs, and legacy recovery still depends on the original derivation paths, roots and context.
 
-The OSS candidate starts from v1.2.3 and adds `admin_legacy_drain_folder` / `admin_legacy_seal_folder`. Root folder 0 is not an implicit freeze-entire-bucket argument. Storage entry points reject writes, moves and deletions for the folder and its descendants, as well as moving/deleting an ancestor containing a frozen folder. Existing write tokens do not bypass this restriction; other folders retain their permissions.
-
-Under original read permissions, `legacy_folder_manifest` returns sealed-file metadata, each actual 256 KiB transport fragment's digest and length, missing fragments, the actual ciphertext digest and completeness flag. It does not label OSS fragments as independently authenticated AEAD chunks. Authorized clients still decrypt the whole file. Original request evidence containing tokens belongs in encrypted material, not public attachments or logs.
-
-These are proposed freeze capabilities of dependency services, not proof of enablement in current client configuration. No frozen OSS bucket is built in, so frozen comparisons of archives with attachments may remain incomplete. Ordinary query observations must not replace certified freeze proofs.
+When reading `legacy_folder_manifest`, the client verifies metadata, lengths and hashes of actual 256 KiB transport fragments, missing fragments and the complete ciphertext hash. Transport fragments are not independent AEAD blocks; authorized clients decrypt the complete file. Original evidence containing tokens belongs in controlled encrypted storage.
 
 ## Operational material and verification
 
 `src/dmsg_legacy/scripts/legacy-freeze-plan.mjs` generates staged, module-hash-bound Candid controller payloads from the target inventory, completed baseline-check file and cutover ID. It does not sign, submit, upgrade or stop writes. Deployment, control authority, in-flight operations and evidence must be checked before use. A generated plan does not establish production execution; execution records must be retained separately.
 
-The four old canisters are controlled only by SNS root; SNS governance executes freeze steps as generic functions. Each `admin_legacy_*` has a `validate_admin_legacy_*` query with identical arguments: it simulates the same transition on a copy without writing and returns proposal text. If in-flight writes prevent sealing, the error lists operation numbers, methods, start times and whether they were interrupted or have unknown results, but not callers or arguments. `admin_legacy_pending` remains restricted to controller and governance.
+Management entry points check controllers or the configured governance identity; actual controllers require inventory verification. SNS-managed instances can execute freeze steps through governance generic functions. Each `admin_legacy_*` has a `validate_admin_legacy_*` query with identical arguments: it simulates the same transition on a copy without writing and returns proposal text. If in-flight writes prevent sealing, the error lists operation numbers, methods, start times and whether they were interrupted or have unknown results, but not callers or arguments. `admin_legacy_pending` remains restricted to controller and governance.
 
 `legacy-freeze-inputs.mjs` drafts those two inputs from the `legacy-inventory.mjs` inventory and canister release artifacts. Targets bind release-module SHA-256 hashes checked against the release's `.txt` files. Baseline `unresolved` entries list each source's outstanding upgrade and in-flight checks; the planner refuses to generate a plan until these are cleared and `evidence_ref` is filled. COSE and OSS targets are excluded. `legacy-name-proofs.mjs` uses a one-time Ed25519 identity to collect and verify `Names` and `Authorities` snapshot pages, producing input for name import; it calls only `legacy_snapshot`.
 
-Local tests use Wasm matched to public releases in I0: old IVs, profiles and messages survive upgrades of all four services; real cross-canister waits block premature sealing; Chrome checks multipage snapshots and tampering cases. Additional tests compare COSE ECDH/VetKey/wrapping before and after, block old OSS write tokens and confirm other folders remain writable. Simulated ledgers create test data only; no real funds are involved.
+Test entry points are [legacy_fixture](../../tests/dmsg_integration/tests/legacy_fixture.rs), [dependency regressions](../../tests/dmsg_integration/tests/legacy_dependencies.rs) and [snapshot-gateway tests](../../src/dmsg_legacy/tests/snapshot-gateway.test.ts). They cover retained state, in-flight cross-canister calls, snapshot pagination and tampering rejection. This documentation review did not rerun these integration tests.
 
 Synthetic tests cannot replace authorized real-user recovery in all three modes, production controller/in-flight inventory, independent release checks or exit acceptance. The old minter is not wholly disabled: freezing source business prevents new PoL events, while historical entitlements, settlement and whether minting stops remain separate governance decisions.
 

@@ -35,7 +35,9 @@
 - 提交期限满足 `now < deadline <= now+60000`，同时不能超过所使用安全证据的有效期。设备签名回调之后再次检查期限。
 - 业务与 HTTP request_id 必须一致。重新签署 HTTP PoP 不改变业务命令和操作 ID；未知结果先查询原操作，不自动换 ID 重发。
 
-dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，设备能力按具体 action 校验。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，因此这是唯一允许在 `cose_sign1` 之外附带字段的命令 body。
+dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。
+
+其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，设备能力按具体 action 校验。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，这是命令外层字段的一个明确例外；[通知合同](notifications_zh.md)还允许经签名摘要绑定的通知扩展。除此之外不得自行添加字段。
 
 `dmsg_client::cloud::sign_command` 构造设备命令信封，`sign_http` 构造 HTTP PoP。用户公开资料不使用此命令通道；action 的载荷、权限和状态转换由对应资源合同限定，通用编码器不授予额外能力。
 
@@ -70,11 +72,11 @@ body: { home: bstr(user home Principal), principal: bstr(创建账户的登录 P
 
 value/witness/certificate 使用原始认证字节，devices 是完整设备 map 的规范 CBOR。缓存截止是 certificate 时间加 60 秒；不能以读取或提交时间续命。调用者只可从验证后的设备记录选择未撤销且具有所需能力的设备，不能将返回的所有记录均当作有效授权。
 
-用户公开资料改为由 `dmsg_user` 管理、`dmsg_directory` 发布的官方 `PrincipalDocument`，读取和认证见 [agent_zh.md](agent_zh.md#统一公开身份文档2026-10-22)。云端不再保存另一份用户 Profile，也不接受 `dmsg/profile/v1` 命令。头像上传仍经设备 PoP 与对象提交验证。
+用户公开资料改为由 `dmsg_user` 管理、`dmsg_directory` 发布的官方 `PrincipalDocument`，读取和认证见 [agent_zh.md](agent_zh.md#统一公开身份文档)。云端不再保存另一份用户 Profile，也不接受 `dmsg/profile/v1` 命令。头像上传仍经设备 PoP 与对象提交验证。
 
 ## 本地内容与云端映射
 
-账户、设备与根见[账户与根合同](account_root_zh.md)。`content` 为每个本地版本建立持久任务，`sync` 上传密文并提交已签 revision；没有账户或设备授权的工作区不能写内容。以下是当前字段与校验关系。
+账户、设备与根见[账户与根合同](account_root_zh.md)。`content` 为每个本地版本建立持久任务，`sync` 上传密文并提交已签 revision；云端写入必须有账户及设备授权。独立本机工作区只保存本地内容，不进入同步。以下是当前字段与校验关系。
 
 | 本地来源 | 云端目标 | 转换与校验 |
 | --- | --- | --- |
@@ -93,7 +95,9 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 按当前成员资格、控制 head 和 epoch 校验，不把本地状态或序号当成在线授权 |
 | 本地任务与 journal | 资源操作查询和实际服务回执 | 按原 request ID 对账；本地已排队或已发送不等于服务已接受 |
 
-本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。显式云端备份的新预留对有效 Max 会员允许 1000 MiB（1,048,576,000 明文字节），其他档位为 100 MiB；存储包不提升单文件上限，分享与频道附件仍限 100 MiB。已有备份在降级后仍可读取和恢复。Max backup 最多 1000 块、512 KiB manifest，普通上传保持 128 块、64 KiB。配额响应返回 `lifecycle.backup_max_file_bytes`；备份目录除条目数外还受 1 MiB 响应预算约束，短页也须按 `end` / `next_cursor` 继续；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。保险库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
+本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。显式云端备份的新预留对有效 Max 会员允许 1000 MiB（1,048,576,000 明文字节），其他档位为 100 MiB；存储包不提升单文件上限，分享与频道附件仍限 100 MiB。已有备份在降级后仍可读取和恢复。Max backup 最多 1000 块、512 KiB manifest，普通上传保持 128 块、64 KiB。配额响应返回 `lifecycle.backup_max_file_bytes`；备份目录除条目数外还受 1 MiB 响应预算约束，短页也须按 `end` / `next_cursor` 继续；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。
+
+保险库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
 
 明文文件块为 1 MiB，密文块预算为 `1 MiB + 64 bytes`。普通上传的 manifest 最多 64 KiB；有效 Max 会员备份的 manifest 按上述规则允许 512 KiB。上传大小按真实密文字节计算并受资源配额约束。超限明确失败，不静默截断。
 
@@ -121,15 +125,27 @@ vault revision 成功响应增加 `cursor`，表示该 revision 的提交位置�
 
 本表约定了字段、AAD、权限和大小口径。对象块容器固定为规范 CBOR `{format:"dmsg-cloud-object/1", record:EncryptedObject}`；`record` 使用上表正式工作区的字段与既有内容加密规则，保留必要的原始加密字段，不包含明文 Item 或 FileKey。
 
-上传 manifest 的明文固定为规范 CBOR `{format:"dmsg-cloud-manifest/1", account_id, upload_id, object_id, version_id, kind, root_generation, chunks:[{digest,size}], content}`。ID 使用上述 JSON 文本表示，chunks 与 upload plan 一致。vault 的 content 为 null；file 的 content 为现有 FileManifest，包括明文大小/摘要及文件 key，全部处于 manifest 加密层内。使用随机 nonce 的 COSE_Encrypt0 AES-256-GCM，由目标内容根封装；external AAD 为 `['dmsg/cloud-manifest/1', account_id, upload_id, object_id, version_id, kind, root_generation]`。manifest_size/digest 对最终加密 bytes 计算。manifest 不包含自己的摘要，避免循环。
+上传 manifest 的明文固定为规范 CBOR `{format:"dmsg-cloud-manifest/1", account_id, upload_id, object_id, version_id, kind, root_generation, chunks:[{digest,size}], content}`。ID 使用上述 JSON 文本表示，chunks 与 upload plan 一致。vault 的 content 为 null；file 的 content 为现有 FileManifest，包括明文大小/摘要及文件 key，全部处于 manifest 加密层内。
+
+使用随机 nonce 的 COSE_Encrypt0 AES-256-GCM，由目标内容根封装；external AAD 为 `['dmsg/cloud-manifest/1', account_id, upload_id, object_id, version_id, kind, root_generation]`。manifest_size/digest 对最终加密 bytes 计算。manifest 不包含自己的摘要，避免循环。
 
 内容根（`kind=root`）例外：manifest 是原始 RootBundle 字节（见[账户与根合同](account_root_zh.md)），`object_id` 取链上 `bundle_digest` 的 hex。`bundle_digest` 覆盖接收者与 body，不等于字节摘要；`GET /v1/accounts/:account/root` 按认证安全快照的 `content_root_generation` 与 `content_root_digest` 匹配 `root_generation` 与 `object_id` 返回对象，客户端下载后仍按 `bundle_digest` 验证。
 
-公开头像（`kind=avatar`）也是例外，内容不加密：唯一的块是 PNG、JPEG 或 WebP 原图（12 字节至 512 KiB，中继按文件头核对），`root_generation` 为 0，`epoch` 为 0，`control_head` 为 null，`object_id`、`version_id` 是随机 ID；manifest 是明文规范 CBOR `{format:"dmsg-cloud-avatar/1", account_id, upload_id, mime}`，中继只保存不读取。上传提交后发布公开对象；finalize 成功响应和上传状态中的 `public_url` 是最终地址（production 为 `https://assets.dmsg.net/avatars/:account/:upload`），由 PrincipalDocument 的 `avatar_url` 原样引用。客户端不能从 API origin 拼接图片 URL。上传 `status=committed` 只表示上传已提交；缺少 `public_url` 表示公开发布尚未完成，应使用同一 upload ID 重试 finalize，不能重新预留或上传。发布失败可返回可重试的 503，后台仍会恢复；重复 finalize 与操作查询返回同一个已发布 URL。只有已提交的 avatar 类型可以公开读取；取消文档引用不会删除或关闭这个公开 URL，普通对象回收拒绝头像。图片按不可变对象缓存一年，更新头像生成新 URL；公开读取无凭据 CORS。旧 `/public/accounts/:account/avatar/:upload` 入口已移除。本地开发从本地公开桶的 `/avatars/:account/:upload` 读取，本地 origin 使用 directory 的 HTTPS delegation_service 别名，客户端核对后映射到回环 API 读取；生产直接读取响应 URL。客户端保存最后一次头像上传计划，相同图片重试复用原 upload ID，只有明确未提交且已结束的计划才重新预留。
+公开头像（`kind=avatar`）也是例外，内容不加密：唯一的块是 PNG、JPEG 或 WebP 原图（12 字节至 512 KiB，中继按文件头核对），`root_generation` 为 0，`epoch` 为 0，`control_head` 为 null，`object_id`、`version_id` 是随机 ID；manifest 是明文规范 CBOR `{format:"dmsg-cloud-avatar/1", account_id, upload_id, mime}`，中继只保存不读取。
+
+上传提交后发布公开对象；finalize 成功响应和上传状态中的 `public_url` 是最终地址（production 为 `https://assets.dmsg.net/avatars/:account/:upload`），由 PrincipalDocument 的 `avatar_url` 原样引用。客户端不能从 API origin 拼接图片 URL。上传 `status=committed` 只表示上传已提交；缺少 `public_url` 表示公开发布尚未完成，应使用同一 upload ID 重试 finalize，不能重新预留或上传。
+
+发布失败可返回可重试的 503，后台仍会恢复；重复 finalize 与操作查询返回同一个已发布 URL。只有已提交的 avatar 类型可以公开读取；取消文档引用不会删除或关闭这个公开 URL，普通对象回收拒绝头像。图片按不可变对象缓存一年，更新头像生成新 URL；公开读取无凭据 CORS。旧 `/public/accounts/:account/avatar/:upload` 入口已移除。本地开发从本地公开桶的 `/avatars/:account/:upload` 读取，本地 origin 使用 directory 的 HTTPS delegation_service 别名，客户端核对后映射到回环 API 读取；生产直接读取响应 URL。
+
+客户端保存最后一次头像上传计划，相同图片重试复用原 upload ID，只有明确未提交且已结束的计划才重新预留。
 
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 
-备份（`kind=backup`）：本机文件库的一个版本由用户显式备份时上传。块就是本机 `blobs/` 中该版本的密文块（不重新加密），空文件同样用占位块；`object_id`、`version_id` 是随机 ID，文件与版本身份只在 manifest 内；`root_generation` 为当前根代次，`epoch=0`、`control_head=null`。manifest 仍是 `dmsg-cloud-manifest/1`，`content` 为规范 CBOR `{format:"dmsg-backup/1", file:FileManifest（含 key）, path:[文件夹名…], tags, note, created_at, modified_at, device}`，由当前根封装，中继不读取。中继按账户分页列出已提交的 backup 上传与其回收 tombstone（`GET /v1/accounts/:account/backups?after=&limit=`，每条含签名的 upload plan、中继预留时核对的认证证据与接收时间 `evidence`、`stored_at`、上传设备与提交时间），客户端像核对频道上传的 descriptor 一样，在该证据里找到当时未吊销、有 `content_sign` 的签名设备并验签 `dmsg/upload/reserve/v1`，再下载 manifest、用对应代次的根打开，得到云端备份目录。验签不依赖当前设备集合：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备也会移除最早吊销的一台，它们上传的备份仍能核对；backup 对象不进入 vault 的导出快照。删除云端副本走显式回收 `dmsg/object/collect/v1`；没有墓碑同步：云端删除不动本机文件，本机删除不动云端对象。
+备份（`kind=backup`）：本机文件库的一个版本由用户显式备份时上传。块就是本机 `blobs/` 中该版本的密文块（不重新加密），空文件同样用占位块；`object_id`、`version_id` 是随机 ID，文件与版本身份只在 manifest 内；`root_generation` 为当前根代次，`epoch=0`、`control_head=null`。manifest 仍是 `dmsg-cloud-manifest/1`，`content` 为规范 CBOR `{format:"dmsg-backup/1", file:FileManifest（含 key）, path:[文件夹名…], tags, note, created_at, modified_at, device}`，由当前根封装，中继不读取。
+
+中继按账户分页列出已提交的 backup 上传与其回收 tombstone（`GET /v1/accounts/:account/backups?after=&limit=`，每条含签名的 upload plan、中继预留时核对的认证证据与接收时间 `evidence`、`stored_at`、上传设备与提交时间），客户端像核对频道上传的 descriptor 一样，在该证据里找到当时未吊销、有 `content_sign` 的签名设备并验签 `dmsg/upload/reserve/v1`，再下载 manifest、用对应代次的根打开，得到云端备份目录。
+
+验签不依赖当前设备集合：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备也会移除最早吊销的一台，它们上传的备份仍能核对；backup 对象不进入 vault 的导出快照。删除云端副本走显式回收 `dmsg/object/collect/v1`；没有墓碑同步：云端删除不动本机文件，本机删除不动云端对象。
 
 writer/reader、任务恢复与加密容器往返已在公开客户端实现；测试入口见下节。legacy 历史归档有独立格式，不能伪装成上述新版内容。
 
@@ -190,9 +206,9 @@ handle 查询和证明使用小写规范名；页面优先显示认证名称记�
 
 JSON 与 HTML 的内容来源、字段和更新时间一致；浏览器独立验证 directory 的 ICP 证书。链接名称和 `extra["dmsg.link_images"]` 图片一起展示。头像与链接图片按文档中的 HTTPS 地址加载（`referrerpolicy="no-referrer"`），部署的 CSP `img-src` 必须允许这些来源。旧资料导入先生成包含名称、简介、具名链接、图片扩展和头像 URL 的草稿，用户发布后才上链。
 
-旧公开资料保留在 `/legacy/users/<username>`，本人旧资料在 `/legacy/profile`。新版映射不存在时可查询冻结名称预留，提供旧资料入口；不能把旧 owner 当作新版账户。只有公开头像 GET/HEAD/OPTIONS 保留无凭据 CORS，设备 API 不对浏览器开放。详见 [PrincipalDocument 合同](agent_zh.md#统一公开身份文档2026-10-22)。
+旧公开资料保留在 `/legacy/users/<username>`，本人旧资料在 `/legacy/profile`。新版映射不存在时可查询冻结名称预留，提供旧资料入口；不能把旧 owner 当作新版账户。只有公开头像 GET/HEAD/OPTIONS 保留无凭据 CORS，设备 API 不对浏览器开放。详见 [PrincipalDocument 合同](agent_zh.md#统一公开身份文档)。
 
-## 云端副本管理（2026-10-22）
+## 云端副本管理
 
 UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 KiB），由上传者用对应账户内容根加密 JSON 来源/恢复记录。COSE_Encrypt0 AES-256-GCM 的 external AAD 是规范 CBOR 数组 `['dmsg/storage-management/1',account_id,upload_id,object_id,version_id,generation]`。记录保存来源文件/版本、名称和大小，以及建立链接或发布附件所需的恢复信息；服务端不持有根密钥或明文。缺少旧根时只能显示 ID，不伪造名称或链接。可选字段缺省时不编码，既有签名向量不变。
 
@@ -209,7 +225,7 @@ UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 K
 
 桌面「云端空间」界面已于 2026-10-28 移除；通用 daemon API `files/storage`、`files/storage_refresh`、`files/storage_action` 标记为 **deprecated**，暂保留调用能力。会员页面通过 `files/cloud_usage` 展示用量；文件中的「链接」「云端备份」继续使用各自的内容管理 API。上表底层 HTTP 合同继续供加密来源、恢复与删除同步使用。文件仅在本机删除不影响云端副本；删除云端副本也不能收回他人已下载的文件。明细扫描不是跨资源原子快照，差额须刷新核对，不能直接改配额。Rust 互操作向量由 `print_storage_management_vector` 测试输出。
 
-## 私有文件直读（2026-10-23）
+## 私有文件直读
 
 普通 backup/file/share 的下载授权接口是 `GET /v1/{accounts|channels}/:resource/objects/:upload/download`，沿用 HTTP PoP；成功 data 为 `{upload_id,expires_at,manifest:{url,size,digest},chunks:[{url,size,digest},...]}`。URL 仅供精确对象 GET，最长 60 秒，期限不超过原请求和认证证据。客户端把上传者签名计划/已认证 manifest 的摘要作为预期值，核对响应对应关系、实际大小、SHA-256 与解密完整性。下载响应本身不替代上传者签名。
 
@@ -219,7 +235,17 @@ UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 K
 
 次数限制表示新下载会话数；已经开始的会话在次数用尽后仍可完成。撤销/删除停止新签发，但原 URL 在截止或物理删除前可重复读取密文；URL 不含解密密钥，已开始的传输和已保存副本不可收回。客户端完成状态晚于全文件校验。跨语言样本由 `downloads::tests::print_download_vector` 输出，固定测试密钥不证明真实部署。
 
-## 收取文件（2026-11-06）
+### 分享元数据与公开资料
+
+`GET /public/shares/:share/metadata` 返回 `{upload_id,expires_at,manifest:{url,size,digest}}`，只授权加密 manifest，不开始下载会话或消耗次数。已撤销、到期或次数用尽的链接拒绝签发；URL 最多有效 60 秒且不超过分享期限。浏览器验证并解密后显示完整文件名和类型；有口令时先解锁，它们不会成为服务端明文元数据。
+
+在线阅读和图片预览在用户主动操作后才开始计次下载。完整验证后展示内容，随后保存复用本页 Blob。元数据读取失败不回退为计次下载；服务须先支持元数据端点，再发布对应网页。
+
+`dmsg/share/create/v1` 可选 `show_profile: true`；缺省或 false 为匿名，旧链接不补填。该选择进入签名命令和加密的管理记录。有效且主动公开资料的链接在 descriptor 中返回实际创建账户的 `sharer_account`；调用者不能指定其他账户或资料 URL，改变选择须创建新链接。这项公开关联在输入分享口令前即可见。
+
+网页链接到 `/<sharer_account>` 并独立核验公开资料的 IC 证明。资料尚未发布或读取失败不阻止下载，匿名链接不查询资料。资料认证证明账户文档，分享与账户的关联来自服务验证过的创建记录；二者都不证明文件安全或作者身份。
+
+## 收取文件
 
 Plus 及以上账户可以生成只能上传的链接 `<site>/r/<account>/<request_id>#<page_key>`。发送方不需要账号；`request_id` 是 32 字节十六进制，`page_key` 是 fragment 中的 32 字节 base64url，不发给任何服务器。格式和跨语言样本见 `tests/vectors/client/request-v1.json`：
 
@@ -246,3 +272,11 @@ cookie 为路径限定到本链接的 `__Secure-dmsg-rq`（本地为 `dmsg-rq`�
 设备路由前缀 `/v1/file-requests/:account`（`links`、`links/revoke`、`files`、`files/ack`、`objects/collect`、`objects/:upload/download`），使用设备 PoP。收到的文件不进入账户同步；只有显式保存时才下载、核对并用文件库密钥重新加密为新文件，来源 `received` 记录链接和上传 ID。到达提示为 `file-request`，不触发推送。
 
 活跃链接数按档位 Plus 10、Pro 50、Max 200；单文件上限跟随备份政策；链接期限 1–90 天，总量至少 1 MiB 且不超过存储额度。账户读取 `file_request_limit` 了解当前额度。
+
+## 会员兑换操作
+
+公开预览为 `POST /public/promos/preview`，JSON `{code, surface:"landing"}`，不要求登录也不授予权益。客户端只接受规范化后 4–32 个 ASCII 字母或数字的代码：去掉空白与连字符并转大写，原始输入最多 96 字节。
+
+账户操作位于 `/v1/accounts/:account/promos/`：`preview`、`redeem` 与 `guest-passes` 使用 HTTP PoP 和 `dmsg/promo/preview/v1`、`dmsg/promo/redeem/v1`、`dmsg/promo/guest-pass/v1` 签名命令；`history` 为认证 GET。兑换前将规范代码与原 request ID 加密保存，未知结果或重启后沿原 ID 恢复；旧请求未结束时不替换成另一代码。响应还须匹配当前账户与会话代次。代码发放、兑换资格及部署状态不由预览或本地记录证明。
+
+实现见 [commerce.rs](../../src/dmsg_client/src/commerce.rs)；权威会员来源见[商业合同](commerce_zh.md)。

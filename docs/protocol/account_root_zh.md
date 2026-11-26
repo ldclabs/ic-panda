@@ -2,8 +2,7 @@
 
 [English](account_root.md) | 简体中文
 
-核对日期：2026-10-24，公开源码 `9fd70dca`。本文描述桌面客户端的认证绑定、按账户分开的工作区和全设备丢失恢复；发布工件与具体部署验收分别核对。
-此文描述公开客户端实现，不代表生产 key 或生产部署已验收。
+本文描述共享客户端核心的认证绑定、服务账户工作区和链上恢复。源码基线见[文档索引](../README_zh.md)；平台入口见 [Apple](mobile_zh.md) 与 [Android](android_zh.md)。
 
 ## 账户控制
 
@@ -22,7 +21,7 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 `RemoveAuth`（不能移除当前使用的登录）、`SetPolicy`（冻结、每日执行次数、允许的用途）、`SetRecoveryDelay` 与 `DisputeRecovery` 同样经审批中心。审批记录里登录 Principal 以文本保存，签名前才转换为命令。
 
-设备权益规则（2026-10-28）：Free / Plus / Pro / Max 最多分别有 2 / 3 / 5 / 10 台活跃设备；已撤销设备不占名额。存量超额或会员到期降级只限制继续新增，不撤销设备或阻止安全维护。`AddDevice` 超限返回现有 `QuotaExceeded`，会员状态失效返回 `MembershipStale`；已提交请求仍幂等返回原回执。额度由现有 commerce 投影的套餐标识推导，账户/设备结构、Candid、签名编码和安全叶格式均不变。
+设备权益规则：Free / Plus / Pro / Max 最多分别有 2 / 3 / 5 / 10 台活跃设备；已撤销设备不占名额。存量超额或会员到期降级只限制继续新增，不撤销设备或阻止安全维护。`AddDevice` 超限返回现有 `QuotaExceeded`，会员状态失效返回 `MembershipStale`；已提交请求仍幂等返回原回执。额度由现有 commerce 投影的套餐标识推导，账户/设备结构、Candid、签名编码和安全叶格式均不变。
 
 ### 设备继任
 
@@ -56,11 +55,13 @@ P-256 签名按 ECDSA-SHA256 处理 32 字节的 `H`（即 CryptoKit `signature(
 
 每个账户在本机有自己的工作区，账户之间互不可见：`<home>/<environment>/accounts/<account>/` 存放该账户的 `workspace.sqlite` 与 Agent 连接器状态 `agents.sqlite`；还没有账户的登录用 `logins/<principal>/`，等它有了账户（创建、被绑定）后整个目录改名为 `accounts/<account>/`。登录时客户端用 `my_account` 找到该登录的账户并选择对应工作区，没有时选择该登录自己的工作区；同一账户的不同登录共用一个工作区。`current` 记录最近选择的账户，daemon 重启和快速解锁使用它；切换到另一个账户的工作区时先锁定，其驻留密钥一并丢弃。每个工作区有自己的设备 ID 与密钥，所以同一台电脑上的不同账户是不同的设备。
 
-每个工作区还有一把硬件锚：macOS 或 iOS Secure Enclave 中的 P-256 签名钥匙，开机后首次解锁即可使用，仅限本机，使用时不询问人。因为判定发生在解锁之前，它的句柄与公钥以明文记在工作区元数据中。客户端在启动、注入硬件和选择工作区时用它签 `digest("dmsg/hardware-anchor/v1", (environment, deviceId, challenge))` 并验签。本机硬件打不开句柄（例如系统迁移或恢复备份把工作区复制到了另一台设备）即判为迁入；硬件暂时不能回答时不改变任何状态，稍后再判。迁入的工作区不解锁、不做服务端写入、不接收推送，也不会经撤销检查被清空。人确认后，整个目录改名为 `moved/<account>-<设备 ID 前 8 位>/`（附明文 `moved.json`），本机随后以新设备加入账户；副本保留供导入，只有人确认后才删除。锚出现之前就已持有硬件钥匙（在场快速解锁钥匙或设备绑定槽位）的工作区，补建的锚标为 `late`：此后第一把打开的硬件钥匙确认原机，本机无法使用的则判为迁入。没有 Secure Enclave 的平台不做此判定。
+每个工作区还有一把硬件锚：平台提供的 P-256 签名钥匙（Apple Secure Enclave 或 Android Keystore），开机后首次解锁即可使用，仅限本机，使用时不询问人。因为判定发生在解锁之前，它的句柄与公钥以明文记在工作区元数据中。客户端在启动、注入硬件和选择工作区时用它签 `digest("dmsg/hardware-anchor/v1", (environment, deviceId, challenge))` 并验签。本机硬件打不开句柄（例如系统迁移或恢复备份把工作区复制到了另一台设备）即判为迁入；硬件暂时不能回答时不改变任何状态，稍后再判。
+
+迁入的工作区不解锁、不做服务端写入、不接收推送，也不会经撤销检查被清空。人确认后，整个目录改名为 `moved/<account>-<设备 ID 前 8 位>/`（附明文 `moved.json`），本机随后以新设备加入账户；副本保留供导入，只有人确认后才删除。锚出现之前就已持有硬件钥匙（在场快速解锁钥匙或设备绑定槽位）的工作区，补建的锚标为 `late`：此后第一把打开的硬件钥匙确认原机，本机无法使用的则判为迁入。没有硬件锚能力的平台不做此判定。
 
 ## 本机解锁
 
-没有本地解锁口令、恢复码或服务外离线恢复包；文件导出不属于账户恢复。本机数据密钥 LDK 只在以下两种钥匙下封装：
+本节描述服务账户的本机解锁。独立本机工作区可使用硬件或口令保护，另见[加密说明](../dmsg_encryption_zh.md)；[口令备份](vault_backup.md)只恢复所选保险库内容，不恢复链上账户、登录或设备权限。服务账户的基础封装如下，硬件绑定会进一步替换它：
 
 ```text
 name        = "dmsg:" + environment + ":" + account + ":" + deviceId
@@ -71,9 +72,9 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 - `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，其中 `digest(domain, value) = SHA256(CBOR([1, domain, value]))`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
 - 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
-- 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，30 天 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
-- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；没有硬件在场验证的平台使用存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。硬件在场验证保护的快速解锁（含 macOS/iOS）不受 II 登录期限限制；只有无需在场验证的普通凭据库密钥在距上次登录解锁满 30 天后拒绝。II delegation 仍按自身期限失效，过期的封存登录删除，不阻止本机解锁与读取；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。Secure Enclave 报告“暂时不能询问”（无 Touch ID 键盘、锁定等）时保留快速解锁，只有钥匙确定无法重建时才关闭它。
-- 设备绑定（具备系统凭据库与硬件能力时默认）：保留同一个 LDK，只换封装。凭据库中另有独立槽位 `<name>:device-bound`，保存一把 Secure Enclave 密钥协商钥匙的句柄与软件对端；其秘密 `S` 每次解锁取得一次（要求在场）：
+- 日常解锁：经 II 或 Passkey 登录（[II](login-v1_zh.md) delegation 最长 30 天；[Passkey](passkey-v1_zh.md)会话最长 12 小时，会话私钥留在客户端核心）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
+- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；没有硬件在场验证的平台使用存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。硬件在场验证保护的快速解锁（含 macOS、iOS 和 Android）不受 II 登录期限限制；只有无需在场验证的普通凭据库密钥在距上次登录解锁满 30 天后拒绝。II delegation 仍按自身期限失效，过期的封存登录删除，不阻止本机解锁与读取；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。Secure Enclave 报告“暂时不能询问”（无 Touch ID 键盘、锁定等）时保留快速解锁，只有钥匙确定无法重建时才关闭它。
+- 设备绑定（具备系统凭据库与硬件能力时默认）：保留同一个 LDK，只换封装。凭据库中另有独立槽位 `<name>:device-bound`，保存平台硬件钥匙的句柄与封装上下文。Apple 通过 Secure Enclave 密钥协商取得秘密 `S`，Android 通过硬件 Keystore 的 RSA-OAEP 解封取得它；每次解锁都要求在场：
 
   ```text
   slot     = digest("dmsg/device-bound-key/v1", peer)
@@ -83,9 +84,9 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
   ldk-bound = E(K_login, LDK, ["login", context]);  ldk-fast = E(K_fast, LDK, ["fast", context])
   ```
 
-  开启时先用新钥匙实际解出一次 `S`，再在同一事务中写入 `ldk-bound`、新的 `ldk-fast` 并删除只靠 LUK 的封装；以后登录解锁和快速解锁都需要这台 Mac 的硬件。关闭快速解锁只删 `ldk-fast`，退出登录与任何错误都不删除槽位，只有重置工作区或解除绑定才删除；仅当前指纹的槽位在指纹集合变化后报告失效，硬件暂时不可用时报告不可用，均不回退旧封装。解除绑定重新以 LUK 封装 LDK。它只防开启之后复制的工作区：之前的副本仍可凭登录打开同一个 LDK；后台在线时内存中的设备签名钥匙与常驻 Agent ID 在凭据库中的副本不受它保护，开启时如实列出。
+  开启时先用新钥匙实际解出一次 `S`，再在同一事务中写入 `ldk-bound`、新的 `ldk-fast` 并删除只靠 LUK 的封装；以后登录解锁和快速解锁都需要本设备的硬件。关闭快速解锁只删 `ldk-fast`，退出登录与任何错误都不删除槽位，只有重置工作区或解除绑定才删除；仅当前指纹的槽位在指纹集合变化后报告失效，硬件暂时不可用时报告不可用，均不回退旧封装。解除绑定重新以 LUK 封装 LDK。它只防开启之后复制的工作区：之前的副本仍可凭登录打开同一个 LDK；后台在线时内存中的设备签名钥匙与常驻 Agent ID 在凭据库中的副本不受它保护，开启时如实列出。
 
-2026-10-31 默认绑定规则：注册、配对、恢复后的加入与普通登录共用本机绑定流程，复用已有 `unlock_secret` query 的结果，不增加 update 或日常 vetKD 调用。系统确认在客户端执行器之外；确认前不释放内容密钥，取消或失败不回退，确认后重新校验会话与设备授权。旧的未绑定快速解锁返回 `AuthRequired`，先经登录迁移。工作区元数据 `bound_declined` 缺省为 false，明确解除绑定时设为 true，手动重新绑定时清除；关闭快速解锁不改变它。没有系统凭据库或硬件能力时保留兼容路径，已有硬件锚但暂时不能询问时不能按无硬件降级。既有副本仍受此前的保护边界约束。
+默认绑定规则：注册、配对、恢复后的加入与普通登录共用本机绑定流程，复用已有 `unlock_secret` query 的结果，不增加 update 或日常 vetKD 调用。系统确认在客户端执行器之外；确认前不释放内容密钥，取消或失败不回退，确认后重新校验会话与设备授权。旧的未绑定快速解锁返回 `AuthRequired`，先经登录迁移。工作区元数据 `bound_declined` 缺省为 false，明确解除绑定时设为 true，手动重新绑定时清除；关闭快速解锁不改变它。没有系统凭据库或硬件能力时保留兼容路径，已有硬件锚但暂时不能询问时不能按无硬件降级。既有副本仍受此前的保护边界约束。
 
 换机通过旧机批准新设备与 `dmsg-device-transfer/1` 传输本机数据；新设备不继承旧设备身份或硬件槽位。旧机不可用且事先开启链上恢复时，只承诺恢复已上传的云端内容，硬件绑定副本中的未上传文件不能仅凭登录恢复。已有硬件快速解锁钥匙优先用于默认绑定；新绑定槽位记录 `created_at`（旧槽位缺省为 0），只有早于硬件锚的钥匙才能确认旧锚的归属，避免用新机生成的钥匙误认旧机副本。
 
@@ -138,7 +139,7 @@ v3 的 `recoveryKey` 与 `recovery` 必须同时存在或同时省略，关闭�
 
 ## 全设备丢失恢复
 
-2026-10-31：新账户默认关闭链上恢复。`SetRecoveryPolicy { enabled, delay_ms }` 由管理员设备批准，受 `AccountControl` 硬件批准政策约束。桌面安全设置只提交一次审批，批准后客户端自动换根；不要求用户另行操作根密钥。开启前必须仍有可解锁的授权设备。
+新账户默认关闭链上恢复。`SetRecoveryPolicy { enabled, delay_ms }` 由管理员设备批准，受 `AccountControl` 硬件批准政策约束。桌面安全设置只提交一次审批，批准后客户端自动换根；不要求用户另行操作根密钥。开启前必须仍有可解锁的授权设备。
 
 模式变化取消待恢复、清除恢复派生资格并使已有根进入 `RekeyRequired`；没有结束的已授权派生先完成再改政策（返回 `Pending`）。关闭时 `request_recovery`、`complete_recovery`、`derive_root` 均拒绝；开启后须先提交包含恢复信封的根，才能申请恢复。日常 `unlock_secret` 仍是 query。旧根、已交付的密钥及已复制内容不能追回。
 
@@ -146,9 +147,9 @@ v3 的 `recoveryKey` 与 `recovery` 必须同时存在或同时省略，关闭�
 
 客户端实现见 `dmsg_client::recovery`：申请封存在新设备的工作区，回复丢失时原样重发（同一申请不会重新开始等待）；派生的批准与传输密钥种子按承诺的根摘要封存为 `recover-root:<digest>`，结果先按执行 ID 读取，原批准过期且认证时间与设备序号证明它不可能再执行时才重新批准；`max_cycles` 固定为 700 亿。完成后客户端解开恢复信封、沿 `previous` 链取得历史根，再换根。
 
-1. 新设备用绑定过的 II 账户登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。II 也丢了就不能恢复。
+1. 新设备用已绑定的登录身份登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。所有绑定登录都丢失时不能走此路径。
 2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；用 `RemoveAuth` 解除发起申请的登录同样作废申请。没有再确认流程。
 3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，退役全部批准钥匙并关闭硬件批准政策，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
 4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生（同一 `request_id` 重试返回原结果，换根前也可凭新批准再次派生），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端解密并核对 vetKey 后用它解开根包的 IBE 恢复信封，随即换根到下一代（只封装给自己）。换根后派生权消失。
 
-恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`max_cycles` 是客户端在批准中写定的上限。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。开启链上恢复时，II 被盗且延迟期内所有设备都没响应仍可能导致内容泄露；关闭时拒绝这条恢复路径。
+恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`max_cycles` 是客户端在批准中写定的上限。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。开启链上恢复时，绑定的登录身份被盗且延迟期内所有设备都没响应仍可能导致内容泄露；关闭时拒绝这条恢复路径。

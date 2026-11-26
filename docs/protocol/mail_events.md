@@ -2,7 +2,7 @@
 
 English | [简体中文](mail_events_zh.md)
 
-2026-10-23. Implementation contract, not evidence of production deployment or host wakeup.
+Implementation contract, not evidence of production deployment or host wakeup.
 
 ## 1. Two events
 

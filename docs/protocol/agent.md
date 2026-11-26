@@ -56,7 +56,7 @@ The client (desktop daemon, `src/dmsg_client`'s `agent` module) constructs, sign
 
 ## Security snapshots
 
-`SecuritySnapshot` schema 4 includes `principal_updated_at`, the current principal state's `updated_at`, or `null` before activation. If a relying party/service finds a greater value in the certified snapshot than in the directory document, publication is lagging and it should not accept new events under the old document.
+`SecuritySnapshot` schemas 4 and 5 include `principal_updated_at`, the current principal state's `updated_at`, or `null` before activation. If a relying party/service finds a greater value in the certified snapshot than in the directory document, publication is lagging and it should not accept new events under the old document.
 
 ## Example document
 
@@ -64,7 +64,7 @@ The client (desktop daemon, `src/dmsg_client`'s `agent` module) constructs, sign
 {"aliases":["https://dmsg.net/<account_id>"],"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://api.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"Website","rel":"related","url":"https://example.com/"}],"name":"Panda","protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
 ```
 
-## Verification
+## Verification entry points
 
 - `dmsg_protocol::agent` unit tests: SDK-validated rendering, state invariants, directory configuration, registration-approval and controller-PoP digest vectors (`controller_pop_v1` in `protocol_vectors.json`).
 - `dmsg_user` unit tests: lifecycle monotonicity, limits, replay, unchanged `security_epoch`, and rejection of invalid PoP.
@@ -72,9 +72,9 @@ The client (desktop daemon, `src/dmsg_client`'s `agent` module) constructs, sign
 - `dmsg_client` tests: locally signed grants/revocations accepted by SDK `validate_delegation_acceptance` against directory-rendered documents; ceiling violations rejected; nonce `max(last + 1, created_at)` no earlier than `valid_from`; validity over 366 days rejected; controller keys stored at fixed vault IDs.
 - Desktop E2E `desktop_agents` in `tests/dmsg_integration/tests/desktop.rs`: enable, register, publish through real `dmsg_directory`, identical resubmission after a lost grant reply, relying-party verification of `usable`, and unusability after revocation.
 
-These are local tests, not proof of production deployment, measured capacity or a completed security audit.
+These are test entry points, not a claim that they were rerun during this documentation review or that deployment acceptance or a security audit is complete.
 
-## Unified public identity document (2026-10-22)
+## Unified public identity document
 
 User public profiles directly use `agent_protocols::delegation::PrincipalDocument`. `id.dmsg.net/<account_id>` returns its JCS JSON; `dmsg.net/<account_id>` and certified-handle-resolved `dmsg.net/<handle>` render the same document. Canonical `id` always uses the principal origin; existing signature issuers and derivation domains are unchanged. `aliases` automatically includes the stable HTML address without duplicating transferable-handle ownership.
 
@@ -82,24 +82,17 @@ User public profiles directly use `agent_protocols::delegation::PrincipalDocumen
 
 Publishing a profile is an account mutation plus a directory push; ordinary messages, content grants and file operations do not gain on-chain writes. `updated_at` and internal version increase monotonically without advancing device `security_epoch`. Failures/unknown replies preserve the committed version for `publish_principal` retry; the client must distinguish local commit from directory publication.
 
-`principal_document(account_id)` returns `CertifiedBatch` containing exactly the HTTP JSON bytes at `[b"documents", account_id[12]]`. The root is `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`; each read surface retains the other branch's pruned hash. SDK and native clients independently verify the IC root, canister, 60-second certificate freshness, account path and canonical document ID. HTTP headers and certification expressions are unchanged. User stable schema is 15 and directory schema is 7.
+`principal_document(account_id)` returns `CertifiedBatch` containing exactly the HTTP JSON bytes at `[b"documents", account_id[12]]`. The root is `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`; each read surface retains the other branch's pruned hash. SDK and native clients independently verify the IC root, canister, 60-second certificate freshness, account path and canonical document ID. HTTP headers and certification expressions are unchanged. User stable schema is 18 and directory schema is 7; these numbers are separate from certified-leaf schemas.
 
-Existing production data uses in-place `upgrade`: directory supports 6 → 7, preserving each original JSON body while building the additional tree; user supports 14 → 15, preserving accounts, unlock master secret and all stable tables, defaulting only missing principal display metadata to `{}`. Upgrade directory before homes. Publication input `metadata` is optional bytes so old homes remain compatible. Same-version retries of old state digests require identical original fields and empty metadata; existing documents are not rewritten using the new renderer. Later versions use current rules. Other old schemas are outside this migration.
+Upgrades support user 14–17 → 18 and directory 6 → 7. Missing principal display metadata defaults to `{}`; upgrades preserve existing document bytes. Optional publication `metadata` accepts older homes. Same-version retries must match the original state; later publications use the current renderer. Upgrade directory before homes and preserve stable state.
 
-`scripts/test-dmsg-principal-upgrade.sh` builds unchanged old Wasm from pinned commit `70d67c86`, checks Candid compatibility, and uses PocketIC to verify retained accounts/devices/bindings, content roots, unlock keys, execution evidence, controllers, original document bodies and certified reads, followed by edits, retries and another upgrade.
+The historical principal migration regression is in `scripts/test-dmsg-principal-upgrade.sh`; see the [account contract](account_root.md) for the current account layout and recovery rules.
 
 The old `dmsg/profile/v1` user command, COSE Profile object and cloud CRUD are removed; agents' `agent-profile/1.0` remains separate. Avatars are explicitly public uploads whose URLs remain unchanged and readable after commit; removing document references does not delete images, and ordinary collection rejects committed avatars. Desktop upload returns only the URL; publishing the document changes the profile, preserving editing drafts.
 
-The recorded local verification covered:
+## Client persistence and retries
 
-- PocketIC profile and controller lifecycle: identical HTTP/query bodies, controller preservation on profile edits, stale-edit rejection, and TypeScript-SDK verification of real-Wasm certification evidence.
-- `desktop_principal_documents`, `desktop_content_and_sync` and `desktop_channels`: real daemons, canisters and local relay across profiles, avatars, locked permissions, content sync and channel-name reads.
-- Electron smoke: imported legacy names, named links and images, avatar operations preserving drafts, pending publication and retry. The final smoke skipped native macOS fullscreen checks; other checks passed.
-- Web: real-Wasm proofs render documents, while altered proofs prevent rendering. Live-share and independent certified-fixture checks were outside this profile verification and were not run.
-
-## Client alignment with 0.12.6
-
-- Normative vectors, schemas and shared boundary cases track the SDK; provenance and offline commands are in the [vectors README](../../tests/vectors/agent-protocols/README.md). This alignment changed no canister Candid interface or stable layout.
+- Normative vectors, schemas and shared boundary cases track the SDK; provenance and offline commands are in the [vectors README](../../tests/vectors/agent-protocols/README.md).
 - Before Mail publication, the host atomically saves connector state and encrypted key snapshots. Restart restores them before publication, clearing the snapshot only after normal key storage confirms persistence. Keys never enter MCP output. Remote owner inventory is separate from local read-only inventory; the former is authorized by relay grants, paginated and persisted for recovery. Recovering metadata does not recover keys or historical plaintext.
 - Desktop public-Agent-Profile reads persist the greatest verified nonce and reject older versions or same-nonce conflicts. Discovery cannot change configured service origins. SDK Profile pins are also persisted in connector snapshots.
 - An explicit controller nonce conflict permits at most one re-sign using valid, bounded `Max-Seen-Nonce`. The approved ID, generation, scope, audiences and expiry stay fixed; current authority is rechecked before signing. The retry count is journaled encrypted before retry and does not reset after restart. Unknown outcomes resubmit original bytes; other refusals require new approval.

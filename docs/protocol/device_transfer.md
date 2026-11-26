@@ -2,9 +2,9 @@
 
 English | [简体中文](device_transfer_zh.md)
 
-Drafted 2026-10-30. The protocol core is implemented in `dmsg_client::transfer`
+The protocol core is implemented in `dmsg_client::transfer`
 and fixed by [transfer-v1 vectors](../../tests/vectors/transfer/transfer-v1.json).
-The hosts' transports (a TCP listener and Bonjour on macOS and iOS) carry it;
+The hosts' transports (TCP listeners, Apple Bonjour and Android NSD) carry it;
 they do not change the bytes described here.
 
 A one-time, end-to-end encrypted transfer of local content from one active

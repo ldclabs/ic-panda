@@ -9,6 +9,7 @@
 | 领域 | 合同 |
 | --- | --- |
 | 账户、设备与恢复 | [账户与根](account_root_zh.md) · [II 浏览器登录](login-v1_zh.md) · [Passkey](passkey-v1_zh.md) · [设备邀请](device_pairing_zh.md) · [设备间直传](device_transfer_zh.md) |
+| 原生平台 | [Apple](mobile_zh.md) · [Android](android_zh.md) |
 | 网页应用接入 | [dmsg-connect/1](connect-v1_zh.md) |
 | 认证与类型化动作 | [集成](integration_zh.md) · [应用动作](app-action_zh.md) · [生成的 CDDL](integration.cddl) |
 | 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
@@ -66,7 +67,7 @@ ICP 业务时间、批准期限为 u64 Unix **毫秒**，使用 `now < expires_a
 | --- | --- | --- | --- |
 | Ed25519 | -19 | 直接签 Sig_structure | OKP，crv=6，x=32 字节 |
 
-dMsg 只支持 Ed25519；2026-10-07 起不再提供 ES256K、BIP340 入口或私有算法标签。失败不会自动切换算法。public-only COSE_Key 禁止私钥 d（-4）；alg 必须匹配，key_ops 存在时须允许 verify，kid 存在时须与保护头匹配。
+本页的文档签名只支持 Ed25519，不提供 ES256K、BIP340 或私有算法标签；钱包和硬件批准使用各自的协议。失败不会自动切换算法。public-only COSE_Key 禁止私钥 d（-4）；alg 必须匹配，key_ops 存在时须允许 verify，kid 存在时须与保护头匹配。
 
 公钥指纹采用 RFC 9679 SHA-256：只编码所需公开参数 `{1: 1, -1: 6, -2: x}`，排除 kid、alg、key_ops。dMsg 的正式文档由账户的设备 Ed25519 密钥签名，kid 就是该设备公钥的指纹；设备是否属于账户、签名是否经账户服务授权，由认证执行回执证明，不由公钥本身证明。
 
@@ -95,7 +96,7 @@ digest("dmsg/device-approval/v2", [
 
 幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。丢失回复用 `get_attestation(account_id, request_id)` 取回同一产物。严格设备序号和执行水位在结果清理后继续阻止重放，原样重放已清理的请求返回 `ResultExpired`。
 
-`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt`（schema 2）保存 issuer、设备/epoch、批准时间/期限、origin、待签字节 SHA-256、设备公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。升级从稳定执行记录重建叶，清理结果时删除叶，之后查询返回认证的不存在证明。
+`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt`（schema 2）保存 issuer、设备/epoch、批准时间/期限、origin、待签字节 SHA-256、设备公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。认证树保存在稳定内存中，升级只重新发布根；清理结果时删除叶，之后查询返回认证的不存在证明。
 
 验证回执必须先验证指定 user canister 的 IC certificate、witness、路径和值，再匹配 issuer、待签摘要、公钥指纹和签名摘要。SDK `verifyExecutionReceipt` 完成这两步；Rust `match_execution_receipt` 仅做绑定检查，调用者负责认证 certificate。没有回执的 COSE_Sign1 只证明某把设备密钥签过这些字节，不证明 dMsg 授权。回执证明本服务记录的执行授权，不自动证明外部项目权限或当前设备状态。
 
@@ -121,7 +122,9 @@ cargo run -p dmsg_types --example protocol_vectors > /tmp/dmsg-vectors.json
 node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 ```
 
-签名、身份头和 profile 依据：[RFC 9052](https://www.rfc-editor.org/rfc/rfc9052.html)、[RFC 9597](https://www.rfc-editor.org/rfc/rfc9597.html)、[RFC 8392](https://www.rfc-editor.org/rfc/rfc8392.html)、[RFC 9596](https://www.rfc-editor.org/rfc/rfc9596.html)。摘要、公钥指纹和时间戳分别依据 [RFC 9995](https://www.rfc-editor.org/rfc/rfc9995.html)、[RFC 9679 §4.2](https://www.rfc-editor.org/rfc/rfc9679.html#section-4.2)、[RFC 9921](https://www.rfc-editor.org/rfc/rfc9921.html)。SCITT 的声明/证据分工参考 [RFC 9943](https://www.rfc-editor.org/rfc/rfc9943.html)，当前普通文档 profile 不宣称实现其透明服务。
+签名、身份头和 profile 依据：[RFC 9052](https://www.rfc-editor.org/rfc/rfc9052.html)、[RFC 9597](https://www.rfc-editor.org/rfc/rfc9597.html)、[RFC 8392](https://www.rfc-editor.org/rfc/rfc8392.html)、[RFC 9596](https://www.rfc-editor.org/rfc/rfc9596.html)。
+
+摘要、公钥指纹和时间戳分别依据 [RFC 9995](https://www.rfc-editor.org/rfc/rfc9995.html)、[RFC 9679 §4.2](https://www.rfc-editor.org/rfc/rfc9679.html#section-4.2)、[RFC 9921](https://www.rfc-editor.org/rfc/rfc9921.html)。SCITT 的声明/证据分工参考 [RFC 9943](https://www.rfc-editor.org/rfc/rfc9943.html)，当前普通文档 profile 不宣称实现其透明服务。
 
 ## Agent Delegation
 

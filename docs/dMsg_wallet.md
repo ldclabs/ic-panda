@@ -1,24 +1,10 @@
-# dMsg Wallet product specification v0.2 · Multisig wallets
+# dMsg multisig wallets
 
 English | [简体中文](dMsg_wallet_zh.md)
 
-First version: 2026-10-16; implementation revised: 2026-10-24; naming and positioning revised: 2026-11-01 (based on `8286e058`; remote not checked). This document consolidates implementation and security revisions against public repository `b8b8b799`, describing current behavior and listing future capabilities separately. Product documentation is now unified here; protocols and component READMEs own exact interfaces and implementation boundaries. Source implementation is distinct from production deployment or desktop release.
+This guide covers implemented workflows, authority and recovery boundaries. See the [documentation index](README.md) for the source baseline and the [wallet contract](protocol/wallet.md) for exact fields and bytes. Deployment acceptance is separate.
 
-Desktop flows also incorporate the 2026-10-24 UX01–UX20 revisions; components, test entry points and platform boundaries are in the [desktop README](../src/dmsg_desktop/README.md).
-
-Companions: [public contract](protocol/wallet.md), [wallet implementation](../src/dmsg_wallet/README.md), [factory implementation](../src/dmsg_wallet_hub/README.md), [desktop README](../src/dmsg_desktop/README.md).
-
-## 0. Baseline and scope
-
-| Area | Reviewed state |
-| --- | --- |
-| Public code | Local `ic-panda` `main`, `b8b8b799` (2026-10-24); clean workspace at the start of that revision; remote not checked |
-| Private design | Located through [AGENTS.md](../AGENTS.md): PRD v1.1, implementation v1.1, commercialization/implementation v1.0 and shared-membership recommendation; local `dmsg-cloud` was `801940d4` (2026-10-23), clean, remote not checked. Private design text is not reproduced here |
-| Wallet services | One independent `dmsg_wallet` instance per wallet, with `dmsg_wallet_hub` as factory; reserved ID `ghcje-dyaaa-aaaas-qg7va-cai` is used by the hub |
-| Clients | Rust core, daemon, CLI, MCP and Electron multisig wallet module are implemented; desktop creation is paused, while existing wallets and historical activation jobs remain usable |
-| Verification and release | Unit, PocketIC, dual-daemon, Electron and some local external-chain checks exist; these do not establish production deployment, real-hardware acceptance or completion of every external-chain check |
-
-This document focuses on flows, authority and product boundaries. Public Candid, types and protocols govern exact fields/methods. Early research on incident losses, competitors, network throughput and dollar costs is not the current implementation baseline, and commercial recommendations are not configured entitlements.
+**Desktop wallet creation is currently paused.** Existing wallets, joining and historical activation jobs remain usable. CLI, daemon and hub creation APIs remain available; the hub has a separate governance pause.
 
 ## 1. Product definition
 
@@ -38,7 +24,7 @@ Individuals can configure device co-signing for their own assets or invite other
 | Bitcoin | P2TR, P2WPKH, same-input replacement, Taproot dual control and timelock paths | Bitcoin regtest broadcast acceptance and hardware-wallet integration remain incomplete |
 | EVM | EIP-1559 native/ERC-20 transfers, same-nonce replacement, cancellation and release of pending nonces | No generic calldata, EVM batches or Safe dual control |
 | Solana | SOL, SPL, optional ATA creation, batching and explicit durable-nonce initialization | Default addresses have no durable nonce; ordinary signed transactions can only rebroadcast original bytes |
-| Device cosigning | Canister Raw/FIDO2/WebAuthn verification; client Secure Enclave P-256 on macOS and iOS, and software P-256; NC device soft keys sign Taproot L1; collection for the same plan across devices, with packets exchanged between the desktop and iOS | TPM, CTAP2, bridge WebAuthn and chain hardware-wallet adapters are not implemented; on-chain regtest acceptance of NC soft keys is pending |
+| Device cosigning | Canister Raw/FIDO2/WebAuthn verification; client Apple Secure Enclave, Android Keystore and software P-256; NC device soft keys sign Taproot L1; collection for the same plan across devices, with packets exchanged between desktop and mobile clients | TPM, CTAP2, bridge WebAuthn and chain hardware-wallet adapters are not implemented; on-chain regtest acceptance of NC soft keys is pending |
 | Desktop and collaboration | Four main workspace areas, separate approvals, certified reads, receive checks, audit, encrypted channel hints and RPC configuration | Channels only notify/navigate; public transparency pages and on-chain `attest_*` are not implemented |
 
 ## 3. Product principles
@@ -84,15 +70,11 @@ Assets are identified by exact ledgers, EVM chain IDs/contracts and Solana mints
 | CS cosigning | Additional key threshold over exact plan digests; ICP operations bind proposal digest | Enforced by wallet code; Admin threshold plus 24 hours can change/remove ordinary address cosigning, and malicious upgrades may bypass it |
 | NC on-chain dual control | Currently Bitcoin Taproot only: L1 requires chain key plus BIP-340 cosigner | L2 permits chain-key-only spending after the UTXO's configured block age; optional L3 uses a recovery key after another timelock. Not every path is permanently 2-of-2 |
 
-Ordinary CS key generation supports Secure Enclave P-256 on macOS and iOS, and software P-256 encrypted under local LDK. A hardware request fails when hardware is unavailable and never silently downgrades: the desktop then asks whether to make a software key, the CLI makes one only with `--software`, and iOS makes Secure Enclave keys only. The canister's `hardware` flag is a registration claim, not remote attestation. A non-exportable private key is not a trusted transaction display.
+Ordinary CS keys use Apple Secure Enclave, Android Keystore or software P-256 encrypted under local LDK. Hardware requests never silently fall back; desktop and CLI software keys require an explicit choice. The canister's `hardware` flag is a registration claim, not remote attestation; user presence is not a trusted transaction display.
 
-The two clients differ: the macOS Secure Enclave signs at most 32 digests per presence check and iOS at most 64; turning off the iPhone passcode invalidates its Secure Enclave keys, so the wallet needs another cosigner to stay usable.
+NC BIP-340 keys derive from a device soft-key root protected by hardware or explicitly chosen software protection, and remain registered as `hardware: false`. Taproot scripts commit to a fixed cosigner key. Moving to another device requires a new address and UTXO transfer; L2 can spend only outputs whose timelocks have matured.
 
-NC cosigner keys are BIP-340 Taproot keys, which the Secure Enclave cannot hold, so a device soft key holds them: each device has a random root sealed under one or more dedicated Secure Enclave keys (protectors). Creating it asks nothing; opening it needs the person. A device without such hardware keeps the root in software under its local key only when the person explicitly chooses that. Each wallet's key derives from the root and registers as a `Bip340` cosigner with `hardware: false`, so wallets that require hardware cosigners refuse it. Before signing an L1 spend the client's own decoder confirms the plan takes L1 with this device's registered key in the leaf; the person then opens the root, and the client signs each input's script-path sighash directly with fresh auxiliary randomness, refusing when the derived key differs from the registered one. Packets with native signatures are version 2, which older clients refuse; packets with ordinary signatures stay version 1.
-
-The L1 leaf commits to one device's key, so a new device migrates an NC address: it registers its soft key (`AddCosigner`), adds a Taproot address with the old address's chain-key delay and recovery key (`AddAddress`), adds the new address to the address book and waits out its cooldown when the asset's tier is book-only, then sweeps the old address's UTXOs to it in one transfer without change: through L1 while the old device can still sign, otherwise through L2, spending only UTXOs at least `chain_key_after` blocks deep and showing each one's earliest spendable height, possibly in batches. Every step is a proposal members approve under the wallet policy; once swept, the new device marks the old address archived locally.
-
-Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. Before importing and executing, clients check collected signatures against the cosigners' current keys; those made with a key that has since changed are set aside and their cosigners asked to sign again. A cosigner key changes in place: its member rotates it with the old key at once, or an Admin proposal replaces it after 24 hours when the old key is lost, also while frozen; signatures collected with the old key must be made again. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
+All devices must cosign the same plan. Import collects signatures without execution; duplicates do not add signers. Ordinary cosigner keys can rotate immediately using the old key, or be replaced by an Admin proposal after 24 hours; old signatures must be collected again. See the [wallet contract](protocol/wallet.md) for exact envelopes, timelocks and rotation rules.
 
 ### 5.3 Policy semantics
 
@@ -104,7 +86,7 @@ Devices must cosign the same plan. Package import only collects signatures, neve
 | Daily amount | Exceeding `daily_limits` requires all active approvers and the asset's longest tier delay; not a hard limit |
 | Address book | `book_only` accepts only entries past cooldown; no automatic lower tier for address-book destinations |
 | Delay/veto | Delay starts at threshold; any Admin/Approver can veto during it. Veto terminates the proposal and requires a new proposal |
-| Freeze | Admin/Approver may freeze directly. Only unfreeze and membership changes proceed; batches/signing stop before the next step. Signed transactions cannot be recalled |
+| Freeze | Admin/Approver may freeze directly. Only unfreeze, membership changes and cosigner-key replacement proceed; batches/signing stop before the next step. Signed transactions cannot be recalled |
 | Automatic refuel | Configured `refuel()` is independently preauthorized maintenance, unaffected by freeze; balance, per-call ICP and daily-count limits apply |
 | Version/deadline | First execution rechecks current votes, authorization version, expiry and freeze; Recovery must still be an active recovery member |
 | Execution budget | `daily_signatures` bounds threshold signatures per UTC day, counted by digest before signing; it is not a ceiling on all wallet cycles consumption |
@@ -160,13 +142,7 @@ Channels carry encrypted `dmsg-wallet-event/1` hints. Recipients reread the wall
 
 The hub checks eligibility only at creation; plan expiry does not automatically remove members' permissions or prevent new addresses. Replenishing hub cycles and the new instance's initial cycles are separate configuration items, not one immediate exchange in UI or copy.
 
-## 9. Seed wallet and governance
-
-An ICPanda DAO multisig wallet may serve as the initial user for operating funds, using member thresholds, address book, delays and optional cosigning, with an optionally offline-kept Recovery member. Governance may direct hub revenue to it; other business revenue requires separate review of receiving configuration and collection authority.
-
-This does not mean a seed wallet exists, revenue has moved or transparency pages are live. Funds requiring SNS governance remain in the SNS treasury; member approval is not SNS voting.
-
-## 10. Security and recovery boundaries
+## 9. Security and recovery boundaries
 
 | Boundary | Scope of the guarantee |
 | --- | --- |
@@ -182,34 +158,13 @@ This does not mean a seed wallet exists, revenue has moved or transparency pages
 
 If all members are unavailable, a preconfigured Recovery member may change membership after 7 days; without an available recovery path, funds cannot be promised recoverable. This product has no complete fiat, exchange, automated-trading, generic WalletConnect or ICP dapp-signer implementation.
 
-## 11. Verification and remaining work
+## 10. Verification and platform boundaries
 
-Development evidence through `b8b8b799` includes wallet/protocol Rust unit tests, PocketIC wallet regressions, real local Solana-validator and Anvil broadcasts, dual-daemon flows, 92 desktop Node tests, type checks/build, Electron smoke, Wasm/Candid consistency and Clippy. That Electron run skipped native macOS fullscreen and used a CMC double. Details and rerun entry points are in the [integration guide](../tests/dmsg_integration/README.md) and [desktop README](../src/dmsg_desktop/README.md).
+See the [integration guide](../tests/dmsg_integration/README.md), [wallet vectors](../tests/vectors/wallet/README.md) and [desktop README](../src/dmsg_desktop/README.md). This documentation review did not rerun wallet Rust, PocketIC, Electron or live-chain tests; historical test counts do not establish acceptance of the current version.
 
-Separate remaining delivery work:
+Bitcoin regtest, real cosigner hardware, CMC/SNS governance and production upgrades need separate acceptance. TPM, CTAP2, bridge WebAuthn, chain hardware wallets, EVM Safe, Solana Squads, public transparency pages and canister `attest_*` are not implemented capabilities.
 
-- Bitcoin regtest broadcasts and on-chain acceptance of Taproot recovery paths.
-- Real-device Secure Enclave acceptance; Windows/Linux TPM, CTAP2, bridge WebAuthn and chain hardware-wallet adapters.
-- EVM Safe, Solana Squads, public transparency pages and on-chain `attest_*` verification.
-- Real CMC, SNS governance/production deployment, platform releases and reopening desktop creation.
-
-These remain unfinished capabilities or release acceptance; desktop forms, protocol verification and offline vectors do not complete them.
-
-## 12. Current disposition of initial decisions
-
-| Decision | Current disposition |
-| --- | --- |
-| D-1 Naming | `dmsg_wallet` instances and `dmsg_wallet_hub` factory; payer identity uses `payer/*`, multisig wallets use `wallet/*` |
-| D-2 Price/quota | Fixed ICP activation and configurable plan quotas implemented; recommendations are not production configuration |
-| D-3 Control | Hub-only controller, instance acceptance of upgrades, optional controller removal to lock code; hub governance remains trusted |
-| D-4 Chains | BTC P2TR/P2WPKH, allowlisted EVM chain IDs and SOL implemented; no default claim of deployment acceptance for any L2 |
-| D-5 Amounts | Policy uses atomic asset units; USD display prices are not policy inputs |
-| D-6 SNS/members | Members manage operating funds; SNS-governed funds stay in the treasury |
-| D-7 Personal wallets | Policy allows one member; multiple devices add no votes. No implemented personal cold-storage template is claimed |
-| D-8 Cosigners | Secure Enclave and locally encrypted software keys implemented; other hardware remains pending, without silent downgrade |
-| D-9 External verification | Clients read/report; canister `attest_*` audit mode remains unimplemented |
-
-## 13. Documentation responsibilities
+## 11. Documentation responsibilities
 
 - [Public contract](protocol/wallet.md): identities, digests, execution and financial recovery rules.
 - [Wallet README](../src/dmsg_wallet/README.md) and [factory README](../src/dmsg_wallet_hub/README.md): public interfaces and service behavior.
