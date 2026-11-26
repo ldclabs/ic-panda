@@ -28,6 +28,8 @@ mod hints;
 mod messaging;
 mod models;
 pub use messaging::LetterDraftInput;
+mod nearby;
+pub use nearby::NearbyFileItem;
 mod notifications;
 pub use notifications::{
     NotificationPresentationContext, NotificationPresentationResult, ReminderScope, VisibleReminder,
@@ -165,6 +167,8 @@ pub struct MobileEngine {
     plan_checked: Arc<std::sync::atomic::AtomicU64>,
     /// The device transfer, shared by every view of the engine.
     transfers: Arc<dmsg_client::transfer::Transfers>,
+    /// Face-to-face nearby share coordinator and native AWDL byte bridges.
+    nearby: Arc<nearby::MobileNearby>,
 }
 
 struct PendingLogin {
@@ -311,6 +315,7 @@ impl MobileEngine {
             sync_signal: Arc::default(),
             plan_checked: Arc::default(),
             transfers: Arc::default(),
+            nearby: Arc::default(),
         }))
     }
 }
@@ -386,6 +391,7 @@ impl MobileEngine {
             sync_signal: self.sync_signal.clone(),
             plan_checked: self.plan_checked.clone(),
             transfers: self.transfers.clone(),
+            nearby: self.nearby.clone(),
         }))
     }
 
@@ -485,12 +491,14 @@ impl MobileEngine {
     }
 
     pub fn lock_now(&self) {
+        self.nearby.cancel_sync();
         self.cancel_login();
         self.host.inner.lock();
         self.platform.cancel_presence();
     }
 
     pub fn suspend(&self) {
+        self.nearby.cancel_sync();
         self.host.inner.pause();
         self.platform.cancel_presence();
     }
@@ -505,6 +513,7 @@ impl MobileEngine {
     }
 
     pub async fn shutdown(&self) -> Result<()> {
+        self.nearby.cancel_sync();
         self.host.inner.close();
         self.platform.cancel_presence();
         self.cancel_login();
@@ -513,6 +522,7 @@ impl MobileEngine {
     }
 
     pub async fn logout(&self) -> Result<SessionSnapshot> {
+        self.nearby.cancel_sync();
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
         self.cancel_login();
@@ -545,6 +555,7 @@ impl MobileEngine {
     }
 
     pub async fn switch_account(&self, account: String) -> Result<SessionSnapshot> {
+        self.nearby.cancel_sync();
         let account = account
             .parse()
             .map_err(|_| dmsg_types::invalid("account"))?;
@@ -566,6 +577,7 @@ impl MobileEngine {
     /// Set the selected workspace, which came from other hardware, aside
     /// and start a new device of its account in its place.
     pub async fn set_aside_moved(&self) -> Result<SessionSnapshot> {
+        self.nearby.cancel_sync();
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
         self.cancel_login();

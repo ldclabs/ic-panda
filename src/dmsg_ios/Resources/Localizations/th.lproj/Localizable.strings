@@ -50,6 +50,8 @@
 	<string>เกี่ยวกับไฟล์และข้อมูลสำรอง</string>
 	<key>About these benefits</key>
 	<string>เกี่ยวกับสิทธิประโยชน์เหล่านี้</string>
+	<key>Accept</key>
+	<string>ยอมรับ</string>
 	<key>Accept approved binding</key>
 	<string>ยอมรับการผูกมัดที่ได้รับอนุมัติ</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>อนุญาตจดหมายอีกฉบับ</string>
 	<key>Allow key rotation</key>
 	<string>อนุญาตการหมุนเวียนคีย์</string>
+	<key>Allow nearby discovery</key>
+	<string>อนุญาตให้ค้นพบในบริเวณใกล้เคียง</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>อนุญาตการแจ้งเตือนเพื่อรับการแจ้งเตือนจากระบบ</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>ไม่สามารถใช้กล้องได้ อนุญาตการเข้าถึงกล้องในการตั้งค่าเพื่อถ่ายรูปและวิดีโอ</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>ไม่สามารถเข้าถึงกล้องได้ โปรดป้อนคีย์การตั้งค่าหรืออนุญาตให้เข้าถึงกล้องในการตั้งค่า</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>ไม่สามารถเข้าถึงกล้องได้ วางรหัสเชื่อมต่อหรืออนุญาตกล้องในการตั้งค่า</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>ไม่สามารถใช้กล้องได้ วางคำเชิญหรืออนุญาตการเข้าถึงกล้องในการตั้งค่า</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>เลือกบัญชี</string>
 	<key>Choose an attachment</key>
 	<string>เลือกไฟล์แนบ</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>เลือกอย่างน้อยหนึ่งฟิลด์ บันทึก หรือไฟล์แนบก่อนเลือกผู้รับใกล้เคียง</string>
 	<key>Choose avatar</key>
 	<string>เลือกรูปประจำตัว</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>ที่เก็บข้อมูลบนคลาวด์</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>เกินขีดจำกัดพื้นที่คลาวด์หรือขนาดไฟล์ โปรดตรวจสอบแพ็กเกจและขนาดข้อมูลสำรอง</string>
+	<key>Codes match — continue</key>
+	<string>รหัสตรงกัน — ดำเนินการต่อ</string>
 	<key>Collect files</key>
 	<string>รวบรวมไฟล์</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>ยืนยันรหัสผ่านในเครื่อง</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>ยืนยันเฉพาะงานที่คุณทำเสร็จจริงเท่านั้น ระบบจะบันทึกคำชี้แจงของคุณโดยไม่ได้ดำเนินการฝั่งผู้ให้บริการ</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>ยืนยันว่าอุปกรณ์ผู้รับแสดงรหัส 6 หลักนี้ตรงกันก่อนส่งรายละเอียดใดๆ</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>ยืนยันคำขอ dMsg ที่คุณตรวจสอบแล้ว</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>เชื่อมต่อเบราว์เซอร์นี้ไหม</string>
 	<key>Connected browsers</key>
 	<string>เบราว์เซอร์ที่เชื่อมต่อ</string>
+	<key>Connecting…</key>
+	<string>กำลังเชื่อมต่อ…</string>
+	<key>Connection</key>
+	<string>การเชื่อมต่อ</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>การเชื่อมต่อไม่พร้อมใช้งาน เนื้อหาที่บันทึกไว้ของคุณจะยังคงอยู่ในอุปกรณ์นี้</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>คัดลอกทั้งหมด</string>
 	<key>Copy binding request</key>
 	<string>คัดลอกคำขอเข้าเล่ม</string>
+	<key>Copy connection code</key>
+	<string>คัดลอกรหัสเชื่อมต่อ</string>
 	<key>Copy device ID</key>
 	<string>คัดลอก ID อุปกรณ์</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>ไฟล์ในโฟลเดอร์นี้</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>ไฟล์ที่ใหญ่กว่า 100 MiB ไม่สามารถแชร์ผ่านลิงก์ได้</string>
+	<key>Files to send</key>
+	<string>ไฟล์ที่จะส่ง</string>
 	<key>Fill and remember</key>
 	<string>กรอกและจดจำ</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>รวมข้อความของข้อความนี้</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>รวมข้อมูลลับที่บันทึกในรายการกระเป๋าเงิน</string>
+	<key>Incoming transfer</key>
+	<string>การถ่ายโอนขาเข้า</string>
 	<key>Incomplete</key>
 	<string>ไม่ครบถ้วน</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>กำลังโหลด…</string>
 	<key>Local</key>
 	<string>ท้องถิ่น</string>
+	<key>Local + Relay ready</key>
+	<string>เครือข่ายท้องถิ่น + รีเลย์พร้อม</string>
 	<key>Local account</key>
 	<string>บัญชีในเครื่อง</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>การค้นพบในท้องถิ่น</string>
 	<key>Local label</key>
 	<string>ป้ายกำกับท้องถิ่น</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>ปิดการเข้าถึงเครือข่ายท้องถิ่นสำหรับ dMsg อยู่ เปิดในการตั้งค่าหรือสแกนคิวอาร์โค้ดเพื่อใช้รีเลย์เข้ารหัส</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>การเข้าถึงเครือข่ายภายในของ dMsg ปิดอยู่ เปิดได้ในการตั้งค่า หรือป้อนที่อยู่ของอุปกรณ์อีกเครื่อง</string>
+	<key>Local network only</key>
+	<string>เครือข่ายท้องถิ่นเท่านั้น</string>
 	<key>Local password</key>
 	<string>รหัสผ่านในเครื่อง</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>ข้อมูลประจำตัวในการเข้าสู่ระบบ</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>ตัดทอนเอกสารขนาดยาวสำหรับการดูตัวอย่าง ดาวน์โหลดหรือเปิดด้วยแอปภายนอกเพื่อดูทั้งหมด</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>กำลังค้นหาอุปกรณ์ dMsg ใกล้เคียง…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>จัดการการสมัครสมาชิก Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>คีย์ Taproot native</string>
 	<key>Native addresses</key>
 	<string>ที่อยู่ native</string>
+	<key>Nearby device</key>
+	<string>อุปกรณ์ใกล้เคียง</string>
+	<key>Nearby devices</key>
+	<string>อุปกรณ์ใกล้เคียง</string>
+	<key>Nearby receive QR code</key>
+	<string>คิวอาร์โค้ดรับใกล้เคียง</string>
+	<key>Nearby snapshot</key>
+	<string>สแนปช็อตใกล้เคียง</string>
+	<key>Nearby transfer failed.</key>
+	<string>การถ่ายโอนใกล้เคียงล้มเหลว</string>
 	<key>Needs a fresh review</key>
 	<string>จำเป็นต้องทบทวนใหม่</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>รหัสครั้งเดียว</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>รวมเฉพาะรายการปัจจุบัน ไม่รวมประวัติ ถังขยะ ฉบับร่าง สำเนาที่ขัดแย้ง และคีย์ที่ dMsg จัดการ</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>เฉพาะอุปกรณ์ที่เปิดการค้นพบใกล้เคียงเท่านั้นที่จะแสดงที่นี่ คุณสามารถสแกนคิวอาร์โค้ดของผู้รับได้เสมอ</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>ทำสิ่งนี้เมื่อคุณพร้อมที่จะใช้เท่านั้น สำเนาจะยังคงอยู่ในอุปกรณ์นี้และหมดอายุหลังจากผ่านไป 30 วินาที</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>รหัสผ่าน</string>
 	<key>Paste binding request</key>
 	<string>วางคำขอผูกมัด</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>วางรหัส dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>วางคำขอลงทะเบียน</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>กำลังเตรียมและคัดลอกไฟล์…</string>
 	<key>Preparing backups…</key>
 	<string>กำลังเตรียมข้อมูลสำรอง…</string>
+	<key>Preparing nearby receive…</key>
+	<string>กำลังเตรียมรับใกล้เคียง…</string>
 	<key>Preparing purchase…</key>
 	<string>กำลังเตรียมการซื้อ…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>วัตถุประสงค์</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>การแจ้งเตือนแบบพุชไม่ได้เปิดใช้งานในโครงสร้างนี้ เปิด dMsg เพื่อซิงโครไนซ์</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>ยืนยัน QR แล้ว · เปรียบเทียบรหัส 6 หลักนี้กับผู้ส่งก่อนยอมรับ</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>โหมดเฉพาะ QR จะไม่ประกาศบนเครือข่ายท้องถิ่น เปิดการค้นพบเพื่อแสดงในรายการอุปกรณ์ใกล้เคียง</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>ปลดล็อกด่วนใช้เปิดพื้นที่ทำงาน การผูกอุปกรณ์จำกัดอุปกรณ์ที่ปลดล็อกได้ การอนุมัติด้วยฮาร์ดแวร์ปกป้องการทำงานที่สำคัญของบัญชี</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>เหตุผล</string>
 	<key>Receive here</key>
 	<string>รับที่นี่</string>
+	<key>Receive more</key>
+	<string>รับเพิ่มเติม</string>
+	<key>Receive nearby</key>
+	<string>รับใกล้เคียง</string>
 	<key>Received files</key>
 	<string>ที่ได้รับ</string>
 	<key>Received for review</key>
 	<string>ได้รับการตรวจทานแล้ว</string>
 	<key>Receiver</key>
 	<string>ผู้รับ</string>
+	<key>Receiver QR or connection code</key>
+	<string>คิวอาร์โค้ดหรือรหัสเชื่อมต่อของผู้รับ</string>
 	<key>Receiving</key>
 	<string>กำลังรับ</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>ตรวจสอบสิทธิ์ของเอเจนต์</string>
 	<key>Review an enrollment request</key>
 	<string>ตรวจสอบคำขอลงทะเบียน</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>ตรวจสอบและอนุมัติสแนปช็อตตู้นิรภัยนี้ก่อนส่งออกจากอุปกรณ์นี้</string>
+	<key>Review and import snapshot</key>
+	<string>ตรวจสอบและนำเข้าสแนปช็อต</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>ตรวจสอบและรีสตาร์ทการแมปไฟล์เดสก์ท็อปบนอุปกรณ์ต้นทาง</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>สแกนคำขออุปกรณ์</string>
 	<key>Scan invitation</key>
 	<string>สแกนคำเชิญ</string>
+	<key>Scan receiver QR code</key>
+	<string>สแกนคิวอาร์โค้ดผู้รับ</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>สแกนรหัสบนอุปกรณ์ที่ได้รับอนุญาตเพื่อเปิดบัญชีนั้น</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>ส่งไปยังอุปกรณ์</string>
 	<key>Send to an administrator</key>
 	<string>ส่งให้ผู้ดูแลระบบ</string>
+	<key>Send via code</key>
+	<string>ส่งด้วยรหัส</string>
 	<key>Sender</key>
 	<string>ผู้ส่ง</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>ส่งแล้ว</string>
 	<key>Sent letters</key>
 	<string>ส่งจดหมายแล้ว</string>
+	<key>Sent successfully</key>
+	<string>ส่งสำเร็จแล้ว</string>
 	<key>Server</key>
 	<string>เซิร์ฟเวอร์</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>ลิงก์ที่แชร์</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>รีเฟรชลิงก์ที่แชร์ไม่ได้ กำลังแสดงลิงก์ที่บันทึกไว้</string>
+	<key>Share my dMsg identity</key>
+	<string>แชร์ตัวตน dMsg ของฉัน</string>
+	<key>Share nearby</key>
+	<string>แชร์ใกล้เคียง</string>
 	<key>Share pairing request</key>
 	<string>แบ่งปันคำขอจับคู่</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>เริ่มรายการตรวจสอบการหมุนเวียนหรือไม่?</string>
 	<key>Start account recovery?</key>
 	<string>เริ่มการกู้คืนบัญชีใช่ไหม</string>
+	<key>Start again</key>
+	<string>เริ่มใหม่</string>
 	<key>Start checklist</key>
 	<string>เริ่มรายการตรวจสอบ</string>
+	<key>Start receiving</key>
+	<string>เริ่มรับ</string>
 	<key>Start sending</key>
 	<string>เริ่มส่ง</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>ขนาดรวม</string>
 	<key>Transfer between devices</key>
 	<string>ถ่ายโอนระหว่างอุปกรณ์</string>
+	<key>Transfer complete</key>
+	<string>ถ่ายโอนเสร็จสิ้น</string>
 	<key>Transfer needs attention</key>
 	<string>การถ่ายโอนต้องได้รับการตรวจสอบ</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>ข้อเสนอการโอน</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>เพิ่มการโอนในคิวแล้ว ติดตามความคืบหน้าในไฟล์</string>
+	<key>Transfer status</key>
+	<string>สถานะการถ่ายโอน</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>ไม่สามารถรีเฟรชสถานะการถ่ายโอนได้ งานที่บันทึกไว้ยังคงอยู่</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>กำลังถ่ายโอน</string>
 	<key>Transfers</key>
 	<string>การโอน</string>
+	<key>Transport</key>
+	<string>ช่องทางส่ง</string>
 	<key>Trash</key>
 	<string>ถังขยะ</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>การเตือนที่ยังไม่ได้อ่าน</string>
 	<key>Unrestricted delegation authority</key>
 	<string>อำนาจการมอบหมายไม่ จำกัด</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>การค้นพบที่ยังไม่ยืนยัน · เปรียบเทียบรหัส 6 หลักนี้ต่อหน้าก่อนยอมรับ</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>สูงสุด 3 ภาพในรูปแบบ PNG, JPEG, WebP หรือ GIF ภาพละ 10 MiB ลบข้อมูลลับก่อน สำเนายังคงอยู่ในไฟล์ การส่งจะสร้างลิงก์เข้ารหัสที่ใช้ได้ 30 วันและใช้โควตาพื้นที่จัดเก็บ ผู้ที่มีลิงก์ครบถ้วนสามารถเปิดได้</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>คลังนิรภัย</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>รายการจะซิงค์ตามปกติ ไฟล์แนบอยู่ในคลังไฟล์ของอุปกรณ์นี้</string>
+	<key>Vault snapshot</key>
+	<string>สแนปช็อตตู้นิรภัย</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>ตรวจสอบสแนปช็อตตู้นิรภัยบนอุปกรณ์นี้แล้ว ตรวจสอบและเลือกฟิลด์ที่จะนำเข้า</string>
 	<key>Vault tools</key>
 	<string>เครื่องมือห้องนิรภัย</string>
+	<key>Verification code</key>
+	<string>รหัสยืนยัน</string>
 	<key>Verified</key>
 	<string>ตรวจสอบแล้ว</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>กำลังรออนุมัติวิธีเข้าสู่ระบบ</string>
 	<key>Waiting for notification registration…</key>
 	<string>กำลังรอการลงทะเบียนการแจ้งเตือน…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>รอให้ผู้รับยอมรับ…</string>
+	<key>Waiting for sender…</key>
+	<string>กำลังรอผู้ส่ง…</string>
 	<key>Waiting for the other device</key>
 	<string>กำลังรออุปกรณ์อีกเครื่อง</string>
 	<key>Waiting for your decision</key>

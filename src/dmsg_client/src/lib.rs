@@ -49,6 +49,7 @@ pub mod mail_push;
 pub mod mcp_events;
 pub mod migration;
 pub mod moved;
+pub mod nearby;
 pub mod notifications;
 pub mod outbox;
 pub mod pairing;

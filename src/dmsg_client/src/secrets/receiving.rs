@@ -556,6 +556,85 @@ pub async fn preview_limited<H: Hold>(
     bound.with(|c|{c.save_received(&record)?;Ok(json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"files_local_only":true,"files_inherit_folder_grants":true}))}).await
 }
 
+/// Validate and stage a complete `dmsg-secret-package/1` received over
+/// `dmsg-nearby-share/1`, returning the same value-free preview shape used by
+/// link and channel secret packages so the receiver enters the existing
+/// `SecretPackageImport` selection and approval flow.
+pub(crate) async fn stage_nearby_package<H: Hold>(
+    h: &H,
+    raw_bytes: Zeroizing<Vec<u8>>,
+    expected_sha256: &str,
+    max_plain_bytes: u64,
+    peer_label: Option<&str>,
+) -> Result<Value> {
+    let size = raw_bytes.len() as u64;
+    check_package_size(size, max_plain_bytes)?;
+    ensure_valid(hex_id(expected_sha256, 64), "package digest")?;
+    let actual = hex::encode(Sha256::digest(&raw_bytes));
+    ensure(actual == expected_sha256, Error::IntegrityFailed)?;
+    let parsed = package::parse(&raw_bytes)?;
+    let preview = parsed.manifest.preview();
+    let bound = Unlocked::new(h).await?;
+    let now = now_ms();
+    let expires_at = now + 30 * MINUTE;
+    let id = hex::encode(random_id());
+    let mut staged = bound
+        .with(|c| c.secret_stage_start("nearby.dmsg-package", package::MIME, size))
+        .await?;
+    for block in raw_bytes.chunks(CHUNK) {
+        bound
+            .with(|c| c.secret_stage_part(&mut staged, block))
+            .await?;
+    }
+    let staged = bound
+        .with(|c| {
+            let mut staged = staged;
+            c.secret_stage_finish(&mut staged, Some(expected_sha256))?;
+            Ok(staged)
+        })
+        .await?;
+    let digests: Vec<String> = staged
+        .manifest
+        .chunks
+        .iter()
+        .map(|chunk| chunk.digest.clone())
+        .collect();
+    let mut record = Received {
+        id: id.clone(),
+        link_digest: format!("nearby:{expected_sha256}"),
+        session_id: hex::encode(random_id()),
+        started: true,
+        descriptor: None,
+        channel_source: Some(json!({"nearby": true, "peer": peer_label})),
+        key: staged.manifest.key.clone(),
+        file: Some(staged.manifest.clone()),
+        digest: Some(expected_sha256.into()),
+        preview: Some(preview),
+        created_at: now,
+        expires_at,
+        imported: None,
+        request: None,
+        selection: None,
+        request_boot: None,
+        request_session: None,
+        max_plain_bytes,
+    };
+    bound
+        .with(|c| {
+            c.hold_chunks([(id.clone(), expires_at, digests)])?;
+            c.save_received(&record)?;
+            record.key.zeroize();
+            Ok(json!({
+                "package_id": record.id,
+                "digest": record.digest,
+                "preview": record.preview,
+                "files_local_only": true,
+                "files_inherit_folder_grants": true
+            }))
+        })
+        .await
+}
+
 async fn received_bytes<H: Hold>(h: &H, received: &Received) -> Result<Zeroizing<Vec<u8>>> {
     let file = received.file.as_ref().ok_or(Error::RecoveryIncomplete)?;
     check_package_size(file.size, received.max_plain_bytes)?;

@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"کارروائیاں"</string>
     <string name="message_sending" formatted="false">"ارسال"</string>
     <string name="more" formatted="false">"مزید"</string>
+    <string name="nearby_accept" formatted="false">"قبول کریں"</string>
+    <string name="nearby_allow_discovery" formatted="false">"قریبی دریافت کی اجازت دیں"</string>
+    <string name="nearby_codes_match" formatted="false">"کوڈز مطابقت رکھتے ہیں — جاری رکھیں"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"کوئی بھی تفصیل بھیجنے سے پہلے تصدیق کریں کہ وصول کنندہ پر یہی 6 ہندسوں کا کوڈ ظاہر ہو رہا ہے۔"</string>
+    <string name="nearby_connecting" formatted="false">"کنیکٹ ہو رہا ہے…"</string>
+    <string name="nearby_connection" formatted="false">"کنکشن"</string>
+    <string name="nearby_copy_code" formatted="false">"کنکشن کوڈ کاپی کریں"</string>
+    <string name="nearby_device" formatted="false">"قریبی آلہ"</string>
+    <string name="nearby_devices" formatted="false">"قریبی آلات"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"یہاں صرف وہی آلات نظر آتے ہیں جنہوں نے قریبی دریافت فعال کی ہے۔ آپ ہمیشہ وصول کنندہ کا QR کوڈ اسکین کر سکتے ہیں۔"</string>
+    <string name="nearby_files_to_send" formatted="false">"بھیجنے کے لیے فائلیں"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"آنے والی منتقلی"</string>
+    <string name="nearby_local_network_denied" formatted="false">"dMsg کے لیے مقامی نیٹ ورک رسائی بند ہے۔ ترتیبات میں فعال کریں یا خفیہ ریلے کے لیے QR کوڈ اسکین کریں۔"</string>
+    <string name="nearby_local_only" formatted="false">"صرف مقامی نیٹ ورک"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"مقامی + ریلے تیار"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"قریبی dMsg آلات تلاش کیے جا رہے ہیں…"</string>
+    <string name="nearby_paste_code" formatted="false">"dmsg-nearby/1: کوڈ پیسٹ کریں"</string>
+    <string name="nearby_preparing_receive" formatted="false">"قریبی وصولی تیار کی جا رہی ہے…"</string>
+    <string name="nearby_qr_code" formatted="false">"قریبی وصولی کا QR کوڈ"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"صرف QR موڈ مقامی نیٹ ورک پر نشر نہیں کرتا۔ قریبی آلات کی فہرست میں ظاہر ہونے کے لیے دریافت فعال کریں۔"</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR تصدیق شدہ · قبول کرنے سے پہلے بھیجنے والے کے ساتھ اس 6 ہندسوں کے کوڈ کا موازنہ کریں۔"</string>
+    <string name="nearby_receive" formatted="false">"قریب سے وصول کریں"</string>
+    <string name="nearby_receive_more" formatted="false">"مزید وصول کریں"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"وصول کنندہ کا QR یا کنکشن کوڈ"</string>
+    <string name="nearby_receiving" formatted="false">"وصولی"</string>
+    <string name="nearby_review_approval" formatted="false">"منظوری کا جائزہ لیں"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"سنیپ شاٹ کا جائزہ لیں اور درآمد کریں"</string>
+    <string name="nearby_scan_qr" formatted="false">"وصول کنندہ کا QR کوڈ اسکین کریں"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"قریبی وصول کنندہ منتخب کرنے سے پہلے کم از کم ایک فیلڈ، نوٹ یا منسلکہ منتخب کریں۔"</string>
+    <string name="nearby_send_via_code" formatted="false">"کوڈ کے ذریعے بھیجیں"</string>
+    <string name="nearby_sent_success" formatted="false">"کامیابی سے بھیج دیا گیا"</string>
+    <string name="nearby_share" formatted="false">"قریب شیئر کریں"</string>
+    <string name="nearby_share_identity" formatted="false">"میری dMsg شناخت شیئر کریں"</string>
+    <string name="nearby_snapshot" formatted="false">"قریبی سنیپ شاٹ"</string>
+    <string name="nearby_start_again" formatted="false">"دوبارہ شروع کریں"</string>
+    <string name="nearby_start_receiving" formatted="false">"وصولی شروع کریں"</string>
+    <string name="nearby_transfer_complete" formatted="false">"منتقلی مکمل"</string>
+    <string name="nearby_transfer_failed" formatted="false">"قریبی منتقلی ناکام ہو گئی۔"</string>
+    <string name="nearby_transfer_status" formatted="false">"منتقلی کی حالت"</string>
+    <string name="nearby_transport" formatted="false">"ٹرانسپورٹ"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"غیر تصدیق شدہ دریافت · قبول کرنے سے پہلے آمنے سامنے اس 6 ہندسوں کے کوڈ کا موازنہ کریں۔"</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"اس آلے سے جانے سے پہلے اس والٹ سنیپ شاٹ کا جائزہ لیں اور منظوری دیں۔"</string>
+    <string name="nearby_vault_snapshot" formatted="false">"والٹ سنیپ شاٹ"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"اس آلے پر والٹ سنیپ شاٹ کی تصدیق ہو گئی۔ جائزہ لیں اور درآمد کرنے کے لیے فیلڈز منتخب کریں۔"</string>
+    <string name="nearby_verification_code" formatted="false">"تصدیقی کوڈ"</string>
+    <string name="nearby_waiting_accept" formatted="false">"وصول کنندہ کی منظوری کا انتظار ہے…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"بھیجنے والے کا انتظار ہے…"</string>
     <string name="no_conversations_yet" formatted="false">"ابھی تک کوئی بات چیت نہیں ہے"</string>
     <string name="no_matches" formatted="false">"کوئی مماثل نتیجہ نہیں"</string>
     <string name="offline_account" formatted="false">"مقامی اکاؤنٹ"</string>

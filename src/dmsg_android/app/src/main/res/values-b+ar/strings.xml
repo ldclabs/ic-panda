@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"الإجراءات"</string>
     <string name="message_sending" formatted="false">"إرسال"</string>
     <string name="more" formatted="false">"المزيد"</string>
+    <string name="nearby_accept" formatted="false">"قبول"</string>
+    <string name="nearby_allow_discovery" formatted="false">"السماح بالاكتشاف القريب"</string>
+    <string name="nearby_codes_match" formatted="false">"الرمزان متطابقان — متابعة"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"تأكد من أن جهاز الاستقبال يعرض هذا الرمز المكون من 6 أرقام بالضبط قبل إرسال أي تفاصيل."</string>
+    <string name="nearby_connecting" formatted="false">"جارٍ الاتصال…"</string>
+    <string name="nearby_connection" formatted="false">"الاتصال"</string>
+    <string name="nearby_copy_code" formatted="false">"نسخ رمز الاتصال"</string>
+    <string name="nearby_device" formatted="false">"جهاز قريب"</string>
+    <string name="nearby_devices" formatted="false">"الأجهزة القريبة"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"تظهر هنا فقط الأجهزة التي فعّلت الاكتشاف القريب. يمكنك دائماً مسح رمز QR الخاص بالمستلم بدلاً من ذلك."</string>
+    <string name="nearby_files_to_send" formatted="false">"الملفات المراد إرسالها"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"نقل وارد"</string>
+    <string name="nearby_local_network_denied" formatted="false">"تم إيقاف الوصول إلى الشبكة المحلية لـ dMsg. فعّله في الإعدادات أو امسح رمز QR لاستخدام المرحّل المشفّر."</string>
+    <string name="nearby_local_only" formatted="false">"الشبكة المحلية فقط"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"محلي + مرحّل مشفّر جاهز"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"جارٍ البحث عن أجهزة dMsg القريبة…"</string>
+    <string name="nearby_paste_code" formatted="false">"الصق رمز dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"جارٍ تجهيز الاستقبال القريب…"</string>
+    <string name="nearby_qr_code" formatted="false">"رمز QR للاستقبال القريب"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"وضع QR فقط لا يبث على الشبكة المحلية. فعّل الاكتشاف للظهور في قوائم الأجهزة القريبة وقبول النقل المباشر."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"تم التحقق عبر QR · قارن هذا الرمز المكون من 6 أرقام مع المرسل قبل القبول."</string>
+    <string name="nearby_receive" formatted="false">"استقبال قريب"</string>
+    <string name="nearby_receive_more" formatted="false">"استقبال المزيد"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"رمز QR أو رمز اتصال المستلم"</string>
+    <string name="nearby_receiving" formatted="false">"استلام"</string>
+    <string name="nearby_review_approval" formatted="false">"مراجعة الموافقة"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"مراجعة اللقطة واستيرادها"</string>
+    <string name="nearby_scan_qr" formatted="false">"مسح رمز QR للمستلم"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"اختر حقلاً واحداً أو ملاحظة أو مرفقاً على الأقل قبل تحديد جهاز الاستقبال القريب."</string>
+    <string name="nearby_send_via_code" formatted="false">"الإرسال عبر الرمز"</string>
+    <string name="nearby_sent_success" formatted="false">"تم الإرسال بنجاح"</string>
+    <string name="nearby_share" formatted="false">"مشاركة قريبة"</string>
+    <string name="nearby_share_identity" formatted="false">"مشاركة هويتي في dMsg"</string>
+    <string name="nearby_snapshot" formatted="false">"لقطة قريبة"</string>
+    <string name="nearby_start_again" formatted="false">"البدء من جديد"</string>
+    <string name="nearby_start_receiving" formatted="false">"بدء الاستقبال"</string>
+    <string name="nearby_transfer_complete" formatted="false">"اكتمل النقل"</string>
+    <string name="nearby_transfer_failed" formatted="false">"فشل النقل القريب."</string>
+    <string name="nearby_transfer_status" formatted="false">"حالة النقل"</string>
+    <string name="nearby_transport" formatted="false">"قناة النقل"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"اكتشاف غير موثق · قارن هذا الرمز المكون من 6 أرقام وجهاً لوجه قبل القبول."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"راجع هذه اللقطة من الخزنة ووافق عليها قبل مغادرتها هذا الجهاز."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"لقطة الخزنة"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"تم التحقق من لقطة الخزنة على هذا الجهاز. راجعها واختر الحقول التي تريد استيرادها."</string>
+    <string name="nearby_verification_code" formatted="false">"رمز التحقق"</string>
+    <string name="nearby_waiting_accept" formatted="false">"بانتظار قبول المستلم…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"بانتظار المرسل…"</string>
     <string name="no_conversations_yet" formatted="false">"لا توجد محادثات بعد"</string>
     <string name="no_matches" formatted="false">"لا توجد نتائج مطابقة"</string>
     <string name="offline_account" formatted="false">"حساب محلي"</string>

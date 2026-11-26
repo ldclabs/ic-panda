@@ -26,6 +26,7 @@ tempfile = "3"
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true
+x25519-dalek.workspace = true
 futures-util = { workspace = true, features = ["sink", "std"] }
 getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true

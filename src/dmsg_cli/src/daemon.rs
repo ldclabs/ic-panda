@@ -192,11 +192,12 @@ enum Module {
     Secrets,
     Notifications,
     Transfer,
+    Nearby,
 }
 
 /// The module that serves `method`; `None` for an unknown method.
 fn route(method: &str) -> Option<Module> {
-    let modules: [(Module, &[&str]); 14] = [
+    let modules: [(Module, &[&str]); 15] = [
         (Module::Daemon, &METHODS),
         (Module::More, &crate::methods::METHODS),
         (Module::Account, &crate::account_methods::METHODS),
@@ -211,6 +212,7 @@ fn route(method: &str) -> Option<Module> {
         (Module::Secrets, &crate::secret_methods::METHODS),
         (Module::Notifications, &crate::notifications::METHODS),
         (Module::Transfer, &crate::transfer::METHODS),
+        (Module::Nearby, &crate::nearby::METHODS),
     ];
     modules
         .into_iter()
@@ -321,6 +323,8 @@ pub(crate) struct Daemon {
     pub(crate) notifications: crate::notifications::Notifications,
     /// The device transfer, running or last.
     pub(crate) transfers: crate::transfer::Transfers,
+    /// Face-to-face nearby share coordinator.
+    pub(crate) nearby: crate::nearby::Nearby,
     pub(crate) pairing: dmsg_client::pairing::InvitationHost,
 }
 
@@ -381,6 +385,7 @@ async fn local_auth(
 /// The same owner RPC serves desktop and CLI. Check before dispatching work or preparing approvals.
 fn local_method(method: &str) -> bool {
     method.starts_with("vault/")
+        || method.starts_with("nearby/")
         || method.starts_with("secrets/mounts/")
         || method.starts_with("secrets/discovery/")
         || method.starts_with("mount/")
@@ -443,6 +448,9 @@ fn local_method(method: &str) -> bool {
                 | "secrets/health/dismiss"
                 | "secrets/ref"
                 | "secrets/references"
+                | "secrets/packages/import_request"
+                | "secrets/shares/get"
+                | "secrets/shares/list"
                 | "cache/status"
                 | "cache/clear"
         )
@@ -517,6 +525,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     let daemon = Arc::new(Daemon::new(token, port, settings, client, agents, mcp));
     daemon.secret_mounts.bind(Arc::downgrade(&daemon));
     daemon.transfers.bind(Arc::downgrade(&daemon));
+    daemon.nearby.bind(Arc::downgrade(&daemon));
     daemon.read_preferences().await?;
     home.publish(&Discovery {
         port,
@@ -568,6 +577,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
                 _ = stopping.stop.notified() => {}
             }
             // The system unmounts while the share still answers.
+            stopping.nearby.cancel_all().await;
             stopping.stop_secret_mounts().await;
             let _ = stopping.unmount_library().await;
         })
@@ -631,6 +641,9 @@ async fn background(daemon: Arc<Daemon>) {
             }
             session
         };
+        if session.state != "unlocked" {
+            daemon.nearby.cancel_all().await;
+        }
         daemon.check_mount().await;
         daemon.check_secret_mounts().await;
         let unlocked = session.state == "unlocked";
@@ -767,6 +780,7 @@ impl Daemon {
     /// After any sign-out: the account's mounts and connect report go at once
     /// rather than at the next background check.
     async fn signed_out(&self) {
+        self.nearby.cancel_all().await;
         *self.last_connect.lock().expect("connect report") = None;
         self.stop_secret_mounts().await;
         let _ = self.unmount_library().await;
@@ -834,6 +848,7 @@ impl Daemon {
             snapshots: Default::default(),
             notifications: Default::default(),
             transfers: Default::default(),
+            nearby: Default::default(),
             pairing: Default::default(),
         }
     }
@@ -1136,7 +1151,13 @@ impl Daemon {
             Decision::SecretShare(run) => {
                 let _turn = self.turn("secret-share-upload").await;
                 self.emit("approval/changed", Value::Null);
-                run.run(&self.hold()).await
+                let result = run.run(&self.hold()).await?;
+                if result["state"] == "ready_for_nearby"
+                    && let Some(job_id) = result["id"].as_str()
+                {
+                    self.nearby.notify_approval_ready(job_id.to_string());
+                }
+                Ok(result)
             }
             Decision::SecretUse(run) => {
                 self.emit("approval/changed", Value::Null);
@@ -1483,6 +1504,7 @@ impl Daemon {
             Module::Secrets => Box::pin(self.call_secrets(method, params)),
             Module::Notifications => Box::pin(self.call_notifications(method, params)),
             Module::Transfer => Box::pin(self.call_transfer(method, params)),
+            Module::Nearby => Box::pin(self.call_nearby(method, params)),
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Box::pin(async { Err(Error::Forbidden) }),
         }
@@ -1531,6 +1553,7 @@ impl Daemon {
             "session/accounts" => Ok(to_json(&self.client.lock().await.accounts()?)),
             "device/moved_list" => Ok(to_json(&self.client.lock().await.moved_copies()?)),
             "device/moved_set_aside" => {
+                self.nearby.cancel_all().await;
                 self.stop_secret_mounts().await;
                 self.unmount_library().await?;
                 let status = self.client.lock().await.set_aside_moved()?;
@@ -1564,6 +1587,7 @@ impl Daemon {
             }
             "session/switch" => {
                 let account = account(params, "account")?;
+                self.nearby.cancel_all().await;
                 let status = self.client.lock().await.switch_account(&account)?;
                 self.sync_requested.store(false, Ordering::Relaxed);
                 *self.last_connect.lock().expect("connect report") = None;
@@ -1611,6 +1635,7 @@ impl Daemon {
                     })
                     .await?;
                 let access = local_auth(self, request, params).await?;
+                self.nearby.cancel_all().await;
                 self.stop_secret_mounts().await;
                 self.unmount_library().await?;
                 self.hold()
@@ -1755,6 +1780,7 @@ impl Daemon {
             }
             "session/lock" => {
                 self.client.lock().await.lock();
+                self.nearby.cancel_all().await;
                 self.sync_requested.store(false, Ordering::Relaxed);
                 // Versions already signed for submission still go out.
                 self.wake();
@@ -2365,6 +2391,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::McpEvents => &[],
         Module::Notifications => &[],
         Module::Transfer => crate::transfer::events_of(method),
+        Module::Nearby => crate::nearby::events_of(method),
         Module::Files => crate::files_methods::events_of(method),
         Module::Mount => crate::mount::events_of(method),
         Module::Wallet => crate::wallet_methods::events_of(method),

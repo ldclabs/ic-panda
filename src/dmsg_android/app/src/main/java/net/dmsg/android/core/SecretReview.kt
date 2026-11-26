@@ -2,8 +2,11 @@ package net.dmsg.android.core
 
 import kotlinx.serialization.json.*
 
+data class SnapshotNearby(val transcript: String, val sas: String, val peerLabel: String)
+
 data class SecretReview(val importing: Boolean, val title: String, val fields: List<PackageField>, val notes: Boolean, val files: List<PackageAttachment>,
-    val source: String, val revision: String, val destination: String?, val channel: SnapshotChannel?, val expiry: ULong?, val sessions: ULong?, val password: Boolean?)
+    val source: String, val revision: String, val destination: String?, val channel: SnapshotChannel?, val expiry: ULong?, val sessions: ULong?, val password: Boolean?,
+    val nearby: SnapshotNearby? = null)
 
 /** Only a complete, exact selection may enable approval; private values are never parsed. */
 fun parseSecretReview(kind: String, value: JsonElement): SecretReview {
@@ -20,10 +23,14 @@ fun parseSecretReview(kind: String, value: JsonElement): SecretReview {
         val channel = row["channel"]?.takeIf { it != JsonNull }?.objectValue()?.let {
             SnapshotChannel(it.required("channel_id"), it.required("name"), it.requiredUnsigned("epoch"), it.required("control_head"), it.requiredUnsigned("acl_version"))
         }
-        val expiry = if (channel == null) row.requiredUnsigned("expires_at") else null
-        val sessions = if (channel == null) row.requiredUnsigned("max_download_sessions") else null
+        val nearby = row["nearby"]?.takeIf { it != JsonNull }?.objectValue()?.let {
+            SnapshotNearby(it.required("transcript"), it.required("sas"), it.required("peer_label"))
+        }
+        val linkOnly = channel == null && nearby == null
+        val expiry = if (linkOnly) row.requiredUnsigned("expires_at") else null
+        val sessions = if (linkOnly) row.requiredUnsigned("max_download_sessions") else null
         return SecretReview(false, row.required("title"), selected, input.requiredFlag("include_notes"), attachments, input.required("item_id"), input.required("revision"),
-            row.required("account_id"), channel, expiry, sessions, if (channel == null) row.requiredFlag("password") else null)
+            row.required("account_id"), channel, expiry, sessions, if (linkOnly) row.requiredFlag("password") else null, nearby)
     }
     check(kind == "secret_package_import" && row.requiredFlag("files_local_only") && row.requiredFlag("files_inherit_folder_grants")) { "INTEGRITY_FAILED" }
     val preview = row["preview"]?.objectValue() ?: error("INTEGRITY_FAILED")

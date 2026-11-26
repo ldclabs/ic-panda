@@ -33,10 +33,14 @@ mod logs;
 mod mail_push;
 mod mcp;
 mod mcp_events;
+mod mdns;
 mod methods;
 mod mount;
 #[cfg(target_os = "macos")]
 mod mount_netfs;
+mod nearby;
+mod nearby_awdl;
+mod nearby_commands;
 mod notifications;
 mod pairing;
 mod params;
@@ -240,6 +244,9 @@ enum Command {
     /// The encrypted file library on this device.
     #[command(subcommand)]
     Files(files_commands::FilesCommand),
+    /// Face-to-face encrypted sharing of Files and Vault snapshots.
+    #[command(subcommand)]
+    Nearby(nearby_commands::NearbyCommand),
     /// Synchronize with the relay, or show where sync stands.
     Sync {
         #[command(subcommand)]
@@ -758,6 +765,7 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
         Command::Run(command) => process_command::run(remote, command).await,
         Command::Secrets(command) => secret_commands::secrets(remote, json, command).await,
         Command::Files(command) => files_commands::files(remote, json, command).await,
+        Command::Nearby(command) => nearby_commands::nearby(remote, json, command).await,
         Command::Sync { command: None } => {
             let report = remote.call("sync/run", Value::Null).await?;
             print(json, &report, |r| {

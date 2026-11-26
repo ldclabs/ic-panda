@@ -50,6 +50,8 @@
 	<string>Về tệp và bản sao lưu</string>
 	<key>About these benefits</key>
 	<string>Về các quyền lợi này</string>
+	<key>Accept</key>
+	<string>Chấp nhận</string>
 	<key>Accept approved binding</key>
 	<string>Chấp nhận ràng buộc đã được phê duyệt</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Cho phép thư tiếp theo</string>
 	<key>Allow key rotation</key>
 	<string>Cho phép đổi khóa</string>
+	<key>Allow nearby discovery</key>
+	<string>Cho phép tìm thấy ở gần</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Cho phép thông báo để nhận cảnh báo hệ thống.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Không thể truy cập camera. Cho phép truy cập camera trong Cài đặt để chụp ảnh và quay video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Không thể truy cập camera. Nhập khóa thiết lập hoặc cho phép truy cập camera trong Cài đặt.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Không thể truy cập camera. Hãy dán mã kết nối hoặc cấp quyền trong Cài đặt.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Không thể truy cập camera. Dán lời mời hoặc cho phép truy cập camera trong Cài đặt.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Chọn tài khoản</string>
 	<key>Choose an attachment</key>
 	<string>Chọn tệp đính kèm</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Chọn ít nhất một trường, ghi chú hoặc tệp đính kèm trước khi chọn thiết bị nhận ở gần.</string>
 	<key>Choose avatar</key>
 	<string>Chọn hình đại diện</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Lưu trữ đám mây</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Đã vượt giới hạn lưu trữ đám mây hoặc kích thước tệp. Hãy kiểm tra gói và kích thước bản sao lưu.</string>
+	<key>Codes match — continue</key>
+	<string>Mã khớp — tiếp tục</string>
 	<key>Collect files</key>
 	<string>Thu thập tệp</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Xác nhận mật khẩu cục bộ</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Chỉ xác nhận công việc bạn đã thực sự hoàn thành. Điều này ghi lại tuyên bố của bạn; nó không thực hiện hành động của nhà cung cấp.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Xác nhận thiết bị nhận hiển thị đúng mã 6 chữ số này trước khi gửi bất kỳ thông tin nào.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Xác nhận yêu cầu dMsg mà bạn đã xem xét</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Kết nối trình duyệt này?</string>
 	<key>Connected browsers</key>
 	<string>Trình duyệt được kết nối</string>
+	<key>Connecting…</key>
+	<string>Đang kết nối…</string>
+	<key>Connection</key>
+	<string>Kết nối</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Kết nối không có sẵn. Nội dung đã lưu của bạn vẫn còn trên thiết bị này.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Sao chép tất cả</string>
 	<key>Copy binding request</key>
 	<string>Sao chép yêu cầu ràng buộc</string>
+	<key>Copy connection code</key>
+	<string>Sao chép mã kết nối</string>
 	<key>Copy device ID</key>
 	<string>Sao chép ID thiết bị</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Các tập tin trong thư mục này</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Không thể chia sẻ tệp lớn hơn 100 MiB qua liên kết.</string>
+	<key>Files to send</key>
+	<string>Tệp cần gửi</string>
 	<key>Fill and remember</key>
 	<string>Điền và ghi nhớ</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Bao gồm nội dung của tin nhắn này</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Bao gồm bí mật đã lưu trong mục ví.</string>
+	<key>Incoming transfer</key>
+	<string>Yêu cầu nhận</string>
 	<key>Incomplete</key>
 	<string>Chưa đầy đủ</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Đang tải…</string>
 	<key>Local</key>
 	<string>Địa phương</string>
+	<key>Local + Relay ready</key>
+	<string>Nội bộ + chuyển tiếp sẵn sàng</string>
 	<key>Local account</key>
 	<string>Tài khoản cục bộ</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Phát hiện địa phương</string>
 	<key>Local label</key>
 	<string>Nhãn địa phương</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Quyền mạng cục bộ cho dMsg đang tắt. Bật trong Cài đặt hoặc quét mã QR để dùng chuyển tiếp mã hóa.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Quyền truy cập mạng cục bộ của dMsg đang tắt. Hãy bật trong Cài đặt hoặc nhập địa chỉ của thiết bị kia.</string>
+	<key>Local network only</key>
+	<string>Chỉ mạng cục bộ</string>
 	<key>Local password</key>
 	<string>Mật khẩu cục bộ</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Danh tính đăng nhập</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Tài liệu dài đã được rút gọn khi xem trước. Hãy tải xuống hoặc mở bằng ứng dụng ngoài để xem toàn bộ.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Đang tìm thiết bị dMsg ở gần…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Quản lý đăng ký Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Khóa Taproot native</string>
 	<key>Native addresses</key>
 	<string>Địa chỉ native</string>
+	<key>Nearby device</key>
+	<string>Thiết bị ở gần</string>
+	<key>Nearby devices</key>
+	<string>Thiết bị ở gần</string>
+	<key>Nearby receive QR code</key>
+	<string>Mã QR nhận ở gần</string>
+	<key>Nearby snapshot</key>
+	<string>Ảnh chụp gần</string>
+	<key>Nearby transfer failed.</key>
+	<string>Truyền ở gần thất bại.</string>
 	<key>Needs a fresh review</key>
 	<string>Cần một đánh giá mới</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Mã một lần</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Chỉ sao lưu mục hiện tại. Loại trừ lịch sử, thùng rác, bản nháp, bản xung đột và khóa do dMsg quản lý.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Chỉ thiết bị đã bật tìm thấy ở gần mới hiện tại đây. Bạn luôn có thể quét mã QR của thiết bị nhận.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Chỉ làm điều này khi bạn đã sẵn sàng sử dụng nó. Bản sao vẫn còn trên thiết bị này và hết hạn sau 30 giây.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Mật khẩu</string>
 	<key>Paste binding request</key>
 	<string>Dán yêu cầu ràng buộc</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Dán mã dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>Dán yêu cầu đăng ký</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Đang chuẩn bị và sao chép tệp…</string>
 	<key>Preparing backups…</key>
 	<string>Đang chuẩn bị bản sao lưu…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Đang chuẩn bị nhận ở gần…</string>
 	<key>Preparing purchase…</key>
 	<string>Đang chuẩn bị mua hàng…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Mục đích</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Thông báo đẩy không được bật trong bản dựng này. Mở dMsg để đồng bộ hóa.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>Đã xác minh QR · Đối chiếu mã 6 chữ số này với người gửi trước khi chấp nhận.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Chế độ chỉ QR không phát quảng bá trên mạng cục bộ. Bật khám phá để hiện trong danh sách thiết bị ở gần.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Mở khóa nhanh mở không gian làm việc. Ràng buộc thiết bị giới hạn thiết bị được mở khóa. Phê duyệt phần cứng bảo vệ thao tác tài khoản nhạy cảm.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Lý do</string>
 	<key>Receive here</key>
 	<string>Nhận tại đây</string>
+	<key>Receive more</key>
+	<string>Nhận thêm</string>
+	<key>Receive nearby</key>
+	<string>Nhận ở gần</string>
 	<key>Received files</key>
 	<string>Đã nhận</string>
 	<key>Received for review</key>
 	<string>Đã nhận được để xem xét</string>
 	<key>Receiver</key>
 	<string>Người nhận</string>
+	<key>Receiver QR or connection code</key>
+	<string>Mã QR hoặc mã kết nối thiết bị nhận</string>
 	<key>Receiving</key>
 	<string>Đang nhận</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Xem lại quyền của tác tử</string>
 	<key>Review an enrollment request</key>
 	<string>Xem xét yêu cầu đăng ký</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Xem lại và phê duyệt bản chụp két sắt này trước khi rời khỏi thiết bị.</string>
+	<key>Review and import snapshot</key>
+	<string>Xem lại và nhập bản chụp</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Xem lại và khởi động lại ánh xạ tệp trên máy tính để bàn trên thiết bị gốc của nó.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Yêu cầu thiết bị quét</string>
 	<key>Scan invitation</key>
 	<string>Quét lời mời</string>
+	<key>Scan receiver QR code</key>
+	<string>Quét mã QR thiết bị nhận</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Quét mã trên thiết bị đã được cấp quyền để mở tài khoản của thiết bị đó.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Gửi đến thiết bị</string>
 	<key>Send to an administrator</key>
 	<string>Gửi cho quản trị viên</string>
+	<key>Send via code</key>
+	<string>Gửi qua mã</string>
 	<key>Sender</key>
 	<string>Người gửi</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Đã gửi</string>
 	<key>Sent letters</key>
 	<string>Thư đã gửi</string>
+	<key>Sent successfully</key>
+	<string>Đã gửi thành công</string>
 	<key>Server</key>
 	<string>Máy chủ</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Liên kết chia sẻ</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Không thể làm mới liên kết chia sẻ. Đang hiển thị các liên kết đã lưu.</string>
+	<key>Share my dMsg identity</key>
+	<string>Chia sẻ danh tính dMsg của tôi</string>
+	<key>Share nearby</key>
+	<string>Chia sẻ ở gần</string>
 	<key>Share pairing request</key>
 	<string>Chia sẻ yêu cầu ghép nối</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Bắt đầu một danh sách kiểm tra luân chuyển?</string>
 	<key>Start account recovery?</key>
 	<string>Bắt đầu khôi phục tài khoản?</string>
+	<key>Start again</key>
+	<string>Bắt đầu lại</string>
 	<key>Start checklist</key>
 	<string>Bắt đầu danh sách kiểm tra</string>
+	<key>Start receiving</key>
+	<string>Bắt đầu nhận</string>
 	<key>Start sending</key>
 	<string>Bắt đầu gửi</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Tổng dung lượng</string>
 	<key>Transfer between devices</key>
 	<string>Chuyển giữa các thiết bị</string>
+	<key>Transfer complete</key>
+	<string>Hoàn tất truyền</string>
 	<key>Transfer needs attention</key>
 	<string>Lượt truyền cần xử lý</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Đề xuất chuyển nhượng</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Đã xếp hàng truyền. Theo dõi tiến độ trong Tệp.</string>
+	<key>Transfer status</key>
+	<string>Trạng thái truyền</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Không thể làm mới trạng thái truyền. Các tác vụ đã lưu được giữ lại.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Đang chuyển</string>
 	<key>Transfers</key>
 	<string>Chuyển nhượng</string>
+	<key>Transport</key>
+	<string>Kênh truyền</string>
 	<key>Trash</key>
 	<string>Thùng rác</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Lời nhắc chưa đọc</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Quyền ủy quyền không hạn chế</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Tìm thấy chưa xác minh · Đối chiếu trực tiếp mã 6 chữ số này trước khi chấp nhận.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Kho bảo mật</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này.</string>
+	<key>Vault snapshot</key>
+	<string>Bản chụp két sắt</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Bản chụp két sắt đã được xác minh trên thiết bị này. Hãy xem và chọn trường để nhập.</string>
 	<key>Vault tools</key>
 	<string>Công cụ Vault</string>
+	<key>Verification code</key>
+	<string>Mã xác minh</string>
 	<key>Verified</key>
 	<string>đã xác minh</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Đang chờ duyệt cách đăng nhập</string>
 	<key>Waiting for notification registration…</key>
 	<string>Đang chờ đăng ký thông báo…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Đang chờ thiết bị nhận chấp nhận…</string>
+	<key>Waiting for sender…</key>
+	<string>Đang chờ người gửi…</string>
 	<key>Waiting for the other device</key>
 	<string>Đang chờ thiết bị kia</string>
 	<key>Waiting for your decision</key>

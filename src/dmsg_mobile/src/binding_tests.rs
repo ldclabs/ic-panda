@@ -22,6 +22,7 @@ async fn fixture(origin: &str) -> (MobileEngine, testing::TempDir, String) {
         plan_checked: Arc::default(),
         invitations: Arc::default(),
         transfers: Arc::default(),
+        nearby: Arc::default(),
     };
     let mut session = LoginSession::ios(
         &[testing::account().home],

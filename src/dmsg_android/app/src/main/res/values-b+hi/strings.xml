@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"कार्रवाइयाँ"</string>
     <string name="message_sending" formatted="false">"भेजना"</string>
     <string name="more" formatted="false">"अधिक"</string>
+    <string name="nearby_accept" formatted="false">"स्वीकार करें"</string>
+    <string name="nearby_allow_discovery" formatted="false">"आस-पास खोज की अनुमति दें"</string>
+    <string name="nearby_codes_match" formatted="false">"कोड मेल खाते हैं — जारी रखें"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"कोई भी विवरण भेजने से पहले पुष्टि करें कि रिसीवर पर यही 6-अंकीय कोड दिख रहा है।"</string>
+    <string name="nearby_connecting" formatted="false">"कनेक्ट हो रहा है…"</string>
+    <string name="nearby_connection" formatted="false">"कनेक्शन"</string>
+    <string name="nearby_copy_code" formatted="false">"कनेक्शन कोड कॉपी करें"</string>
+    <string name="nearby_device" formatted="false">"निकटवर्ती डिवाइस"</string>
+    <string name="nearby_devices" formatted="false">"निकटवर्ती डिवाइस"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"केवल वे डिवाइस यहाँ दिखते हैं जिन्होंने निकटवर्ती खोज चालू की है। आप हमेशा रिसीवर का QR कोड स्कैन कर सकते हैं।"</string>
+    <string name="nearby_files_to_send" formatted="false">"भेजने के लिए फ़ाइलें"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"आने वाला ट्रांसफ़र"</string>
+    <string name="nearby_local_network_denied" formatted="false">"dMsg के लिए लोकल नेटवर्क एक्सेस बंद है। सेटिंग्स में सक्षम करें या एन्क्रिप्टेड रिले के लिए QR कोड स्कैन करें।"</string>
+    <string name="nearby_local_only" formatted="false">"केवल लोकल नेटवर्क"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"लोकल + रिले तैयार"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"आस-पास के dMsg डिवाइस खोजे जा रहे हैं…"</string>
+    <string name="nearby_paste_code" formatted="false">"dmsg-nearby/1: कोड पेस्ट करें"</string>
+    <string name="nearby_preparing_receive" formatted="false">"निकटवर्ती रिसीव तैयार हो रहा है…"</string>
+    <string name="nearby_qr_code" formatted="false">"निकटवर्ती रिसीव QR कोड"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"केवल-QR मोड लोकल नेटवर्क पर प्रसारित नहीं करता। आस-पास के डिवाइस की सूची में दिखने के लिए खोज सक्षम करें।"</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR सत्यापित · स्वीकार करने से पहले प्रेषक से इस 6-अंकीय कोड का मिलान करें।"</string>
+    <string name="nearby_receive" formatted="false">"आस-पास से प्राप्त करें"</string>
+    <string name="nearby_receive_more" formatted="false">"और प्राप्त करें"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"रिसीवर का QR या कनेक्शन कोड"</string>
+    <string name="nearby_receiving" formatted="false">"प्राप्ति"</string>
+    <string name="nearby_review_approval" formatted="false">"अनुमोदन की समीक्षा करें"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"स्नैपशॉट की समीक्षा करें और आयात करें"</string>
+    <string name="nearby_scan_qr" formatted="false">"रिसीवर का QR कोड स्कैन करें"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"निकटवर्ती रिसीवर चुनने से पहले कम से कम एक फ़ील्ड, नोट या अटैचमेंट चुनें।"</string>
+    <string name="nearby_send_via_code" formatted="false">"कोड के माध्यम से भेजें"</string>
+    <string name="nearby_sent_success" formatted="false">"सफलतापूर्वक भेजा गया"</string>
+    <string name="nearby_share" formatted="false">"आस-पास साझा करें"</string>
+    <string name="nearby_share_identity" formatted="false">"मेरी dMsg पहचान साझा करें"</string>
+    <string name="nearby_snapshot" formatted="false">"निकटवर्ती स्नैपशॉट"</string>
+    <string name="nearby_start_again" formatted="false">"फिर से शुरू करें"</string>
+    <string name="nearby_start_receiving" formatted="false">"प्राप्त करना शुरू करें"</string>
+    <string name="nearby_transfer_complete" formatted="false">"ट्रांसफ़र पूर्ण हुआ"</string>
+    <string name="nearby_transfer_failed" formatted="false">"निकटवर्ती ट्रांसफ़र विफल रहा।"</string>
+    <string name="nearby_transfer_status" formatted="false">"ट्रांसफ़र स्थिति"</string>
+    <string name="nearby_transport" formatted="false">"ट्रांसपोर्ट"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"असत्यापित खोज · स्वीकार करने से पहले आमने-सामने इस 6-अंकीय कोड का मिलान करें।"</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"इस डिवाइस से जाने से पहले इस वॉल्ट स्नैपशॉट की समीक्षा करें और स्वीकृति दें।"</string>
+    <string name="nearby_vault_snapshot" formatted="false">"वॉल्ट स्नैपशॉट"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"वॉल्ट स्नैपशॉट इस डिवाइस पर सत्यापित हो गया है। समीक्षा करें और आयात करने के लिए फ़ील्ड चुनें।"</string>
+    <string name="nearby_verification_code" formatted="false">"सत्यापन कोड"</string>
+    <string name="nearby_waiting_accept" formatted="false">"रिसीवर की स्वीकृति की प्रतीक्षा है…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"प्रेषक की प्रतीक्षा है…"</string>
     <string name="no_conversations_yet" formatted="false">"अभी तक कोई बातचीत नहीं"</string>
     <string name="no_matches" formatted="false">"कोई मिलान नहीं मिला"</string>
     <string name="offline_account" formatted="false">"स्थानीय खाता"</string>

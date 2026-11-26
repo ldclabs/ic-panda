@@ -50,6 +50,8 @@
 	<string>Over bestanden en back-ups</string>
 	<key>About these benefits</key>
 	<string>Over deze voordelen</string>
+	<key>Accept</key>
+	<string>Accepteren</string>
 	<key>Accept approved binding</key>
 	<string>Accepteer goedgekeurde binding</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Nog een brief toestaan</string>
 	<key>Allow key rotation</key>
 	<string>Sleutelrotatie toestaan</string>
+	<key>Allow nearby discovery</key>
+	<string>Ontdekking in de buurt toestaan</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Sta meldingen toe om systeemwaarschuwingen te ontvangen.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Cameratoegang is niet beschikbaar. Sta cameratoegang toe in Instellingen om foto’s en video’s te maken.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Geen toegang tot de camera. Voer een instelsleutel in of sta cameratoegang toe in Instellingen.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Cameratoegang niet beschikbaar. Plak de verbindingscode of sta camera toe in Instellingen.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Cameratoegang is niet beschikbaar. Plak de uitnodiging of sta cameratoegang toe in Instellingen.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Account kiezen</string>
 	<key>Choose an attachment</key>
 	<string>Kies een bijlage</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Kies ten minste één veld, notitie of bijlage voordat je een ontvanger in de buurt kiest.</string>
 	<key>Choose avatar</key>
 	<string>Kies avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Cloudopslag</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>De limiet voor cloudopslag of bestandsgrootte is overschreden. Controleer je abonnement en de back-upgrootte.</string>
+	<key>Codes match — continue</key>
+	<string>Codes komen overeen — doorgaan</string>
 	<key>Collect files</key>
 	<string>Bestanden verzamelen</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Lokaal wachtwoord bevestigen</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Bevestig alleen het werk dat je daadwerkelijk hebt voltooid. Hierin wordt je verklaring vastgelegd; het voert de provideractie niet uit.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Bevestig dat de ontvanger precies deze 6-cijferige code toont voordat je gegevens verzendt.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Bevestig het dMsg-verzoek dat je hebt beoordeeld</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Deze browser verbinden?</string>
 	<key>Connected browsers</key>
 	<string>Verbonden browsers</string>
+	<key>Connecting…</key>
+	<string>Verbinden…</string>
+	<key>Connection</key>
+	<string>Verbinding</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Verbinding niet beschikbaar. Je opgeslagen inhoud blijft op dit apparaat staan.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Alles kopiëren</string>
 	<key>Copy binding request</key>
 	<string>Kopieer bindend verzoek</string>
+	<key>Copy connection code</key>
+	<string>Verbindingscode kopiëren</string>
 	<key>Copy device ID</key>
 	<string>Apparaat-ID kopiëren</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Bestanden in deze map</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Bestanden groter dan 100 MiB kunnen niet via een link worden gedeeld.</string>
+	<key>Files to send</key>
+	<string>Te verzenden bestanden</string>
 	<key>Fill and remember</key>
 	<string>Invullen en onthouden</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Voeg de tekst van dit bericht toe</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Bevat geheimen uit portemonnee-items.</string>
+	<key>Incoming transfer</key>
+	<string>Inkomende overdracht</string>
 	<key>Incomplete</key>
 	<string>Onvolledig</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Laden…</string>
 	<key>Local</key>
 	<string>Lokaal</string>
+	<key>Local + Relay ready</key>
+	<string>Lokaal + relay gereed</string>
 	<key>Local account</key>
 	<string>Lokaal account</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Lokale bevindingen</string>
 	<key>Local label</key>
 	<string>Lokaal etiket</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Lokale netwerktoegang voor dMsg staat uit. Schakel in bij Instellingen of scan de QR-code voor versleutelde relay.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Toegang tot het lokale netwerk staat uit voor dMsg. Zet deze aan in Instellingen of voer het adres van het andere apparaat in.</string>
+	<key>Local network only</key>
+	<string>Alleen lokaal netwerk</string>
 	<key>Local password</key>
 	<string>Lokaal wachtwoord</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Aanmeldidentiteit</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Lang document ingekort voor voorbeeldweergave. Download of open extern om alle inhoud te bekijken.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Zoeken naar dMsg-apparaten in de buurt…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Beheer Apple-abonnementen</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Native Taproot-sleutel</string>
 	<key>Native addresses</key>
 	<string>Native adressen</string>
+	<key>Nearby device</key>
+	<string>Apparaat in de buurt</string>
+	<key>Nearby devices</key>
+	<string>Apparaten in de buurt</string>
+	<key>Nearby receive QR code</key>
+	<string>QR-code voor ontvangst dichtbij</string>
+	<key>Nearby snapshot</key>
+	<string>Momentopname dichtbij</string>
+	<key>Nearby transfer failed.</key>
+	<string>Overdracht in de buurt mislukt.</string>
 	<key>Needs a fresh review</key>
 	<string>Heeft een nieuwe beoordeling nodig</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Eenmalige code</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Alleen huidige items. Geschiedenis, prullenbak, concepten, conflictkopieën en door dMsg beheerde sleutels worden overgeslagen.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Alleen apparaten met ontdekking aan verschijnen hier. Je kunt altijd de QR-code van de ontvanger scannen.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Doe dit alleen als je klaar bent om het te gebruiken. Kopieën blijven op dit apparaat staan en vervallen na 30 seconden.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Wachtwoorden</string>
 	<key>Paste binding request</key>
 	<string>Bindend verzoek plakken</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Plak dmsg-nearby/1:-code</string>
 	<key>Paste enrollment request</key>
 	<string>Inschrijvingsverzoek plakken</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Bestand voorbereiden en kopiëren…</string>
 	<key>Preparing backups…</key>
 	<string>Back-ups voorbereiden…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Ontvangst in de buurt voorbereiden…</string>
 	<key>Preparing purchase…</key>
 	<string>Aankoop voorbereiden…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Doel</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Pushmeldingen zijn niet ingeschakeld in deze build. Open dMsg om te synchroniseren.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR geverifieerd · Vergelijk deze 6-cijferige code met de afzender voordat je accepteert.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Alleen-QR-modus zendt niet uit op het lokale netwerk. Schakel ontdekking in om dichtbij te verschijnen.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Snel ontgrendelen opent de werkruimte. Apparaatbinding beperkt welke apparaten deze kunnen openen. Hardwaregoedkeuring beschermt gevoelige accountacties.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Reden</string>
 	<key>Receive here</key>
 	<string>Hier ontvangen</string>
+	<key>Receive more</key>
+	<string>Meer ontvangen</string>
+	<key>Receive nearby</key>
+	<string>Dichtbij ontvangen</string>
 	<key>Received files</key>
 	<string>Ontvangen</string>
 	<key>Received for review</key>
 	<string>Ter beoordeling ontvangen</string>
 	<key>Receiver</key>
 	<string>Ontvanger</string>
+	<key>Receiver QR or connection code</key>
+	<string>QR- of verbindingscode ontvanger</string>
 	<key>Receiving</key>
 	<string>Ontvangen</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Controleer agentmachtigingen</string>
 	<key>Review an enrollment request</key>
 	<string>Een inschrijvingsverzoek beoordelen</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Controleer en keur deze kluismomentopname goed voordat deze dit apparaat verlaat.</string>
+	<key>Review and import snapshot</key>
+	<string>Momentopname bekijken en importeren</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Controleer de bestandstoewijzing op het bureaublad en start deze opnieuw op het oorspronkelijke apparaat.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Verzoek om scanapparaat</string>
 	<key>Scan invitation</key>
 	<string>Uitnodiging scannen</string>
+	<key>Scan receiver QR code</key>
+	<string>QR-code ontvanger scannen</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Scan de code op een bevoegd apparaat om het account ervan te openen.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Naar een apparaat sturen</string>
 	<key>Send to an administrator</key>
 	<string>Stuur naar een beheerder</string>
+	<key>Send via code</key>
+	<string>Verzenden via code</string>
 	<key>Sender</key>
 	<string>Afzender</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Verzonden</string>
 	<key>Sent letters</key>
 	<string>Brieven verzonden</string>
+	<key>Sent successfully</key>
+	<string>Succesvol verzonden</string>
 	<key>Server</key>
 	<string>Server</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Deellinks</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Deellinks konden niet worden vernieuwd. Opgeslagen links worden getoond.</string>
+	<key>Share my dMsg identity</key>
+	<string>Mijn dMsg-identiteit delen</string>
+	<key>Share nearby</key>
+	<string>Dichtbij delen</string>
 	<key>Share pairing request</key>
 	<string>Koppelingsverzoek delen</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Een rotatiechecklist starten?</string>
 	<key>Start account recovery?</key>
 	<string>Accountherstel starten?</string>
+	<key>Start again</key>
+	<string>Opnieuw beginnen</string>
 	<key>Start checklist</key>
 	<string>Controlelijst starten</string>
+	<key>Start receiving</key>
+	<string>Ontvangen starten</string>
 	<key>Start sending</key>
 	<string>Versturen starten</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Totale grootte</string>
 	<key>Transfer between devices</key>
 	<string>Overdracht tussen apparaten</string>
+	<key>Transfer complete</key>
+	<string>Overdracht voltooid</string>
 	<key>Transfer needs attention</key>
 	<string>Overdracht vereist aandacht</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Overdrachtsvoorstel</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Overdracht in wachtrij. Volg de voortgang bij Bestanden.</string>
+	<key>Transfer status</key>
+	<string>Overdrachtsstatus</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>De overdrachtsstatus kon niet worden vernieuwd. Opgeslagen taken blijven behouden.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Bezig met overdragen</string>
 	<key>Transfers</key>
 	<string>Overdrachten</string>
+	<key>Transport</key>
+	<string>Transport</string>
 	<key>Trash</key>
 	<string>Prullenbak</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Ongelezen herinnering</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Onbeperkte delegatiebevoegdheid</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Ongecontroleerde ontdekking · Vergelijk deze 6-cijferige code persoonlijk voordat je accepteert.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Maximaal 3 PNG-, JPEG-, WebP- of GIF-afbeeldingen van elk 10 MiB. Verwijder eerst geheimen. Kopieën blijven in Bestanden. Verzenden maakt versleutelde links voor 30 dagen en gebruikt uw opslagruimte. Iedereen met de volledige link kan deze openen.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Kluis</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Items worden zoals gewoonlijk gesynchroniseerd. Bijlagen staan in Bestanden op dit apparaat.</string>
+	<key>Vault snapshot</key>
+	<string>Kluismomentopname</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Kluismomentopname geverifieerd op dit apparaat. Bekijk en kies welke velden je wilt importeren.</string>
 	<key>Vault tools</key>
 	<string>Kluishulpmiddelen</string>
+	<key>Verification code</key>
+	<string>Verificatiecode</string>
 	<key>Verified</key>
 	<string>geverifieerd</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Wachten op goedkeuring van de aanmelding</string>
 	<key>Waiting for notification registration…</key>
 	<string>Wachten op meldingsregistratie…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Wachten tot ontvanger accepteert…</string>
+	<key>Waiting for sender…</key>
+	<string>Wachten op afzender…</string>
 	<key>Waiting for the other device</key>
 	<string>Wachten op het andere apparaat</string>
 	<key>Waiting for your decision</key>

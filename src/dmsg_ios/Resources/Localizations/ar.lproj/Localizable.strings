@@ -50,6 +50,8 @@
 	<string>حول الملفات والنسخ الاحتياطية</string>
 	<key>About these benefits</key>
 	<string>حول هذه المزايا</string>
+	<key>Accept</key>
+	<string>قبول</string>
 	<key>Accept approved binding</key>
 	<string>قبول الربط المعتمد</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>السماح برسالة أخرى</string>
 	<key>Allow key rotation</key>
 	<string>السماح بتدوير المفاتيح</string>
+	<key>Allow nearby discovery</key>
+	<string>السماح بالاكتشاف القريب</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>اسمح بالإشعارات لتلقي تنبيهات النظام.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>الكاميرا غير متاحة. اسمح بالوصول إلى الكاميرا في الإعدادات لالتقاط الصور والفيديوهات.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>الوصول إلى الكاميرا غير متاح. أدخل مفتاح الإعداد أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>الوصول إلى الكاميرا غير متاح. الصق رمز الاتصال أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>الكاميرا غير متاحة. الصق الدعوة أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>اختيار حساب</string>
 	<key>Choose an attachment</key>
 	<string>اختيار مرفق</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>اختر حقلاً واحداً أو ملاحظة أو مرفقاً على الأقل قبل تحديد جهاز الاستقبال القريب.</string>
 	<key>Choose avatar</key>
 	<string>اختيار صورة شخصية</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>التخزين السحابي</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>تم تجاوز سعة التخزين السحابي أو حد حجم الملف. راجع خطتك وحجم النسخة الاحتياطية.</string>
+	<key>Codes match — continue</key>
+	<string>الرمزان متطابقان — متابعة</string>
 	<key>Collect files</key>
 	<string>جمع الملفات</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>تأكيد كلمة المرور المحلية</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>أكّد فقط العمل الذي أنجزته فعليًا. يسجّل هذا إفادتك ولا ينفّذ الإجراء لدى المزود.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>تأكد من أن جهاز الاستقبال يعرض هذا الرمز المكون من 6 أرقام بالضبط قبل إرسال أي تفاصيل.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>تأكيد طلب dMsg الذي راجعته</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>توصيل هذا المتصفح؟</string>
 	<key>Connected browsers</key>
 	<string>المتصفحات المتصلة</string>
+	<key>Connecting…</key>
+	<string>جارٍ الاتصال…</string>
+	<key>Connection</key>
+	<string>الاتصال</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>الاتصال غير متاح. يبقى المحتوى المحفوظ على هذا الجهاز.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>نسخ الكل</string>
 	<key>Copy binding request</key>
 	<string>نسخ طلب الربط</string>
+	<key>Copy connection code</key>
+	<string>نسخ رمز الاتصال</string>
 	<key>Copy device ID</key>
 	<string>نسخ معرّف الجهاز</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>ملفات هذا المجلد</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>لا يمكن مشاركة الملفات الأكبر من 100 MiB عبر رابط.</string>
+	<key>Files to send</key>
+	<string>الملفات المراد إرسالها</string>
 	<key>Fill and remember</key>
 	<string>تعبئة وتذكّر</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>إرفاق نص هذه الرسالة</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>يتضمن الأسرار المحفوظة في عناصر المحفظة.</string>
+	<key>Incoming transfer</key>
+	<string>نقل وارد</string>
 	<key>Incomplete</key>
 	<string>غير مكتمل</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>جارٍ التحميل…</string>
 	<key>Local</key>
 	<string>محلي</string>
+	<key>Local + Relay ready</key>
+	<string>محلي + مرحّل مشفّر جاهز</string>
 	<key>Local account</key>
 	<string>حساب محلي</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>النتائج المحلية</string>
 	<key>Local label</key>
 	<string>تسمية محلية</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>تم إيقاف الوصول إلى الشبكة المحلية لـ dMsg. فعّله في الإعدادات أو امسح رمز QR لاستخدام المرحّل المشفّر.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>الوصول إلى الشبكة المحلية متوقف لـ dMsg. فعّله في الإعدادات أو أدخل عنوان الجهاز الآخر.</string>
+	<key>Local network only</key>
+	<string>الشبكة المحلية فقط</string>
 	<key>Local password</key>
 	<string>كلمة المرور المحلية</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>هوية تسجيل الدخول</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>تم اختصار المستند الطويل للمعاينة. نزّله أو افتحه خارجياً لعرض المحتوى بالكامل.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>جارٍ البحث عن أجهزة dMsg القريبة…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>إدارة اشتراكات Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>مفتاح Taproot الأصلي</string>
 	<key>Native addresses</key>
 	<string>العناوين الأصلية</string>
+	<key>Nearby device</key>
+	<string>جهاز قريب</string>
+	<key>Nearby devices</key>
+	<string>الأجهزة القريبة</string>
+	<key>Nearby receive QR code</key>
+	<string>رمز QR للاستقبال القريب</string>
+	<key>Nearby snapshot</key>
+	<string>لقطة قريبة</string>
+	<key>Nearby transfer failed.</key>
+	<string>فشل النقل القريب.</string>
 	<key>Needs a fresh review</key>
 	<string>يحتاج إلى مراجعة جديدة</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>رمز لمرة واحدة</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>تشمل النسخة العناصر الحالية فقط. يُستثنى السجل والمهملات والمسودات والنسخ المتعارضة والمفاتيح التي يديرها dMsg.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>تظهر هنا فقط الأجهزة التي فعّلت الاكتشاف القريب. يمكنك دائماً مسح رمز QR الخاص بالمستلم بدلاً من ذلك.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>نفّذ ذلك فقط عندما تكون مستعدًا للاستخدام. تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها بعد 30 ثانية.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>كلمات المرور</string>
 	<key>Paste binding request</key>
 	<string>لصق طلب الربط</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>الصق رمز dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>لصق طلب التسجيل</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>جارٍ تجهيز الملف ونسخه…</string>
 	<key>Preparing backups…</key>
 	<string>جارٍ تجهيز النسخ الاحتياطية…</string>
+	<key>Preparing nearby receive…</key>
+	<string>جارٍ تجهيز الاستقبال القريب…</string>
 	<key>Preparing purchase…</key>
 	<string>جارٍ تجهيز الشراء…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>الغرض</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>الإشعارات الفورية غير مفعّلة في هذا الإصدار. افتح dMsg للمزامنة.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>تم التحقق عبر QR · قارن هذا الرمز المكون من 6 أرقام مع المرسل قبل القبول.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>وضع QR فقط لا يبث على الشبكة المحلية. فعّل الاكتشاف للظهور في قوائم الأجهزة القريبة وقبول النقل المباشر.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>يفتح إلغاء القفل السريع مساحة العمل. يحد ربط الجهاز من الأجهزة القادرة على فتحها. تحمي الموافقة عبر العتاد إجراءات الحساب الحساسة.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>السبب</string>
 	<key>Receive here</key>
 	<string>الاستلام هنا</string>
+	<key>Receive more</key>
+	<string>استقبال المزيد</string>
+	<key>Receive nearby</key>
+	<string>استقبال قريب</string>
 	<key>Received files</key>
 	<string>المستلَمة</string>
 	<key>Received for review</key>
 	<string>تم الاستلام للمراجعة</string>
 	<key>Receiver</key>
 	<string>الجهة المستلمة</string>
+	<key>Receiver QR or connection code</key>
+	<string>رمز QR أو رمز اتصال المستلم</string>
 	<key>Receiving</key>
 	<string>استلام</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>مراجعة صلاحيات الوكيل</string>
 	<key>Review an enrollment request</key>
 	<string>مراجعة طلب تسجيل</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>راجع هذه اللقطة من الخزنة ووافق عليها قبل مغادرتها هذا الجهاز.</string>
+	<key>Review and import snapshot</key>
+	<string>مراجعة اللقطة واستيرادها</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>راجع ربط ملفات الحاسوب وأعد تشغيله على الجهاز الأصلي.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>مسح طلب الجهاز</string>
 	<key>Scan invitation</key>
 	<string>مسح الدعوة ضوئيًا</string>
+	<key>Scan receiver QR code</key>
+	<string>مسح رمز QR للمستلم</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>امسح الرمز الموجود على جهاز مصرح له لفتح حسابه.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>الإرسال إلى جهاز</string>
 	<key>Send to an administrator</key>
 	<string>إرسال إلى مسؤول</string>
+	<key>Send via code</key>
+	<string>الإرسال عبر الرمز</string>
 	<key>Sender</key>
 	<string>المرسل</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>تم الإرسال</string>
 	<key>Sent letters</key>
 	<string>الرسائل المُرسَلة</string>
+	<key>Sent successfully</key>
+	<string>تم الإرسال بنجاح</string>
 	<key>Server</key>
 	<string>خادم</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>روابط المشاركة</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>تعذر تحديث روابط المشاركة. تُعرض الروابط المحفوظة.</string>
+	<key>Share my dMsg identity</key>
+	<string>مشاركة هويتي في dMsg</string>
+	<key>Share nearby</key>
+	<string>مشاركة قريبة</string>
 	<key>Share pairing request</key>
 	<string>مشاركة طلب الاقتران</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>بدء قائمة تدوير بيانات الاعتماد؟</string>
 	<key>Start account recovery?</key>
 	<string>هل تريد بدء استرداد الحساب؟</string>
+	<key>Start again</key>
+	<string>البدء من جديد</string>
 	<key>Start checklist</key>
 	<string>بدء القائمة</string>
+	<key>Start receiving</key>
+	<string>بدء الاستقبال</string>
 	<key>Start sending</key>
 	<string>بدء الإرسال</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>الحجم الإجمالي</string>
 	<key>Transfer between devices</key>
 	<string>النقل بين الأجهزة</string>
+	<key>Transfer complete</key>
+	<string>اكتمل النقل</string>
 	<key>Transfer needs attention</key>
 	<string>عملية النقل تحتاج إلى انتباهك</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>اقتراح تحويل</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>أُضيف النقل إلى قائمة الانتظار. تابع تقدمه في الملفات.</string>
+	<key>Transfer status</key>
+	<string>حالة النقل</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>تعذر تحديث حالة النقل. تبقى المهام المحفوظة.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>جارٍ النقل</string>
 	<key>Transfers</key>
 	<string>التحويلات</string>
+	<key>Transport</key>
+	<string>قناة النقل</string>
 	<key>Trash</key>
 	<string>المهملات</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>تذكير غير مقروء</string>
 	<key>Unrestricted delegation authority</key>
 	<string>صلاحيات تفويض غير مقيّدة</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>اكتشاف غير موثق · قارن هذا الرمز المكون من 6 أرقام وجهاً لوجه قبل القبول.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>الخزنة</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.</string>
+	<key>Vault snapshot</key>
+	<string>لقطة الخزنة</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>تم التحقق من لقطة الخزنة على هذا الجهاز. راجعها واختر الحقول التي تريد استيرادها.</string>
 	<key>Vault tools</key>
 	<string>أدوات الخزنة</string>
+	<key>Verification code</key>
+	<string>رمز التحقق</string>
 	<key>Verified</key>
 	<string>تم التحقق</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>بانتظار الموافقة على تسجيل الدخول</string>
 	<key>Waiting for notification registration…</key>
 	<string>بانتظار تسجيل الإشعارات…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>بانتظار قبول المستلم…</string>
+	<key>Waiting for sender…</key>
+	<string>بانتظار المرسل…</string>
 	<key>Waiting for the other device</key>
 	<string>بانتظار الجهاز الآخر</string>
 	<key>Waiting for your decision</key>

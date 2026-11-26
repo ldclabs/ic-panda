@@ -50,6 +50,8 @@
 	<string>Dosyalar ve yedekler hakkında</string>
 	<key>About these benefits</key>
 	<string>Bu avantajlar hakkında</string>
+	<key>Accept</key>
+	<string>Kabul et</string>
 	<key>Accept approved binding</key>
 	<string>Onaylanmış bağlamayı kabul et</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Başka bir mektuba izin ver</string>
 	<key>Allow key rotation</key>
 	<string>Anahtar rotasyonuna izin ver</string>
+	<key>Allow nearby discovery</key>
+	<string>Yakında keşfedilmeye izin ver</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Sistem uyarılarını almak için bildirimlere izin verin.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Kamera erişimi kullanılamıyor. Fotoğraf ve video çekmek için Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Kamera erişimi kullanılamıyor. Bir kurulum anahtarı girin veya Ayarlar’dan kamera erişimine izin verin.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Kamera erişimi yok. Bağlantı kodunu yapıştırın veya Ayarlar’dan kameraya izin verin.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera erişimi kullanılamıyor. Daveti yapıştırın veya Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Hesap seç</string>
 	<key>Choose an attachment</key>
 	<string>Bir ek seçin</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Yakındaki bir alıcı seçmeden önce en az bir alan, not veya ek seçin.</string>
 	<key>Choose avatar</key>
 	<string>Avatar seç</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Bulut depolama</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Bulut depolama veya dosya boyutu sınırı aşıldı. Planınızı ve yedek boyutunu kontrol edin.</string>
+	<key>Codes match — continue</key>
+	<string>Kodlar eşleşiyor — devam et</string>
 	<key>Collect files</key>
 	<string>Dosya topla</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Yerel parolayı doğrula</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Yalnızca gerçekten tamamladığınız işleri onaylayın. Bu, beyanınızı kaydeder; sağlayıcı eylemini yürütmez.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Herhangi bir bilgi göndermeden önce alıcıda bu 6 haneli kodun göründüğünü doğrulayın.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>İncelediğiniz dMsg isteğini onaylayın</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Bu tarayıcı bağlansın mı?</string>
 	<key>Connected browsers</key>
 	<string>Bağlı tarayıcılar</string>
+	<key>Connecting…</key>
+	<string>Bağlanıyor…</string>
+	<key>Connection</key>
+	<string>Bağlantı</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Bağlantı kullanılamıyor. Kaydedilen içeriğiniz bu cihazda kalır.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Tümünü kopyala</string>
 	<key>Copy binding request</key>
 	<string>Bağlama isteğini kopyala</string>
+	<key>Copy connection code</key>
+	<string>Bağlantı kodunu kopyala</string>
 	<key>Copy device ID</key>
 	<string>Cihaz kimliğini kopyala</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Bu klasördeki dosyalar</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>100 MiB üzerindeki dosyalar bağlantıyla paylaşılamaz.</string>
+	<key>Files to send</key>
+	<string>Gönderilecek dosyalar</string>
 	<key>Fill and remember</key>
 	<string>Doldur ve hatırla</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Bu mesajın metnini ekle</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Cüzdan kayıtlarında saklanan gizli bilgileri içerir.</string>
+	<key>Incoming transfer</key>
+	<string>Gelen aktarım</string>
 	<key>Incomplete</key>
 	<string>Eksik</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Yükleniyor…</string>
 	<key>Local</key>
 	<string>Yerel</string>
+	<key>Local + Relay ready</key>
+	<string>Yerel + aktarıcı hazır</string>
 	<key>Local account</key>
 	<string>Yerel hesap</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Yerel bulgular</string>
 	<key>Local label</key>
 	<string>Yerel etiket</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>dMsg için yerel ağ erişimi kapalı. Ayarlar’dan açın veya şifreli aktarıcı için QR kodu tarayın.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg için yerel ağ erişimi kapalı. Ayarlar’dan açın veya diğer cihazın adresini girin.</string>
+	<key>Local network only</key>
+	<string>Yalnızca yerel ağ</string>
 	<key>Local password</key>
 	<string>Yerel parola</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Giriş kimliği</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Uzun belge önizleme için kısaltıldı. Tüm içeriği görmek için indirin veya harici olarak açın.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Yakındaki dMsg cihazları aranıyor…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple aboneliklerini yönetin</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Yerel Taproot anahtarı</string>
 	<key>Native addresses</key>
 	<string>Yerel adresler</string>
+	<key>Nearby device</key>
+	<string>Yakındaki cihaz</string>
+	<key>Nearby devices</key>
+	<string>Yakındaki cihazlar</string>
+	<key>Nearby receive QR code</key>
+	<string>Yakından alma QR kodu</string>
+	<key>Nearby snapshot</key>
+	<string>Yakın anlık görüntü</string>
+	<key>Nearby transfer failed.</key>
+	<string>Yakın aktarım başarısız oldu.</string>
 	<key>Needs a fresh review</key>
 	<string>Yeni bir incelemeye ihtiyaç var</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Tek kullanımlık kod</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Yalnızca güncel kayıtlar dahil edilir. Geçmiş, çöp kutusu, taslaklar, çakışan kopyalar ve dMsg anahtarları hariç tutulur.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Yalnızca yakında keşfedilmeyi açan cihazlar burada görünür. Bunun yerine alıcının QR kodunu tarayabilirsiniz.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Bunu yalnızca kullanmaya hazır olduğunuzda yapın. Kopyalar bu cihazda kalır ve 30 saniye sonra sona erer.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Şifreler</string>
 	<key>Paste binding request</key>
 	<string>Bağlama isteğini yapıştır</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>dmsg-nearby/1: kodunu yapıştır</string>
 	<key>Paste enrollment request</key>
 	<string>Kayıt isteğini yapıştır</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Dosya hazırlanıyor ve kopyalanıyor…</string>
 	<key>Preparing backups…</key>
 	<string>Yedekler hazırlanıyor…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Yakından alma hazırlanıyor…</string>
 	<key>Preparing purchase…</key>
 	<string>Satın alma hazırlanıyor…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Amaç</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Bu yapıda anında bildirimler etkin değil. Senkronize etmek için dMsg'yu açın.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR doğrulandı · Kabul etmeden önce bu 6 haneli kodu gönderenle karşılaştırın.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Yalnızca QR modu yerel ağda yayın yapmaz. Yakındaki cihaz listelerinde görünmek için keşfi açın.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Hızlı kilit açma çalışma alanını açar. Cihaz bağlama, hangi cihazın açabileceğini sınırlar. Donanım onayı hassas hesap işlemlerini korur.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Sebep</string>
 	<key>Receive here</key>
 	<string>Burada al</string>
+	<key>Receive more</key>
+	<string>Daha fazla al</string>
+	<key>Receive nearby</key>
+	<string>Yakından al</string>
 	<key>Received files</key>
 	<string>Alınanlar</string>
 	<key>Received for review</key>
 	<string>İncelenmek üzere alındı</string>
 	<key>Receiver</key>
 	<string>Alıcı</string>
+	<key>Receiver QR or connection code</key>
+	<string>Alıcı QR veya bağlantı kodu</string>
 	<key>Receiving</key>
 	<string>Alma</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Temsilci izinlerini inceleyin</string>
 	<key>Review an enrollment request</key>
 	<string>Kayıt isteğini inceleme</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Bu kasa anlık görüntüsü cihazdan ayrılmadan önce inceleyip onaylayın.</string>
+	<key>Review and import snapshot</key>
+	<string>Anlık görüntüyü incele ve içe aktar</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Kaynak cihazdaki masaüstü dosya eşlemesini inceleyin ve yeniden başlatın.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Cihaz isteğini tarayın</string>
 	<key>Scan invitation</key>
 	<string>Daveti tara</string>
+	<key>Scan receiver QR code</key>
+	<string>Alıcı QR kodunu tara</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Hesabı açmak için yetkili bir cihazdaki kodu tarayın.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Bir cihaza gönder</string>
 	<key>Send to an administrator</key>
 	<string>Bir yöneticiye gönder</string>
+	<key>Send via code</key>
+	<string>Kod ile gönder</string>
 	<key>Sender</key>
 	<string>Gönderen</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Gönderildi</string>
 	<key>Sent letters</key>
 	<string>Gönderilen mektuplar</string>
+	<key>Sent successfully</key>
+	<string>Başarıyla gönderildi</string>
 	<key>Server</key>
 	<string>Sunucu</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Paylaşım bağlantıları</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Paylaşım bağlantıları yenilenemedi. Kayıtlı bağlantılar gösteriliyor.</string>
+	<key>Share my dMsg identity</key>
+	<string>dMsg kimliğimi paylaş</string>
+	<key>Share nearby</key>
+	<string>Yakında paylaş</string>
 	<key>Share pairing request</key>
 	<string>Eşleştirme isteğini paylaş</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Rotasyon kontrol listesi başlatılsın mı?</string>
 	<key>Start account recovery?</key>
 	<string>Hesap kurtarma başlatılsın mı?</string>
+	<key>Start again</key>
+	<string>Yeniden başlat</string>
 	<key>Start checklist</key>
 	<string>Kontrol listesini başlat</string>
+	<key>Start receiving</key>
+	<string>Almayı başlat</string>
 	<key>Start sending</key>
 	<string>Göndermeye başla</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Toplam boyut</string>
 	<key>Transfer between devices</key>
 	<string>Cihazlar arası aktarım</string>
+	<key>Transfer complete</key>
+	<string>Aktarım tamamlandı</string>
 	<key>Transfer needs attention</key>
 	<string>Aktarım ilgilenmenizi gerektiriyor</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Transfer teklifi</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Aktarım sıraya alındı. İlerlemeyi Dosyalar’da izleyin.</string>
+	<key>Transfer status</key>
+	<string>Aktarım durumu</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Aktarım durumu yenilenemedi. Kaydedilmiş görevler korunur.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Aktarılıyor</string>
 	<key>Transfers</key>
 	<string>Transferler</string>
+	<key>Transport</key>
+	<string>Aktarım yolu</string>
 	<key>Trash</key>
 	<string>Çöp kutusu</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Okunmamış hatırlatıcı</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Sınırsız delegasyon yetkisi</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Doğrulanmamış keşif · Kabul etmeden önce bu 6 haneli kodu yüz yüze karşılaştırın.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Her biri 10 MiB olan en fazla 3 PNG, JPEG, WebP veya GIF. Önce gizli bilgileri kaldırın. Kopyalar Dosyalar’da kalır; gönderim 30 gün geçerli şifreli bağlantılar oluşturur ve depolama kotasını kullanır. Tam bağlantıya sahip herkes açabilir.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Kasa</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Kayıtlar normal şekilde eşitlenir. Ekler bu cihazdaki Dosyalar’a kaydedilir.</string>
+	<key>Vault snapshot</key>
+	<string>Kasa anlık görüntüsü</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Kasa anlık görüntüsü bu cihazda doğrulandı. İçe aktarılacak alanları inceleyip seçin.</string>
 	<key>Vault tools</key>
 	<string>Kasa araçları</string>
+	<key>Verification code</key>
+	<string>Doğrulama kodu</string>
 	<key>Verified</key>
 	<string>doğrulandı</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Oturum açma onayı bekleniyor</string>
 	<key>Waiting for notification registration…</key>
 	<string>Bildirim kaydı bekleniyor…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Alıcının kabul etmesi bekleniyor…</string>
+	<key>Waiting for sender…</key>
+	<string>Gönderen bekleniyor…</string>
 	<key>Waiting for the other device</key>
 	<string>Diğer cihaz bekleniyor</string>
 	<key>Waiting for your decision</key>

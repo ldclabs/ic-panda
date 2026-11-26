@@ -50,6 +50,8 @@
 	<string>О файлах и резервных копиях</string>
 	<key>About these benefits</key>
 	<string>Об этих возможностях</string>
+	<key>Accept</key>
+	<string>Принять</string>
 	<key>Accept approved binding</key>
 	<string>Принять одобренную привязку</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Разрешить ещё одно письмо</string>
 	<key>Allow key rotation</key>
 	<string>Разрешить смену ключей</string>
+	<key>Allow nearby discovery</key>
+	<string>Разрешить обнаружение поблизости</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Разрешите уведомления, чтобы получать системные оповещения.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Камера недоступна. Разрешите доступ к камере в настройках, чтобы снимать фото и видео.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Нет доступа к камере. Введите ключ настройки или разрешите доступ к камере в настройках.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Доступ к камере недоступен. Вставьте код подключения или разрешите доступ в Настройках.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Выбрать аккаунт</string>
 	<key>Choose an attachment</key>
 	<string>Выбрать вложение</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Выберите хотя бы одно поле, заметку или вложение перед выбором получателя поблизости.</string>
 	<key>Choose avatar</key>
 	<string>Выбрать аватар</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Облачное хранилище</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Превышен лимит облачного хранилища или размера файла. Проверьте тариф и размер копии.</string>
+	<key>Codes match — continue</key>
+	<string>Коды совпадают — продолжить</string>
 	<key>Collect files</key>
 	<string>Сбор файлов</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Подтвердите локальный пароль</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Подтверждайте только фактически выполненную работу. Это записывает ваше заявление, но не выполняет действие у поставщика.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Убедитесь, что у получателя показан именно этот 6-значный код, прежде чем отправлять данные.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Подтвердить проверенный запрос dMsg</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Подключить этот браузер?</string>
 	<key>Connected browsers</key>
 	<string>Подключённые браузеры</string>
+	<key>Connecting…</key>
+	<string>Подключение…</string>
+	<key>Connection</key>
+	<string>Соединение</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Соединение недоступно. Сохранённые данные остаются на этом устройстве.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Скопировать все</string>
 	<key>Copy binding request</key>
 	<string>Копировать запрос привязки</string>
+	<key>Copy connection code</key>
+	<string>Копировать код подключения</string>
 	<key>Copy device ID</key>
 	<string>Копировать ID устройства</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Файлы в этой папке</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Файлы больше 100 MiB нельзя отправить по ссылке.</string>
+	<key>Files to send</key>
+	<string>Файлы к отправке</string>
 	<key>Fill and remember</key>
 	<string>Заполнить и запомнить</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Приложить текст сообщения</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Включены секреты, сохранённые в записях кошельков.</string>
+	<key>Incoming transfer</key>
+	<string>Входящая передача</string>
 	<key>Incomplete</key>
 	<string>Неполные</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Загрузка…</string>
 	<key>Local</key>
 	<string>Локально</string>
+	<key>Local + Relay ready</key>
+	<string>Локально + ретранслятор готов</string>
 	<key>Local account</key>
 	<string>Локальная учётная запись</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Локальные результаты</string>
 	<key>Local label</key>
 	<string>Локальная метка</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Доступ к локальной сети для dMsg отключён. Включите его в Настройках или отсканируйте QR-код для зашифрованного ретранслятора.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Доступ к локальной сети для dMsg выключен. Включите его в Настройках или введите адрес другого устройства.</string>
+	<key>Local network only</key>
+	<string>Только локальная сеть</string>
 	<key>Local password</key>
 	<string>Локальный пароль</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Учетные данные для входа</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Длинный документ сокращён в предпросмотре. Скачайте его или откройте во внешнем приложении целиком.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Поиск устройств dMsg поблизости…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Управлять подписками Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Нативный ключ Taproot</string>
 	<key>Native addresses</key>
 	<string>Нативные адреса</string>
+	<key>Nearby device</key>
+	<string>Устройство поблизости</string>
+	<key>Nearby devices</key>
+	<string>Устройства поблизости</string>
+	<key>Nearby receive QR code</key>
+	<string>QR-код приёма поблизости</string>
+	<key>Nearby snapshot</key>
+	<string>Снимок поблизости</string>
+	<key>Nearby transfer failed.</key>
+	<string>Ошибка передачи поблизости.</string>
 	<key>Needs a fresh review</key>
 	<string>Требуется повторная проверка</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Одноразовый код</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Только текущие записи. История, корзина, черновики, конфликтующие копии и ключи dMsg исключены.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Здесь отображаются только устройства с включённым обнаружением. Вы всегда можете отсканировать QR-код получателя.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Делайте это только перед использованием. Копии остаются на этом устройстве и истекают через 30 секунд.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Пароли</string>
 	<key>Paste binding request</key>
 	<string>Вставить запрос привязки</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Вставьте код dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>Вставить запрос регистрации</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Подготовка и копирование файла…</string>
 	<key>Preparing backups…</key>
 	<string>Подготовка резервных копий…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Подготовка приёма поблизости…</string>
 	<key>Preparing purchase…</key>
 	<string>Подготовка покупки…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Назначение</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>В этой сборке push-уведомления не включены. Откройте dMsg для синхронизации.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR проверен · Сверьте этот 6-значный код с отправителем перед принятием.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Режим только QR не вещает в локальной сети. Включите обнаружение, чтобы появляться в списке устройств поблизости.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Быстрая разблокировка открывает рабочее пространство. Привязка ограничивает устройства, которые могут его открыть. Аппаратное одобрение защищает важные действия аккаунта.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Причина</string>
 	<key>Receive here</key>
 	<string>Принять здесь</string>
+	<key>Receive more</key>
+	<string>Принять ещё</string>
+	<key>Receive nearby</key>
+	<string>Принять поблизости</string>
 	<key>Received files</key>
 	<string>Полученные</string>
 	<key>Received for review</key>
 	<string>Получено для рассмотрения</string>
 	<key>Receiver</key>
 	<string>Получатель</string>
+	<key>Receiver QR or connection code</key>
+	<string>QR-код или код подключения получателя</string>
 	<key>Receiving</key>
 	<string>Приём</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Проверить разрешения агента</string>
 	<key>Review an enrollment request</key>
 	<string>Проверить запрос регистрации</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Проверьте и одобрите этот снимок хранилища перед отправкой с устройства.</string>
+	<key>Review and import snapshot</key>
+	<string>Проверить и импортировать снимок</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Проверьте и перезапустите сопоставление файлов на исходном компьютере.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Сканировать запрос устройства</string>
 	<key>Scan invitation</key>
 	<string>Сканировать приглашение</string>
+	<key>Scan receiver QR code</key>
+	<string>Сканировать QR-код получателя</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Отсканируйте код на авторизованном устройстве, чтобы открыть его аккаунт.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Отправить на устройство</string>
 	<key>Send to an administrator</key>
 	<string>Отправить администратору</string>
+	<key>Send via code</key>
+	<string>Отправить по коду</string>
 	<key>Sender</key>
 	<string>Отправитель</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Отправлено</string>
 	<key>Sent letters</key>
 	<string>Отправленные письма</string>
+	<key>Sent successfully</key>
+	<string>Успешно отправлено</string>
 	<key>Server</key>
 	<string>Сервер</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Ссылки для доступа</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Не удалось обновить ссылки. Показаны сохранённые.</string>
+	<key>Share my dMsg identity</key>
+	<string>Поделиться моим идентификатором dMsg</string>
+	<key>Share nearby</key>
+	<string>Поделиться поблизости</string>
 	<key>Share pairing request</key>
 	<string>Поделиться запросом сопряжения</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Начать список ротации?</string>
 	<key>Start account recovery?</key>
 	<string>Начать восстановление аккаунта?</string>
+	<key>Start again</key>
+	<string>Начать заново</string>
 	<key>Start checklist</key>
 	<string>Начать список</string>
+	<key>Start receiving</key>
+	<string>Начать приём</string>
 	<key>Start sending</key>
 	<string>Начать отправку</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Общий объём</string>
 	<key>Transfer between devices</key>
 	<string>Передача между устройствами</string>
+	<key>Transfer complete</key>
+	<string>Передача завершена</string>
 	<key>Transfer needs attention</key>
 	<string>Передача требует внимания</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Предложение перевода</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Передача в очереди. Следите за ходом в разделе «Файлы».</string>
+	<key>Transfer status</key>
+	<string>Статус передачи</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Не удалось обновить статус передачи. Сохранённые задачи остаются.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Передача</string>
 	<key>Transfers</key>
 	<string>Переводы</string>
+	<key>Transport</key>
+	<string>Канал</string>
 	<key>Trash</key>
 	<string>Корзина</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Непрочитанное напоминание</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Неограниченные права делегирования</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Неподтверждённое обнаружение · Сверьте этот 6-значный код лично перед принятием.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>До 3 изображений PNG, JPEG, WebP или GIF по 10 MiB. Удалите секретные данные. Копии останутся в Файлах; отправка создаст зашифрованные ссылки на 30 дней и использует квоту хранилища. Любой обладатель полной ссылки может открыть её.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Хранилище</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Записи синхронизируются как обычно. Вложения сохранены в файлах на этом устройстве.</string>
+	<key>Vault snapshot</key>
+	<string>Снимок хранилища</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Снимок хранилища проверен на устройстве. Выберите поля для импорта.</string>
 	<key>Vault tools</key>
 	<string>Инструменты хранилища</string>
+	<key>Verification code</key>
+	<string>Код проверки</string>
 	<key>Verified</key>
 	<string>проверено</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Ожидание одобрения способа входа</string>
 	<key>Waiting for notification registration…</key>
 	<string>Ожидание регистрации уведомлений…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Ожидание подтверждения получателя…</string>
+	<key>Waiting for sender…</key>
+	<string>Ожидание отправителя…</string>
 	<key>Waiting for the other device</key>
 	<string>Ожидание другого устройства</string>
 	<key>Waiting for your decision</key>

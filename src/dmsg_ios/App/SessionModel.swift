@@ -167,6 +167,7 @@ final class SessionModel {
     let transfer = TransferModel()
     let fileTransfers = FileTransfers()
     let deviceTransfer = DeviceTransferModel()
+    let nearbyShare = NearbyShareModel()
     let apple = NativeApple()
     let push = NativePush()
     let notifications = NativeNotifications()
@@ -1181,6 +1182,7 @@ final class SessionModel {
         fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.background()
+        nearbyShare.background()
         backgroundAt = .now
         if finishing, let engine {
             finishInBackground(engine, vaultDrafts: vaultDrafts, pendingCursors: pendingCursors)
@@ -1323,6 +1325,7 @@ final class SessionModel {
         fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.reset()
+        nearbyShare.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); passkeySessionLimitCredential = nil
@@ -1347,6 +1350,7 @@ final class SessionModel {
         let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty || feedbackDraft != nil || !vaultDrafts.isEmpty)
         clearContent(clearClipboard: clearClipboard)
         deviceTransfer.reset()
+        nearbyShare.reset()
         let work = beginBusyOperation(); defer { finishBusyOperation(work) }
         do {
             if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts, feedback: feedbackDraft, vault: vaultDrafts)) }

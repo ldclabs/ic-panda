@@ -50,6 +50,8 @@
 	<string>فائلوں اور بیک اپ کے بارے میں</string>
 	<key>About these benefits</key>
 	<string>ان فوائد کے بارے میں</string>
+	<key>Accept</key>
+	<string>قبول کریں</string>
 	<key>Accept approved binding</key>
 	<string>منظور شدہ پابند قبول کریں</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>ایک اور خط کی اجازت دیں</string>
 	<key>Allow key rotation</key>
 	<string>کلید کی تبدیلی (روٹیشن) کی اجازت دیں</string>
+	<key>Allow nearby discovery</key>
+	<string>قریبی دریافت کی اجازت دیں</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>سسٹم الرٹس حاصل کرنے کے لیے اطلاعات کی اجازت دیں۔</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>کیمرے تک رسائی دستیاب نہیں۔ تصاویر اور ویڈیوز بنانے کے لیے ترتیبات میں کیمرے کی اجازت دیں۔</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>کیمرے تک رسائی دستیاب نہیں ہے۔ سیٹ اپ کلید درج کریں یا ترتیبات میں کیمرے تک رسائی کی اجازت دیں۔</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>کیمرہ دستیاب نہیں ہے۔ کنکشن کوڈ پیسٹ کریں یا ترتیبات میں اجازت دیں۔</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>کیمرے تک رسائی دستیاب نہیں۔ دعوت چسپاں کریں یا ترتیبات میں کیمرے کی اجازت دیں۔</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>اکاؤنٹ منتخب کریں</string>
 	<key>Choose an attachment</key>
 	<string>ایک منسلکہ منتخب کریں</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>قریبی وصول کنندہ منتخب کرنے سے پہلے کم از کم ایک فیلڈ، نوٹ یا منسلکہ منتخب کریں۔</string>
 	<key>Choose avatar</key>
 	<string>اوتار کا انتخاب کریں</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>کلاؤڈ اسٹوریج</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>کلاؤڈ اسٹوریج یا فائل کے سائز کی حد تجاوز ہو گئی ہے۔ اپنا پلان اور بیک اپ کا سائز دیکھیں۔</string>
+	<key>Codes match — continue</key>
+	<string>کوڈز مطابقت رکھتے ہیں — جاری رکھیں</string>
 	<key>Collect files</key>
 	<string>فائلیں جمع کریں</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>مقامی پاس ورڈ کی تصدیق کریں</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>صرف اس کام کی تصدیق کریں جو آپ نے اصل میں مکمل کیا ہے۔ یہ آپ کا بیان ریکارڈ کرتا ہے۔ یہ فراہم کنندہ کی کارروائی کو انجام نہیں دیتا ہے۔</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>کوئی بھی تفصیل بھیجنے سے پہلے تصدیق کریں کہ وصول کنندہ پر یہی 6 ہندسوں کا کوڈ ظاہر ہو رہا ہے۔</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>dMsg درخواست کی تصدیق کریں جس کا آپ نے جائزہ لیا ہے</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>اس براؤزر کو مربوط کریں؟</string>
 	<key>Connected browsers</key>
 	<string>منسلک براؤزر</string>
+	<key>Connecting…</key>
+	<string>کنیکٹ ہو رہا ہے…</string>
+	<key>Connection</key>
+	<string>کنکشن</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>کنکشن دستیاب نہیں ہے۔ آپ کا محفوظ کردہ مواد اس آلہ پر رہتا ہے۔</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>سب کاپی کریں</string>
 	<key>Copy binding request</key>
 	<string>بائنڈنگ کی درخواست کاپی کریں</string>
+	<key>Copy connection code</key>
+	<string>کنکشن کوڈ کاپی کریں</string>
 	<key>Copy device ID</key>
 	<string>آلے کی ID کاپی کریں</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>اس فولڈر میں فائلیں</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>100 MiB سے بڑی فائلیں لنک کے ذریعے شیئر نہیں کی جا سکتیں۔</string>
+	<key>Files to send</key>
+	<string>بھیجنے کے لیے فائلیں</string>
 	<key>Fill and remember</key>
 	<string>بھریں اور یاد رکھیں</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>اس پیغام کا متن شامل کریں</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>والٹ اندراجات میں محفوظ راز شامل ہیں۔</string>
+	<key>Incoming transfer</key>
+	<string>آنے والی منتقلی</string>
 	<key>Incomplete</key>
 	<string>نامکمل</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>لوڈ ہو رہا ہے…</string>
 	<key>Local</key>
 	<string>مقامی</string>
+	<key>Local + Relay ready</key>
+	<string>مقامی + ریلے تیار</string>
 	<key>Local account</key>
 	<string>مقامی اکاؤنٹ</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>مقامی نتائج</string>
 	<key>Local label</key>
 	<string>مقامی لیبل</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>dMsg کے لیے مقامی نیٹ ورک رسائی بند ہے۔ ترتیبات میں فعال کریں یا خفیہ ریلے کے لیے QR کوڈ اسکین کریں۔</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg کے لیے مقامی نیٹ ورک تک رسائی بند ہے۔ اسے ترتیبات میں آن کریں، یا دوسرے آلے کا پتہ درج کریں۔</string>
+	<key>Local network only</key>
+	<string>صرف مقامی نیٹ ورک</string>
 	<key>Local password</key>
 	<string>مقامی پاس ورڈ</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>لاگ ان شناخت</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>طویل دستاویز کو پیش منظر کے لیے مختصر کیا گیا ہے۔ مکمل مواد دیکھنے کے لیے ڈاؤن لوڈ کریں یا باہر کھولیں۔</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>قریبی dMsg آلات تلاش کیے جا رہے ہیں…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple سبسکرپشنز کا نظم کریں</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>مقامی Taproot کلید</string>
 	<key>Native addresses</key>
 	<string>مقامی پتے</string>
+	<key>Nearby device</key>
+	<string>قریبی آلہ</string>
+	<key>Nearby devices</key>
+	<string>قریبی آلات</string>
+	<key>Nearby receive QR code</key>
+	<string>قریبی وصولی کا QR کوڈ</string>
+	<key>Nearby snapshot</key>
+	<string>قریبی سنیپ شاٹ</string>
+	<key>Nearby transfer failed.</key>
+	<string>قریبی منتقلی ناکام ہو گئی۔</string>
 	<key>Needs a fresh review</key>
 	<string>نئے سرے سے جائزہ لینے کی ضرورت ہے</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>ایک بار کا کوڈ</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>صرف موجودہ اندراجات شامل ہیں۔ سابقہ ریکارڈ، کوڑا دان، مسودے، متصادم نقول اور dMsg کی کلیدیں شامل نہیں۔</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>یہاں صرف وہی آلات نظر آتے ہیں جنہوں نے قریبی دریافت فعال کی ہے۔ آپ ہمیشہ وصول کنندہ کا QR کوڈ اسکین کر سکتے ہیں۔</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>یہ صرف اس وقت کریں جب آپ اسے استعمال کرنے کے لیے تیار ہوں۔ کاپیاں اس ڈیوائس پر رہتی ہیں اور 30 سیکنڈ کے بعد ختم ہوجاتی ہیں۔</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>پاس ورڈز</string>
 	<key>Paste binding request</key>
 	<string>بائنڈنگ کی درخواست چسپاں کریں</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>dmsg-nearby/1: کوڈ پیسٹ کریں</string>
 	<key>Paste enrollment request</key>
 	<string>اندراج کی درخواست چسپاں کریں</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>فائل تیار اور کاپی ہو رہی ہے…</string>
 	<key>Preparing backups…</key>
 	<string>بیک اپ تیار ہو رہے ہیں…</string>
+	<key>Preparing nearby receive…</key>
+	<string>قریبی وصولی تیار کی جا رہی ہے…</string>
 	<key>Preparing purchase…</key>
 	<string>خریداری کی تیاری ہو رہی ہے…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>مقصد</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>اس تعمیر میں پش اطلاعات فعال نہیں ہیں۔ مطابقت پذیری کے لیے dMsg کھولیں۔</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR تصدیق شدہ · قبول کرنے سے پہلے بھیجنے والے کے ساتھ اس 6 ہندسوں کے کوڈ کا موازنہ کریں۔</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>صرف QR موڈ مقامی نیٹ ورک پر نشر نہیں کرتا۔ قریبی آلات کی فہرست میں ظاہر ہونے کے لیے دریافت فعال کریں۔</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>فوری ان لاک ورک اسپیس کھولتا ہے۔ آلے کی پابندی طے کرتی ہے کہ کون سا آلہ اسے کھول سکتا ہے۔ ہارڈویئر منظوری حساس اکاؤنٹ اعمال کی حفاظت کرتی ہے۔</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>وجہ</string>
 	<key>Receive here</key>
 	<string>یہاں وصول کریں</string>
+	<key>Receive more</key>
+	<string>مزید وصول کریں</string>
+	<key>Receive nearby</key>
+	<string>قریب سے وصول کریں</string>
 	<key>Received files</key>
 	<string>موصولہ</string>
 	<key>Received for review</key>
 	<string>جائزہ لینے کے لیے موصول ہوا</string>
 	<key>Receiver</key>
 	<string>وصول کنندہ</string>
+	<key>Receiver QR or connection code</key>
+	<string>وصول کنندہ کا QR یا کنکشن کوڈ</string>
 	<key>Receiving</key>
 	<string>وصولی</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>ایجنٹ کی اجازتوں کا جائزہ لیں</string>
 	<key>Review an enrollment request</key>
 	<string>اندراج کی درخواست کا جائزہ لیں</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>اس آلے سے جانے سے پہلے اس والٹ سنیپ شاٹ کا جائزہ لیں اور منظوری دیں۔</string>
+	<key>Review and import snapshot</key>
+	<string>سنیپ شاٹ کا جائزہ لیں اور درآمد کریں</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>ڈیسک ٹاپ فائل میپنگ کا جائزہ لیں اور اسے شروع کرنے والے آلہ پر دوبارہ شروع کریں۔</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>اسکین ڈیوائس کی درخواست</string>
 	<key>Scan invitation</key>
 	<string>دعوت نامہ اسکین کریں</string>
+	<key>Scan receiver QR code</key>
+	<string>وصول کنندہ کا QR کوڈ اسکین کریں</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>اکاؤنٹ کھولنے کے لیے مجاز آلے پر دکھایا گیا کوڈ اسکین کریں۔</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>کسی آلے کو بھیجیں</string>
 	<key>Send to an administrator</key>
 	<string>ایڈمنسٹریٹر کو بھیجیں</string>
+	<key>Send via code</key>
+	<string>کوڈ کے ذریعے بھیجیں</string>
 	<key>Sender</key>
 	<string>بھیجنے والا</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>بھیج دیا گیا</string>
 	<key>Sent letters</key>
 	<string>خطوط بھیجے</string>
+	<key>Sent successfully</key>
+	<string>کامیابی سے بھیج دیا گیا</string>
 	<key>Server</key>
 	<string>سرور</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>شیئر لنکس</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>شیئر لنکس ریفریش نہیں ہو سکے۔ محفوظ شدہ لنکس دکھائے جا رہے ہیں۔</string>
+	<key>Share my dMsg identity</key>
+	<string>میری dMsg شناخت شیئر کریں</string>
+	<key>Share nearby</key>
+	<string>قریب شیئر کریں</string>
 	<key>Share pairing request</key>
 	<string>جوڑا بنانے کی درخواست کا اشتراک کریں</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>روٹیشن چیک لسٹ شروع کریں؟</string>
 	<key>Start account recovery?</key>
 	<string>اکاؤنٹ کی بازیابی شروع کریں؟</string>
+	<key>Start again</key>
+	<string>دوبارہ شروع کریں</string>
 	<key>Start checklist</key>
 	<string>چیک لسٹ شروع کریں</string>
+	<key>Start receiving</key>
+	<string>وصولی شروع کریں</string>
 	<key>Start sending</key>
 	<string>بھیجنا شروع کریں</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>کل سائز</string>
 	<key>Transfer between devices</key>
 	<string>آلات کے درمیان منتقلی</string>
+	<key>Transfer complete</key>
+	<string>منتقلی مکمل</string>
 	<key>Transfer needs attention</key>
 	<string>منتقلی پر توجہ درکار ہے</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>منتقلی کی تجویز</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>منتقلی قطار میں شامل ہے۔ فائلوں میں پیش رفت دیکھیں۔</string>
+	<key>Transfer status</key>
+	<string>منتقلی کی حالت</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>منتقلی کی حالت تازہ نہیں ہو سکی۔ محفوظ کردہ کام برقرار رہیں گے۔</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>منتقلی جاری ہے</string>
 	<key>Transfers</key>
 	<string>منتقلی</string>
+	<key>Transport</key>
+	<string>ٹرانسپورٹ</string>
 	<key>Trash</key>
 	<string>ردی کی ٹوکری</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>ان پڑھی یاد دہانی</string>
 	<key>Unrestricted delegation authority</key>
 	<string>غیر محدود وفد کی اتھارٹی</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>غیر تصدیق شدہ دریافت · قبول کرنے سے پہلے آمنے سامنے اس 6 ہندسوں کے کوڈ کا موازنہ کریں۔</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>زیادہ سے زیادہ 3 PNG، JPEG، WebP یا GIF تصاویر، ہر ایک 10 MiB۔ پہلے راز ہٹائیں۔ نقول فائلوں میں رہتی ہیں؛ بھیجنے سے 30 دن کے لیے خفیہ کردہ روابط بنتے ہیں اور ذخیرے کا کوٹہ استعمال ہوتا ہے۔ مکمل رابطہ رکھنے والا کوئی بھی اسے کھول سکتا ہے۔</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>محفوظ ذخیرہ</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>اندراجات معمول کے مطابق ہم وقت ہوں گے۔ منسلکات اس آلے کی فائلوں میں محفوظ ہیں۔</string>
+	<key>Vault snapshot</key>
+	<string>والٹ سنیپ شاٹ</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>اس آلے پر والٹ سنیپ شاٹ کی تصدیق ہو گئی۔ جائزہ لیں اور درآمد کرنے کے لیے فیلڈز منتخب کریں۔</string>
 	<key>Vault tools</key>
 	<string>والٹ ٹولز</string>
+	<key>Verification code</key>
+	<string>تصدیقی کوڈ</string>
 	<key>Verified</key>
 	<string>تصدیق شدہ</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>لاگ ان کی منظوری کا انتظار ہے</string>
 	<key>Waiting for notification registration…</key>
 	<string>نوٹیفکیشن کے اندراج کا انتظار ہے…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>وصول کنندہ کی منظوری کا انتظار ہے…</string>
+	<key>Waiting for sender…</key>
+	<string>بھیجنے والے کا انتظار ہے…</string>
 	<key>Waiting for the other device</key>
 	<string>دوسرے آلے کا انتظار</string>
 	<key>Waiting for your decision</key>

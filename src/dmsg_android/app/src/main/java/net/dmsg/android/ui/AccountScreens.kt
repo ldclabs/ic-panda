@@ -325,6 +325,7 @@ private fun approvalSource(source: String): String = when {
                     val recipient = when {
                         secret.importing -> secret.destination
                         secret.channel != null -> secret.channel.name + " · " + secret.channel.id
+                        secret.nearby != null -> secret.nearby.peerLabel + " · " + groupedNearbySas(secret.nearby.sas)
                         secret.password == true -> str(R.string.review_anyone_with_the_link_and_password)
                         else -> str(R.string.review_anyone_with_the_link)
                     }

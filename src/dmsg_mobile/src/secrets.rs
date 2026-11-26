@@ -14,7 +14,7 @@ use zeroize::{Zeroize, Zeroizing};
 /// This is a payload ceiling, not a total-memory guarantee: one MiB chunk
 /// buffers and the bounded JSON manifest are additional allocations. Password
 /// wrapping uses the existing 19 MiB Argon2 workspace in a separate phase.
-const MAX_PACKAGE_BYTES: u64 = 8 * 1024 * 1024;
+pub(crate) const MAX_PACKAGE_BYTES: u64 = 8 * 1024 * 1024;
 
 #[derive(uniffi::Record)]
 pub struct SecretAttachmentSelection {

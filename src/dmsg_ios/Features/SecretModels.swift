@@ -48,12 +48,14 @@ struct SecretPackagePreview: Decodable {
 struct SecretShareJob: Decodable, Identifiable {
     struct Plan: Decodable {
         struct Channel: Decodable { let channelId: String; let name: String; let epoch: UInt64; let controlHead: String; let aclVersion: UInt64 }
+        struct Nearby: Decodable { let transcript: String; let sas: String; let peerLabel: String }
         let title: String
         let shareId: String
         let expiresAt: UInt64?
         let maxDownloadSessions: UInt64?
         let plainBytes: UInt64
         let channel: Channel?
+        let nearby: Nearby?
         let password: Bool?
     }
     struct Link: Decodable { let url: String; let state: String }
@@ -159,6 +161,7 @@ func secretDependencyKind(_ kind: String) -> String {
     case "ssh": String(localized: "SSH binding")
     case "snapshot_link": String(localized: "Snapshot link")
     case "snapshot_channel": String(localized: "Channel snapshot")
+    case "snapshot_nearby": String(localized: "Nearby snapshot")
     case "process_observation": String(localized: "Local delivery record")
     default: String(localized: "Local dependency")
     }

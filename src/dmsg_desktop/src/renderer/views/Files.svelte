@@ -43,6 +43,8 @@
   import Row from './files/Row.svelte'
   import Trash from './files/Trash.svelte'
   import Tree from './files/Tree.svelte'
+  import NearbyShare from './NearbyShare.svelte'
+  import type { NearbyFileRef } from './nearby'
 
   /**
    * The file library: the folders, tags and places on the left, the current
@@ -96,6 +98,7 @@
   let granting = $state<any>(null)
   let purging = $state<string[] | 'all' | null>(null)
   let copiesOpen = $state(false)
+  let nearby = $state<{ mode: 'receive' | 'send-files'; files: NearbyFileRef[]; folder: string } | null>(null)
   let sharing = $state<{ id: string; version: string | null; name: string; channel: string; text: string; channels: any[] } | null>(null)
   type BackupPlan = { ids: string[]; allVersions: boolean; count: number; bytes: number; usage: any }
   type Backup = { kind: 'idle' | 'preparing' } | { kind: 'ready' | 'submitting'; plan: BackupPlan }
@@ -752,8 +755,15 @@
       .catch((e) => { if (alive && quoteState === loading) quoteState = { kind: 'failed', error: errorText(e) } })
   })
   $effect(() => {
-    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; lightboxOpen = false; versionPreview = null; quoteState = { kind: 'idle' }; backupState = { kind: 'idle' } }
+    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; nearby = null; lightboxOpen = false; versionPreview = null; quoteState = { kind: 'idle' }; backupState = { kind: 'idle' } }
   })
+  const openNearbyReceive = () => {
+    nearby = { mode: 'receive', files: [], folder: folderScope ? scope : ROOT }
+  }
+  const openNearbySend = (items: NearbyFileRef[]) => {
+    if (!items.length) return
+    nearby = { mode: 'send-files', files: items, folder: ROOT }
+  }
   $effect(() => {
     if (!lightboxOpen) versionPreview = null
   })
@@ -1032,6 +1042,15 @@
               <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
               <input bind:value={() => query, changeQuery} type="search" class="ps-8" placeholder={t('searchFiles')} aria-label={t('search')} data-testid="files-search" />
             </label>
+            {#if unlocked}
+              <Tooltip content={t('nearbyReceive')}>
+                {#snippet children(props)}
+                  <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('nearbyReceive')} onclick={openNearbyReceive} data-testid="files-nearby-receive">
+                    <Icon name="transfer" />
+                  </button>
+                {/snippet}
+              </Tooltip>
+            {/if}
             {#if unlocked && folderScope}
               <DropdownMenu.Root dir={localeDir(locale())}>
                 <Tooltip content={t('addMenu')}>
@@ -1097,6 +1116,11 @@
                 <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('exportFile')} disabled={!exportable.length} onclick={() => exportMany(exportable)} data-testid="files-export-many"><Icon name="download" /></button>
               {/snippet}
             </Tooltip>
+            <Tooltip content={t('nearbyShare')}>
+              {#snippet children(props)}
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('nearbyShare')} disabled={!exportable.length} onclick={() => openNearbySend(exportable.map((f) => ({ file_id: f.id, version_id: null, name: f.name, size: f.size })))} data-testid="files-nearby-share-many"><Icon name="transfer" /></button>
+              {/snippet}
+            </Tooltip>
             <Tooltip content={chosenFiles.every((f) => f.starred) ? t('unstar') : t('star')}>
               {#snippet children(props)}
                 <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t(chosenFiles.every(f => f.starred) ? 'unstar' : 'star')} disabled={!chosenFiles.length} onclick={() => starMany(chosenFiles)}><Icon name="star" /></button>
@@ -1132,6 +1156,10 @@
               onExport={() => exportFile(row.id, null, row.name)}
               onBackup={() => askBackup(chosen.has(row.id) && selected.length > 1 ? selected : [row.id], false)}
               onShare={() => askShare(row.id, null, row.name)}
+              onNearbyShare={() => {
+                const items = chosen.has(row.id) && selected.length > 1 ? exportable : [row]
+                openNearbySend(items.filter((f) => statusOf(f.status) !== 'cloud_only').map((f) => ({ file_id: f.id, version_id: null, name: f.name, size: f.size })))
+              }}
               onMove={() => (moving = chosen.has(row.id) && selected.length > 1 ? selected : [row.id])}
               onRename={() => renameItem(row)}
               onStar={() => star(row)}
@@ -1188,6 +1216,10 @@
                 void askBackup([current.id], all, all ? { count: local.length, bytes: local.reduce((n: number, v: any) => n + v.size, 0) } : undefined)
               }}
               onShare={(version) => askShare(current.id, version, current.name)}
+              onNearbyShare={(version) => {
+                const matched = version ? details.versions.find((v: any) => v.id === version) : null
+                openNearbySend([{ file_id: current.id, version_id: version, name: current.name, size: matched?.size ?? current.size }])
+              }}
               links={links.filter((l) => l.file === current.id)}
               onLink={(version, remote) => askLink(current.id, version, current.name, remote)}
               onRevokeLink={revokeLink}
@@ -1433,4 +1465,11 @@
   onOpen={(item) => {
     if (item.source.source === 'library') open(item.source.id, item.source.version ?? null)
   }}
+/>
+
+<NearbyShare
+  bind:open={() => !!nearby, (next) => !next && (nearby = null)}
+  mode={nearby?.mode ?? 'receive'}
+  files={nearby?.files ?? []}
+  initialFolder={nearby?.folder ?? ROOT}
 />

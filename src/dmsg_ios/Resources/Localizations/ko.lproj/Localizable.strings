@@ -50,6 +50,8 @@
 	<string>파일 및 백업 정보</string>
 	<key>About these benefits</key>
 	<string>혜택 안내</string>
+	<key>Accept</key>
+	<string>수락</string>
 	<key>Accept approved binding</key>
 	<string>승인된 바인딩 수락</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>다음 편지 허용</string>
 	<key>Allow key rotation</key>
 	<string>키 순환 허용</string>
+	<key>Allow nearby discovery</key>
+	<string>주변 기기 검색 허용</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>시스템 알림을 받으려면 알림을 허용하세요.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>카메라를 사용할 수 없습니다. 사진과 비디오를 촬영하려면 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>카메라에 접근할 수 없습니다. 설정 키를 입력하거나 설정에서 카메라 접근을 허용하세요.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>카메라에 접근할 수 없습니다. 연결 코드를 붙여넣거나 설정에서 카메라를 허용하세요.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>계정 선택</string>
 	<key>Choose an attachment</key>
 	<string>첨부파일을 선택하세요</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>주변 수신 기기를 선택하기 전에 필드, 메모 또는 첨부 파일을 하나 이상 선택하세요.</string>
 	<key>Choose avatar</key>
 	<string>아바타 선택</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>클라우드 스토리지</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>클라우드 저장 공간 또는 파일 크기 한도를 초과했습니다. 요금제와 백업 크기를 확인하세요.</string>
+	<key>Codes match — continue</key>
+	<string>코드 일치 — 계속</string>
 	<key>Collect files</key>
 	<string>파일 수집</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>로컬 비밀번호 확인</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>실제로 완료한 작업만 확인하세요. 여기에는 귀하의 진술이 기록됩니다. 공급자 작업을 실행하지 않습니다.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>세부 정보를 보내기 전에 수신 기기에 동일한 6자리 코드가 표시되는지 확인하세요.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>검토한 dMsg 요청을 확인하세요.</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>이 브라우저를 연결하시겠습니까?</string>
 	<key>Connected browsers</key>
 	<string>연결된 브라우저</string>
+	<key>Connecting…</key>
+	<string>연결 중…</string>
+	<key>Connection</key>
+	<string>연결</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>연결할 수 없습니다. 저장된 콘텐츠는 이 기기에 유지됩니다.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>모두 복사</string>
 	<key>Copy binding request</key>
 	<string>복사 제본 요청</string>
+	<key>Copy connection code</key>
+	<string>연결 코드 복사</string>
 	<key>Copy device ID</key>
 	<string>기기 ID 복사</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>이 폴더의 파일</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>100 MiB를 넘는 파일은 링크로 공유할 수 없습니다.</string>
+	<key>Files to send</key>
+	<string>보낼 파일</string>
 	<key>Fill and remember</key>
 	<string>입력하고 기억하기</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>이 메시지의 텍스트를 포함하세요</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>지갑 항목에 저장한 비밀 정보가 포함됩니다.</string>
+	<key>Incoming transfer</key>
+	<string>수신 요청</string>
 	<key>Incomplete</key>
 	<string>불완전</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>로드 중…</string>
 	<key>Local</key>
 	<string>지역</string>
+	<key>Local + Relay ready</key>
+	<string>로컬 + 릴레이 준비됨</string>
 	<key>Local account</key>
 	<string>로컬 계정</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>지역 조사 결과</string>
 	<key>Local label</key>
 	<string>지역 라벨</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>dMsg의 로컬 네트워크 접근이 꺼져 있습니다. 설정에서 켜거나 QR 코드를 스캔해 암호화 릴레이를 사용하세요.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg의 로컬 네트워크 접근이 꺼져 있습니다. 설정에서 켜거나 다른 장치의 주소를 입력하세요.</string>
+	<key>Local network only</key>
+	<string>로컬 네트워크만</string>
 	<key>Local password</key>
 	<string>로컬 비밀번호</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>로그인 ID</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>긴 문서의 미리보기 일부가 생략되었습니다. 전체 내용을 보려면 다운로드하거나 외부 앱으로 여세요.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>주변 dMsg 기기 검색 중…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple 구독 관리</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>네이티브 Taproot 키</string>
 	<key>Native addresses</key>
 	<string>네이티브 주소</string>
+	<key>Nearby device</key>
+	<string>주변 기기</string>
+	<key>Nearby devices</key>
+	<string>주변 기기</string>
+	<key>Nearby receive QR code</key>
+	<string>근거리 수신 QR 코드</string>
+	<key>Nearby snapshot</key>
+	<string>근거리 스냅샷</string>
+	<key>Nearby transfer failed.</key>
+	<string>근거리 전송에 실패했습니다.</string>
 	<key>Needs a fresh review</key>
 	<string>새로운 검토가 필요합니다</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>일회용 코드</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>현재 항목만 포함됩니다. 기록, 휴지통, 초안, 충돌 사본 및 dMsg 관리 키는 제외됩니다.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>주변 기기 검색을 켠 기기만 표시됩니다. 언제든 수신 기기의 QR 코드를 스캔할 수도 있습니다.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>사용할 준비가 되었을 때만 이 작업을 수행하십시오. 사본은 이 장치에 유지되며 30초 후에 만료됩니다.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>비밀번호</string>
 	<key>Paste binding request</key>
 	<string>붙여넣기 바인딩 요청</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>dmsg-nearby/1: 코드 붙여넣기</string>
 	<key>Paste enrollment request</key>
 	<string>등록 요청 붙여넣기</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>파일 준비 및 복사 중…</string>
 	<key>Preparing backups…</key>
 	<string>백업 준비 중…</string>
+	<key>Preparing nearby receive…</key>
+	<string>근거리 수신 준비 중…</string>
 	<key>Preparing purchase…</key>
 	<string>구매 준비 중…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>용도</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>이 빌드에서는 푸시 알림이 활성화되지 않습니다. dMsg를 열어 동기화하세요.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR 확인됨 · 수락하기 전에 발신자와 이 6자리 코드를 비교하세요.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>QR 전용 모드는 로컬 네트워크에 브로드캐스트하지 않습니다. 검색을 켜면 주변 기기 목록에 표시됩니다.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>빠른 잠금 해제는 작업 공간을 엽니다. 기기 바인딩은 잠금을 해제할 수 있는 기기를 제한합니다. 하드웨어 승인은 민감한 계정 작업을 보호합니다.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>이유</string>
 	<key>Receive here</key>
 	<string>여기서 받기</string>
+	<key>Receive more</key>
+	<string>더 받기</string>
+	<key>Receive nearby</key>
+	<string>근거리 수신</string>
 	<key>Received files</key>
 	<string>받은 자료</string>
 	<key>Received for review</key>
 	<string>검토를 위해 접수됨</string>
 	<key>Receiver</key>
 	<string>수신기</string>
+	<key>Receiver QR or connection code</key>
+	<string>수신 기기 QR 또는 연결 코드</string>
 	<key>Receiving</key>
 	<string>받는 중</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>에이전트 권한 검토</string>
 	<key>Review an enrollment request</key>
 	<string>등록 요청 검토</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>이 금고 스냅샷이 기기를 떠나기 전에 검토하고 승인하세요.</string>
+	<key>Review and import snapshot</key>
+	<string>스냅샷 검토 및 가져오기</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>원래 장치에서 데스크톱 파일 매핑을 검토하고 다시 시작합니다.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>스캔 장치 요청</string>
 	<key>Scan invitation</key>
 	<string>초대 스캔</string>
+	<key>Scan receiver QR code</key>
+	<string>수신 기기 QR 코드 스캔</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>승인된 기기의 코드를 스캔해 해당 계정을 여세요.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>장치로 보내기</string>
 	<key>Send to an administrator</key>
 	<string>관리자에게 보내기</string>
+	<key>Send via code</key>
+	<string>코드로 보내기</string>
 	<key>Sender</key>
 	<string>보낸 사람</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>보냄</string>
 	<key>Sent letters</key>
 	<string>보낸 편지</string>
+	<key>Sent successfully</key>
+	<string>전송 완료</string>
 	<key>Server</key>
 	<string>서버</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>공유 링크</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>공유 링크를 새로 고치지 못했습니다. 저장된 링크를 표시합니다.</string>
+	<key>Share my dMsg identity</key>
+	<string>내 dMsg 신원 공유</string>
+	<key>Share nearby</key>
+	<string>근거리 공유</string>
 	<key>Share pairing request</key>
 	<string>페어링 요청 공유</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>순환 체크리스트를 시작하시겠습니까?</string>
 	<key>Start account recovery?</key>
 	<string>계정 복구를 시작하시겠습니까?</string>
+	<key>Start again</key>
+	<string>다시 시작</string>
 	<key>Start checklist</key>
 	<string>체크리스트 시작</string>
+	<key>Start receiving</key>
+	<string>수신 시작</string>
 	<key>Start sending</key>
 	<string>보내기 시작</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>총 크기</string>
 	<key>Transfer between devices</key>
 	<string>장치 간 전송</string>
+	<key>Transfer complete</key>
+	<string>전송 완료</string>
 	<key>Transfer needs attention</key>
 	<string>전송 확인 필요</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>이적 제안</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>전송이 대기열에 추가되었습니다. 파일에서 진행 상황을 확인하세요.</string>
+	<key>Transfer status</key>
+	<string>전송 상태</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>전송 상태를 새로 고칠 수 없습니다. 저장된 작업은 유지됩니다.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>전송 중</string>
 	<key>Transfers</key>
 	<string>환승</string>
+	<key>Transport</key>
+	<string>전송 경로</string>
 	<key>Trash</key>
 	<string>휴지통</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>읽지 않은 알림</string>
 	<key>Unrestricted delegation authority</key>
 	<string>무제한 위임 권한</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>미확인 검색 · 수락하기 전에 대면으로 이 6자리 코드를 비교하세요.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>PNG, JPEG, WebP 또는 GIF 최대 3장, 각 10 MiB. 먼저 비밀 정보를 제거하세요. 사본은 파일에 남으며, 보내면 30일간 유효한 암호화 링크가 생성되고 저장 용량을 사용합니다. 전체 링크를 가진 사람은 열 수 있습니다.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>금고</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>항목은 평소처럼 동기화됩니다. 첨부 파일은 이 기기의 파일 보관함에 저장됩니다.</string>
+	<key>Vault snapshot</key>
+	<string>금고 스냅샷</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>이 기기에서 금고 스냅샷이 검증되었습니다. 가져올 필드를 검토하고 선택하세요.</string>
 	<key>Vault tools</key>
 	<string>Vault 도구</string>
+	<key>Verification code</key>
+	<string>확인 코드</string>
 	<key>Verified</key>
 	<string>검증됨</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>로그인 승인 대기 중</string>
 	<key>Waiting for notification registration…</key>
 	<string>알림 등록을 기다리는 중…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>수신자의 수락을 기다리는 중…</string>
+	<key>Waiting for sender…</key>
+	<string>발신자 대기 중…</string>
 	<key>Waiting for the other device</key>
 	<string>다른 장치를 기다리는 중</string>
 	<key>Waiting for your decision</key>

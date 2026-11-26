@@ -310,6 +310,9 @@ import kotlinx.coroutines.launch
                                         if (ConnectLink.parse(link.url()) == link) BrowserRequestScreen(client, link, browser) else EmptyState(str(R.string.text_invalid_request_link_0f99d32))
                                     }
                                     "device-transfer" -> DeviceTransferScreen(client, page.id, page.field?.let { it == "predecessor" })
+                                    "nearby-receive" -> NearbyReceiveScreen(client)
+                                    "nearby-send-files" -> NearbySendFilesScreen(client)
+                                    "nearby-send-vault" -> NearbySendVaultScreen(client, selected)
                                     "handovers" -> HandoversScreen(client, page.id)
                                     "handover-review" -> HandoverReviewScreen(client)
                                     "agents" -> AgentsScreen(client)
@@ -370,7 +373,7 @@ import kotlinx.coroutines.launch
                                     "secret-compose" -> SecretSnapshotComposer(client, selected, page.channel)
                                     "secret-shares" -> SecretSharesScreen(client)
                                     "secret-share" -> SecretShareScreen(client, selected)
-                                    "secret-import" -> SecretPackageScreen(client, page.channel, page.sequence)
+                                    "secret-import" -> SecretPackageScreen(client, page.channel, page.sequence, page.field)
                                     "secret-picker" -> SecretSnapshotPicker(client, page.channel.orEmpty())
                                     "vault-import" -> VaultImportScreen(client) { passwordImport.launch(arrayOf("*/*")) }
                                     "local-import" -> LocalImportScreen(client)
@@ -481,6 +484,8 @@ private fun title(route: String) = when (route) {
     "system-autofill" -> str(R.string.text_password_autofill_872af78)
     "system-files" -> str(R.string.text_files_app_copies_96ebae6)
     "device-transfer" -> str(R.string.text_transfer_between_devices_fc09783)
+    "nearby-receive" -> str(R.string.nearby_receive)
+    "nearby-send-files", "nearby-send-vault" -> str(R.string.nearby_share)
     "handovers" -> str(R.string.text_replace_a_device_fbe5457)
     "handover-review" -> str(R.string.text_review_replacement_686825b)
     "agents", "agent" -> str(R.string.text_agents_dcfd6ed)

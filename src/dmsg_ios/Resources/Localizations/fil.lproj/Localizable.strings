@@ -50,6 +50,8 @@
 	<string>Tungkol sa mga file at backup</string>
 	<key>About these benefits</key>
 	<string>Tungkol sa mga benepisyong ito</string>
+	<key>Accept</key>
+	<string>Tanggapin</string>
 	<key>Accept approved binding</key>
 	<string>Tanggapin ang naaprubahang pagbubuklod</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Payagan ang isa pang liham</string>
 	<key>Allow key rotation</key>
 	<string>Payagan ang pag-rotate ng key</string>
+	<key>Allow nearby discovery</key>
+	<string>Payagan ang pagtuklas sa malapit</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Payagan ang mga notification para makatanggap ng mga alerto ng system.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Hindi magamit ang camera. Payagan ang camera sa Settings para makakuha ng mga larawan at video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Hindi ma-access ang camera. Maglagay ng setup key o payagan ang access sa camera sa Settings.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Hindi magamit ang camera. I-paste ang code ng koneksyon o payagan ito sa Mga Setting.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Hindi magamit ang camera. I-paste ang imbitasyon o payagan ang camera sa Settings.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Pumili ng account</string>
 	<key>Choose an attachment</key>
 	<string>Pumili ng attachment</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Pumili ng kahit isang field, tala o attachment bago pumili ng tatanggap sa malapit.</string>
 	<key>Choose avatar</key>
 	<string>Pumili ng avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Imbakan ng ulap</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Lumampas sa limitasyon ng cloud storage o laki ng file. Suriin ang iyong plan at laki ng backup.</string>
+	<key>Codes match — continue</key>
+	<string>Magkatugma ang code — magpatuloy</string>
 	<key>Collect files</key>
 	<string>Mangolekta ng files</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Kumpirmahin ang lokal na password</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Kumpirmahin lamang ang trabahong aktwal mong natapos. Itinatala nito ang iyong pahayag; hindi nito isinasagawa ang aksyon ng provider.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Kumpirmahin na pareho ang 6-digit na code sa tatanggap bago magpadala ng anumang detalye.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Kumpirmahin ang kahilingang dMsg na iyong nasuri</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Ikonekta ang browser na ito?</string>
 	<key>Connected browsers</key>
 	<string>Mga konektadong browser</string>
+	<key>Connecting…</key>
+	<string>Kumokonekta…</string>
+	<key>Connection</key>
+	<string>Koneksyon</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Hindi available ang koneksyon. Ang iyong naka-save na nilalaman ay mananatili sa device na ito.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Kopyahin lahat</string>
 	<key>Copy binding request</key>
 	<string>Kopyahin ang nagbubuklod na kahilingan</string>
+	<key>Copy connection code</key>
+	<string>Kopyahin ang code ng koneksyon</string>
 	<key>Copy device ID</key>
 	<string>Kopyahin ang device ID</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Mga file sa folder na ito</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Hindi maibabahagi gamit ang link ang mga file na higit sa 100 MiB.</string>
+	<key>Files to send</key>
+	<string>Mga file na ipapadala</string>
 	<key>Fill and remember</key>
 	<string>Punan at tandaan</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Isama ang text ng mensaheng ito</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Kasama ang mga lihim na naka-save sa mga entry ng wallet.</string>
+	<key>Incoming transfer</key>
+	<string>Papasok na paglipat</string>
 	<key>Incomplete</key>
 	<string>Hindi kumpleto</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Naglo-load…</string>
 	<key>Local</key>
 	<string>Lokal</string>
+	<key>Local + Relay ready</key>
+	<string>Lokal + relay handa na</string>
 	<key>Local account</key>
 	<string>Lokal na account</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Mga lokal na natuklasan</string>
 	<key>Local label</key>
 	<string>Lokal na label</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Naka-off ang local network access para sa dMsg. I-enable sa Mga Setting o i-scan ang QR code para sa naka-encrypt na relay.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Naka-off ang access sa lokal na network para sa dMsg. I-on ito sa Settings, o ilagay ang address ng kabilang device.</string>
+	<key>Local network only</key>
+	<string>Lokal na network lang</string>
 	<key>Local password</key>
 	<string>Lokal na password</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Identity sa pag-login</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Pinaikli ang mahabang dokumento para sa preview. I-download o buksan sa labas upang makita ang buong nilalaman.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Naghahanap ng mga malapit na dMsg device…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Pamahalaan ang mga subscription sa Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Native Taproot key</string>
 	<key>Native addresses</key>
 	<string>Mga native address</string>
+	<key>Nearby device</key>
+	<string>Malapit na device</string>
+	<key>Nearby devices</key>
+	<string>Mga malapit na device</string>
+	<key>Nearby receive QR code</key>
+	<string>QR code para sa pagtanggap sa malapit</string>
+	<key>Nearby snapshot</key>
+	<string>Snapshot sa malapit</string>
+	<key>Nearby transfer failed.</key>
+	<string>Nabigo ang paglipat sa malapit.</string>
 	<key>Needs a fresh review</key>
 	<string>Kailangan ng bagong pagsusuri</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Isang beses na code</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Mga kasalukuyang entry lang. Hindi kasama ang history, trash, draft, magkasalungat na kopya at mga key na pinamamahalaan ng dMsg.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Mga device lang na nag-on ng pagtuklas sa malapit ang lilitaw dito. Maaari mong i-scan ang QR code ng tatanggap.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Gawin lamang ito kapag handa ka nang gamitin ito. Ang mga kopya ay mananatili sa device na ito at mag-e-expire pagkalipas ng 30 segundo.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Mga password</string>
 	<key>Paste binding request</key>
 	<string>Idikit ang nagbubuklod na kahilingan</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>I-paste ang dmsg-nearby/1: code</string>
 	<key>Paste enrollment request</key>
 	<string>I-paste ang kahilingan sa pagpapatala</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Inihahanda at kinokopya ang file…</string>
 	<key>Preparing backups…</key>
 	<string>Inihahanda ang mga backup…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Inihahanda ang pagtanggap sa malapit…</string>
 	<key>Preparing purchase…</key>
 	<string>Inihahanda ang pagbili…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Layunin</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Ang mga push notification ay hindi pinagana sa build na ito. Buksan ang dMsg para i-synchronize.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>Na-verify ang QR · Ikumpara ang 6-digit code na ito sa nagpadala bago tanggapin.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Hindi nagbo-broadcast sa local network ang QR-only mode. I-enable ang pagtuklas upang lumitaw sa mga malapit na device.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Binubuksan ng quick unlock ang workspace. Nililimitahan ng device binding kung aling device ang makakapagbukas nito. Pinoprotektahan ng hardware approval ang sensitibong aksyon ng account.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Dahilan</string>
 	<key>Receive here</key>
 	<string>Tanggapin dito</string>
+	<key>Receive more</key>
+	<string>Tumanggap pa</string>
+	<key>Receive nearby</key>
+	<string>Tumanggap sa malapit</string>
 	<key>Received files</key>
 	<string>Natanggap</string>
 	<key>Received for review</key>
 	<string>Natanggap para sa pagsusuri</string>
 	<key>Receiver</key>
 	<string>Receiver</string>
+	<key>Receiver QR or connection code</key>
+	<string>QR o code ng koneksyon ng tatanggap</string>
 	<key>Receiving</key>
 	<string>Tumatanggap</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Suriin ang mga pahintulot ng agent</string>
 	<key>Review an enrollment request</key>
 	<string>Suriin ang isang kahilingan sa pagpapatala</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Suriin at aprubahan ang vault snapshot na ito bago ito umalis sa device.</string>
+	<key>Review and import snapshot</key>
+	<string>Suriin at i-import ang snapshot</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Suriin at i-restart ang desktop file mapping sa pinanggalingan nitong device.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>I-scan ang kahilingan ng device</string>
 	<key>Scan invitation</key>
 	<string>I-scan ang imbitasyon</string>
+	<key>Scan receiver QR code</key>
+	<string>I-scan ang QR code ng tatanggap</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>I-scan ang code sa awtorisadong device para buksan ang account nito.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Ipadala sa isang device</string>
 	<key>Send to an administrator</key>
 	<string>Ipadala sa isang administrator</string>
+	<key>Send via code</key>
+	<string>Ipadala gamit ang code</string>
 	<key>Sender</key>
 	<string>Nagpadala</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Naipadala</string>
 	<key>Sent letters</key>
 	<string>Nagpadala ng mga liham</string>
+	<key>Sent successfully</key>
+	<string>Matagumpay na naipadala</string>
 	<key>Server</key>
 	<string>Server</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Mga link sa pagbabahagi</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Hindi na-refresh ang mga link sa pagbabahagi. Ipinapakita ang mga naka-save na link.</string>
+	<key>Share my dMsg identity</key>
+	<string>Ibahagi ang aking dMsg identity</string>
+	<key>Share nearby</key>
+	<string>Ibahagi sa malapit</string>
 	<key>Share pairing request</key>
 	<string>Ibahagi ang kahilingan sa pagpapares</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Magsimula ng checklist ng pag-ikot?</string>
 	<key>Start account recovery?</key>
 	<string>Simulan ang pagbawi ng account?</string>
+	<key>Start again</key>
+	<string>Magsimula muli</string>
 	<key>Start checklist</key>
 	<string>Simulan ang checklist</string>
+	<key>Start receiving</key>
+	<string>Simulan ang pagtanggap</string>
 	<key>Start sending</key>
 	<string>Simulang magpadala</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Kabuuang laki</string>
 	<key>Transfer between devices</key>
 	<string>Paglipat sa pagitan ng mga device</string>
+	<key>Transfer complete</key>
+	<string>Tapos na ang paglipat</string>
 	<key>Transfer needs attention</key>
 	<string>Kailangan ng pansin ang paglilipat</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Panukala sa paglipat</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Nakapila ang paglilipat. Tingnan ang progreso sa Mga File.</string>
+	<key>Transfer status</key>
+	<string>Status ng paglipat</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Hindi ma-refresh ang katayuan ng paglilipat. Mananatili ang mga na-save na gawain.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Naglilipat</string>
 	<key>Transfers</key>
 	<string>Mga paglilipat</string>
+	<key>Transport</key>
+	<string>Paraan ng paglipat</string>
 	<key>Trash</key>
 	<string>Basura</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Hindi pa nababasang paalala</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Hindi pinaghihigpitang awtoridad sa delegasyon</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Hindi pa na-verify · Ikumpara ang 6-digit code na ito nang harapan bago tanggapin.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Hanggang 3 PNG, JPEG, WebP o GIF na larawan, tig-10 MiB. Alisin muna ang mga lihim. Mananatili ang mga kopya sa Files; gagawa ang pagpapadala ng mga naka-encrypt na link na may bisa nang 30 araw at gagamit ng storage quota. Mabubuksan ito ng sinumang may kumpletong link.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Vault</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Gaya ng dati ang pag-sync ng mga entry. Nasa Files ng device ang mga attachment.</string>
+	<key>Vault snapshot</key>
+	<string>Vault snapshot</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Na-verify ang vault snapshot sa device na ito. Suriin at piliin kung aling mga field ang ii-import.</string>
 	<key>Vault tools</key>
 	<string>Mga tool sa Vault</string>
+	<key>Verification code</key>
+	<string>Code ng pag-verify</string>
 	<key>Verified</key>
 	<string>napatunayan</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Hinihintay ang pag-apruba sa login</string>
 	<key>Waiting for notification registration…</key>
 	<string>Naghihintay para sa pagpaparehistro ng notification…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Naghihintay sa pagtanggap ng tatanggap…</string>
+	<key>Waiting for sender…</key>
+	<string>Naghihintay sa nagpadala…</string>
 	<key>Waiting for the other device</key>
 	<string>Naghihintay sa kabilang device</string>
 	<key>Waiting for your decision</key>

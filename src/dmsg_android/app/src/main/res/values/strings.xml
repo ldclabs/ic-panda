@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"Actions"</string>
     <string name="message_sending" formatted="false">"Sending"</string>
     <string name="more" formatted="false">"More"</string>
+    <string name="nearby_accept" formatted="false">"Accept"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Allow nearby discovery"</string>
+    <string name="nearby_codes_match" formatted="false">"Codes match — continue"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Confirm that the receiver shows this exact 6-digit code before sending any details."</string>
+    <string name="nearby_connecting" formatted="false">"Connecting…"</string>
+    <string name="nearby_connection" formatted="false">"Connection"</string>
+    <string name="nearby_copy_code" formatted="false">"Copy connection code"</string>
+    <string name="nearby_device" formatted="false">"Nearby device"</string>
+    <string name="nearby_devices" formatted="false">"Nearby devices"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Only devices that turned on nearby discovery appear here. You can always scan the receiver\'s QR code instead."</string>
+    <string name="nearby_files_to_send" formatted="false">"Files to send"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Incoming transfer"</string>
+    <string name="nearby_local_network_denied" formatted="false">"Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay."</string>
+    <string name="nearby_local_only" formatted="false">"Local network only"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Local + Relay ready"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Looking for nearby dMsg devices…"</string>
+    <string name="nearby_paste_code" formatted="false">"Paste dmsg-nearby/1: code"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Preparing nearby receive…"</string>
+    <string name="nearby_qr_code" formatted="false">"Nearby receive QR code"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR verified · Compare this 6-digit code with the sender before accepting."</string>
+    <string name="nearby_receive" formatted="false">"Receive nearby"</string>
+    <string name="nearby_receive_more" formatted="false">"Receive more"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"Receiver QR or connection code"</string>
+    <string name="nearby_receiving" formatted="false">"Receiving"</string>
+    <string name="nearby_review_approval" formatted="false">"Review approval"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Review and import snapshot"</string>
+    <string name="nearby_scan_qr" formatted="false">"Scan receiver QR code"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Choose at least one field, note or attachment before selecting a nearby receiver."</string>
+    <string name="nearby_send_via_code" formatted="false">"Send via code"</string>
+    <string name="nearby_sent_success" formatted="false">"Sent successfully"</string>
+    <string name="nearby_share" formatted="false">"Share nearby"</string>
+    <string name="nearby_share_identity" formatted="false">"Share my dMsg identity"</string>
+    <string name="nearby_snapshot" formatted="false">"Nearby snapshot"</string>
+    <string name="nearby_start_again" formatted="false">"Start again"</string>
+    <string name="nearby_start_receiving" formatted="false">"Start receiving"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Transfer complete"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Nearby transfer failed."</string>
+    <string name="nearby_transfer_status" formatted="false">"Transfer status"</string>
+    <string name="nearby_transport" formatted="false">"Transport"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Unverified discovery · Compare this 6-digit code face-to-face before accepting."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Review and approve this Vault snapshot before it leaves this device."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Vault snapshot"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Vault snapshot verified on this device. Review and choose which fields to import."</string>
+    <string name="nearby_verification_code" formatted="false">"Verification code"</string>
+    <string name="nearby_waiting_accept" formatted="false">"Waiting for receiver to accept…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"Waiting for sender…"</string>
     <string name="no_conversations_yet" formatted="false">"No conversations yet"</string>
     <string name="no_matches" formatted="false">"No matching results"</string>
     <string name="offline_account" formatted="false">"Local account"</string>

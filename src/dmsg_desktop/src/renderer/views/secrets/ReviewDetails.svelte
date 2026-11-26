@@ -1,5 +1,6 @@
 <script lang="ts">
   import { snapshotFieldName } from '../vault/vault'
+  import { formatSas } from '../nearby'
   import Id from '../../components/page/Id.svelte'
   import { t } from '../../i18n/index.svelte'
   import { size, when } from '../../rpc'
@@ -84,11 +85,21 @@
     <div class="min-w-0">
       <dt class="text-callout text-muted">{ux('destination')}</dt>
       <dd class="mt-1 break-all">
-        {request.type === 'secret_package_import'
-          ? ux('openVault')
-          : (d.channel?.name ?? ux('linkMode'))}{#if d.selection?.folder}<p>
-            {w('destination')}: {d.selection.folder}
-          </p>{/if}
+        {#if request.type === 'secret_package_import'}
+          {ux('openVault')}
+        {:else if d.nearby}
+          <span class="block" data-testid="secret-review-nearby-peer">{t('nearbyDeviceLabel', { peer: d.nearby.peer_label || t('nearbyUnknownDevice') })}</span>
+          {#if d.nearby.sas}
+            <span class="mt-0.5 inline-flex flex-wrap items-center gap-1.5 text-callout text-muted">
+              <span>{t('nearbySasCode')}:</span>
+              <bdi dir="ltr" class="font-mono font-semibold text-ink tabular-nums select-text" data-testid="secret-review-nearby-sas">{formatSas(d.nearby.sas)}</bdi>
+            </span>
+          {/if}
+        {:else}
+          {d.channel?.name ?? ux('linkMode')}
+        {/if}{#if d.selection?.folder}<p>
+          {w('destination')}: {d.selection.folder}
+        </p>{/if}
       </dd>
     </div>
     <div>
@@ -104,7 +115,7 @@
           </p>{/each}
       </dd>
     </div>
-    {#if request.type === 'secret_share' && !d.channel}<div>
+    {#if request.type === 'secret_share' && !d.channel && !d.nearby}<div>
         <dt class="text-callout text-muted">{ux('scope')}</dt>
         <dd class="mt-1">
           {when(d.expires_at)}<br />{w('sessions')}: {d.max_download_sessions}<br

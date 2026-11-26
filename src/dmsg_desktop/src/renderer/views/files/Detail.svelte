@@ -37,6 +37,7 @@
     onExport,
     onBackup,
     onShare,
+    onNearbyShare,
     links,
     onLink,
     onRevokeLink,
@@ -59,6 +60,7 @@
     onExport: (version: string | null) => void
     onBackup: (allVersions: boolean) => void
     onShare: (version: string | null) => void
+    onNearbyShare?: (version: string | null) => void
     links: any[]
     onLink: (version: string | null, remote: boolean) => void
     onRevokeLink: (shareId: string) => void
@@ -256,6 +258,15 @@
               </button>
             {/snippet}
           </Tooltip>
+          {#if onNearbyShare}
+            <Tooltip content={t('nearbyShare')}>
+              {#snippet children(props)}
+                <button {...props} class={buttonClass('ghost', 'md')} disabled={busy || !canRead} onclick={() => onNearbyShare(null)} data-testid="files-nearby-share">
+                  <Icon name="transfer" />{t('nearbyShare')}
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
           {#if !standalone}<button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'ghost', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
             <Icon name="cloud-up" />{t('backUp')}
           </button>{/if}
@@ -487,6 +498,9 @@
                   <DropdownMenu.Item class={menuItemClass} disabled={!version.local} onSelect={() => onExport(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
                   </DropdownMenu.Item>
+                  {#if onNearbyShare}<DropdownMenu.Item class={menuItemClass} disabled={!version.local} onSelect={() => onNearbyShare(version.id)} data-testid="files-version-nearby-share">
+                    <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
+                  </DropdownMenu.Item>{/if}
                   {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!version.local || version.size > 100 * 1024 * 1024} onSelect={() => onShare(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
                   </DropdownMenu.Item>{/if}

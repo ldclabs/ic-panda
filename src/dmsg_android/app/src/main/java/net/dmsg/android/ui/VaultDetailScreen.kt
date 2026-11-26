@@ -119,6 +119,10 @@ fun relativeTime(ms: ULong, now: Long = System.currentTimeMillis()): String {
             DropdownMenu(more, { more = false }) {
                 DropdownMenuItem(text = { Text(str(R.string.text_version_history_8a6bf11)) }, leadingIcon = { Icon(Icons.Outlined.History, null) },
                     onClick = { more = false; client.navigation.push(Route("vault-history", id)) })
+                if (!item.reserved && !item.deleted) {
+                    DropdownMenuItem(text = { Text(str(R.string.nearby_share)) }, leadingIcon = { Icon(Icons.Outlined.WifiTethering, null) },
+                        enabled = !item.conflict, onClick = { more = false; client.navigation.push(Route("nearby-send-vault", id)) })
+                }
                 if (item.saveState != "local_only" && !item.reserved && !item.deleted) {
                     DropdownMenuItem(text = { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) },
                         enabled = !item.conflict, onClick = { more = false; client.navigation.push(Route("secret-compose", id)) })

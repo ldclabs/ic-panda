@@ -50,6 +50,8 @@
 	<string>ファイルとバックアップについて</string>
 	<key>About these benefits</key>
 	<string>特典について</string>
+	<key>Accept</key>
+	<string>受け入れる</string>
 	<key>Accept approved binding</key>
 	<string>承認されたバインディングを受け入れる</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>次の手紙を許可</string>
 	<key>Allow key rotation</key>
 	<string>キーのローテーションを許可する</string>
+	<key>Allow nearby discovery</key>
+	<string>近くのデバイスからの検出を許可</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>システムの通知を受け取るには、通知を許可してください。</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>カメラを使用できません。写真や動画を撮るには、設定でカメラへのアクセスを許可してください。</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>カメラにアクセスできません。設定キーを入力するか、「設定」でカメラへのアクセスを許可してください。</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>カメラにアクセスできません。接続コードを貼り付けるか、設定でカメラを許可してください。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>カメラを使用できません。招待を貼り付けるか、設定でカメラへのアクセスを許可してください。</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>アカウントを選択</string>
 	<key>Choose an attachment</key>
 	<string>添付ファイルを選択してください</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>近くの受信端末を選ぶ前に、フィールド、メモ、または添付ファイルを1つ以上選択してください。</string>
 	<key>Choose avatar</key>
 	<string>アバターを選択</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>クラウドストレージ</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>クラウド容量またはファイルサイズの上限を超えています。プランとバックアップのサイズを確認してください。</string>
+	<key>Codes match — continue</key>
+	<string>コードが一致 — 続行</string>
 	<key>Collect files</key>
 	<string>ファイルの収集</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>ローカルパスワードを確認</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>実際に完了した作業のみを確認してください。これはあなたの発言を記録します。プロバイダーのアクションは実行されません。</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>詳細を送信する前に、受信側にもこの6桁コードが一致して表示されていることを確認してください。</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>確認した dMsg リクエストを確認します</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>このブラウザを接続しますか?</string>
 	<key>Connected browsers</key>
 	<string>接続されたブラウザ</string>
+	<key>Connecting…</key>
+	<string>接続中…</string>
+	<key>Connection</key>
+	<string>接続</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>接続できません。保存したコンテンツはこのデバイスに残ります。</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>すべてコピー</string>
 	<key>Copy binding request</key>
 	<string>バインディングのコピー要求</string>
+	<key>Copy connection code</key>
+	<string>接続コードをコピー</string>
 	<key>Copy device ID</key>
 	<string>デバイスIDをコピー</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>このフォルダー内のファイル</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>100 MiB を超えるファイルはリンクで共有できません。</string>
+	<key>Files to send</key>
+	<string>送信するファイル</string>
 	<key>Fill and remember</key>
 	<string>入力して記憶</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>このメッセージのテキストを含める</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>ウォレット項目に保存した秘密情報が含まれます。</string>
+	<key>Incoming transfer</key>
+	<string>受信リクエスト</string>
 	<key>Incomplete</key>
 	<string>不完全</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>読み込み中…</string>
 	<key>Local</key>
 	<string>ローカル</string>
+	<key>Local + Relay ready</key>
+	<string>ローカル + 中継準備完了</string>
 	<key>Local account</key>
 	<string>ローカルアカウント</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>地元の調査結果</string>
 	<key>Local label</key>
 	<string>ローカルラベル</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>dMsgのローカルネットワークアクセスがオフです。設定で有効にするか、QRコードをスキャンして暗号化中継を使用してください。</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg のローカルネットワークへのアクセスがオフです。設定でオンにするか、もう一方のデバイスのアドレスを入力してください。</string>
+	<key>Local network only</key>
+	<string>ローカルネットワークのみ</string>
 	<key>Local password</key>
 	<string>ローカルパスワード</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>ログインID</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>長いドキュメントのためプレビューを一部省略しました。全文を見るにはダウンロードするか外部アプリで開いてください。</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>近くのdMsgデバイスを検索中…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple のサブスクリプションを管理する</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>ネイティブ Taproot キー</string>
 	<key>Native addresses</key>
 	<string>ネイティブアドレス</string>
+	<key>Nearby device</key>
+	<string>近くのデバイス</string>
+	<key>Nearby devices</key>
+	<string>近くのデバイス</string>
+	<key>Nearby receive QR code</key>
+	<string>近距離受信QRコード</string>
+	<key>Nearby snapshot</key>
+	<string>近距離スナップショット</string>
+	<key>Nearby transfer failed.</key>
+	<string>近距離転送に失敗しました。</string>
 	<key>Needs a fresh review</key>
 	<string>新たなレビューが必要です</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>ワンタイムコード</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>現在の項目のみが対象です。履歴、ゴミ箱、下書き、競合コピー、dMsg 管理の鍵は含まれません。</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>近くのデバイスからの検出を有効にした端末のみ表示されます。受信側のQRコードをスキャンして接続することもできます。</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>これは、使用する準備ができた場合にのみ行ってください。コピーはこのデバイスに保存され、30 秒後に期限切れになります。</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>パスワード</string>
 	<key>Paste binding request</key>
 	<string>バインディングリクエストの貼り付け</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>dmsg-nearby/1: コードを貼り付け</string>
 	<key>Paste enrollment request</key>
 	<string>登録リクエストを貼り付けます</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>ファイルを準備してコピー中…</string>
 	<key>Preparing backups…</key>
 	<string>バックアップを準備中…</string>
+	<key>Preparing nearby receive…</key>
+	<string>近距離受信を準備中…</string>
 	<key>Preparing purchase…</key>
 	<string>購入を準備中…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>目的</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>このビルドではプッシュ通知が有効になっていません。 dMsg を開いて同期します。</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR検証済み · 受け入れる前に送信側とこの6桁コードを確認してください。</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>QR専用モードはローカルネットワークに配信しません。検出を有効にすると近くの端末一覧に表示され、直接転送を受けられます。</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>クイックロック解除でワークスペースを開きます。デバイスへの紐付けは解除可能なデバイスを制限し、ハードウェア承認は重要なアカウント操作を保護します。</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>理由</string>
 	<key>Receive here</key>
 	<string>このデバイスで受信</string>
+	<key>Receive more</key>
+	<string>さらに受信</string>
+	<key>Receive nearby</key>
+	<string>近くから受信</string>
 	<key>Received files</key>
 	<string>受信した資料</string>
 	<key>Received for review</key>
 	<string>レビューのために受け取りました</string>
 	<key>Receiver</key>
 	<string>受信機</string>
+	<key>Receiver QR or connection code</key>
+	<string>受信側のQRまたは接続コード</string>
 	<key>Receiving</key>
 	<string>受信</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>エージェントの権限を確認する</string>
 	<key>Review an enrollment request</key>
 	<string>登録リクエストを確認する</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>この保管庫スナップショットを送信する前に内容を確認して承認してください。</string>
+	<key>Review and import snapshot</key>
+	<string>スナップショットを確認してインポート</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>元のデバイスでデスクトップ ファイル マッピングを確認して再起動します。</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>デバイスのスキャン要求</string>
 	<key>Scan invitation</key>
 	<string>招待をスキャン</string>
+	<key>Scan receiver QR code</key>
+	<string>受信側のQRコードをスキャン</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>承認済みの端末に表示されたコードをスキャンして、そのアカウントを開きます。</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>デバイスへ送信</string>
 	<key>Send to an administrator</key>
 	<string>管理者に送信する</string>
+	<key>Send via code</key>
+	<string>コードで送信</string>
 	<key>Sender</key>
 	<string>送信者</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>送信済み</string>
 	<key>Sent letters</key>
 	<string>送信された手紙</string>
+	<key>Sent successfully</key>
+	<string>送信完了</string>
 	<key>Server</key>
 	<string>サーバー</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>共有リンク</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>共有リンクを更新できませんでした。保存済みのリンクを表示しています。</string>
+	<key>Share my dMsg identity</key>
+	<string>dMsgのIDを共有する</string>
+	<key>Share nearby</key>
+	<string>近くへ共有</string>
 	<key>Share pairing request</key>
 	<string>ペアリングリクエストを共有する</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>ローテーションのチェックリストを始めますか?</string>
 	<key>Start account recovery?</key>
 	<string>アカウントの回復を開始しますか?</string>
+	<key>Start again</key>
+	<string>やり直す</string>
 	<key>Start checklist</key>
 	<string>チェックリストを開始する</string>
+	<key>Start receiving</key>
+	<string>受信を開始</string>
 	<key>Start sending</key>
 	<string>送信を開始</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>合計サイズ</string>
 	<key>Transfer between devices</key>
 	<string>デバイス間の転送</string>
+	<key>Transfer complete</key>
+	<string>転送完了</string>
 	<key>Transfer needs attention</key>
 	<string>転送への対応が必要です</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>譲渡案</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>転送をキューに追加しました。ファイルで進捗を確認できます。</string>
+	<key>Transfer status</key>
+	<string>転送ステータス</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>転送状態を更新できませんでした。保存済みのタスクは保持されます。</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>転送中</string>
 	<key>Transfers</key>
 	<string>転送</string>
+	<key>Transport</key>
+	<string>転送経路</string>
 	<key>Trash</key>
 	<string>ゴミ箱</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>未読のリマインダー</string>
 	<key>Unrestricted delegation authority</key>
 	<string>無制限の委任権限</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>未検証の検出 · 受け入れる前に対面でこの6桁コードを確認してください。</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>PNG、JPEG、WebP、GIF を最大 3 枚、各 10 MiB まで。秘密情報は先に削除してください。コピーはファイルに残ります。送信時に 30 日間有効な暗号化リンクを作成し、保存容量を使用します。完全なリンクを持つ人は閲覧できます。</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>保管庫</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。</string>
+	<key>Vault snapshot</key>
+	<string>保管庫スナップショット</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>保管庫スナップショットをこのデバイスで検証しました。インポートする項目を選択してください。</string>
 	<key>Vault tools</key>
 	<string>ボールトツール</string>
+	<key>Verification code</key>
+	<string>確認コード</string>
 	<key>Verified</key>
 	<string>検証済み</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>ログイン方法の承認待ち</string>
 	<key>Waiting for notification registration…</key>
 	<string>通知登録を待っています…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>受信側の承認を待機中…</string>
+	<key>Waiting for sender…</key>
+	<string>送信側を待機中…</string>
 	<key>Waiting for the other device</key>
 	<string>相手のデバイスを待っています</string>
 	<key>Waiting for your decision</key>

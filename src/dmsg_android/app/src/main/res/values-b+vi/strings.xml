@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"Thao tác"</string>
     <string name="message_sending" formatted="false">"Đang gửi"</string>
     <string name="more" formatted="false">"Thêm"</string>
+    <string name="nearby_accept" formatted="false">"Chấp nhận"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Cho phép tìm thấy ở gần"</string>
+    <string name="nearby_codes_match" formatted="false">"Mã khớp — tiếp tục"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Xác nhận thiết bị nhận hiển thị đúng mã 6 chữ số này trước khi gửi bất kỳ thông tin nào."</string>
+    <string name="nearby_connecting" formatted="false">"Đang kết nối…"</string>
+    <string name="nearby_connection" formatted="false">"Kết nối"</string>
+    <string name="nearby_copy_code" formatted="false">"Sao chép mã kết nối"</string>
+    <string name="nearby_device" formatted="false">"Thiết bị ở gần"</string>
+    <string name="nearby_devices" formatted="false">"Thiết bị ở gần"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Chỉ thiết bị đã bật tìm thấy ở gần mới hiện tại đây. Bạn luôn có thể quét mã QR của thiết bị nhận."</string>
+    <string name="nearby_files_to_send" formatted="false">"Tệp cần gửi"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Yêu cầu nhận"</string>
+    <string name="nearby_local_network_denied" formatted="false">"Quyền mạng cục bộ cho dMsg đang tắt. Bật trong Cài đặt hoặc quét mã QR để dùng chuyển tiếp mã hóa."</string>
+    <string name="nearby_local_only" formatted="false">"Chỉ mạng cục bộ"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Nội bộ + chuyển tiếp sẵn sàng"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Đang tìm thiết bị dMsg ở gần…"</string>
+    <string name="nearby_paste_code" formatted="false">"Dán mã dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Đang chuẩn bị nhận ở gần…"</string>
+    <string name="nearby_qr_code" formatted="false">"Mã QR nhận ở gần"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"Chế độ chỉ QR không phát quảng bá trên mạng cục bộ. Bật khám phá để hiện trong danh sách thiết bị ở gần."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"Đã xác minh QR · Đối chiếu mã 6 chữ số này với người gửi trước khi chấp nhận."</string>
+    <string name="nearby_receive" formatted="false">"Nhận ở gần"</string>
+    <string name="nearby_receive_more" formatted="false">"Nhận thêm"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"Mã QR hoặc mã kết nối thiết bị nhận"</string>
+    <string name="nearby_receiving" formatted="false">"Đang nhận"</string>
+    <string name="nearby_review_approval" formatted="false">"Xem xét phê duyệt"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Xem lại và nhập bản chụp"</string>
+    <string name="nearby_scan_qr" formatted="false">"Quét mã QR thiết bị nhận"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Chọn ít nhất một trường, ghi chú hoặc tệp đính kèm trước khi chọn thiết bị nhận ở gần."</string>
+    <string name="nearby_send_via_code" formatted="false">"Gửi qua mã"</string>
+    <string name="nearby_sent_success" formatted="false">"Đã gửi thành công"</string>
+    <string name="nearby_share" formatted="false">"Chia sẻ ở gần"</string>
+    <string name="nearby_share_identity" formatted="false">"Chia sẻ danh tính dMsg của tôi"</string>
+    <string name="nearby_snapshot" formatted="false">"Ảnh chụp gần"</string>
+    <string name="nearby_start_again" formatted="false">"Bắt đầu lại"</string>
+    <string name="nearby_start_receiving" formatted="false">"Bắt đầu nhận"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Hoàn tất truyền"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Truyền ở gần thất bại."</string>
+    <string name="nearby_transfer_status" formatted="false">"Trạng thái truyền"</string>
+    <string name="nearby_transport" formatted="false">"Kênh truyền"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Tìm thấy chưa xác minh · Đối chiếu trực tiếp mã 6 chữ số này trước khi chấp nhận."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Xem lại và phê duyệt bản chụp két sắt này trước khi rời khỏi thiết bị."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Bản chụp két sắt"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Bản chụp két sắt đã được xác minh trên thiết bị này. Hãy xem và chọn trường để nhập."</string>
+    <string name="nearby_verification_code" formatted="false">"Mã xác minh"</string>
+    <string name="nearby_waiting_accept" formatted="false">"Đang chờ thiết bị nhận chấp nhận…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"Đang chờ người gửi…"</string>
     <string name="no_conversations_yet" formatted="false">"Chưa có cuộc trò chuyện nào"</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
     <string name="offline_account" formatted="false">"Tài khoản cục bộ"</string>

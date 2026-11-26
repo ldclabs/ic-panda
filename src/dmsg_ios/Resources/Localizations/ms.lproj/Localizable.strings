@@ -50,6 +50,8 @@
 	<string>Tentang fail dan sandaran</string>
 	<key>About these benefits</key>
 	<string>Tentang manfaat ini</string>
+	<key>Accept</key>
+	<string>Terima</string>
 	<key>Accept approved binding</key>
 	<string>Terima pengikatan yang diluluskan</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Benarkan surat lain</string>
 	<key>Allow key rotation</key>
 	<string>Benarkan penggiliran kunci</string>
+	<key>Allow nearby discovery</key>
+	<string>Benarkan penemuan berdekatan</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Benarkan pemberitahuan untuk menerima isyarat sistem.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Kamera tidak tersedia. Benarkan akses kamera dalam Tetapan untuk mengambil foto dan video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Akses kamera tidak tersedia. Masukkan kunci persediaan atau benarkan akses kamera dalam Tetapan.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Akses kamera tidak tersedia. Tampal kod sambungan atau benarkan kamera dalam Tetapan.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera tidak tersedia. Tampal jemputan atau benarkan akses kamera dalam Tetapan.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Pilih akaun</string>
 	<key>Choose an attachment</key>
 	<string>Pilih lampiran</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Pilih sekurang-kurangnya satu medan, nota atau lampiran sebelum memilih penerima berdekatan.</string>
 	<key>Choose avatar</key>
 	<string>Pilih avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Storan awan</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Had storan awan atau saiz fail telah dilampaui. Semak pelan dan saiz sandaran anda.</string>
+	<key>Codes match — continue</key>
+	<string>Kod sepadan — teruskan</string>
 	<key>Collect files</key>
 	<string>Kumpul fail</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Sahkan kata laluan setempat</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Sahkan hanya kerja yang telah anda selesaikan sebenarnya. Ini merekodkan kenyataan anda; ia tidak melaksanakan tindakan pembekal.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Sahkan penerima memaparkan kod 6 digit yang sama sebelum menghantar sebarang butiran.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Sahkan permintaan dMsg yang anda semak</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Sambungkan penyemak imbas ini?</string>
 	<key>Connected browsers</key>
 	<string>Pelayar yang disambungkan</string>
+	<key>Connecting…</key>
+	<string>Menyambung…</string>
+	<key>Connection</key>
+	<string>Sambungan</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Sambungan tidak tersedia. Kandungan anda yang disimpan kekal pada peranti ini.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Salin semua</string>
 	<key>Copy binding request</key>
 	<string>Salin permintaan mengikat</string>
+	<key>Copy connection code</key>
+	<string>Salin kod sambungan</string>
 	<key>Copy device ID</key>
 	<string>Salin ID peranti</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Fail dalam folder ini</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Fail melebihi 100 MiB tidak boleh dikongsi melalui pautan.</string>
+	<key>Files to send</key>
+	<string>Fail untuk dihantar</string>
 	<key>Fill and remember</key>
 	<string>Isi dan ingat</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Sertakan teks mesej ini</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Termasuk rahsia yang disimpan dalam entri dompet.</string>
+	<key>Incoming transfer</key>
+	<string>Pemindahan masuk</string>
 	<key>Incomplete</key>
 	<string>Tidak lengkap</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Memuatkan…</string>
 	<key>Local</key>
 	<string>Tempatan</string>
+	<key>Local + Relay ready</key>
+	<string>Setempat + geganti sedia</string>
 	<key>Local account</key>
 	<string>Akaun setempat</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Penemuan tempatan</string>
 	<key>Local label</key>
 	<string>Label tempatan</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Akses rangkaian setempat dimatikan untuk dMsg. Hidupkan dalam Tetapan atau imbas kod QR untuk geganti disulitkan.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Akses rangkaian setempat dimatikan untuk dMsg. Hidupkannya dalam Tetapan, atau masukkan alamat peranti lain.</string>
+	<key>Local network only</key>
+	<string>Rangkaian setempat sahaja</string>
 	<key>Local password</key>
 	<string>Kata laluan setempat</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Identiti log masuk</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Dokumen panjang dipendekkan untuk pratonton. Muat turun atau buka secara luaran untuk melihat semua kandungan.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Mencari peranti dMsg berdekatan…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Urus langganan Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Kunci Taproot native</string>
 	<key>Native addresses</key>
 	<string>Alamat native</string>
+	<key>Nearby device</key>
+	<string>Peranti berdekatan</string>
+	<key>Nearby devices</key>
+	<string>Peranti berdekatan</string>
+	<key>Nearby receive QR code</key>
+	<string>Kod QR terima berdekatan</string>
+	<key>Nearby snapshot</key>
+	<string>Syot kilat berdekatan</string>
+	<key>Nearby transfer failed.</key>
+	<string>Pemindahan berdekatan gagal.</string>
 	<key>Needs a fresh review</key>
 	<string>Perlu ulasan baru</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Kod sekali sahaja</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Entri semasa sahaja. Sejarah, sampah, draf, salinan bercanggah dan kunci yang diurus oleh dMsg dikecualikan.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Hanya peranti yang mengaktifkan penemuan berdekatan muncul di sini. Anda sentiasa boleh mengimbas kod QR penerima.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Hanya lakukan ini apabila anda sudah bersedia untuk menggunakannya. Salinan kekal pada peranti ini dan tamat tempoh selepas 30 saat.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Kata laluan</string>
 	<key>Paste binding request</key>
 	<string>Tampal permintaan mengikat</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Tampal kod dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>Tampalkan permintaan pendaftaran</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Menyediakan dan menyalin fail…</string>
 	<key>Preparing backups…</key>
 	<string>Menyediakan sandaran…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Menyediakan penerimaan berdekatan…</string>
 	<key>Preparing purchase…</key>
 	<string>Menyediakan pembelian…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Tujuan</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Pemberitahuan tolak tidak didayakan dalam binaan ini. Buka dMsg untuk menyegerakkan.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR disahkan · Bandingkan kod 6 digit ini dengan penghantar sebelum menerima.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>Mod QR sahaja tidak menyiarkan pada rangkaian setempat. Hidupkan penemuan untuk muncul dalam senarai peranti berdekatan.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Buka kunci pantas membuka ruang kerja. Pengikatan mengehadkan peranti yang boleh membukanya. Kelulusan perkakasan melindungi tindakan akaun sensitif.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Sebab</string>
 	<key>Receive here</key>
 	<string>Terima di sini</string>
+	<key>Receive more</key>
+	<string>Terima lagi</string>
+	<key>Receive nearby</key>
+	<string>Terima berdekatan</string>
 	<key>Received files</key>
 	<string>Diterima</string>
 	<key>Received for review</key>
 	<string>Diterima untuk semakan</string>
 	<key>Receiver</key>
 	<string>Penerima</string>
+	<key>Receiver QR or connection code</key>
+	<string>Kod QR atau sambungan penerima</string>
 	<key>Receiving</key>
 	<string>Menerima</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Semak kebenaran ejen</string>
 	<key>Review an enrollment request</key>
 	<string>Semak permintaan pendaftaran</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Semak dan luluskan syot kilat peti besi ini sebelum meninggalkan peranti ini.</string>
+	<key>Review and import snapshot</key>
+	<string>Semak dan import syot kilat</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Semak dan mulakan semula pemetaan fail desktop pada peranti asalnya.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Imbas permintaan peranti</string>
 	<key>Scan invitation</key>
 	<string>Imbas jemputan</string>
+	<key>Scan receiver QR code</key>
+	<string>Imbas kod QR penerima</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Imbas kod pada peranti yang dibenarkan untuk membuka akaunnya.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Hantar ke peranti</string>
 	<key>Send to an administrator</key>
 	<string>Hantar kepada pentadbir</string>
+	<key>Send via code</key>
+	<string>Hantar melalui kod</string>
 	<key>Sender</key>
 	<string>Penghantar</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Dihantar</string>
 	<key>Sent letters</key>
 	<string>Surat yang dihantar</string>
+	<key>Sent successfully</key>
+	<string>Berjaya dihantar</string>
 	<key>Server</key>
 	<string>Pelayan</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Pautan perkongsian</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Pautan perkongsian tidak dapat dimuat semula. Memaparkan pautan yang disimpan.</string>
+	<key>Share my dMsg identity</key>
+	<string>Kongsi identiti dMsg saya</string>
+	<key>Share nearby</key>
+	<string>Kongsi berdekatan</string>
 	<key>Share pairing request</key>
 	<string>Kongsi permintaan pasangan</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Mulakan senarai semak giliran?</string>
 	<key>Start account recovery?</key>
 	<string>Mulakan pemulihan akaun?</string>
+	<key>Start again</key>
+	<string>Mula semula</string>
 	<key>Start checklist</key>
 	<string>Mulakan senarai semak</string>
+	<key>Start receiving</key>
+	<string>Mula menerima</string>
 	<key>Start sending</key>
 	<string>Mula menghantar</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Saiz keseluruhan</string>
 	<key>Transfer between devices</key>
 	<string>Pemindahan antara peranti</string>
+	<key>Transfer complete</key>
+	<string>Pemindahan selesai</string>
 	<key>Transfer needs attention</key>
 	<string>Pemindahan memerlukan perhatian</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Cadangan pemindahan</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Pemindahan dalam baris gilir. Lihat kemajuan dalam Fail.</string>
+	<key>Transfer status</key>
+	<string>Status pemindahan</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Status pemindahan tidak dapat disegarkan. Tugas yang disimpan dikekalkan.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Sedang memindahkan</string>
 	<key>Transfers</key>
 	<string>Pemindahan</string>
+	<key>Transport</key>
+	<string>Pengangkutan</string>
 	<key>Trash</key>
 	<string>Sampah</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Peringatan belum dibaca</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Pihak berkuasa perwakilan tidak terhad</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Penemuan tidak disahkan · Bandingkan kod 6 digit ini secara bersemuka sebelum menerima.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Sehingga 3 imej PNG, JPEG, WebP atau GIF, 10 MiB setiap satu. Padam rahsia dahulu. Salinan kekal dalam Fail; penghantaran mencipta pautan disulitkan sah 30 hari dan menggunakan kuota storan. Sesiapa yang mempunyai pautan lengkap boleh membukanya.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Peti simpanan</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Entri disegerakkan seperti biasa. Lampiran disimpan dalam Fail pada peranti ini.</string>
+	<key>Vault snapshot</key>
+	<string>Syot kilat peti besi</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Syot kilat peti besi disahkan pada peranti ini. Semak dan pilih medan untuk diimport.</string>
 	<key>Vault tools</key>
 	<string>Alat peti besi</string>
+	<key>Verification code</key>
+	<string>Kod pengesahan</string>
 	<key>Verified</key>
 	<string>disahkan</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Menunggu kelulusan log masuk</string>
 	<key>Waiting for notification registration…</key>
 	<string>Menunggu pendaftaran pemberitahuan…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Menunggu penerima menerima…</string>
+	<key>Waiting for sender…</key>
+	<string>Menunggu penghantar…</string>
 	<key>Waiting for the other device</key>
 	<string>Menunggu peranti lain</string>
 	<key>Waiting for your decision</key>

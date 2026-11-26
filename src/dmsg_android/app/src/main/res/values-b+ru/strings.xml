@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"Действия"</string>
     <string name="message_sending" formatted="false">"Отправка"</string>
     <string name="more" formatted="false">"Ещё"</string>
+    <string name="nearby_accept" formatted="false">"Принять"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Разрешить обнаружение поблизости"</string>
+    <string name="nearby_codes_match" formatted="false">"Коды совпадают — продолжить"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Убедитесь, что у получателя показан именно этот 6-значный код, прежде чем отправлять данные."</string>
+    <string name="nearby_connecting" formatted="false">"Подключение…"</string>
+    <string name="nearby_connection" formatted="false">"Соединение"</string>
+    <string name="nearby_copy_code" formatted="false">"Копировать код подключения"</string>
+    <string name="nearby_device" formatted="false">"Устройство поблизости"</string>
+    <string name="nearby_devices" formatted="false">"Устройства поблизости"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Здесь отображаются только устройства с включённым обнаружением. Вы всегда можете отсканировать QR-код получателя."</string>
+    <string name="nearby_files_to_send" formatted="false">"Файлы к отправке"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Входящая передача"</string>
+    <string name="nearby_local_network_denied" formatted="false">"Доступ к локальной сети для dMsg отключён. Включите его в Настройках или отсканируйте QR-код для зашифрованного ретранслятора."</string>
+    <string name="nearby_local_only" formatted="false">"Только локальная сеть"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Локально + ретранслятор готов"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Поиск устройств dMsg поблизости…"</string>
+    <string name="nearby_paste_code" formatted="false">"Вставьте код dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Подготовка приёма поблизости…"</string>
+    <string name="nearby_qr_code" formatted="false">"QR-код приёма поблизости"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"Режим только QR не вещает в локальной сети. Включите обнаружение, чтобы появляться в списке устройств поблизости."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR проверен · Сверьте этот 6-значный код с отправителем перед принятием."</string>
+    <string name="nearby_receive" formatted="false">"Принять поблизости"</string>
+    <string name="nearby_receive_more" formatted="false">"Принять ещё"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"QR-код или код подключения получателя"</string>
+    <string name="nearby_receiving" formatted="false">"Приём"</string>
+    <string name="nearby_review_approval" formatted="false">"Проверить одобрение"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Проверить и импортировать снимок"</string>
+    <string name="nearby_scan_qr" formatted="false">"Сканировать QR-код получателя"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Выберите хотя бы одно поле, заметку или вложение перед выбором получателя поблизости."</string>
+    <string name="nearby_send_via_code" formatted="false">"Отправить по коду"</string>
+    <string name="nearby_sent_success" formatted="false">"Успешно отправлено"</string>
+    <string name="nearby_share" formatted="false">"Поделиться поблизости"</string>
+    <string name="nearby_share_identity" formatted="false">"Поделиться моим идентификатором dMsg"</string>
+    <string name="nearby_snapshot" formatted="false">"Снимок поблизости"</string>
+    <string name="nearby_start_again" formatted="false">"Начать заново"</string>
+    <string name="nearby_start_receiving" formatted="false">"Начать приём"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Передача завершена"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Ошибка передачи поблизости."</string>
+    <string name="nearby_transfer_status" formatted="false">"Статус передачи"</string>
+    <string name="nearby_transport" formatted="false">"Канал"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Неподтверждённое обнаружение · Сверьте этот 6-значный код лично перед принятием."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Проверьте и одобрите этот снимок хранилища перед отправкой с устройства."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Снимок хранилища"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Снимок хранилища проверен на устройстве. Выберите поля для импорта."</string>
+    <string name="nearby_verification_code" formatted="false">"Код проверки"</string>
+    <string name="nearby_waiting_accept" formatted="false">"Ожидание подтверждения получателя…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"Ожидание отправителя…"</string>
     <string name="no_conversations_yet" formatted="false">"Разговоров пока нет"</string>
     <string name="no_matches" formatted="false">"Совпадений нет"</string>
     <string name="offline_account" formatted="false">"Локальная учётная запись"</string>

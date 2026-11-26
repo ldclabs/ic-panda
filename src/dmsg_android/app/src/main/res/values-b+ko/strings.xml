@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"작업"</string>
     <string name="message_sending" formatted="false">"보내는 중"</string>
     <string name="more" formatted="false">"더 보기"</string>
+    <string name="nearby_accept" formatted="false">"수락"</string>
+    <string name="nearby_allow_discovery" formatted="false">"주변 기기 검색 허용"</string>
+    <string name="nearby_codes_match" formatted="false">"코드 일치 — 계속"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"세부 정보를 보내기 전에 수신 기기에 동일한 6자리 코드가 표시되는지 확인하세요."</string>
+    <string name="nearby_connecting" formatted="false">"연결 중…"</string>
+    <string name="nearby_connection" formatted="false">"연결"</string>
+    <string name="nearby_copy_code" formatted="false">"연결 코드 복사"</string>
+    <string name="nearby_device" formatted="false">"주변 기기"</string>
+    <string name="nearby_devices" formatted="false">"주변 기기"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"주변 기기 검색을 켠 기기만 표시됩니다. 언제든 수신 기기의 QR 코드를 스캔할 수도 있습니다."</string>
+    <string name="nearby_files_to_send" formatted="false">"보낼 파일"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"수신 요청"</string>
+    <string name="nearby_local_network_denied" formatted="false">"dMsg의 로컬 네트워크 접근이 꺼져 있습니다. 설정에서 켜거나 QR 코드를 스캔해 암호화 릴레이를 사용하세요."</string>
+    <string name="nearby_local_only" formatted="false">"로컬 네트워크만"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"로컬 + 릴레이 준비됨"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"주변 dMsg 기기 검색 중…"</string>
+    <string name="nearby_paste_code" formatted="false">"dmsg-nearby/1: 코드 붙여넣기"</string>
+    <string name="nearby_preparing_receive" formatted="false">"근거리 수신 준비 중…"</string>
+    <string name="nearby_qr_code" formatted="false">"근거리 수신 QR 코드"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"QR 전용 모드는 로컬 네트워크에 브로드캐스트하지 않습니다. 검색을 켜면 주변 기기 목록에 표시됩니다."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR 확인됨 · 수락하기 전에 발신자와 이 6자리 코드를 비교하세요."</string>
+    <string name="nearby_receive" formatted="false">"근거리 수신"</string>
+    <string name="nearby_receive_more" formatted="false">"더 받기"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"수신 기기 QR 또는 연결 코드"</string>
+    <string name="nearby_receiving" formatted="false">"받는 중"</string>
+    <string name="nearby_review_approval" formatted="false">"승인 검토"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"스냅샷 검토 및 가져오기"</string>
+    <string name="nearby_scan_qr" formatted="false">"수신 기기 QR 코드 스캔"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"주변 수신 기기를 선택하기 전에 필드, 메모 또는 첨부 파일을 하나 이상 선택하세요."</string>
+    <string name="nearby_send_via_code" formatted="false">"코드로 보내기"</string>
+    <string name="nearby_sent_success" formatted="false">"전송 완료"</string>
+    <string name="nearby_share" formatted="false">"근거리 공유"</string>
+    <string name="nearby_share_identity" formatted="false">"내 dMsg 신원 공유"</string>
+    <string name="nearby_snapshot" formatted="false">"근거리 스냅샷"</string>
+    <string name="nearby_start_again" formatted="false">"다시 시작"</string>
+    <string name="nearby_start_receiving" formatted="false">"수신 시작"</string>
+    <string name="nearby_transfer_complete" formatted="false">"전송 완료"</string>
+    <string name="nearby_transfer_failed" formatted="false">"근거리 전송에 실패했습니다."</string>
+    <string name="nearby_transfer_status" formatted="false">"전송 상태"</string>
+    <string name="nearby_transport" formatted="false">"전송 경로"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"미확인 검색 · 수락하기 전에 대면으로 이 6자리 코드를 비교하세요."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"이 금고 스냅샷이 기기를 떠나기 전에 검토하고 승인하세요."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"금고 스냅샷"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"이 기기에서 금고 스냅샷이 검증되었습니다. 가져올 필드를 검토하고 선택하세요."</string>
+    <string name="nearby_verification_code" formatted="false">"확인 코드"</string>
+    <string name="nearby_waiting_accept" formatted="false">"수신자의 수락을 기다리는 중…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"발신자 대기 중…"</string>
     <string name="no_conversations_yet" formatted="false">"아직 대화가 없습니다."</string>
     <string name="no_matches" formatted="false">"일치하는 결과 없음"</string>
     <string name="offline_account" formatted="false">"로컬 계정"</string>

@@ -415,6 +415,7 @@ impl MobileEngine {
                 })
             })
             .await?;
+        let nearby = self.nearby.clone();
         let view = self
             .held(move |h| {
                 Box::pin(async move {
@@ -422,7 +423,15 @@ impl MobileEngine {
                         Decision::Done(view) => Ok(view),
                         Decision::Attest(run) => run.run(h).await,
                         Decision::Wallet(run) => run.run(h).await,
-                        Decision::SecretShare(run) => run.run(h).await,
+                        Decision::SecretShare(run) => {
+                            let result = run.run(h).await?;
+                            if result["state"] == "ready_for_nearby"
+                                && let Some(job_id) = result["id"].as_str()
+                            {
+                                nearby.notify_approval_ready(job_id.to_string());
+                            }
+                            Ok(result)
+                        }
                         Decision::SecretPackageImport(run) => run.run(h).await,
                         _ => Err(Error::UnsupportedProtocol),
                     }

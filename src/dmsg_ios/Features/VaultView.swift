@@ -8,6 +8,7 @@ struct VaultView: View {
     @State private var hasLocalSource = false
     @State private var searchScope: WorkspaceSearchScope = .current
     @State private var globalSearch = GlobalSearchStore()
+    @State private var nearbyReceiving = false
 
     private var searchingAll: Bool {
         searchScope == .all && !model.search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -67,6 +68,7 @@ struct VaultView: View {
                                 NavigationLink { SecretHealthView() } label: { Label("Local security review", systemImage: "checkmark.shield") }
                             }
                             Section {
+                                Button("Receive nearby", systemImage: "wave.3.right") { nearbyReceiving = true }
                                 NavigationLink { VaultImportView() } label: { Label("Import passwords", systemImage: "square.and.arrow.down") }
                                 NavigationLink { VaultBackupView() } label: { Label("Backup and restore", systemImage: "externaldrive") }
                                 if model.cloudAccount && hasLocalSource { NavigationLink { LocalImportView() } label: { Label("Import from local account", systemImage: "square.and.arrow.down") } }
@@ -99,6 +101,7 @@ struct VaultView: View {
         }
         .onChange(of: model.route.vaultItem) { _, value in if value != nil { model.activity() } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
+        .sheet(isPresented: $nearbyReceiving) { NavigationStack { NearbyReceiveSheet() } }
         .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() }.presentationDetents([.medium, .large]) }
     }
 

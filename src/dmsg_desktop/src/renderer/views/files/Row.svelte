@@ -31,6 +31,7 @@
     onExport,
     onBackup,
     onShare,
+    onNearbyShare,
     onMove,
     onRename,
     onStar,
@@ -55,6 +56,7 @@
     onExport: () => void
     onBackup: () => void
     onShare: () => void
+    onNearbyShare?: () => void
     onMove: () => void
     onRename: () => void
     onStar: () => void
@@ -182,6 +184,9 @@
             <ContextMenu.Item class={menuItemClass} onSelect={onExport} disabled={status === 'cloud_only'}>
               <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
             </ContextMenu.Item>
+            {#if onNearbyShare}<ContextMenu.Item class={menuItemClass} onSelect={onNearbyShare} disabled={status === 'cloud_only'} data-testid="files-row-nearby-share">
+              <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
+            </ContextMenu.Item>{/if}
             {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={onShare} disabled={status === 'cloud_only' || entry.size > 100 * 1024 * 1024}>
               <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
             </ContextMenu.Item>{/if}

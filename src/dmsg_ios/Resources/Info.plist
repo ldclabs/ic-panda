@@ -35,6 +35,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_dmsg-xfer._tcp</string>
+		<string>_dmsg-share._tcp</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

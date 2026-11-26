@@ -316,6 +316,7 @@ mod tests {
             plan_checked: Arc::default(),
             invitations: Arc::default(),
             transfers: Arc::default(),
+            nearby: Arc::default(),
         })
     }
 

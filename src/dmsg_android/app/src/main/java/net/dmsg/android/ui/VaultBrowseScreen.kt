@@ -87,6 +87,11 @@ fun vaultKindName(kind: String): String = when (kind) {
                             )
                             HorizontalDivider(Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
+                                text = { Text(str(R.string.nearby_receive)) },
+                                leadingIcon = { Icon(Icons.Outlined.WifiTethering, null) },
+                                onClick = { tools = false; client.navigation.open("nearby-receive") },
+                            )
+                            DropdownMenuItem(
                                 text = { Text(str(R.string.vault_backup_title)) },
                                 leadingIcon = { Icon(Icons.Outlined.Backup, null) },
                                 onClick = { tools = false; client.navigation.open("vault-backup") },

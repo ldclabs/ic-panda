@@ -33,4 +33,17 @@ class SecretSharingTest {
         restored.restore(navigation.save()); restored.activate("account")
         assertEquals(navigation.state.value, restored.state.value)
     }
+
+    @Test fun nearbySecretShareReviewParsesWithoutLinkLimits() {
+        val nearbyDetail = """{"input":{"item_id":"item-1","revision":"rev-1","field_ids":["password"],"include_notes":false,"attachments":[]},"channel":null,"nearby":{"transcript":"aa11bb22","sas":"482913","peer_label":"Bob Pixel"},"account_id":"local","device_id":"dev-1","title":"Wi-Fi","item_type":"login","fields":[{"id":"password","type":"concealed","label":"Password","section":null}],"attachments":[],"expires_at":null,"max_download_sessions":null,"password":false}"""
+        val review = parseSecretReview("secret_share", Json.parseToJsonElement(nearbyDetail))
+        assertFalse(review.importing)
+        assertNull(review.channel)
+        assertNull(review.expiry)
+        assertNull(review.sessions)
+        assertNull(review.password)
+        assertEquals("Bob Pixel", review.nearby?.peerLabel)
+        assertEquals("482913", review.nearby?.sas)
+        assertEquals("aa11bb22", review.nearby?.transcript)
+    }
 }

@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"操作"</string>
     <string name="message_sending" formatted="false">"傳送"</string>
     <string name="more" formatted="false">"更多"</string>
+    <string name="nearby_accept" formatted="false">"接收"</string>
+    <string name="nearby_allow_discovery" formatted="false">"允許附近裝置發現"</string>
+    <string name="nearby_codes_match" formatted="false">"核對碼一致，繼續傳送"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"在傳送任何資訊前，請當面確認接收端顯示的 6 位核對碼完全一致。"</string>
+    <string name="nearby_connecting" formatted="false">"正在連線…"</string>
+    <string name="nearby_connection" formatted="false">"連線方式"</string>
+    <string name="nearby_copy_code" formatted="false">"複製連線碼"</string>
+    <string name="nearby_device" formatted="false">"附近裝置"</string>
+    <string name="nearby_devices" formatted="false">"附近裝置"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"只有開啟了「允許附近裝置發現」的接收端才會出現在這裡。你也可以直接掃描對方的 QR 碼。"</string>
+    <string name="nearby_files_to_send" formatted="false">"待傳送檔案"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"收到傳輸請求"</string>
+    <string name="nearby_local_network_denied" formatted="false">"dMsg 未獲得區域網路權限。請在系統設定中開啟，或掃描 QR 碼透過加密中繼傳輸。"</string>
+    <string name="nearby_local_only" formatted="false">"僅區域網路"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"本地直連 + 加密中繼就緒"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"正在搜尋附近的 dMsg 裝置…"</string>
+    <string name="nearby_paste_code" formatted="false">"貼上 dmsg-nearby/1: 連線碼"</string>
+    <string name="nearby_preparing_receive" formatted="false">"正在準備近場接收…"</string>
+    <string name="nearby_qr_code" formatted="false">"近場接收 QR 碼"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"預設「僅 QR 碼」模式不會在區域網路廣播。開啟發現後將出現在附近裝置列表中，並支援蘋果裝置直連傳輸。"</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"已通過 QR 碼校驗 · 接收前請與傳送方核對這 6 位數字。"</string>
+    <string name="nearby_receive" formatted="false">"近場接收"</string>
+    <string name="nearby_receive_more" formatted="false">"繼續接收"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"接收方 QR 碼或連線碼"</string>
+    <string name="nearby_receiving" formatted="false">"接收"</string>
+    <string name="nearby_review_approval" formatted="false">"審查批准"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"預覽並匯入快照"</string>
+    <string name="nearby_scan_qr" formatted="false">"掃描接收方 QR 碼"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"請先至少選擇一項欄位、備註或附件，再選擇附近接收裝置。"</string>
+    <string name="nearby_send_via_code" formatted="false">"透過連線碼傳送"</string>
+    <string name="nearby_sent_success" formatted="false">"傳送成功"</string>
+    <string name="nearby_share" formatted="false">"近場分享"</string>
+    <string name="nearby_share_identity" formatted="false">"附帶分享我的 dMsg 身分（可選）"</string>
+    <string name="nearby_snapshot" formatted="false">"近場快照"</string>
+    <string name="nearby_start_again" formatted="false">"重新開始"</string>
+    <string name="nearby_start_receiving" formatted="false">"開始接收"</string>
+    <string name="nearby_transfer_complete" formatted="false">"傳輸完成"</string>
+    <string name="nearby_transfer_failed" formatted="false">"近場傳輸失敗。"</string>
+    <string name="nearby_transfer_status" formatted="false">"傳輸狀態"</string>
+    <string name="nearby_transport" formatted="false">"傳輸鏈路"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"區域網路發現 · 接收前請當面核對這 6 位數字是否一致。"</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"此保險庫快照離開本機前需要你的高風險審批確認。"</string>
+    <string name="nearby_vault_snapshot" formatted="false">"保險庫快照"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"保險庫快照已在本機驗證通過。請預覽並勾選需要匯入的欄位。"</string>
+    <string name="nearby_verification_code" formatted="false">"6 位核對碼"</string>
+    <string name="nearby_waiting_accept" formatted="false">"等待接收方確認…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"等待傳送方連線…"</string>
     <string name="no_conversations_yet" formatted="false">"還沒有對話"</string>
     <string name="no_matches" formatted="false">"沒有符合的結果"</string>
     <string name="offline_account" formatted="false">"本機帳戶"</string>

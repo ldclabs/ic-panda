@@ -50,6 +50,8 @@
 	<string>Acerca de archivos y copias de seguridad</string>
 	<key>About these benefits</key>
 	<string>Acerca de estas ventajas</string>
+	<key>Accept</key>
+	<string>Aceptar</string>
 	<key>Accept approved binding</key>
 	<string>Aceptar vinculación aprobada</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Permitir otra carta</string>
 	<key>Allow key rotation</key>
 	<string>Permitir rotación de claves</string>
+	<key>Allow nearby discovery</key>
+	<string>Permitir detección cercana</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Permite las notificaciones para recibir avisos del sistema.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>La cámara no está disponible. Permite el acceso a la cámara en Ajustes para hacer fotos y vídeos.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>No se puede acceder a la cámara. Introduce una clave de configuración o permite el acceso a la cámara en Ajustes.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Acceso a la cámara no disponible. Pega el código de conexión o permítelo en Ajustes.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>La cámara no está disponible. Pega la invitación o permite el acceso a la cámara en Ajustes.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Elegir una cuenta</string>
 	<key>Choose an attachment</key>
 	<string>Elegir un adjunto</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Elige al menos un campo, nota o adjunto antes de seleccionar un receptor cercano.</string>
 	<key>Choose avatar</key>
 	<string>Elegir avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Almacenamiento en la nube</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Se ha superado el límite de almacenamiento en la nube o de tamaño del archivo. Revisa tu plan y el tamaño de la copia.</string>
+	<key>Codes match — continue</key>
+	<string>Los códigos coinciden — continuar</string>
 	<key>Collect files</key>
 	<string>Recoger archivos</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Confirmar contraseña local</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Confirma solo el trabajo que hayas completado realmente. Esto registra tu declaración; no ejecuta la acción en el proveedor.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Confirma que el receptor muestra exactamente este código de 6 dígitos antes de enviar detalles.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Confirmar la solicitud de dMsg que has revisado</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>¿Conectar este navegador?</string>
 	<key>Connected browsers</key>
 	<string>Navegadores conectados</string>
+	<key>Connecting…</key>
+	<string>Conectando…</string>
+	<key>Connection</key>
+	<string>Conexión</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Conexión no disponible. El contenido guardado permanece en este dispositivo.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Copiar todo</string>
 	<key>Copy binding request</key>
 	<string>Copiar solicitud de vinculación</string>
+	<key>Copy connection code</key>
+	<string>Copiar código de conexión</string>
 	<key>Copy device ID</key>
 	<string>Copiar ID del dispositivo</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Archivos de esta carpeta</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Los archivos de más de 100 MiB no se pueden compartir por enlace.</string>
+	<key>Files to send</key>
+	<string>Archivos para enviar</string>
 	<key>Fill and remember</key>
 	<string>Rellenar y recordar</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Incluir el texto de este mensaje</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Incluye secretos guardados en entradas de cartera.</string>
+	<key>Incoming transfer</key>
+	<string>Transferencia entrante</string>
 	<key>Incomplete</key>
 	<string>Incompleto</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Cargando…</string>
 	<key>Local</key>
 	<string>Local</string>
+	<key>Local + Relay ready</key>
+	<string>Local + retransmisión lista</string>
 	<key>Local account</key>
 	<string>Cuenta local</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Hallazgos locales</string>
 	<key>Local label</key>
 	<string>Etiqueta local</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>El acceso a la red local está desactivado para dMsg. Actívalo en Ajustes o escanea el código QR para usar la retransmisión cifrada.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>El acceso a la red local está desactivado para dMsg. Actívalo en Ajustes o introduce la dirección del otro dispositivo.</string>
+	<key>Local network only</key>
+	<string>Solo red local</string>
 	<key>Local password</key>
 	<string>Contraseña local</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Identidad de inicio de sesión</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Documento largo truncado para la vista previa. Descárgalo o ábrelo externamente para ver todo el contenido.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Buscando dispositivos dMsg cercanos…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Gestionar suscripciones Apple</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Clave Taproot nativa</string>
 	<key>Native addresses</key>
 	<string>Direcciones nativas</string>
+	<key>Nearby device</key>
+	<string>Dispositivo cercano</string>
+	<key>Nearby devices</key>
+	<string>Dispositivos cercanos</string>
+	<key>Nearby receive QR code</key>
+	<string>Código QR de recepción cercana</string>
+	<key>Nearby snapshot</key>
+	<string>Instantánea cercana</string>
+	<key>Nearby transfer failed.</key>
+	<string>Error en la transferencia cercana.</string>
 	<key>Needs a fresh review</key>
 	<string>Requiere una nueva revisión</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>Código de un solo uso</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Solo entradas actuales. Se excluyen historial, papelera, borradores, copias en conflicto y claves gestionadas por dMsg.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Solo aparecen los dispositivos con detección cercana activada. Siempre puedes escanear el código QR del receptor.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Hazlo solo cuando estés listo para usarlo. Las copias permanecen en este dispositivo y caducan a los 30 segundos.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Contraseñas</string>
 	<key>Paste binding request</key>
 	<string>Pegar solicitud de vinculación</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Pega el código dmsg-nearby/1:</string>
 	<key>Paste enrollment request</key>
 	<string>Pegar solicitud de registro</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Preparando y copiando el archivo…</string>
 	<key>Preparing backups…</key>
 	<string>Preparando copias de seguridad…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Preparando recepción cercana…</string>
 	<key>Preparing purchase…</key>
 	<string>Preparando la compra…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Finalidad</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Las notificaciones push no están activadas en esta versión. Abre dMsg para sincronizar.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR verificado · Compara este código de 6 dígitos con el remitente antes de aceptar.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>El modo solo QR no emite en la red local. Activa la detección para aparecer en listas cercanas y aceptar transferencias directas.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>El desbloqueo rápido abre el espacio de trabajo. La vinculación limita qué dispositivo puede desbloquearlo. La aprobación por hardware protege las acciones sensibles de la cuenta.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Motivo</string>
 	<key>Receive here</key>
 	<string>Recibir aquí</string>
+	<key>Receive more</key>
+	<string>Recibir más</string>
+	<key>Receive nearby</key>
+	<string>Recibir cerca</string>
 	<key>Received files</key>
 	<string>Recibidos</string>
 	<key>Received for review</key>
 	<string>Recibido para revisión</string>
 	<key>Receiver</key>
 	<string>Receptor</string>
+	<key>Receiver QR or connection code</key>
+	<string>Código QR o de conexión del receptor</string>
 	<key>Receiving</key>
 	<string>Recepción</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Revisar permisos del agente</string>
 	<key>Review an enrollment request</key>
 	<string>Revisar una solicitud de registro</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Revisa y aprueba esta instantánea de la bóveda antes de que salga de este dispositivo.</string>
+	<key>Review and import snapshot</key>
+	<string>Revisar e importar instantánea</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Revisa y reinicia la asignación de archivos del escritorio en su dispositivo de origen.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Escanear solicitud de dispositivo</string>
 	<key>Scan invitation</key>
 	<string>Escanear invitación</string>
+	<key>Scan receiver QR code</key>
+	<string>Escanear código QR del receptor</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Escanea el código de un dispositivo autorizado para abrir su cuenta.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Enviar a un dispositivo</string>
 	<key>Send to an administrator</key>
 	<string>Enviar a un administrador</string>
+	<key>Send via code</key>
+	<string>Enviar con código</string>
 	<key>Sender</key>
 	<string>Remitente</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Enviado</string>
 	<key>Sent letters</key>
 	<string>Cartas enviadas</string>
+	<key>Sent successfully</key>
+	<string>Enviado correctamente</string>
 	<key>Server</key>
 	<string>Servidor</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Enlaces compartidos</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>No se pudieron actualizar los enlaces compartidos. Se muestran los guardados.</string>
+	<key>Share my dMsg identity</key>
+	<string>Compartir mi identidad de dMsg</string>
+	<key>Share nearby</key>
+	<string>Compartir cerca</string>
 	<key>Share pairing request</key>
 	<string>Compartir solicitud de emparejamiento</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>¿Iniciar una lista de rotación?</string>
 	<key>Start account recovery?</key>
 	<string>¿Iniciar recuperación de la cuenta?</string>
+	<key>Start again</key>
+	<string>Empezar de nuevo</string>
 	<key>Start checklist</key>
 	<string>Iniciar lista</string>
+	<key>Start receiving</key>
+	<string>Empezar a recibir</string>
 	<key>Start sending</key>
 	<string>Empezar a enviar</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Tamaño total</string>
 	<key>Transfer between devices</key>
 	<string>Transferencia entre dispositivos</string>
+	<key>Transfer complete</key>
+	<string>Transferencia completada</string>
 	<key>Transfer needs attention</key>
 	<string>La transferencia requiere atención</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Propuesta de transferencia</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Transferencia en cola. Consulta el progreso en Archivos.</string>
+	<key>Transfer status</key>
+	<string>Estado de la transferencia</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>No se pudo actualizar el estado de las transferencias. Se conservan las tareas guardadas.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Transfiriendo</string>
 	<key>Transfers</key>
 	<string>Transferencias</string>
+	<key>Transport</key>
+	<string>Transporte</string>
 	<key>Trash</key>
 	<string>Papelera</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Recordatorio sin leer</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Autoridad de delegación sin restricciones</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Detección sin verificar · Compara este código de 6 dígitos en persona antes de aceptar.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Hasta 3 imágenes PNG, JPEG, WebP o GIF de 10 MiB cada una. Elimina los secretos primero. Las copias quedan en Archivos; el envío crea enlaces cifrados válidos durante 30 días y usa tu cuota. Cualquiera con el enlace completo puede abrirlo.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Bóveda</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Las entradas se sincronizan como siempre. Los adjuntos se guardan en Archivos en este dispositivo.</string>
+	<key>Vault snapshot</key>
+	<string>Instantánea de la bóveda</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Instantánea de la bóveda verificada en este dispositivo. Revisa y elige qué campos importar.</string>
 	<key>Vault tools</key>
 	<string>Herramientas de la bóveda</string>
+	<key>Verification code</key>
+	<string>Código de verificación</string>
 	<key>Verified</key>
 	<string>verificado</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Esperando la aprobación del acceso</string>
 	<key>Waiting for notification registration…</key>
 	<string>Esperando registro de notificaciones…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Esperando a que el receptor acepte…</string>
+	<key>Waiting for sender…</key>
+	<string>Esperando al remitente…</string>
 	<key>Waiting for the other device</key>
 	<string>Esperando al otro dispositivo</string>
 	<key>Waiting for your decision</key>

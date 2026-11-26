@@ -50,6 +50,8 @@
 	<string>About files and backups</string>
 	<key>About these benefits</key>
 	<string>About these benefits</string>
+	<key>Accept</key>
+	<string>Accept</string>
 	<key>Accept approved binding</key>
 	<string>Accept approved binding</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>Allow another letter</string>
 	<key>Allow key rotation</key>
 	<string>Allow key rotation</string>
+	<key>Allow nearby discovery</key>
+	<string>Allow nearby discovery</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>Allow notifications to receive system alerts.</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>Choose an account</string>
 	<key>Choose an attachment</key>
 	<string>Choose an attachment</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>Choose at least one field, note or attachment before selecting a nearby receiver.</string>
 	<key>Choose avatar</key>
 	<string>Choose avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>Cloud storage</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</string>
+	<key>Codes match — continue</key>
+	<string>Codes match — continue</string>
 	<key>Collect files</key>
 	<string>Collect files</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>Confirm local password</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>Confirm that the receiver shows this exact 6-digit code before sending any details.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Confirm the dMsg request you reviewed</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>Connect this browser?</string>
 	<key>Connected browsers</key>
 	<string>Connected browsers</string>
+	<key>Connecting…</key>
+	<string>Connecting…</string>
+	<key>Connection</key>
+	<string>Connection</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>Connection unavailable. Your saved content stays on this device.</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>Copy all</string>
 	<key>Copy binding request</key>
 	<string>Copy binding request</string>
+	<key>Copy connection code</key>
+	<string>Copy connection code</string>
 	<key>Copy device ID</key>
 	<string>Copy device ID</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>Files in this folder</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>Files over 100 MiB cannot be shared by link.</string>
+	<key>Files to send</key>
+	<string>Files to send</string>
 	<key>Fill and remember</key>
 	<string>Fill and remember</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>Include this message's text</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>Includes secrets saved in wallet items.</string>
+	<key>Incoming transfer</key>
+	<string>Incoming transfer</string>
 	<key>Incomplete</key>
 	<string>Incomplete</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>Loading…</string>
 	<key>Local</key>
 	<string>Local</string>
+	<key>Local + Relay ready</key>
+	<string>Local + Relay ready</string>
 	<key>Local account</key>
 	<string>Local account</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>Local findings</string>
 	<key>Local label</key>
 	<string>Local label</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</string>
+	<key>Local network only</key>
+	<string>Local network only</string>
 	<key>Local password</key>
 	<string>Local password</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>Login identity</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>Long document truncated for preview. Download or open externally to view all content.</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>Looking for nearby dMsg devices…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Manage Apple subscriptions</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>Native Taproot key</string>
 	<key>Native addresses</key>
 	<string>Native addresses</string>
+	<key>Nearby device</key>
+	<string>Nearby device</string>
+	<key>Nearby devices</key>
+	<string>Nearby devices</string>
+	<key>Nearby receive QR code</key>
+	<string>Nearby receive QR code</string>
+	<key>Nearby snapshot</key>
+	<string>Nearby snapshot</string>
+	<key>Nearby transfer failed.</key>
+	<string>Nearby transfer failed.</string>
 	<key>Needs a fresh review</key>
 	<string>Needs a fresh review</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>One-time code</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>Passwords</string>
 	<key>Paste binding request</key>
 	<string>Paste binding request</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>Paste dmsg-nearby/1: code</string>
 	<key>Paste enrollment request</key>
 	<string>Paste enrollment request</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>Preparing and copying file…</string>
 	<key>Preparing backups…</key>
 	<string>Preparing backups…</string>
+	<key>Preparing nearby receive…</key>
+	<string>Preparing nearby receive…</string>
 	<key>Preparing purchase…</key>
 	<string>Preparing purchase…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>Purpose</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Push notifications are not enabled in this build. Open dMsg to synchronize.</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>QR verified · Compare this 6-digit code with the sender before accepting.</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>Reason</string>
 	<key>Receive here</key>
 	<string>Receive here</string>
+	<key>Receive more</key>
+	<string>Receive more</string>
+	<key>Receive nearby</key>
+	<string>Receive nearby</string>
 	<key>Received files</key>
 	<string>Received files</string>
 	<key>Received for review</key>
 	<string>Received for review</string>
 	<key>Receiver</key>
 	<string>Receiver</string>
+	<key>Receiver QR or connection code</key>
+	<string>Receiver QR or connection code</string>
 	<key>Receiving</key>
 	<string>Receiving</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>Review agent permissions</string>
 	<key>Review an enrollment request</key>
 	<string>Review an enrollment request</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>Review and approve this Vault snapshot before it leaves this device.</string>
+	<key>Review and import snapshot</key>
+	<string>Review and import snapshot</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>Review and restart the desktop file mapping on its originating device.</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>Scan device request</string>
 	<key>Scan invitation</key>
 	<string>Scan invitation</string>
+	<key>Scan receiver QR code</key>
+	<string>Scan receiver QR code</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>Scan the code on an authorized device to open its account.</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>Send to a device</string>
 	<key>Send to an administrator</key>
 	<string>Send to an administrator</string>
+	<key>Send via code</key>
+	<string>Send via code</string>
 	<key>Sender</key>
 	<string>Sender</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>Sent</string>
 	<key>Sent letters</key>
 	<string>Sent letters</string>
+	<key>Sent successfully</key>
+	<string>Sent successfully</string>
 	<key>Server</key>
 	<string>Server</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>Share links</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>Share links could not be refreshed. Showing saved links.</string>
+	<key>Share my dMsg identity</key>
+	<string>Share my dMsg identity</string>
+	<key>Share nearby</key>
+	<string>Share nearby</string>
 	<key>Share pairing request</key>
 	<string>Share pairing request</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>Start a rotation checklist?</string>
 	<key>Start account recovery?</key>
 	<string>Start account recovery?</string>
+	<key>Start again</key>
+	<string>Start again</string>
 	<key>Start checklist</key>
 	<string>Start checklist</string>
+	<key>Start receiving</key>
+	<string>Start receiving</string>
 	<key>Start sending</key>
 	<string>Start sending</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>Total size</string>
 	<key>Transfer between devices</key>
 	<string>Transfer between devices</string>
+	<key>Transfer complete</key>
+	<string>Transfer complete</string>
 	<key>Transfer needs attention</key>
 	<string>Transfer needs attention</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>Transfer proposal</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Transfer queued. Follow its progress in Files.</string>
+	<key>Transfer status</key>
+	<string>Transfer status</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>Transfer status could not be refreshed. Saved tasks are kept.</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>Transferring</string>
 	<key>Transfers</key>
 	<string>Transfers</string>
+	<key>Transport</key>
+	<string>Transport</string>
 	<key>Trash</key>
 	<string>Trash</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>Unread reminder</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Unrestricted delegation authority</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>Vault</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Vault entries follow normal sync. Attachments are saved in Files on this device.</string>
+	<key>Vault snapshot</key>
+	<string>Vault snapshot</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>Vault snapshot verified on this device. Review and choose which fields to import.</string>
 	<key>Vault tools</key>
 	<string>Vault tools</string>
+	<key>Verification code</key>
+	<string>Verification code</string>
 	<key>Verified</key>
 	<string>verified</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>Waiting for login approval</string>
 	<key>Waiting for notification registration…</key>
 	<string>Waiting for notification registration…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>Waiting for receiver to accept…</string>
+	<key>Waiting for sender…</key>
+	<string>Waiting for sender…</string>
 	<key>Waiting for the other device</key>
 	<string>Waiting for the other device</string>
 	<key>Waiting for your decision</key>

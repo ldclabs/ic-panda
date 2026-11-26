@@ -50,6 +50,8 @@
 	<string>关于文件与备份</string>
 	<key>About these benefits</key>
 	<string>权益说明</string>
+	<key>Accept</key>
+	<string>接收</string>
 	<key>Accept approved binding</key>
 	<string>接受已批准的绑定</string>
 	<key>Accepted by service</key>
@@ -166,6 +168,8 @@
 	<string>允许再次来信</string>
 	<key>Allow key rotation</key>
 	<string>允许轮换密钥</string>
+	<key>Allow nearby discovery</key>
+	<string>允许附近设备发现</string>
 	<key>Allow notifications to receive system alerts.</key>
 	<string>允许通知后，即可接收系统提醒。</string>
 	<key>Allow this account to send another letter?</key>
@@ -408,6 +412,8 @@
 	<string>无法访问相机。请在“设置”中允许访问相机，以便拍照或录像。</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>无法访问相机。请输入设置密钥，或在“设置”中允许访问相机。</string>
+	<key>Camera access is unavailable. Paste the connection code or allow camera access in Settings.</key>
+	<string>无法使用相机。请粘贴连接码，或在系统设置中开启相机权限。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>无法使用摄像头。请粘贴邀请，或在系统设置中允许访问摄像头。</string>
 	<key>Cancel</key>
@@ -524,6 +530,8 @@
 	<string>选择账号</string>
 	<key>Choose an attachment</key>
 	<string>选择附件</string>
+	<key>Choose at least one field, note or attachment before selecting a nearby receiver.</key>
+	<string>请先至少选择一项字段、备注或附件，再选择附近接收设备。</string>
 	<key>Choose avatar</key>
 	<string>选择头像</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
@@ -580,6 +588,8 @@
 	<string>云端空间</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>云端空间或文件大小超出限制，请检查套餐和备份大小。</string>
+	<key>Codes match — continue</key>
+	<string>核对码一致，继续发送</string>
 	<key>Collect files</key>
 	<string>收取文件</string>
 	<key>Collecting files needs a paid plan</key>
@@ -618,6 +628,8 @@
 	<string>确认本地口令</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>只确认你实际完成的工作。这会记录你的声明，不会执行服务提供方的操作。</string>
+	<key>Confirm that the receiver shows this exact 6-digit code before sending any details.</key>
+	<string>在发送任何信息前，请当面确认接收端显示的 6 位核对码完全一致。</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>确认你已核对的 dMsg 请求</string>
 	<key>Confirm this account security change</key>
@@ -640,6 +652,10 @@
 	<string>连接这个浏览器？</string>
 	<key>Connected browsers</key>
 	<string>已连接的浏览器</string>
+	<key>Connecting…</key>
+	<string>正在连接…</string>
+	<key>Connection</key>
+	<string>连接方式</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
 	<string>暂时无法连接，已保存的内容仍保留在本机。</string>
 	<key>Contact invitation, if provided</key>
@@ -710,6 +726,8 @@
 	<string>全部复制</string>
 	<key>Copy binding request</key>
 	<string>复制绑定请求</string>
+	<key>Copy connection code</key>
+	<string>复制连接码</string>
 	<key>Copy device ID</key>
 	<string>复制设备 ID</string>
 	<key>Copy enrollment request</key>
@@ -1120,6 +1138,8 @@
 	<string>此文件夹中的文件</string>
 	<key>Files over 100 MiB cannot be shared by link.</key>
 	<string>超过 100 MiB 的文件无法通过链接分享。</string>
+	<key>Files to send</key>
+	<string>待发送文件</string>
 	<key>Fill and remember</key>
 	<string>填充并记住</string>
 	<key>Fill once</key>
@@ -1286,6 +1306,8 @@
 	<string>附上此消息正文</string>
 	<key>Includes secrets saved in wallet items.</key>
 	<string>包含你保存在钱包条目中的秘密字段。</string>
+	<key>Incoming transfer</key>
+	<string>收到传输请求</string>
 	<key>Incomplete</key>
 	<string>不完整</string>
 	<key>Inspect pairing request</key>
@@ -1426,6 +1448,8 @@
 	<string>正在读取…</string>
 	<key>Local</key>
 	<string>本机</string>
+	<key>Local + Relay ready</key>
+	<string>本地直连 + 加密中继就绪</string>
 	<key>Local account</key>
 	<string>本地账户</string>
 	<key>Local content</key>
@@ -1442,8 +1466,12 @@
 	<string>本地发现</string>
 	<key>Local label</key>
 	<string>本机标签</string>
+	<key>Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.</key>
+	<string>dMsg 未获得本地网络权限。请在系统设置中开启，或扫描二维码通过加密中继传输。</string>
 	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
 	<string>dMsg 的本地网络访问已关闭。请在“设置”中开启，或输入另一台设备的地址。</string>
+	<key>Local network only</key>
+	<string>仅本地网络</string>
 	<key>Local password</key>
 	<string>本地解锁口令</string>
 	<key>Local security review</key>
@@ -1464,6 +1492,8 @@
 	<string>登录身份</string>
 	<key>Long document truncated for preview. Download or open externally to view all content.</key>
 	<string>文档较长，已截断部分预览内容；可下载或使用外部应用查看完整内容。</string>
+	<key>Looking for nearby dMsg devices…</key>
+	<string>正在搜索附近的 dMsg 设备…</string>
 	<key>Manage Apple subscriptions</key>
 	<string>管理 Apple 订阅</string>
 	<key>Manage event endpoints</key>
@@ -1570,6 +1600,16 @@
 	<string>原生 Taproot 钥匙</string>
 	<key>Native addresses</key>
 	<string>原生地址</string>
+	<key>Nearby device</key>
+	<string>附近设备</string>
+	<key>Nearby devices</key>
+	<string>附近设备</string>
+	<key>Nearby receive QR code</key>
+	<string>近场接收二维码</string>
+	<key>Nearby snapshot</key>
+	<string>近场快照</string>
+	<key>Nearby transfer failed.</key>
+	<string>近场传输失败。</string>
 	<key>Needs a fresh review</key>
 	<string>需要重新审阅</string>
 	<key>Network</key>
@@ -1780,6 +1820,8 @@
 	<string>一次性验证码</string>
 	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
 	<string>仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。</string>
+	<key>Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.</key>
+	<string>只有开启了“允许附近设备发现”的接收端才会出现在这里。你也可以直接扫描对方的二维码。</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>请在准备使用时操作。复制内容仅保留在本机，30 秒后过期。</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
@@ -1890,6 +1932,8 @@
 	<string>密码</string>
 	<key>Paste binding request</key>
 	<string>粘贴绑定请求</string>
+	<key>Paste dmsg-nearby/1: code</key>
+	<string>粘贴 dmsg-nearby/1: 连接码</string>
 	<key>Paste enrollment request</key>
 	<string>粘贴登记请求</string>
 	<key>Paste image</key>
@@ -1966,6 +2010,8 @@
 	<string>正在准备并复制文件…</string>
 	<key>Preparing backups…</key>
 	<string>正在准备备份…</string>
+	<key>Preparing nearby receive…</key>
+	<string>正在准备近场接收…</string>
 	<key>Preparing purchase…</key>
 	<string>正在准备购买…</string>
 	<key>Preparing your workspace…</key>
@@ -2076,6 +2122,10 @@
 	<string>用途</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>此版本尚未启用推送通知，请打开 dMsg 同步。</string>
+	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
+	<string>已通过二维码校验 · 接收前请与发送方核对这 6 位数字。</string>
+	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
+	<string>默认“仅二维码”模式不会在局域网广播。开启发现后将出现在附近设备列表中，并支持苹果设备直连传输。</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>快速解锁用于打开工作区；设备绑定限制可解锁的设备；硬件审批保护敏感账号操作。</string>
 	<key>Quick unlock with %@</key>
@@ -2100,12 +2150,18 @@
 	<string>原因</string>
 	<key>Receive here</key>
 	<string>在本机接收</string>
+	<key>Receive more</key>
+	<string>继续接收</string>
+	<key>Receive nearby</key>
+	<string>近场接收</string>
 	<key>Received files</key>
 	<string>收到的资料</string>
 	<key>Received for review</key>
 	<string>已收到，等待处理</string>
 	<key>Receiver</key>
 	<string>接收方</string>
+	<key>Receiver QR or connection code</key>
+	<string>接收方二维码或连接码</string>
 	<key>Receiving</key>
 	<string>接收</string>
 	<key>Receiving addresses</key>
@@ -2360,6 +2416,10 @@
 	<string>审查 Agent 权限</string>
 	<key>Review an enrollment request</key>
 	<string>审阅登记请求</string>
+	<key>Review and approve this Vault snapshot before it leaves this device.</key>
+	<string>此保险库快照离开本机前需要你的高风险审批确认。</string>
+	<key>Review and import snapshot</key>
+	<string>预览并导入快照</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
 	<string>请在来源设备上检查并重启桌面文件映射。</string>
 	<key>Review approval</key>
@@ -2554,6 +2614,8 @@
 	<string>扫描设备请求</string>
 	<key>Scan invitation</key>
 	<string>扫描邀请</string>
+	<key>Scan receiver QR code</key>
+	<string>扫描接收方二维码</string>
 	<key>Scan the code on an authorized device to open its account.</key>
 	<string>扫描已授权设备上的二维码，打开它的账号。</string>
 	<key>Scan this code with an administrator device to review the request.</key>
@@ -2662,6 +2724,8 @@
 	<string>发送到设备</string>
 	<key>Send to an administrator</key>
 	<string>发送给管理员</string>
+	<key>Send via code</key>
+	<string>通过连接码发送</string>
 	<key>Sender</key>
 	<string>发件人</string>
 	<key>Sender account</key>
@@ -2674,6 +2738,8 @@
 	<string>已发送</string>
 	<key>Sent letters</key>
 	<string>已发出的信</string>
+	<key>Sent successfully</key>
+	<string>发送成功</string>
 	<key>Server</key>
 	<string>服务器</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
@@ -2712,6 +2778,10 @@
 	<string>分享链接</string>
 	<key>Share links could not be refreshed. Showing saved links.</key>
 	<string>分享链接未能刷新，当前显示已保存的链接。</string>
+	<key>Share my dMsg identity</key>
+	<string>附带分享我的 dMsg 身份（可选）</string>
+	<key>Share nearby</key>
+	<string>近场分享</string>
 	<key>Share pairing request</key>
 	<string>分享配对请求</string>
 	<key>Share request</key>
@@ -2830,8 +2900,12 @@
 	<string>开始轮换清单？</string>
 	<key>Start account recovery?</key>
 	<string>开始账号恢复？</string>
+	<key>Start again</key>
+	<string>重新开始</string>
 	<key>Start checklist</key>
 	<string>开始清单</string>
+	<key>Start receiving</key>
+	<string>开始接收</string>
 	<key>Start sending</key>
 	<string>开始发送</string>
 	<key>Statement</key>
@@ -3182,6 +3256,8 @@
 	<string>总量上限</string>
 	<key>Transfer between devices</key>
 	<string>设备间直传</string>
+	<key>Transfer complete</key>
+	<string>传输完成</string>
 	<key>Transfer needs attention</key>
 	<string>传输需要处理</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -3192,6 +3268,8 @@
 	<string>转账提案</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>传输已加入队列，可在文件库查看进度。</string>
+	<key>Transfer status</key>
+	<string>传输状态</string>
 	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
 	<string>无法刷新传输状态，已保存的任务仍会保留。</string>
 	<key>Transferred</key>
@@ -3200,6 +3278,8 @@
 	<string>传送中</string>
 	<key>Transfers</key>
 	<string>资金转账</string>
+	<key>Transport</key>
+	<string>传输链路</string>
 	<key>Trash</key>
 	<string>回收站</string>
 	<key>Trash is empty</key>
@@ -3260,6 +3340,8 @@
 	<string>未读提醒</string>
 	<key>Unrestricted delegation authority</key>
 	<string>不受限的委托权限</string>
+	<key>Unverified discovery · Compare this 6-digit code face-to-face before accepting.</key>
+	<string>局域网发现 · 接收前请当面核对这 6 位数字是否一致。</string>
 	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
 	<string>最多 3 张 PNG、JPEG、WebP 或 GIF 图片，每张 10 MiB。请先移除秘密内容。副本保存在文件库；发送会创建有效期 30 天的加密链接，并占用存储配额。持有完整链接的人可以查看。</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -3332,8 +3414,14 @@
 	<string>保险库</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>保险库条目按正常流程同步。附件保存在本机文件库。</string>
+	<key>Vault snapshot</key>
+	<string>保险库快照</string>
+	<key>Vault snapshot verified on this device. Review and choose which fields to import.</key>
+	<string>保险库快照已在本机验证通过。请预览并勾选需要导入的字段。</string>
 	<key>Vault tools</key>
 	<string>保险库工具</string>
+	<key>Verification code</key>
+	<string>6 位核对码</string>
 	<key>Verified</key>
 	<string>已校验</string>
 	<key>Verified attachment saved to Files.</key>
@@ -3386,6 +3474,10 @@
 	<string>等待批准登录方式</string>
 	<key>Waiting for notification registration…</key>
 	<string>正在等待通知注册…</string>
+	<key>Waiting for receiver to accept…</key>
+	<string>等待接收方确认…</string>
+	<key>Waiting for sender…</key>
+	<string>等待发送方连接…</string>
 	<key>Waiting for the other device</key>
 	<string>等待另一台设备</string>
 	<key>Waiting for your decision</key>

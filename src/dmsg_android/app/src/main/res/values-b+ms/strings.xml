@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"Tindakan"</string>
     <string name="message_sending" formatted="false">"Menghantar"</string>
     <string name="more" formatted="false">"Lagi"</string>
+    <string name="nearby_accept" formatted="false">"Terima"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Benarkan penemuan berdekatan"</string>
+    <string name="nearby_codes_match" formatted="false">"Kod sepadan — teruskan"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Sahkan penerima memaparkan kod 6 digit yang sama sebelum menghantar sebarang butiran."</string>
+    <string name="nearby_connecting" formatted="false">"Menyambung…"</string>
+    <string name="nearby_connection" formatted="false">"Sambungan"</string>
+    <string name="nearby_copy_code" formatted="false">"Salin kod sambungan"</string>
+    <string name="nearby_device" formatted="false">"Peranti berdekatan"</string>
+    <string name="nearby_devices" formatted="false">"Peranti berdekatan"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Hanya peranti yang mengaktifkan penemuan berdekatan muncul di sini. Anda sentiasa boleh mengimbas kod QR penerima."</string>
+    <string name="nearby_files_to_send" formatted="false">"Fail untuk dihantar"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Pemindahan masuk"</string>
+    <string name="nearby_local_network_denied" formatted="false">"Akses rangkaian setempat dimatikan untuk dMsg. Hidupkan dalam Tetapan atau imbas kod QR untuk geganti disulitkan."</string>
+    <string name="nearby_local_only" formatted="false">"Rangkaian setempat sahaja"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Setempat + geganti sedia"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Mencari peranti dMsg berdekatan…"</string>
+    <string name="nearby_paste_code" formatted="false">"Tampal kod dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Menyediakan penerimaan berdekatan…"</string>
+    <string name="nearby_qr_code" formatted="false">"Kod QR terima berdekatan"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"Mod QR sahaja tidak menyiarkan pada rangkaian setempat. Hidupkan penemuan untuk muncul dalam senarai peranti berdekatan."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR disahkan · Bandingkan kod 6 digit ini dengan penghantar sebelum menerima."</string>
+    <string name="nearby_receive" formatted="false">"Terima berdekatan"</string>
+    <string name="nearby_receive_more" formatted="false">"Terima lagi"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"Kod QR atau sambungan penerima"</string>
+    <string name="nearby_receiving" formatted="false">"Menerima"</string>
+    <string name="nearby_review_approval" formatted="false">"Semak kelulusan"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Semak dan import syot kilat"</string>
+    <string name="nearby_scan_qr" formatted="false">"Imbas kod QR penerima"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Pilih sekurang-kurangnya satu medan, nota atau lampiran sebelum memilih penerima berdekatan."</string>
+    <string name="nearby_send_via_code" formatted="false">"Hantar melalui kod"</string>
+    <string name="nearby_sent_success" formatted="false">"Berjaya dihantar"</string>
+    <string name="nearby_share" formatted="false">"Kongsi berdekatan"</string>
+    <string name="nearby_share_identity" formatted="false">"Kongsi identiti dMsg saya"</string>
+    <string name="nearby_snapshot" formatted="false">"Syot kilat berdekatan"</string>
+    <string name="nearby_start_again" formatted="false">"Mula semula"</string>
+    <string name="nearby_start_receiving" formatted="false">"Mula menerima"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Pemindahan selesai"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Pemindahan berdekatan gagal."</string>
+    <string name="nearby_transfer_status" formatted="false">"Status pemindahan"</string>
+    <string name="nearby_transport" formatted="false">"Pengangkutan"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Penemuan tidak disahkan · Bandingkan kod 6 digit ini secara bersemuka sebelum menerima."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Semak dan luluskan syot kilat peti besi ini sebelum meninggalkan peranti ini."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Syot kilat peti besi"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Syot kilat peti besi disahkan pada peranti ini. Semak dan pilih medan untuk diimport."</string>
+    <string name="nearby_verification_code" formatted="false">"Kod pengesahan"</string>
+    <string name="nearby_waiting_accept" formatted="false">"Menunggu penerima menerima…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"Menunggu penghantar…"</string>
     <string name="no_conversations_yet" formatted="false">"Tiada perbualan lagi"</string>
     <string name="no_matches" formatted="false">"Tiada hasil sepadan"</string>
     <string name="offline_account" formatted="false">"Akaun setempat"</string>

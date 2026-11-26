@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"Azioni"</string>
     <string name="message_sending" formatted="false">"Invio"</string>
     <string name="more" formatted="false">"Altro"</string>
+    <string name="nearby_accept" formatted="false">"Accetta"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Consenti rilevamento nelle vicinanze"</string>
+    <string name="nearby_codes_match" formatted="false">"I codici corrispondono — continua"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Conferma che il ricevitore mostri esattamente questo codice a 6 cifre prima di inviare dettagli."</string>
+    <string name="nearby_connecting" formatted="false">"Connessione…"</string>
+    <string name="nearby_connection" formatted="false">"Connessione"</string>
+    <string name="nearby_copy_code" formatted="false">"Copia codice di connessione"</string>
+    <string name="nearby_device" formatted="false">"Dispositivo vicino"</string>
+    <string name="nearby_devices" formatted="false">"Dispositivi vicini"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Appaiono solo i dispositivi con rilevamento attivato. Puoi sempre scansionare il codice QR del ricevitore."</string>
+    <string name="nearby_files_to_send" formatted="false">"File da inviare"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Trasferimento in arrivo"</string>
+    <string name="nearby_local_network_denied" formatted="false">"L’accesso alla rete locale è disattivato per dMsg. Attivalo in Impostazioni o scansiona il QR per usare il relay cifrato."</string>
+    <string name="nearby_local_only" formatted="false">"Solo rete locale"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Locale + relay pronto"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Ricerca di dispositivi dMsg vicini…"</string>
+    <string name="nearby_paste_code" formatted="false">"Incolla codice dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Preparazione ricezione vicina…"</string>
+    <string name="nearby_qr_code" formatted="false">"Codice QR ricezione vicina"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"La modalità solo QR non trasmette sulla rete locale. Attiva il rilevamento per apparire nei dispositivi vicini."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR verificato · Confronta questo codice a 6 cifre con il mittente prima di accettare."</string>
+    <string name="nearby_receive" formatted="false">"Ricevi nelle vicinanze"</string>
+    <string name="nearby_receive_more" formatted="false">"Ricevi altri"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"QR o codice di connessione del ricevitore"</string>
+    <string name="nearby_receiving" formatted="false">"Ricezione"</string>
+    <string name="nearby_review_approval" formatted="false">"Rivedere l\'approvazione"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Esamina e importa istantanea"</string>
+    <string name="nearby_scan_qr" formatted="false">"Scansiona QR del ricevitore"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Scegli almeno un campo, una nota o un allegato prima di selezionare un ricevitore vicino."</string>
+    <string name="nearby_send_via_code" formatted="false">"Invia tramite codice"</string>
+    <string name="nearby_sent_success" formatted="false">"Inviato correttamente"</string>
+    <string name="nearby_share" formatted="false">"Condividi nelle vicinanze"</string>
+    <string name="nearby_share_identity" formatted="false">"Condividi la mia identità dMsg"</string>
+    <string name="nearby_snapshot" formatted="false">"Istantanea vicina"</string>
+    <string name="nearby_start_again" formatted="false">"Ricomincia"</string>
+    <string name="nearby_start_receiving" formatted="false">"Avvia ricezione"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Trasferimento completato"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Trasferimento nelle vicinanze non riuscito."</string>
+    <string name="nearby_transfer_status" formatted="false">"Stato trasferimento"</string>
+    <string name="nearby_transport" formatted="false">"Trasporto"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Rilevamento non verificato · Confronta questo codice a 6 cifre di persona prima di accettare."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Esamina e approva questa istantanea della cassaforte prima che lasci il dispositivo."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Istantanea cassaforte"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Istantanea della cassaforte verificata su questo dispositivo. Scegli i campi da importare."</string>
+    <string name="nearby_verification_code" formatted="false">"Codice di verifica"</string>
+    <string name="nearby_waiting_accept" formatted="false">"In attesa dell’accettazione del ricevitore…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"In attesa del mittente…"</string>
     <string name="no_conversations_yet" formatted="false">"Nessuna conversazione ancora"</string>
     <string name="no_matches" formatted="false">"Nessun risultato corrispondente"</string>
     <string name="offline_account" formatted="false">"Account locale"</string>

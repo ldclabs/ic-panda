@@ -24,6 +24,7 @@ struct VaultDetailView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var revealRequest: UUID?
     @State private var deleting = false
+    @State private var nearbySending = false
 
     private var readKey: String { "\(id):\(revision ?? "head"):\(model.epoch):\(model.concealed):\(model.contentRevision):\(model.vault.first { $0.id == id }?.changeToken ?? "unlisted"):\(reload)" }
 
@@ -102,6 +103,9 @@ struct VaultDetailView: View {
             .onChange(of: model.vaultEditing.presented?.id) { _, value in if value == nil { reload &+= 1 } }
             .modifier(VaultEditorPresentation(owner: editorPresenter))
             .sheet(item: $largeType) { target in NavigationStack { VaultLargeTypeView(target: target) } }
+            .sheet(isPresented: $nearbySending) {
+                if let item { NavigationStack { NearbySendVaultSheet(item: item) } }
+            }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
             .confirmationDialog("Move this secret to Trash?", isPresented: $deleting, titleVisibility: .visible) {
                 Button("Move to Trash", role: .destructive) { if let item { Task { await remove(item) } } }
@@ -120,6 +124,8 @@ struct VaultDetailView: View {
                 NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: {
                     Label { Text("Item attachments") + Text(verbatim: " · \(item.files.count)") } icon: { Image(systemName: "paperclip") }
                 }
+                Button("Share nearby", systemImage: "wave.3.right") { nearbySending = true }
+                    .disabled(item.conflict)
                 if !model.localAccount {
                     NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
                         .accessibilityIdentifier("vault.share").disabled(item.conflict)

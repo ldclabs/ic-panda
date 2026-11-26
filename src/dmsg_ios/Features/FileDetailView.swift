@@ -159,6 +159,7 @@ struct FileDetailView: View {
     @State private var openedNonce: String?
     @State private var actionTask: Task<Void, Never>?
     @State private var visible = true
+    @State private var nearbySending = false
     struct Opened: Decodable { let path: String; let nonce: String }
     struct SharedFile: Identifiable { let url: URL; var id: URL { url } }
     private var available: Bool { file.canOpen && !needsRestore }
@@ -184,6 +185,7 @@ struct FileDetailView: View {
                         .disabled(!available)
                     SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
                 }
+                SettingsAction("Share nearby", systemImage: "wave.3.right") { nearbySending = true }.disabled(!available)
                 if !model.localAccount { SettingsAction("Share by link", systemImage: "link") { linking = true }
                     .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
                 if file.size > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
@@ -235,6 +237,7 @@ struct FileDetailView: View {
             .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
             .sheet(isPresented: $confirmBackup) { NavigationStack { FileBackupView(files: [file]) } }
             .sheet(isPresented: $linking) { NavigationStack { FileLinkComposer(target: FileLinkTarget(file: file, remote: !available)) } }
+            .sheet(isPresented: $nearbySending) { NavigationStack { NearbySendFilesSheet(files: [file]) } }
             .task(id: linking) { if !linking { await loadLinks() } }
             .confirmationDialog("Share a copy", isPresented: $confirmShare, titleVisibility: .visible) {
                 Button("Share a copy") { actionTask = Task { await open(share: true) } }

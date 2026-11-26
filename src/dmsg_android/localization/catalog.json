@@ -9889,5 +9889,193 @@
   "delete_account_web_hint": {
     "en": "If you uninstall dMsg or lose access to this device, you can still request account deletion from the public web page above.",
     "zh-Hans": "即使卸载 dMsg 或无法使用本设备，你仍可通过上方公开网页提交账号删除申请。"
+  },
+  "nearby_accept": {
+    "en": "Accept",
+    "ios": "Accept"
+  },
+  "nearby_allow_discovery": {
+    "en": "Allow nearby discovery",
+    "ios": "Allow nearby discovery"
+  },
+  "nearby_select_vault_hint": {
+    "en": "Choose at least one field, note or attachment before selecting a nearby receiver.",
+    "ios": "Choose at least one field, note or attachment before selecting a nearby receiver."
+  },
+  "nearby_codes_match": {
+    "en": "Codes match — continue",
+    "ios": "Codes match — continue"
+  },
+  "nearby_confirm_sas_hint": {
+    "en": "Confirm that the receiver shows this exact 6-digit code before sending any details.",
+    "ios": "Confirm that the receiver shows this exact 6-digit code before sending any details."
+  },
+  "nearby_connecting": {
+    "en": "Connecting…",
+    "ios": "Connecting…"
+  },
+  "nearby_connection": {
+    "en": "Connection",
+    "ios": "Connection"
+  },
+  "nearby_copy_code": {
+    "en": "Copy connection code",
+    "ios": "Copy connection code"
+  },
+  "nearby_files_to_send": {
+    "en": "Files to send",
+    "ios": "Files to send"
+  },
+  "nearby_incoming_transfer": {
+    "en": "Incoming transfer",
+    "ios": "Incoming transfer"
+  },
+  "nearby_local_relay_ready": {
+    "en": "Local + Relay ready",
+    "ios": "Local + Relay ready"
+  },
+  "nearby_local_network_denied": {
+    "en": "Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay.",
+    "ios": "Local network access is off for dMsg. Enable it in Settings or scan the QR code to use encrypted relay."
+  },
+  "nearby_local_only": {
+    "en": "Local network only",
+    "ios": "Local network only"
+  },
+  "nearby_looking_for_devices": {
+    "en": "Looking for nearby dMsg devices…",
+    "ios": "Looking for nearby dMsg devices…"
+  },
+  "nearby_device": {
+    "en": "Nearby device",
+    "ios": "Nearby device"
+  },
+  "nearby_devices": {
+    "en": "Nearby devices",
+    "ios": "Nearby devices"
+  },
+  "nearby_qr_code": {
+    "en": "Nearby receive QR code",
+    "ios": "Nearby receive QR code"
+  },
+  "nearby_snapshot": {
+    "en": "Nearby snapshot",
+    "ios": "Nearby snapshot"
+  },
+  "nearby_transfer_failed": {
+    "en": "Nearby transfer failed.",
+    "ios": "Nearby transfer failed."
+  },
+  "nearby_discovery_list_hint": {
+    "en": "Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead.",
+    "ios": "Only devices that turned on nearby discovery appear here. You can always scan the receiver's QR code instead."
+  },
+  "nearby_paste_code": {
+    "en": "Paste dmsg-nearby/1: code",
+    "ios": "Paste dmsg-nearby/1: code"
+  },
+  "nearby_preparing_receive": {
+    "en": "Preparing nearby receive…",
+    "ios": "Preparing nearby receive…"
+  },
+  "nearby_qr_verified_hint": {
+    "en": "QR verified · Compare this 6-digit code with the sender before accepting.",
+    "ios": "QR verified · Compare this 6-digit code with the sender before accepting."
+  },
+  "nearby_qr_only_hint": {
+    "en": "QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.",
+    "ios": "QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers."
+  },
+  "nearby_receive_more": {
+    "en": "Receive more",
+    "ios": "Receive more"
+  },
+  "nearby_receive": {
+    "en": "Receive nearby",
+    "ios": "Receive nearby"
+  },
+  "nearby_receiver_qr_or_code": {
+    "en": "Receiver QR or connection code",
+    "ios": "Receiver QR or connection code"
+  },
+  "nearby_receiving": {
+    "en": "Receiving",
+    "ios": "Receiving"
+  },
+  "nearby_vault_approval_hint": {
+    "en": "Review and approve this Vault snapshot before it leaves this device.",
+    "ios": "Review and approve this Vault snapshot before it leaves this device."
+  },
+  "nearby_review_import_snapshot": {
+    "en": "Review and import snapshot",
+    "ios": "Review and import snapshot"
+  },
+  "nearby_review_approval": {
+    "en": "Review approval",
+    "ios": "Review approval"
+  },
+  "nearby_scan_qr": {
+    "en": "Scan receiver QR code",
+    "ios": "Scan receiver QR code"
+  },
+  "nearby_send_via_code": {
+    "en": "Send via code",
+    "ios": "Send via code"
+  },
+  "nearby_sent_success": {
+    "en": "Sent successfully",
+    "ios": "Sent successfully"
+  },
+  "nearby_share_identity": {
+    "en": "Share my dMsg identity",
+    "ios": "Share my dMsg identity"
+  },
+  "nearby_share": {
+    "en": "Share nearby",
+    "ios": "Share nearby"
+  },
+  "nearby_start_again": {
+    "en": "Start again",
+    "ios": "Start again"
+  },
+  "nearby_start_receiving": {
+    "en": "Start receiving",
+    "ios": "Start receiving"
+  },
+  "nearby_transfer_complete": {
+    "en": "Transfer complete",
+    "ios": "Transfer complete"
+  },
+  "nearby_transfer_status": {
+    "en": "Transfer status",
+    "ios": "Transfer status"
+  },
+  "nearby_transport": {
+    "en": "Transport",
+    "ios": "Transport"
+  },
+  "nearby_unverified_discovery_hint": {
+    "en": "Unverified discovery · Compare this 6-digit code face-to-face before accepting.",
+    "ios": "Unverified discovery · Compare this 6-digit code face-to-face before accepting."
+  },
+  "nearby_vault_snapshot": {
+    "en": "Vault snapshot",
+    "ios": "Vault snapshot"
+  },
+  "nearby_vault_verified_hint": {
+    "en": "Vault snapshot verified on this device. Review and choose which fields to import.",
+    "ios": "Vault snapshot verified on this device. Review and choose which fields to import."
+  },
+  "nearby_verification_code": {
+    "en": "Verification code",
+    "ios": "Verification code"
+  },
+  "nearby_waiting_accept": {
+    "en": "Waiting for receiver to accept…",
+    "ios": "Waiting for receiver to accept…"
+  },
+  "nearby_waiting_sender": {
+    "en": "Waiting for sender…",
+    "ios": "Waiting for sender…"
   }
 }

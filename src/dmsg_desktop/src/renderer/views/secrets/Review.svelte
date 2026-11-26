@@ -1,5 +1,6 @@
 <script lang="ts">
   import { size as fileSize } from '../../rpc'
+  import { t } from '../../i18n/index.svelte'
   import ReviewDetails from './ReviewDetails.svelte'
   import { ux } from './experience-text'
   import { secretText as s } from './text'
@@ -35,7 +36,7 @@
         )}
       </p>
     {:else if request.type === 'secret_share'}<p class="text-warn">
-        {w(d.channel ? 'channelWarning' : 'shareWarning')}
+        {d.nearby ? t('nearbyVaultApprovalWarning') : w(d.channel ? 'channelWarning' : 'shareWarning')}
       </p>
       {#if d.fields?.some((f: any) => f.type === 'otp')}<p class="text-warn">
           {w('otpSeedWarning')}

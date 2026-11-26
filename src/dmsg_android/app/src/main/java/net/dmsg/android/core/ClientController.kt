@@ -88,6 +88,11 @@ class ClientController internal constructor(private val application: Application
     private var incomingConnectPresented: String? = null
     val accountDeletion = AccountDeletionCoordinator(this)
     val deviceTransfers = DeviceTransferCoordinator(this, scope, DeviceDiscovery(application)) { engine?.transferCancel() }
+    val nearby = NearbyShareCoordinator(this, scope, DeviceDiscovery(application)) {
+        engine?.nearbySendCancel()
+        val current = engine
+        if (current != null) scope.launch(Dispatchers.IO) { runCatching { current.nearbyReceiveCancel() } }
+    }
     val handovers = HandoverCoordinator(this)
     val agents = AgentCoordinator(this)
     val wallets = WalletCoordinator(this)
@@ -147,7 +152,7 @@ class ClientController internal constructor(private val application: Application
     }
 
     suspend fun shutdown() {
-        deviceTransfers.clear(); backgroundFiles.clear(); incoming.stop(); systemExports.clear(); notices.stop(); push.stop(); purchases.stop()
+        deviceTransfers.clear(); nearby.clear(); backgroundFiles.clear(); incoming.stop(); systemExports.clear(); notices.stop(); push.stop(); purchases.stop()
         operations.cancelAll(); scope.cancel(); prompts.cancel(); authentication.cancel()
         engine?.lockNow()
         engine?.shutdown()
@@ -261,7 +266,7 @@ class ClientController internal constructor(private val application: Application
         channels.clear(); participants.clear()
         library.clear(); cloudFiles.clear(); fileLinks.clear(); fileRequests.clear(); filePreview.clear(); fullscreenPreview.clear(); messageAttachments.clear(); fileWork.stop(clear = true); backgroundFiles.clear()
         approvals.clear()
-        account.clear(); accountWorkspace.clear(); browserConnections.clear(); accountDeletion.clear(); wallets.clear(); agents.clear(); deviceTransfers.clear(); handovers.clear(); membership.clear(); purchases.clear(); notifications.clear(); profile.clear()
+        account.clear(); accountWorkspace.clear(); browserConnections.clear(); accountDeletion.clear(); wallets.clear(); agents.clear(); deviceTransfers.clear(); nearby.clear(); handovers.clear(); membership.clear(); purchases.clear(); notifications.clear(); profile.clear()
         letters.clear(); safety.clear(); feedback.clear(); transfers.clear()
         vaultDrafts.clear()
         synchronization.stop(clear = true)
@@ -333,7 +338,7 @@ class ClientController internal constructor(private val application: Application
 
     fun background() {
         vaultDrafts.suspend()
-        deviceTransfers.background(); incoming.clear(); systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
+        deviceTransfers.background(); nearby.background(); incoming.clear(); systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
         appForeground = false
         participants.clear(); browserConnections.clear(); accountDeletion.clear(retainDraft = true); wallets.clear(retainForms = true); agents.clear(retainForms = true); handovers.clear(retainForms = true); membership.clear(); purchases.clear(); notifications.clear(retainDraft = true); profile.clear(retainForm = true); synchronization.stop(); fileWork.stop(); backgroundFiles.clear(); cloudFiles.clear(retainBatch = true); fileLinks.clear(retainForm = true); fileRequests.clear(); filePreview.clear(); fullscreenPreview.clear(); messageAttachments.clear()
         externalLoginReturn = pendingLogin || prompts.isAuthenticating || passkeys.isAuthenticating || externalUntil > SystemClock.elapsedRealtime()
@@ -486,7 +491,7 @@ class ClientController internal constructor(private val application: Application
             qr.clear()
             messages.clear(before?.account, retainDrafts = retain)
             channels.clear(retainForms = retain); participants.clear()
-            library.clear(retainForms = retain); cloudFiles.clear(retainBatch = retain); fileLinks.clear(retain); fileRequests.clear(); filePreview.clear(); fullscreenPreview.clear(); messageAttachments.clear(); fileWork.stop(clear = !retain); backgroundFiles.clear(); approvals.clear(retainReceipts = retain); account.clear(retainForms = retain); accountWorkspace.clear(); browserConnections.clear(); accountDeletion.clear(retainDraft = retain); wallets.clear(retainForms = retain); agents.clear(retainForms = retain); incoming.clear(); deviceTransfers.clear(retainPlan = retain); handovers.clear(retainForms = retain); membership.clear(); purchases.clear(); notifications.clear(retainDraft = retain); profile.clear(retainForm = retain)
+            library.clear(retainForms = retain); cloudFiles.clear(retainBatch = retain); fileLinks.clear(retain); fileRequests.clear(); filePreview.clear(); fullscreenPreview.clear(); messageAttachments.clear(); fileWork.stop(clear = !retain); backgroundFiles.clear(); approvals.clear(retainReceipts = retain); account.clear(retainForms = retain); accountWorkspace.clear(); browserConnections.clear(); accountDeletion.clear(retainDraft = retain); wallets.clear(retainForms = retain); agents.clear(retainForms = retain); incoming.clear(); deviceTransfers.clear(retainPlan = retain); nearby.clear(); handovers.clear(retainForms = retain); membership.clear(); purchases.clear(); notifications.clear(retainDraft = retain); profile.clear(retainForm = retain)
             letters.clear(retain); safety.clear(retain); feedback.clear(retain)
             if (retain) transfers.suspend() else transfers.clear()
         }

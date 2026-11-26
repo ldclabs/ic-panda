@@ -20,6 +20,7 @@ fn main() {
     println!("cargo:rerun-if-changed=swift/Enclave.swift");
     println!("cargo:rerun-if-changed=swift/FSKitPeer.swift");
     println!("cargo:rerun-if-changed=swift/Backup.swift");
+    println!("cargo:rerun-if-changed=swift/NearbyAWDL.swift");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }
@@ -39,6 +40,7 @@ fn main() {
             .arg("swift/Enclave.swift")
             .arg("swift/FSKitPeer.swift")
             .arg("swift/Backup.swift")
+            .arg("swift/NearbyAWDL.swift")
             .arg("-o")
             .arg(out.join("libdmsg_enclave.a")),
     );
@@ -63,7 +65,13 @@ fn main() {
         println!("cargo:rustc-link-search=native={path}");
     }
     println!("cargo:rustc-link-search=native={sdk}/usr/lib/swift");
-    for framework in ["CryptoKit", "LocalAuthentication", "Security", "Foundation"] {
+    for framework in [
+        "CryptoKit",
+        "LocalAuthentication",
+        "Security",
+        "Foundation",
+        "Network",
+    ] {
         println!("cargo:rustc-link-lib=framework={framework}");
     }
 }

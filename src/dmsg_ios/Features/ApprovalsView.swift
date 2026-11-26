@@ -512,6 +512,9 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
             if case .string(let name)? = channel["name"], !name.isEmpty { recipient = name + " · " + id }
             else { recipient = id }
         }
+        else if case .object(let nearby)? = fields["nearby"], case .string(let peer)? = nearby["peer_label"], case .string(let sas)? = nearby["sas"] {
+            recipient = peer + " · " + NearbyShareModel.groupedSas(sas)
+        }
         else if fields["channel"]?.isNull != false, case .boolean(let protected)? = fields["password"] {
             recipient = String(localized: protected ? "Anyone with the link and password" : "Anyone with the link")
         }

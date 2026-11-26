@@ -24,6 +24,8 @@ struct FilesView: View {
     @State private var searchScope: WorkspaceSearchScope = .current
     @State private var globalSearch = GlobalSearchStore()
     @State private var previewLaunch: FullscreenPreviewLaunch?
+    @State private var nearbyReceiving = false
+    @State private var nearbySending: [LibraryFile]?
 
     private var opensFullscreenPreview: Bool {
         #if DEBUG
@@ -115,6 +117,10 @@ struct FilesView: View {
                 }
                 }
             }
+        }
+        .sheet(isPresented: $nearbyReceiving) { NavigationStack { NearbyReceiveSheet() } }
+        .sheet(isPresented: Binding(get: { nearbySending != nil }, set: { if !$0 { nearbySending = nil } })) {
+            if let list = nearbySending { NavigationStack { NearbySendFilesSheet(files: list) } }
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
             switch result {
@@ -352,6 +358,7 @@ struct FilesView: View {
                     }
                 }
                 Section {
+                    Button("Receive nearby", systemImage: "wave.3.right") { nearbyReceiving = true }
                     if !model.localAccount { NavigationLink { FileRequestsView() } label: { Label("Collect files", systemImage: "tray.and.arrow.down") } }
                     if !model.localAccount { NavigationLink { FileLinksView() } label: { Label("Share links", systemImage: "link") } }
                 }
@@ -369,6 +376,9 @@ struct FilesView: View {
             Text(selection.count.formatted()).font(.subheadline.monospacedDigit()).accessibilityLabel("Selected files").accessibilityValue(selection.count.formatted())
             Spacer()
             Menu("Actions", systemImage: "ellipsis.circle") {
+                Button("Share nearby", systemImage: "wave.3.right") {
+                    nearbySending = files(current).filter { selection.contains($0.id) && $0.canOpen }
+                }.disabled(chosen.contains { $0.folder } || files(current).filter { selection.contains($0.id) && $0.canOpen }.isEmpty)
                 if !model.localAccount { Button("Back up to cloud", glyph: .cloudUp) {
                     sheet = .backup(files(current).filter { selection.contains($0.id) })
                 }.disabled(chosen.contains { $0.folder }) }

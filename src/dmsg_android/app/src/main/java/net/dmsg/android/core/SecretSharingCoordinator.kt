@@ -9,7 +9,7 @@ import java.util.UUID
 data class SnapshotChannel(val id: String, val name: String, val epoch: ULong, val control: String, val aclVersion: ULong)
 data class SecretShareJob(val id: String, val state: String, val title: String, val shareId: String, val expiresAt: ULong?, val maxSessions: ULong?,
     val bytes: ULong, val channel: SnapshotChannel?, val password: Boolean?, val request: String?, val error: String?,
-    val uploaded: ULong, val chunks: ULong, val cancelRequested: Boolean)
+    val uploaded: ULong, val chunks: ULong, val cancelRequested: Boolean, val nearby: SnapshotNearby? = null)
 data class SnapshotSource(val item: VaultItem, val attachments: SecretAttachments)
 data class SnapshotDraft(val id: String = UUID.randomUUID().toString(), val source: SnapshotSource, val fields: Set<String> = emptySet(), val notes: Boolean = false,
     val attachments: Set<String> = emptySet(), val channel: String? = null, val lifetime: ULong = 86_400_000u, val sessions: String = "1", val password: String = "",
@@ -31,7 +31,7 @@ data class PackageAttachment(val name: String, val mime: String, val size: ULong
 data class PackageChannel(val id: String, val sequence: ULong, val sender: String, val digest: String)
 data class SecretPackage(val id: String, val digest: String, val snapshot: String, val createdAt: ULong, val kind: String, val title: String,
     val fields: List<PackageField>, val notes: Boolean, val attachments: List<PackageAttachment>, val imported: List<String>, val channel: PackageChannel?)
-data class PackageInput(val channel: String? = null, val sequence: ULong? = null)
+data class PackageInput(val channel: String? = null, val sequence: ULong? = null, val nearby: String? = null)
 data class PackageDraft(val source: PackageInput = PackageInput(), val link: String = "", val password: String = "", val fields: Set<String> = emptySet(), val notes: Boolean = false,
     val attachments: Set<UInt> = emptySet(), val folder: String = "root", val folderName: String = "", val request: String? = null, val completed: List<String>? = null,
     val pending: SecretPackageSelection? = null) {
@@ -44,8 +44,11 @@ fun parseSecretShare(value: JsonElement): SecretShareJob {
     val channel = plan["channel"]?.takeIf { it != JsonNull }?.objectValue()?.let {
         SnapshotChannel(it.required("channel_id"), it.required("name"), it.requiredUnsigned("epoch"), it.required("control_head"), it.requiredUnsigned("acl_version"))
     }
+    val nearby = plan["nearby"]?.takeIf { it != JsonNull }?.objectValue()?.let {
+        SnapshotNearby(it.required("transcript"), it.required("sas"), it.required("peer_label"))
+    }
     return SecretShareJob(row.required("id"), row.required("state"), plan.required("title"), plan.required("share_id"), plan.unsigned("expires_at"), plan.unsigned("max_download_sessions"),
-        plan.requiredUnsigned("plain_bytes"), channel, plan.optionalFlag("password"), row.text("request_id"), row.text("error"), row.requiredUnsigned("uploaded_chunks"), row.requiredUnsigned("total_chunks"), row.requiredFlag("cancel_requested"))
+        plan.requiredUnsigned("plain_bytes"), channel, plan.optionalFlag("password"), row.text("request_id"), row.text("error"), row.requiredUnsigned("uploaded_chunks"), row.requiredUnsigned("total_chunks"), row.requiredFlag("cancel_requested"), nearby)
 }
 
 fun parseSecretPackage(value: JsonElement): SecretPackage {
@@ -163,6 +166,18 @@ class SecretSharingCoordinator(private val client: ClientController) {
 
     fun receiver(source: PackageInput) {
         if (mutableIncoming.value.source != source) { client.cancelOperation("secret:preview"); preview.reset(); mutableIncoming.value = PackageDraft(source) }
+    }
+    fun openNearbyPackage(staged: SecretPackage) {
+        client.cancelOperation("secret:preview")
+        val request = preview.begin(false)
+        preview.accept(request, staged)
+        mutableIncoming.value = PackageDraft(
+            source = PackageInput(nearby = staged.digest),
+            fields = staged.fields.mapTo(linkedSetOf()) { it.id },
+            notes = staged.notes,
+            attachments = staged.attachments.indices.mapTo(linkedSetOf()) { it.toUInt() },
+        )
+        client.navigation.push(Route("secret-import", field = staged.digest))
     }
     fun editIncoming(change: (PackageDraft) -> PackageDraft) {
         val current = mutableIncoming.value

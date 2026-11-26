@@ -120,6 +120,11 @@ import net.dmsg.android.core.*
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
                         if (!trash) DropdownMenuItem(
+                            text = { Text(str(R.string.nearby_receive)) },
+                            leadingIcon = { Icon(Icons.Outlined.WifiTethering, null) },
+                            onClick = { menu = false; client.navigation.push(Route("nearby-receive")) },
+                        )
+                        if (!trash) DropdownMenuItem(
                             text = { Text(str(R.string.text_new_folder_3b1862d)) },
                             leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
                             onClick = { menu = false; creating = true },
@@ -243,6 +248,16 @@ import net.dmsg.android.core.*
                                 OutlinedButton(onClick = ::selectVisible, enabled = visible.any { it.id !in selection }) {
                                     Text(str(R.string.text_select_visible_items_5b34cd2))
                                 }
+                                if (!trash) {
+                                    val sendable = selection.mapNotNull { filesById[it] }.filter { it.local }
+                                    if (sendable.isNotEmpty()) OutlinedButton(onClick = {
+                                        client.nearby.prepareSendFiles(sendable.map { NearbySelectedFile(it.id, it.version, it.name, it.size) })
+                                        client.library.clearSelection()
+                                        client.navigation.push(Route("nearby-send-files"))
+                                    }) {
+                                        Text(str(R.string.nearby_share))
+                                    }
+                                }
                                 if (!trash) OutlinedButton(onClick = { start("move", all.filter { it.id in selection }) }, enabled = !state.working("files:batch")) {
                                     Text(str(R.string.text_move_207d5fe))
                                 }
@@ -335,6 +350,13 @@ import net.dmsg.android.core.*
                         SheetAction(str(R.string.text_file_details_27e9099), Icons.Outlined.Info) {
                             target = null
                             select(item.id)
+                        }
+                        filesById[item.id]?.takeIf { it.local }?.let { localFile ->
+                            SheetAction(str(R.string.nearby_share), Icons.Outlined.WifiTethering) {
+                                target = null
+                                client.nearby.prepareSendFiles(listOf(NearbySelectedFile(localFile.id, localFile.version, localFile.name, localFile.size)))
+                                client.navigation.push(Route("nearby-send-files"))
+                            }
                         }
                     }
                     SheetAction(str(R.string.text_rename_dd3a2f7), Icons.Outlined.Edit) { renaming = item; target = null }

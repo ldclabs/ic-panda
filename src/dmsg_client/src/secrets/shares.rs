@@ -57,13 +57,28 @@ pub struct AttachmentPlan {
     pub sha256: String,
 }
 
+/// Fixed nearby delivery target bound to the verified handshake transcript.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct NearbyTarget {
+    /// Hex SHA-256 of the nearby handshake transcript.
+    pub transcript: String,
+    /// 6-digit visual confirmation code shown on both devices.
+    pub sas: String,
+    /// Display alias of the nearby peer (untrusted label for review).
+    pub peer_label: String,
+}
+
 /// The complete, value-free approval plan.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Plan {
     /// Explicit owner selection.
     pub input: ShareInput,
-    /// Fixed channel destination; absent for a public share link.
+    /// Fixed channel destination; absent for a public share link or nearby share.
     pub channel: Option<crate::channel::snapshot::Target>,
+    /// Fixed nearby session destination; absent for a public share link or channel share.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nearby: Option<NearbyTarget>,
     /// Owning account.
     pub account_id: String,
     /// Owning device; grants never synchronize.
@@ -112,6 +127,15 @@ impl Plan {
             view["warning"] = json!(
                 "Recipients can retain plaintext. Channel copies have no link expiry, session limit or recall."
             );
+        } else if self.nearby.is_some() {
+            view["expires_at"] = Value::Null;
+            view["max_download_sessions"] = Value::Null;
+            view["delivery"] = json!("nearby_share");
+            view["recipient_scope"] =
+                json!("verified nearby device matching this session confirmation code");
+            view["warning"] = json!(
+                "Recipient receives an independent copy. Nearby delivery has no link expiry or recall."
+            );
         }
         view
     }
@@ -137,6 +161,8 @@ struct Job {
     upload: Option<UploadPlan>,
     manifest: Option<String>,
     channel_reference: Option<crate::channel::FileRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    nearby_manifest: Option<crate::files::FileManifest>,
     receipt: Option<Value>,
     publish_attempted: bool,
     uploaded_chunks: usize,
@@ -148,6 +174,9 @@ impl Drop for Job {
         self.key.zeroize();
         if let Some(reference) = &mut self.channel_reference {
             reference.key.zeroize();
+        }
+        if let Some(manifest) = &mut self.nearby_manifest {
+            manifest.key.zeroize();
         }
     }
 }
@@ -354,7 +383,8 @@ impl Client {
         let mut plan = Plan {
             input,
             channel: None,
-            account_id: self.account()?.id.to_string(),
+            nearby: None,
+            account_id: self.content_id()?.to_string(),
             device_id: self.secret_device(),
             title,
             item_type,
@@ -398,6 +428,7 @@ impl Client {
                 upload: None,
                 manifest: None,
                 channel_reference: None,
+                nearby_manifest: None,
                 receipt: None,
                 publish_attempted: false,
                 uploaded_chunks: 0,
@@ -422,6 +453,85 @@ impl Client {
         Ok(prepared)
     }
 
+    /// Prepare a `dmsg-secret-package/1` snapshot bound to a verified nearby
+    /// handshake transcript and 6-digit SAS, without touching the cloud relay.
+    pub fn secret_nearby_preparation(
+        &mut self,
+        input: ShareInput,
+        target: NearbyTarget,
+    ) -> Result<Preparation> {
+        ensure(
+            input.expires_in_ms.is_none() && input.max_download_sessions.is_none(),
+            Error::InvalidInput("nearby delivery has no link lifetime or session limit".into()),
+        )?;
+        ensure_valid(
+            hex_id(&target.transcript, 64)
+                && target.sas.len() == 6
+                && target.sas.bytes().all(|b| b.is_ascii_digit()),
+            "nearby target",
+        )?;
+        let mut prepared = self.secret_share_prepare(input)?;
+        prepared.job.plan.nearby = Some(target);
+        let now = now_ms();
+        prepared.job.plan.publish_before = now + 2 * crate::approval::HIGH_RISK_TTL_MS;
+        prepared.job.plan.expires_at = prepared.job.plan.publish_before + MINUTE;
+        Ok(prepared)
+    }
+
+    /// Claim an approved nearby secret package for one-time streaming on the
+    /// exact handshake `transcript` and unlock session that approved it.
+    pub(crate) fn secret_nearby_claim(
+        &mut self,
+        id: &str,
+        expected_transcript: &str,
+    ) -> Result<crate::files::FileManifest> {
+        self.keys()?;
+        let mut job = self.share_job(id)?;
+        let Some(target) = &job.plan.nearby else {
+            return Err(Error::Forbidden);
+        };
+        ensure(
+            target.transcript == expected_transcript
+                && job.phase == "ready_for_nearby"
+                && !job.publish_attempted
+                && !job.cancel_requested
+                && job.boot == self.secret_boot
+                && job.session == self.session_generation
+                && now_ms() < job.plan.publish_before,
+            Error::Forbidden,
+        )?;
+        let manifest = job
+            .nearby_manifest
+            .clone()
+            .ok_or(Error::RecoveryIncomplete)?;
+        job.publish_attempted = true;
+        job.phase = "delivering".into();
+        self.save_share_job(&job)?;
+        Ok(manifest)
+    }
+
+    /// Settle a claimed nearby secret share after streaming succeeds or fails,
+    /// releasing its temporary staged chunks immediately.
+    pub(crate) fn secret_nearby_finish(
+        &mut self,
+        id: &str,
+        delivered: bool,
+        digest: Option<String>,
+        error: Option<String>,
+    ) -> Result<()> {
+        let mut job = self.share_job(id)?;
+        ensure(job.plan.nearby.is_some(), Error::Forbidden)?;
+        job.phase = if delivered { "delivered" } else { "failed" }.into();
+        job.error = error;
+        if let Some(digest) = digest {
+            job.receipt = Some(json!({"delivery": "nearby_share", "digest": digest}));
+        }
+        job.nearby_manifest = None;
+        self.save_share_job(&job)?;
+        self.release_chunks(&job.plan.share_id)?;
+        Ok(())
+    }
+
     /// Device-local source associations for dependency inspection, without any package keys.
     pub(crate) fn secret_snapshot_dependencies(
         &self,
@@ -435,7 +545,7 @@ impl Client {
                 && job.plan.input.item_id == reference.item_id
                 && job.plan.input.field_ids.contains(&reference.field_id)
             {
-                let state = if job.plan.channel.is_none() {
+                let state = if job.plan.channel.is_none() && job.plan.nearby.is_none() {
                     links
                         .iter()
                         .find(|r| r.share_id == job.plan.share_id)
@@ -447,6 +557,8 @@ impl Client {
                 entries.push(references::Dependency {
                     kind: if job.plan.channel.is_some() {
                         "snapshot_channel"
+                    } else if job.plan.nearby.is_some() {
+                        "snapshot_nearby"
                     } else {
                         "snapshot_link"
                     }
@@ -457,10 +569,11 @@ impl Client {
                         .channel
                         .as_ref()
                         .map(|t| t.name.clone())
+                        .or_else(|| job.plan.nearby.as_ref().map(|n| n.peer_label.clone()))
                         .unwrap_or_else(|| job.plan.title.clone()),
                     revision: job.plan.input.revision.clone(),
                     state,
-                    action: if job.plan.channel.is_some() {
+                    action: if job.plan.channel.is_some() || job.plan.nearby.is_some() {
                         "recipients_may_retain_snapshot_rotate_upstream"
                     } else {
                         "review_old_snapshot_and_revoke_link"
@@ -482,7 +595,7 @@ impl Client {
     fn share_check(&self, job: &Job, session: bool, now: u64) -> Result<()> {
         self.keys()?;
         ensure(
-            job.plan.account_id == self.account()?.id.to_string()
+            job.plan.account_id == self.content_id()?.to_string()
                 && job.plan.device_id == self.secret_device(),
             Error::Forbidden,
         )?;
@@ -550,6 +663,7 @@ impl Client {
         value["total_chunks"] = json!(total);
         if include_link
             && job.plan.channel.is_none()
+            && job.plan.nearby.is_none()
             && job.phase == "published"
             && !job.cancel_requested
         {
@@ -577,7 +691,7 @@ impl Client {
         for key in self.workspace.store.sealed_keys(PREFIX)? {
             if let Some(job) = self.workspace.private::<Job>(self.keys()?, &key)? {
                 let mut view = self.share_job_view(&job, false)?;
-                view["plan"] = json!({"title":job.plan.title,"item_id":job.plan.input.item_id,"share_id":job.plan.share_id,"expires_at":if job.plan.channel.is_none(){Some(job.plan.expires_at)}else{None},"plain_bytes":job.plan.plain_bytes,"channel":job.plan.channel});
+                view["plan"] = json!({"title":job.plan.title,"item_id":job.plan.input.item_id,"share_id":job.plan.share_id,"expires_at":if job.plan.channel.is_none() && job.plan.nearby.is_none(){Some(job.plan.expires_at)}else{None},"plain_bytes":job.plan.plain_bytes,"channel":job.plan.channel,"nearby":job.plan.nearby});
                 jobs.push(view);
             }
         }
@@ -590,7 +704,15 @@ impl Client {
         let mut job = self.share_job(id)?;
         ensure(
             !job.publish_attempted
-                && !matches!(job.phase.as_str(), "published" | "publishing" | "unknown"),
+                && !matches!(
+                    job.phase.as_str(),
+                    "published"
+                        | "publishing"
+                        | "unknown"
+                        | "ready_for_nearby"
+                        | "delivering"
+                        | "delivered"
+                ),
             Error::ExecutionUnknown,
         )?;
         if let Some(request) = &job.request {
@@ -698,7 +820,7 @@ impl Client {
     pub fn secret_share_cancel(&mut self, id: &str) -> Result<Value> {
         let mut job = self.share_job(id)?;
         ensure(
-            job.plan.channel.is_none() || !job.publish_attempted,
+            (job.plan.channel.is_none() && job.plan.nearby.is_none()) || !job.publish_attempted,
             Error::Forbidden,
         )?;
         job.cancel_requested = true;
@@ -794,10 +916,29 @@ impl ShareRun {
         let outcome = self.execute(&bound).await;
         match outcome {
             Ok(()) => {
-                let cancel = bound
-                    .with(|c| Ok(c.share_job(&self.id)?.cancel_requested))
+                let (cancel, is_nearby) = bound
+                    .with(|c| {
+                        let job = c.share_job(&self.id)?;
+                        Ok((job.cancel_requested, job.plan.nearby.is_some()))
+                    })
                     .await?;
-                if cancel {
+                if is_nearby {
+                    if cancel {
+                        bound
+                            .with(|c| {
+                                let job = c.share_job(&self.id)?;
+                                c.release_chunks(&job.plan.share_id)?;
+                                c.share_settle(&self.id, "cancelled", None, State::Cancelled)
+                            })
+                            .await
+                    } else {
+                        bound
+                            .with(|c| {
+                                c.share_settle(&self.id, "ready_for_nearby", None, State::Done)
+                            })
+                            .await
+                    }
+                } else if cancel {
                     revoke(&bound, &self.id).await
                 } else {
                     bound
@@ -898,6 +1039,29 @@ impl ShareRun {
                 c.secret_stage_finish(&mut staged, None)
             })
             .await?;
+            if job.plan.nearby.is_some() {
+                return h
+                    .with(|c| {
+                        c.share_step(&job, now_ms())?;
+                        let digests: Vec<String> = staged
+                            .manifest
+                            .chunks
+                            .iter()
+                            .map(|chunk| chunk.digest.clone())
+                            .collect();
+                        job.nearby_manifest = Some(staged.manifest.clone());
+                        job.phase = "ready_for_nearby".into();
+                        c.workspace.store.atomic(|_| {
+                            c.save_share_job(&job)?;
+                            c.hold_chunks([(
+                                job.plan.share_id.clone(),
+                                job.plan.publish_before,
+                                digests,
+                            )])
+                        })
+                    })
+                    .await;
+            }
             h.with(|c|{
                 c.share_step(&job, now_ms())?;
                 let edition=staged.manifest.clone();

@@ -64,6 +64,7 @@ fun errorText(code: String): String = when (code) {
     "NO_IMAGE_IN_CLIPBOARD" -> str(R.string.text_there_is_no_readable_image_in_the_clipboard_01312ac)
     "CAMERA_UNAVAILABLE" -> str(R.string.text_no_camera_app_is_available_choose_a_photo_or_document_instead_8161abc)
     "CAMERA_PERMISSION_DENIED" -> str(R.string.text_camera_access_was_declined_photos_and_documents_are_still_availab_d4bcc11)
+    "LOCAL_NETWORK_DENIED" -> str(R.string.nearby_local_network_denied)
     "FILE_LIMIT" -> str(R.string.text_the_file_exceeds_this_action_s_size_limit_or_the_device_is_low_on_c3694f1)
     "FILE_TOO_LARGE" -> str(R.string.text_this_version_exceeds_your_current_cloud_backup_limit_abfb9cb)
     "PASSWORD_TOO_LONG" -> str(R.string.text_this_password_is_too_long_use_a_shorter_one_15146f6)

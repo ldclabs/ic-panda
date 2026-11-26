@@ -4,6 +4,7 @@ import SwiftUI
 struct SecretPackageImportView: View {
     struct ChannelSource: Identifiable { let channel: String; let sequence: UInt64; var id: String { channel + ":" + String(sequence) } }
     var source: ChannelSource? = nil
+    var stagedPreview: SecretPackagePreview? = nil
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var link = ""
@@ -25,7 +26,7 @@ struct SecretPackageImportView: View {
 
     var body: some View {
         Form {
-            if source == nil {
+            if source == nil && stagedPreview == nil {
                 Section("Secret package link") {
                     TextField("Paste secret package link", text: $link, axis: .vertical)
                         .lineLimit(2...4).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -88,9 +89,12 @@ struct SecretPackageImportView: View {
         }.disabled(working).privateScreen().navigationTitle("Import secret package").navigationBarTitleDisplayMode(.inline)
             .sensoryFeedback(.error, trigger: refusals)
             .toolbar {
-                if source != nil { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+                if source != nil || stagedPreview != nil { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             }
-            .task { if source != nil { await inspect() } }
+            .task {
+                if let stagedPreview { preview = stagedPreview }
+                else if source != nil { await inspect() }
+            }
             .onChange(of: link) { _, _ in clearPreview() }
             .onChange(of: password) { _, _ in if preview != nil { clearPreview() } }
             .onDisappear { previewTask?.cancel() }

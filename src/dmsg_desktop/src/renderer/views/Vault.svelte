@@ -32,6 +32,7 @@
   import Inspector from './vault/Inspector.svelte'
   import NewItem from './vault/NewItem.svelte'
   import Row from './vault/Row.svelte'
+  import NearbyShare from './NearbyShare.svelte'
   import {
     facets as count,
     findingsByItem,
@@ -100,6 +101,7 @@
   let importing = $state(false)
   let backingUp = $state(false)
   let comparing = $state(false)
+  let nearby = $state<{ mode: 'receive' } | { mode: 'send-vault'; entryId: string; snapshot: any } | null>(null)
   let compareFrom = $state(0)
   let chosen = $state<Set<string>>(new Set())
   let limit = $state(PAGE)
@@ -143,6 +145,14 @@
   })
   const listed = $derived(shown.slice(0, limit))
   const current = $derived(shown.find((entry) => entry.id === selected) ?? null)
+  const nearbyVaultEntry = $derived.by(() => {
+    const active = nearby
+    if (active?.mode !== 'send-vault') return null
+    return entries.find((e) => e.id === active.entryId) ?? active.snapshot
+  })
+  const nearbyVaultConflict = $derived(
+    nearby?.mode === 'send-vault' ? conflicted.has(nearby.entryId) : false
+  )
   const workflows = $derived(vaultWorkflows(status?.account_kind === 'local'))
   const workflow = $derived.by(() => {
     const part = route.split('?')[0].split('/')[2]
@@ -266,6 +276,7 @@
       entries = trashed = conflicts = findings = []
       contentKey = checkedKey = ''
       editing = dirty = savingEdit = trashing = applyingTags = creating = importing = backingUp = comparing = false
+      nearby = null
       chosen = new Set()
       lastEditField = null
       leaving = tagging = accessTag = null
@@ -701,6 +712,9 @@
     <ContextMenu.Item class={menuItemClass} onSelect={() => duplicate(entry)}>
       <span class="flex items-center gap-2"><Icon name="duplicate" class="text-faint" />{t('duplicate')}</span>
     </ContextMenu.Item>
+    <ContextMenu.Item class={menuItemClass} disabled={conflicted.has(entry.id)} onSelect={() => finishEditing(() => { nearby = { mode: 'send-vault', entryId: entry.id, snapshot: entry } })} data-testid="vault-row-nearby-share">
+      <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
+    </ContextMenu.Item>
     <ContextMenu.Separator class="my-1 h-px bg-line" />
     <ContextMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => discard(entry)}>
       <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
@@ -747,6 +761,15 @@
               data-testid="vault-search"
             />
           </label>
+          {#if unlocked}
+            <Tooltip content={t('nearbyReceive')}>
+              {#snippet children(props)}
+                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('nearbyReceive')} onclick={() => finishEditing(() => { nearby = { mode: 'receive' } })} data-testid="vault-nearby-receive">
+                  <Icon name="transfer" />
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
           {#if unlocked && !trash}
             <Tooltip content={`${t('add')} · ${mod}N`}>
               {#snippet children(props)}
@@ -894,6 +917,7 @@
             onTrash={() => discard(current)}
             onCompare={() => compare(current.id)}
             onDuplicated={saved}
+            onNearbyShare={() => finishEditing(() => { nearby = { mode: 'send-vault', entryId: current.id, snapshot: current } })}
           />
         {/key}
       {:else if loaded}
@@ -910,6 +934,12 @@
 <Import bind:open={importing} />
 <Backup bind:open={backingUp} account={status?.account ?? ''}/>
 <Conflict bind:open={comparing} {conflicts} start={compareFrom} />
+<NearbyShare
+  bind:open={() => !!nearby, (next) => !next && (nearby = null)}
+  mode={nearby?.mode ?? 'receive'}
+  vaultEntry={nearbyVaultEntry}
+  vaultConflict={nearbyVaultConflict}
+/>
 
 <Dialog bind:open={() => leaving !== null, (next) => { if (!next) keepEditing() }} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"
   onOpenAutoFocus={(event) => { if (keepEditButton) { event.preventDefault(); keepEditButton.focus() } }}

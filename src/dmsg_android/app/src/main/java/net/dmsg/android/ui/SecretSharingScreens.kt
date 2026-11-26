@@ -222,7 +222,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                         Text(str(R.string.text_reconcile_original_snapshot_88bff05))
                     }
                 }
-                if (value.channel == null && value.state == "published" && !value.cancelRequested) {
+                if (value.channel == null && value.nearby == null && value.state == "published" && !value.cancelRequested) {
                     OutlinedButton(onClick = { client.secretSharing.select(id, reveal = true) }, enabled = !working, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_show_share_link_fb39fbb))
                     }
@@ -254,13 +254,16 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 if (value.channel != null) {
                     InfoRow(str(R.string.text_destination_channel_d035e1e), value.channel.name)
                     CodeRow(str(R.string.text_channel_0126d4b).trimEnd(' ', '·', ':'), value.channel.id) { client.clipboard.copy(value.channel.id) }
+                } else if (value.nearby != null) {
+                    InfoRow(str(R.string.nearby_device), value.nearby.peerLabel)
+                    InfoRow(str(R.string.nearby_verification_code), groupedNearbySas(value.nearby.sas))
                 } else {
                     value.expiresAt?.let { LabelValue(str(R.string.text_expires_1efbbe3).trimEnd(' ', '·', ':'), displayTime(it)) }
                     value.maxSessions?.let { LabelValue(str(R.string.text_download_sessions_3c6ad5d).trimEnd(' ', '·', ':'), localizedNumber(it)) }
                     if (value.password == true) InfoRow(str(R.string.text_password_347d7fc), str(R.string.text_password_protected_7587e45))
                 }
             }
-            if (value.channel == null && value.state !in setOf("revoked", "cancelled")) {
+            if (value.channel == null && value.nearby == null && value.state !in setOf("revoked", "cancelled")) {
                 Section(iconColor = MaterialTheme.colorScheme.errorContainer) {
                     ListRow(str(R.string.text_revoke_or_cancel_this_link_372f372), icon = Icons.Outlined.LinkOff, destructive = true, enabled = !working) { revoke = true }
                 }
@@ -273,12 +276,12 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
         dismissButton = { TextButton(onClick = { revoke = false }) { Text(str(R.string.text_go_back_7741045)) } })
 }
 
-@Composable fun SecretPackageScreen(client: ClientController, channel: String?, sequence: ULong?) {
+@Composable fun SecretPackageScreen(client: ClientController, channel: String?, sequence: ULong?, nearbyDigest: String? = null) {
     val read by client.secretSharing.preview.state.collectAsStateWithLifecycle()
     val form by client.secretSharing.incoming.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     val qr by client.qr.state.collectAsStateWithLifecycle()
-    val source = PackageInput(channel, sequence)
+    val source = PackageInput(channel, sequence, nearbyDigest)
     val current = form.takeIf { it.source == source }
     val preview = read.valueOrNull()?.takeIf { current != null }
     var choosingFolder by remember { mutableStateOf(false) }
@@ -294,7 +297,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
         if (current == null) return@Column
         val editable = !working && current.request == null && current.completed == null && current.pending == null
         if (current.pending != null && current.request == null) Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
-        DetailCard {
+        if (source.nearby == null) DetailCard {
             if (source.channel == null) {
                 OutlinedTextField(current.link, { link -> client.secretSharing.editIncoming { it.copy(link = link.take(8192)) } }, Modifier.fillMaxWidth(), enabled = editable,
                     label = { Text(str(R.string.text_paste_secret_package_link_64af151)) }, minLines = 2, maxLines = 4, keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Uri))
@@ -317,6 +320,8 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (state.working("secret:preview")) TextButton(onClick = { client.cancelOperation("secret:preview") }) { Text(str(R.string.text_cancel_preview_a89c579)) }
             }
+        } else if (preview != null) {
+            Notice(str(R.string.nearby_vault_verified_hint))
         }
         if (read !is ReadState.Idle) ReadFeedback(read, client.secretSharing::inspect)
         preview?.let { value ->
@@ -468,6 +473,15 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             LabelValue(str(R.string.text_epoch_4202c18).trimEnd(' ', '·', ':'), "${review.channel.epoch} / ${review.channel.aclVersion}")
         }
         ChannelSnapshotNotice()
+    } else if (review.nearby != null) {
+        Section(
+            title = str(R.string.nearby_snapshot),
+            footer = str(R.string.nearby_vault_approval_hint),
+        ) {
+            InfoRow(str(R.string.nearby_device), review.nearby.peerLabel)
+            InfoRow(str(R.string.nearby_verification_code), groupedNearbySas(review.nearby.sas))
+            CodeRow(str(R.string.text_verified_package_fingerprint_c59476c), review.nearby.transcript)
+        }
     } else {
         Section(
             title = str(R.string.text_share_link_b335ffa),

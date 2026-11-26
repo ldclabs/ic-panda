@@ -36,6 +36,7 @@ semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2.workspace = true
+socket2 = "0.6"
 tokio = { workspace = true }
 toml.workspace = true
 zeroize.workspace = true
@@ -55,6 +56,7 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 windows-future = "0.3"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_NetworkManagement_Dns"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 fuse3 = { workspace = true, features = ["tokio-runtime", "unprivileged"] }

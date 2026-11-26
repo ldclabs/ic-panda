@@ -89,7 +89,7 @@ pub(crate) struct ImportJob {
 
 /// One import's state between bounded client steps. No account key leaves
 /// the client; the version key and plaintext buffers are erased on drop.
-struct Importing {
+pub(crate) struct Importing {
     job: ImportJob,
     resumed: bool,
     generation: u64,
@@ -106,7 +106,7 @@ impl Drop for Importing {
 }
 
 impl Importing {
-    async fn thumbnail_async(&mut self) -> Option<(String, Vec<u8>)> {
+    pub(crate) async fn thumbnail_async(&mut self) -> Option<(String, Vec<u8>)> {
         let image = self.image.take()?;
         let budget = self.budget;
         let permit = THUMBNAIL_SLOTS.acquire().await.ok()?;
@@ -122,6 +122,10 @@ impl Importing {
             &thumb_aad(&self.job.file_id, &self.job.version),
         );
         Some((hex::encode(*sha256(&sealed)), sealed))
+    }
+
+    pub(crate) fn digest_hex(&self) -> String {
+        hex::encode(self.overall.clone().finalize())
     }
 
     /// Decode and seal a thumbnail without holding the client.
@@ -387,7 +391,7 @@ impl Client {
         Ok(())
     }
 
-    fn import_part(
+    pub(crate) fn import_part(
         &mut self,
         importing: &mut Importing,
         index: u64,
@@ -441,7 +445,7 @@ impl Client {
         Ok(())
     }
 
-    fn import_finish(
+    pub(crate) fn import_finish(
         &mut self,
         mut importing: Importing,
         thumbnail: Option<(String, Vec<u8>)>,
@@ -536,6 +540,28 @@ impl Client {
             resumed: importing.resumed,
             duplicate_of,
         })
+    }
+
+    /// Start receiving a stranger's nearby file into `folder` without merging
+    /// into an existing same-named file.
+    pub(crate) fn nearby_import_start(
+        &mut self,
+        size: u64,
+        raw_name: &str,
+        folder: &str,
+    ) -> Result<Importing> {
+        ensure(size <= self.config.files_max_bytes, Error::QuotaExceeded)?;
+        let catalog = self.catalog()?;
+        catalog.live_folder(folder)?;
+        let name = catalog.free_name(folder, &super::catalog::safe_name(raw_name));
+        self.import_start(size, &name, folder, None, Origin::Imported)
+    }
+
+    /// Remove an unfinished nearby import job and collect its unreferenced chunks.
+    pub(crate) fn nearby_import_abort(&mut self, importing: Importing) {
+        let key = format!("{IMPORT}{}", importing.job.version);
+        let _ = self.workspace.delete_private(&key);
+        let _ = self.collect_blobs();
     }
 
     /// The unfinished import of this file into this place.

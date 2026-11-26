@@ -101,6 +101,12 @@ import java.io.File
                 }
                 val isCloud = state.session?.accountKind != "local"
                 Section {
+                    if (file.local) {
+                        ListRow(str(R.string.nearby_share), icon = Icons.Outlined.WifiTethering) {
+                            client.nearby.prepareSendFiles(listOf(NearbySelectedFile(file.id, file.version, file.name, file.size)))
+                            client.navigation.push(Route("nearby-send-files"))
+                        }
+                    }
                     if (isCloud && (file.local || file.backup != null)) {
                         ListRow(str(R.string.text_share_by_link_05aafef), glyph = R.drawable.glyph_link,
                             enabled = file.size <= 100uL * 1024u * 1024u) {

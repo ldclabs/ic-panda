@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"İşlemler"</string>
     <string name="message_sending" formatted="false">"Gönderme"</string>
     <string name="more" formatted="false">"Diğer"</string>
+    <string name="nearby_accept" formatted="false">"Kabul et"</string>
+    <string name="nearby_allow_discovery" formatted="false">"Yakında keşfedilmeye izin ver"</string>
+    <string name="nearby_codes_match" formatted="false">"Kodlar eşleşiyor — devam et"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"Herhangi bir bilgi göndermeden önce alıcıda bu 6 haneli kodun göründüğünü doğrulayın."</string>
+    <string name="nearby_connecting" formatted="false">"Bağlanıyor…"</string>
+    <string name="nearby_connection" formatted="false">"Bağlantı"</string>
+    <string name="nearby_copy_code" formatted="false">"Bağlantı kodunu kopyala"</string>
+    <string name="nearby_device" formatted="false">"Yakındaki cihaz"</string>
+    <string name="nearby_devices" formatted="false">"Yakındaki cihazlar"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"Yalnızca yakında keşfedilmeyi açan cihazlar burada görünür. Bunun yerine alıcının QR kodunu tarayabilirsiniz."</string>
+    <string name="nearby_files_to_send" formatted="false">"Gönderilecek dosyalar"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"Gelen aktarım"</string>
+    <string name="nearby_local_network_denied" formatted="false">"dMsg için yerel ağ erişimi kapalı. Ayarlar’dan açın veya şifreli aktarıcı için QR kodu tarayın."</string>
+    <string name="nearby_local_only" formatted="false">"Yalnızca yerel ağ"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"Yerel + aktarıcı hazır"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"Yakındaki dMsg cihazları aranıyor…"</string>
+    <string name="nearby_paste_code" formatted="false">"dmsg-nearby/1: kodunu yapıştır"</string>
+    <string name="nearby_preparing_receive" formatted="false">"Yakından alma hazırlanıyor…"</string>
+    <string name="nearby_qr_code" formatted="false">"Yakından alma QR kodu"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"Yalnızca QR modu yerel ağda yayın yapmaz. Yakındaki cihaz listelerinde görünmek için keşfi açın."</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"QR doğrulandı · Kabul etmeden önce bu 6 haneli kodu gönderenle karşılaştırın."</string>
+    <string name="nearby_receive" formatted="false">"Yakından al"</string>
+    <string name="nearby_receive_more" formatted="false">"Daha fazla al"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"Alıcı QR veya bağlantı kodu"</string>
+    <string name="nearby_receiving" formatted="false">"Alma"</string>
+    <string name="nearby_review_approval" formatted="false">"Onayı inceleyin"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"Anlık görüntüyü incele ve içe aktar"</string>
+    <string name="nearby_scan_qr" formatted="false">"Alıcı QR kodunu tara"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"Yakındaki bir alıcı seçmeden önce en az bir alan, not veya ek seçin."</string>
+    <string name="nearby_send_via_code" formatted="false">"Kod ile gönder"</string>
+    <string name="nearby_sent_success" formatted="false">"Başarıyla gönderildi"</string>
+    <string name="nearby_share" formatted="false">"Yakında paylaş"</string>
+    <string name="nearby_share_identity" formatted="false">"dMsg kimliğimi paylaş"</string>
+    <string name="nearby_snapshot" formatted="false">"Yakın anlık görüntü"</string>
+    <string name="nearby_start_again" formatted="false">"Yeniden başlat"</string>
+    <string name="nearby_start_receiving" formatted="false">"Almayı başlat"</string>
+    <string name="nearby_transfer_complete" formatted="false">"Aktarım tamamlandı"</string>
+    <string name="nearby_transfer_failed" formatted="false">"Yakın aktarım başarısız oldu."</string>
+    <string name="nearby_transfer_status" formatted="false">"Aktarım durumu"</string>
+    <string name="nearby_transport" formatted="false">"Aktarım yolu"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"Doğrulanmamış keşif · Kabul etmeden önce bu 6 haneli kodu yüz yüze karşılaştırın."</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"Bu kasa anlık görüntüsü cihazdan ayrılmadan önce inceleyip onaylayın."</string>
+    <string name="nearby_vault_snapshot" formatted="false">"Kasa anlık görüntüsü"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"Kasa anlık görüntüsü bu cihazda doğrulandı. İçe aktarılacak alanları inceleyip seçin."</string>
+    <string name="nearby_verification_code" formatted="false">"Doğrulama kodu"</string>
+    <string name="nearby_waiting_accept" formatted="false">"Alıcının kabul etmesi bekleniyor…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"Gönderen bekleniyor…"</string>
     <string name="no_conversations_yet" formatted="false">"Henüz görüşme yok"</string>
     <string name="no_matches" formatted="false">"Eşleşen sonuç yok"</string>
     <string name="offline_account" formatted="false">"Yerel hesap"</string>

@@ -71,6 +71,53 @@
     <string name="message_actions" formatted="false">"การดำเนินการ"</string>
     <string name="message_sending" formatted="false">"กำลังส่ง"</string>
     <string name="more" formatted="false">"เพิ่มเติม"</string>
+    <string name="nearby_accept" formatted="false">"ยอมรับ"</string>
+    <string name="nearby_allow_discovery" formatted="false">"อนุญาตให้ค้นพบในบริเวณใกล้เคียง"</string>
+    <string name="nearby_codes_match" formatted="false">"รหัสตรงกัน — ดำเนินการต่อ"</string>
+    <string name="nearby_confirm_sas_hint" formatted="false">"ยืนยันว่าอุปกรณ์ผู้รับแสดงรหัส 6 หลักนี้ตรงกันก่อนส่งรายละเอียดใดๆ"</string>
+    <string name="nearby_connecting" formatted="false">"กำลังเชื่อมต่อ…"</string>
+    <string name="nearby_connection" formatted="false">"การเชื่อมต่อ"</string>
+    <string name="nearby_copy_code" formatted="false">"คัดลอกรหัสเชื่อมต่อ"</string>
+    <string name="nearby_device" formatted="false">"อุปกรณ์ใกล้เคียง"</string>
+    <string name="nearby_devices" formatted="false">"อุปกรณ์ใกล้เคียง"</string>
+    <string name="nearby_discovery_list_hint" formatted="false">"เฉพาะอุปกรณ์ที่เปิดการค้นพบใกล้เคียงเท่านั้นที่จะแสดงที่นี่ คุณสามารถสแกนคิวอาร์โค้ดของผู้รับได้เสมอ"</string>
+    <string name="nearby_files_to_send" formatted="false">"ไฟล์ที่จะส่ง"</string>
+    <string name="nearby_incoming_transfer" formatted="false">"การถ่ายโอนขาเข้า"</string>
+    <string name="nearby_local_network_denied" formatted="false">"ปิดการเข้าถึงเครือข่ายท้องถิ่นสำหรับ dMsg อยู่ เปิดในการตั้งค่าหรือสแกนคิวอาร์โค้ดเพื่อใช้รีเลย์เข้ารหัส"</string>
+    <string name="nearby_local_only" formatted="false">"เครือข่ายท้องถิ่นเท่านั้น"</string>
+    <string name="nearby_local_relay_ready" formatted="false">"เครือข่ายท้องถิ่น + รีเลย์พร้อม"</string>
+    <string name="nearby_looking_for_devices" formatted="false">"กำลังค้นหาอุปกรณ์ dMsg ใกล้เคียง…"</string>
+    <string name="nearby_paste_code" formatted="false">"วางรหัส dmsg-nearby/1:"</string>
+    <string name="nearby_preparing_receive" formatted="false">"กำลังเตรียมรับใกล้เคียง…"</string>
+    <string name="nearby_qr_code" formatted="false">"คิวอาร์โค้ดรับใกล้เคียง"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"โหมดเฉพาะ QR จะไม่ประกาศบนเครือข่ายท้องถิ่น เปิดการค้นพบเพื่อแสดงในรายการอุปกรณ์ใกล้เคียง"</string>
+    <string name="nearby_qr_verified_hint" formatted="false">"ยืนยัน QR แล้ว · เปรียบเทียบรหัส 6 หลักนี้กับผู้ส่งก่อนยอมรับ"</string>
+    <string name="nearby_receive" formatted="false">"รับใกล้เคียง"</string>
+    <string name="nearby_receive_more" formatted="false">"รับเพิ่มเติม"</string>
+    <string name="nearby_receiver_qr_or_code" formatted="false">"คิวอาร์โค้ดหรือรหัสเชื่อมต่อของผู้รับ"</string>
+    <string name="nearby_receiving" formatted="false">"กำลังรับ"</string>
+    <string name="nearby_review_approval" formatted="false">"ตรวจสอบการอนุมัติ"</string>
+    <string name="nearby_review_import_snapshot" formatted="false">"ตรวจสอบและนำเข้าสแนปช็อต"</string>
+    <string name="nearby_scan_qr" formatted="false">"สแกนคิวอาร์โค้ดผู้รับ"</string>
+    <string name="nearby_select_vault_hint" formatted="false">"เลือกอย่างน้อยหนึ่งฟิลด์ บันทึก หรือไฟล์แนบก่อนเลือกผู้รับใกล้เคียง"</string>
+    <string name="nearby_send_via_code" formatted="false">"ส่งด้วยรหัส"</string>
+    <string name="nearby_sent_success" formatted="false">"ส่งสำเร็จแล้ว"</string>
+    <string name="nearby_share" formatted="false">"แชร์ใกล้เคียง"</string>
+    <string name="nearby_share_identity" formatted="false">"แชร์ตัวตน dMsg ของฉัน"</string>
+    <string name="nearby_snapshot" formatted="false">"สแนปช็อตใกล้เคียง"</string>
+    <string name="nearby_start_again" formatted="false">"เริ่มใหม่"</string>
+    <string name="nearby_start_receiving" formatted="false">"เริ่มรับ"</string>
+    <string name="nearby_transfer_complete" formatted="false">"ถ่ายโอนเสร็จสิ้น"</string>
+    <string name="nearby_transfer_failed" formatted="false">"การถ่ายโอนใกล้เคียงล้มเหลว"</string>
+    <string name="nearby_transfer_status" formatted="false">"สถานะการถ่ายโอน"</string>
+    <string name="nearby_transport" formatted="false">"ช่องทางส่ง"</string>
+    <string name="nearby_unverified_discovery_hint" formatted="false">"การค้นพบที่ยังไม่ยืนยัน · เปรียบเทียบรหัส 6 หลักนี้ต่อหน้าก่อนยอมรับ"</string>
+    <string name="nearby_vault_approval_hint" formatted="false">"ตรวจสอบและอนุมัติสแนปช็อตตู้นิรภัยนี้ก่อนส่งออกจากอุปกรณ์นี้"</string>
+    <string name="nearby_vault_snapshot" formatted="false">"สแนปช็อตตู้นิรภัย"</string>
+    <string name="nearby_vault_verified_hint" formatted="false">"ตรวจสอบสแนปช็อตตู้นิรภัยบนอุปกรณ์นี้แล้ว ตรวจสอบและเลือกฟิลด์ที่จะนำเข้า"</string>
+    <string name="nearby_verification_code" formatted="false">"รหัสยืนยัน"</string>
+    <string name="nearby_waiting_accept" formatted="false">"รอให้ผู้รับยอมรับ…"</string>
+    <string name="nearby_waiting_sender" formatted="false">"กำลังรอผู้ส่ง…"</string>
     <string name="no_conversations_yet" formatted="false">"ยังไม่มีการสนทนา"</string>
     <string name="no_matches" formatted="false">"ไม่พบผลลัพธ์ที่ตรงกัน"</string>
     <string name="offline_account" formatted="false">"บัญชีในเครื่อง"</string>
