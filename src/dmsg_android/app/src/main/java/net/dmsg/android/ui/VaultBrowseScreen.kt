@@ -40,7 +40,8 @@ fun vaultKindName(kind: String): String = when (kind) {
 }
 
 @Composable fun VaultScreen(client: ClientController, select: (String) -> Unit) {
-    val localMode = client.state.collectAsStateWithLifecycle().value.session?.accountKind == "local"
+    val state by client.state.collectAsStateWithLifecycle()
+    val localMode = state.session?.accountKind == "local"
     val read by client.vault.listing.state.collectAsStateWithLifecycle()
     val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     val page = read.valueOrNull()
@@ -51,14 +52,14 @@ fun vaultKindName(kind: String): String = when (kind) {
         if (next != query) scroll.requestScrollToItem(0)
         client.vault.browse(next)
     }
-    LaunchedEffect(searchAll, query.text) {
+    LaunchedEffect(searchAll, query.text, state.epoch) {
         if (searchAll && query.text.isNotBlank()) client.search.searchAll(query.text)
     }
     var filters by remember { mutableStateOf(false) }
     var tools by remember { mutableStateOf(false) }
     val savedAccounts by client.accountWorkspace.accounts.state.collectAsStateWithLifecycle()
     LaunchedEffect(tools, localMode) { if (tools && !localMode) client.accountWorkspace.accounts(resolveNames = false) }
-    LaunchedEffect(Unit) { client.vault.browse() }
+    LaunchedEffect(state.epoch) { client.vault.browse() }
     BackHandler(enabled = LocalPageActive.current && query.trash, onBack = client.vault::toggleTrash)
     key(query.trash) {
         WorkspaceBrowser(str(if (query.trash) R.string.text_trash_8af1079 else R.string.text_vault_ede2a06),

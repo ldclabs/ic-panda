@@ -53,12 +53,16 @@ internal class RecentsPrivacy(private val activity: ComponentActivity) : Default
     }
 
     private fun update() {
-        // Dialogs share the activity token. Attached popups use the parent window token.
+        // Dialogs share the activity token. A popup belongs to the window that opened
+        // it, which can be a dialog (for example, the full-screen vault editor).
+        val windows = WindowInspector.getGlobalWindowViews()
         val activityToken = (decor.layoutParams as? WindowManager.LayoutParams)?.token
-        val windowToken = decor.windowToken
-        val roots = WindowInspector.getGlobalWindowViews().filterTo(mutableSetOf(decor)) { root ->
-            val token = (root.layoutParams as? WindowManager.LayoutParams)?.token
-            (activityToken != null && token == activityToken) || (windowToken != null && root.applicationWindowToken == windowToken)
+        val roots = windows.filterTo(mutableSetOf(decor)) { root ->
+            activityToken != null && (root.layoutParams as? WindowManager.LayoutParams)?.token == activityToken
+        }
+        val parentTokens = roots.mapNotNull { it.windowToken }.toSet()
+        windows.filterTo(roots) { root ->
+            (root.layoutParams as? WindowManager.LayoutParams)?.token in parentTokens
         }
         (foregrounds.keys - roots).forEach(::release)
         val hide = !resumed || roots.none { it.hasWindowFocus() }
