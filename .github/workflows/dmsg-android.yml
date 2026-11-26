@@ -35,7 +35,7 @@ jobs:
   resources:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: bash scripts/android/verify.sh resources
   packages:
     if: github.event_name != 'workflow_dispatch' || !inputs.firebase_bundle
@@ -43,18 +43,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps: &package_steps
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
           cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
           targets: aarch64-linux-android,x86_64-linux-android
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: ${{ github.event_name != 'pull_request' }}
       - name: Install reviewed Android build tools
@@ -72,7 +72,7 @@ jobs:
           jq -e '.package_name == "net.dmsg.android" and .environment == "production"' "$client_file" > /dev/null
           echo "DMSG_ANDROID_CLIENT_FILE=$client_file" >> "$GITHUB_ENV"
       - run: bash scripts/android/verify.sh build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: dmsg-android-packages
@@ -102,18 +102,18 @@ jobs:
     env:
       DMSG_ANDROID_IMAGE: system-images;android-${{ matrix.api }};google_apis;x86_64
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
           cache-read-only: true
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
           targets: x86_64-linux-android
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: false
       - name: Install emulator and reviewed build tools
@@ -122,7 +122,7 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/22.0/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' emulator "$DMSG_ANDROID_IMAGE"
           sudo chmod a+rw /dev/kvm
       - run: bash scripts/android/ci-emulator.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: dmsg-android-api${{ matrix.api }}
