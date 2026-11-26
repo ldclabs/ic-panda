@@ -90,12 +90,11 @@ for (const route of [
   assert.equal(data.url, 'https://dmsg.net/')
   assert.ok(data.operatingSystem.includes('iOS'))
   assert.ok(data.operatingSystem.includes('iPadOS'))
-  const downloadUrl = new URL(data.downloadUrl)
-  const expectedAppStoreUrl = new URL(appStore)
-  assert.equal(downloadUrl.origin, expectedAppStoreUrl.origin)
-  assert.equal(downloadUrl.pathname, expectedAppStoreUrl.pathname)
-  assert.equal(downloadUrl.username, '')
-  assert.equal(downloadUrl.password, '')
+  assert.ok(Array.isArray(data.downloadUrl), 'index.html: downloadUrl is an array')
+  assert.ok(
+    data.downloadUrl.some((url) => url === appStore),
+    'index.html: downloadUrl contains the exact App Store URL'
+  )
 
   const faq = linked.find((item) => item['@type'] === 'FAQPage')
   const visibleFaq = [...document.querySelectorAll('.faq details > summary')].map((el) =>
