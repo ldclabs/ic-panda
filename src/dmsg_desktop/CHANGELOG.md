@@ -6,6 +6,21 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.1-beta.2] - 2026-11-26
+
+The fixes below are also part of the `1.6.1-beta.1` source tag.
+
+- Keep channel read status current when you return to a conversation at its
+  latest message. Marking a channel as read now uses its latest known message.
+- Sync incoming letters in the background while the account is unlocked.
+  Show a generic in-app alert if an incoming message is still unverified
+  after 10 seconds.
+- Use the app language when registering for notifications. Snoozing a
+  reminder until tomorrow morning follows the quiet-hours time zone when
+  available and the device's time zone otherwise.
+- Fix Windows release signing by using an updated Certum SimplySign Desktop
+  installer that avoids an update prompt during automated sign-in.
+
 ## [1.6.1-beta.1] - 2026-11-26
 
 - Require timestamped Authenticode signatures from Yiwen AI Limited on the
@@ -1022,6 +1037,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.1-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.2
 [1.6.1-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.1
 [1.6.0]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0
 [1.6.0-beta.4]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.3...1.6.0-beta.4
