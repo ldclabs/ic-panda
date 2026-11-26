@@ -17,18 +17,27 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   version:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       channel: ${{ steps.version.outputs.channel }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       make_latest: ${{ steps.version.outputs.make_latest }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Verify release source and CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/verify-release-source.sh
       # One version for the tag, the dmsg binary and the desktop app.
       - id: version
         run: node scripts/dmsg/release-config.cjs
@@ -56,13 +65,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.optional == true }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Keep in step with rust-toolchain.toml.
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - name: Build
         shell: bash
         run: |
@@ -77,7 +86,7 @@ jobs:
         run: |
           if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
           $sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-${{ matrix.asset }}
           path: release/*
@@ -90,13 +99,13 @@ jobs:
     runs-on: xcode-27
     environment: dmsg-release
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Prepare the FSKit toolchain
         run: |
           sdk=$(xcrun --sdk macosx --show-sdk-version)
           test "${sdk%%.*}" -ge 27
           command -v xcodegen || brew install xcodegen
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-dmsg-macos-arm64
           path: release
@@ -114,12 +123,12 @@ jobs:
           scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64 "$RUNNER_TEMP/SecretsFS.zip"
           release/dmsg-macos-arm64 --version
           (cd release && shasum -a 256 dmsg-macos-arm64 > dmsg-macos-arm64.sha256)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-dmsg-macos-arm64
           path: release/*
           overwrite: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: signed-secretsfs
           path: ${{ runner.temp }}/SecretsFS.zip
@@ -147,20 +156,20 @@ jobs:
       # The package bundles this release's own dmsg, byte for byte.
       DMSG_DESKTOP_RUNTIME: ${{ github.workspace }}/runtime/${{ matrix.asset }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The pnpm version pinned by packageManager in the root package.json.
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile --filter @dmsg/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-${{ matrix.asset }}
           path: runtime
       - if: runner.os == 'macOS'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: signed-secretsfs
           path: ${{ runner.temp }}/dmsg-fskit
@@ -206,20 +215,22 @@ jobs:
             [ -f "$file" ] && $sum "$file" > "$file.sha256"
           done
           node ../src/dmsg_desktop/scripts/verify-release.cjs .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-desktop-${{ matrix.os }}
           path: desktop-release/*
           if-no-files-found: error
 
   release:
+    permissions:
+      contents: write
     needs: [version, binary, sign-macos, desktop]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     environment: dmsg-release
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: release-*
           merge-multiple: true
@@ -234,7 +245,7 @@ jobs:
         run: |
           latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
           node -e 'require("./scripts/dmsg/release-config.cjs").assertLegacyLatest(process.argv[1])' "$latest"
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         id: upload
         with:
           name: dMsg ${{ needs.version.outputs.version }}
