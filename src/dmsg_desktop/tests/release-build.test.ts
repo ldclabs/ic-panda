@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { stringify } from 'yaml'
 
@@ -26,6 +27,28 @@ test('release tags, feed channels and publication flags agree without leaking be
   for (const tag of ['v3.0.0', 'dmsg-v1.3.0', 'canisters-v3.1.6', '1.3.0-alpha.1', '1.3.0-beta.01', '1.3.0-beta.1/extra', '1.03.0']) {
     assert.throws(() => releaseConfig(tag), /Expected/)
   }
+})
+
+test('Windows packaging requires the pinned store certificate, SHA-256 and updater verification', () => {
+  const config = require.resolve('../electron-builder.release.cjs')
+  const read = (fingerprint: string, publisher: string) => JSON.parse(execFileSync(process.execPath, ['-e', `
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    const config = require(process.argv[1])
+    console.log(JSON.stringify([config.forceCodeSigning, config.win]))
+  `, config], {
+    env: { ...process.env, DMSG_WINDOWS_CERT_SHA1: fingerprint, DMSG_WINDOWS_PUBLISHER: publisher },
+    encoding: 'utf8', stdio: 'pipe'
+  }))
+  const fingerprint = 'AB'.repeat(20)
+  assert.throws(() => read('', 'CN=Fixture'), /thumbprint and publisher/)
+  assert.throws(() => read(fingerprint, ''), /thumbprint and publisher/)
+  const [required, win] = read(fingerprint, 'CN=Fixture')
+  assert.equal(required, true)
+  assert.equal(win.verifyUpdateCodeSignature, true)
+  assert.deepEqual(win.signtoolOptions, {
+    certificateSha1: fingerprint, publisherName: 'CN=Fixture', signingHashAlgorithms: ['sha256'],
+    rfc3161TimeStampServer: 'http://time.certum.pl'
+  })
 })
 
 test('release verification rejects incomplete packages, wrong hashes, and cross-channel manifests', () => {
@@ -88,5 +111,32 @@ test('the shell installer defaults to stable and an explicit beta uses its bare 
     env.DMSG_VERSION = '1.4.0-alpha.1'
     assert.throws(() => execFileSync('sh', [script], options), /DMSG_VERSION must/)
     assert.equal(existsSync(called), false)
+  } finally { rmSync(directory, { recursive: true, force: true }) }
+})
+
+test('both Linux CLIs install from a binary and its SHA-256 and reject changed bytes', { skip: process.platform === 'win32' }, () => {
+  const directory = mkdtempSync(join(tmpdir(), 'dmsg-linux-install-'))
+  const script = new URL('../../../scripts/dmsg/install.sh', import.meta.url).pathname
+  const version = '1.6.1'
+  const release = join(directory, 'download', version)
+  const marker = join(directory, 'installed')
+  try {
+    mkdirSync(release, { recursive: true })
+    writeFileSync(join(directory, 'uname'), '#!/bin/sh\ncase "$1" in -s) echo Linux;; -m) echo "$TEST_ARCH";; esac\n', { mode: 0o755 })
+    for (const arch of ['arm64', 'x86_64']) {
+      const asset = `dmsg-linux-${arch}`
+      const bytes = `#!/bin/sh\necho '${arch}' > "$DMSG_INSTALL_DIR/installed"\n`
+      writeFileSync(join(release, asset), bytes)
+      writeFileSync(join(release, asset + '.sha256'), createHash('sha256').update(bytes).digest('hex') + '  ' + asset + '\n')
+      const env = { ...process.env, PATH: `${directory}:${process.env.PATH}`, TEST_ARCH: arch,
+        DMSG_RELEASE_URL: pathToFileURL(directory).href, DMSG_VERSION: version, DMSG_INSTALL_DIR: directory }
+      const install = () => execFileSync('sh', [script], { env, encoding: 'utf8', stdio: 'pipe' })
+      install()
+      assert.equal(readFileSync(marker, 'utf8').trim(), arch)
+      rmSync(marker)
+      writeFileSync(join(release, asset), bytes + '# changed\n')
+      assert.throws(install, /does not match its published SHA-256/)
+      assert.equal(existsSync(marker), false)
+    }
   } finally { rmSync(directory, { recursive: true, force: true }) }
 })

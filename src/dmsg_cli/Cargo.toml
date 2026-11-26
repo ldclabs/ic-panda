@@ -40,6 +40,9 @@ tokio = { workspace = true }
 toml.workspace = true
 zeroize.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+tempfile = "3"
+
 [target.'cfg(target_os = "linux")'.dependencies]
 fuse3 = { workspace = true, features = ["tokio-runtime", "unprivileged"] }
 

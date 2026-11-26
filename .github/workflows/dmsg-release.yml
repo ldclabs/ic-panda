@@ -4,11 +4,11 @@ name: dMsg release
 # GitHub Latest stays on the LDC bridge for legacy updaters. New clients enumerate
 # complete releases; every stable release still updates Homebrew. Beta is opt-in.
 #
-# Secrets of the dmsg-release environment (macOS signing/notarization are required):
+# Signing credentials in the dmsg-release environment:
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   notarization
 #   MAC_FSKIT_PROFILE_BASE64  Yiwen Developer ID profile for net.dmsg.desktop.SecretFiles
-#   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   Windows code signing; variable DMSG_WINDOWS_PUBLISHER
+#   CERTUM_USERNAME, CERTUM_OTP_URI      SimplySign login for Windows code signing
 #   HOMEBREW_TAP_TOKEN                   write access to ldclabs/homebrew-tap
 on:
   push:
@@ -57,13 +57,10 @@ jobs:
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             asset: dmsg-linux-arm64
-          # Not yet verified on Windows; its failure does not hold the release.
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             asset: dmsg-windows-x64.exe
-            optional: true
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.optional == true }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Keep in step with rust-toolchain.toml.
@@ -81,6 +78,7 @@ jobs:
           cp "target/${{ matrix.target }}/release/$exe" "release/${{ matrix.asset }}"
           "release/${{ matrix.asset }}" --version
       - name: Checksum
+        if: runner.os != 'Windows'
         shell: bash
         working-directory: release
         run: |
@@ -88,7 +86,7 @@ jobs:
           $sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-${{ matrix.asset }}
+          name: ${{ runner.os == 'Windows' && 'unsigned-windows-cli' || format('release-{0}', matrix.asset) }}
           path: release/*
           if-no-files-found: error
 
@@ -142,15 +140,9 @@ jobs:
         include:
           - os: macos-latest
             asset: dmsg-macos-arm64
-            certificate: MAC_CSC_LINK
-            password: MAC_CSC_KEY_PASSWORD
           - os: windows-latest
             asset: dmsg-windows-x64.exe
-            certificate: WIN_CSC_LINK
-            password: WIN_CSC_KEY_PASSWORD
-            optional: true
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.optional == true }}
     environment: dmsg-release
     env:
       # The package bundles this release's own dmsg, byte for byte.
@@ -166,7 +158,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --filter @dmsg/desktop
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-${{ matrix.asset }}
+          name: ${{ runner.os == 'Windows' && 'unsigned-windows-cli' || format('release-{0}', matrix.asset) }}
           path: runtime
       - if: runner.os == 'macOS'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -184,17 +176,44 @@ jobs:
           chmod +x "$DMSG_DESKTOP_RUNTIME"
           pnpm --dir src/dmsg_desktop build
           node src/dmsg_desktop/scripts/prepare-runtime.mjs
+      - name: Read the pinned Certum publisher
+        id: certum
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $pem = Get-Content scripts/dmsg/certum-signer.pem -Raw
+          $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPem($pem)
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+          "publisher=$($cert.Subject)" >> $env:GITHUB_OUTPUT
+      - name: Connect SimplySign
+        if: runner.os == 'Windows'
+        uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64 # v1.2.5
+        with:
+          certum-username: ${{ secrets.CERTUM_USERNAME }}
+          certum-otp-uri: ${{ secrets.CERTUM_OTP_URI }}
+          certum-key-id: ${{ steps.certum.outputs.thumbprint }}
       - name: Package
         shell: bash
         working-directory: src/dmsg_desktop
         env:
-          CSC_LINK: ${{ secrets[matrix.certificate] }}
-          CSC_KEY_PASSWORD: ${{ secrets[matrix.password] }}
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
           APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
-          DMSG_WINDOWS_PUBLISHER: ${{ vars.DMSG_WINDOWS_PUBLISHER }}
+          DMSG_WINDOWS_PUBLISHER: ${{ steps.certum.outputs.publisher }}
+          DMSG_WINDOWS_CERT_SHA1: ${{ steps.certum.outputs.thumbprint }}
         run: pnpm exec electron-builder --config electron-builder.release.cjs --publish never
+      - name: Verify Authenticode and collect the signed Windows CLI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/dmsg/collect-signed-release.ps1
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-signed-cli
+          path: signed-cli/*
+          if-no-files-found: error
       - name: Verify the notarized macOS update and its embedded FSKit extension
         if: runner.os == 'macOS'
         run: |

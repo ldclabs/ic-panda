@@ -47,6 +47,25 @@ jobs:
       - run: pnpm --dir src/dmsg_desktop check
       - run: pnpm --dir src/dmsg_desktop test
       - run: pnpm --dir src/dmsg_desktop build
+  windows-release-verifier:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Verify an Authenticode executable and reject modified bytes
+        shell: pwsh
+        run: |
+          $exe = (Get-Command node.exe).Source
+          $signature = Get-AuthenticodeSignature -LiteralPath $exe
+          $pem = Join-Path $env:RUNNER_TEMP signer.pem
+          $signature.SignerCertificate.ExportCertificatePem() | Set-Content $pem -Encoding ascii
+          ./scripts/dmsg/install.ps1 -VerifyFile $exe -SignerPem $pem
+          $copy = Join-Path $env:RUNNER_TEMP changed.exe
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $bytes[2] = $bytes[2] -bxor 1
+          [IO.File]::WriteAllBytes($copy, $bytes)
+          try { ./scripts/dmsg/install.ps1 -VerifyFile $copy -SignerPem $pem }
+          catch { Write-Host "Modified executable rejected"; exit 0 }
+          throw 'Accepted a modified executable'
   test:
     runs-on: ubuntu-latest
     steps:

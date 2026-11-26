@@ -1,7 +1,6 @@
 //! Releases and installs of `dmsg`: the latest stable SemVer release of the
-//! repository, a download checked against its published SHA-256 and, on
-//! macOS, signed by the running binary's Developer ID team,
-//! and the shared location that the install scripts, Homebrew and the desktop app use.
+//! repository, verification of release digests and platform signatures, and the
+//! shared location that the install scripts, Homebrew and the desktop app use.
 //!
 //! GitHub Latest stays on the LDC bridge for old clients. New clients enumerate
 //! complete stable releases, excluding canister releases (`canisters-v*`).
@@ -162,8 +161,7 @@ fn stable_version(reply: &Value) -> Option<&str> {
     .then_some(tag)
 }
 
-/// This platform's binary of release `version`, checked against the
-/// release's SHA-256.
+/// This platform's binary, checked before anything installs or executes it.
 pub async fn download(http: &reqwest::Client, version: &str) -> Result<Vec<u8>, Failure> {
     let asset = asset()
         .ok_or_else(|| Failure::new("UNSUPPORTED", "dMsg releases no binary for this platform"))?;
@@ -181,7 +179,54 @@ pub async fn download(http: &reqwest::Client, version: &str) -> Result<Vec<u8>, 
             format!("{asset} does not match its published SHA-256"),
         ));
     }
+    #[cfg(windows)]
+    if newer(version, "1.6.0") {
+        verify_windows_download(http, version, &bytes).await?;
+    }
     Ok(bytes)
+}
+
+#[cfg(windows)]
+async fn verify_windows_download(
+    http: &reqwest::Client,
+    version: &str,
+    bytes: &[u8],
+) -> Result<(), Failure> {
+    // The artifact mirror never chooses the trusted certificate. The source tag
+    // also keeps historical releases verifiable across certificate renewals.
+    let url = format!(
+        "https://raw.githubusercontent.com/ldclabs/ic-panda/refs/tags/{version}/scripts/dmsg/certum-signer.pem"
+    );
+    let pem = get(http, &url, "text/plain").await?;
+    let work = tempfile::tempdir().map_err(unavailable)?;
+    let dir = work.path();
+    std::fs::write(dir.join("signer.pem"), pem).map_err(unavailable)?;
+    std::fs::write(dir.join("dmsg.exe"), bytes).map_err(unavailable)?;
+    let output = tokio::process::Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            concat!(
+                "& {\n",
+                include_str!("../../../scripts/dmsg/install.ps1"),
+                "\n} -VerifyFile ./dmsg.exe -SignerPem ./signer.pem"
+            ),
+        ])
+        .current_dir(dir)
+        .output()
+        .await
+        .map_err(unavailable)?;
+    if !output.status.success() {
+        return Err(Failure::new(
+            "INTEGRITY_FAILED",
+            format!(
+                "Windows CLI signature verification failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// Homebrew owns `path`; only `brew upgrade` replaces it.

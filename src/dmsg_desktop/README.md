@@ -641,9 +641,8 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `CSC_IDENTITY_AUTO_DISCOVERY=false`, it stays ad hoc with no feed. A
   macOS package gets the feed only with its dmg or zip, never from `--dir`.
   `electron-builder.release.cjs` (the release
-  workflow) adds the Developer ID signature and notarization on macOS
-  (required there), Authenticode on Windows when a certificate is configured,
-  and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`
+  workflow) requires Developer ID signing and notarization on macOS and Certum
+  Authenticode signing on Windows. It adds the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`
   for stable; `beta-mac.yml`, `beta.yml` for beta). Tags are bare versions,
   such as `1.3.0` or `1.4.0-beta.1`; see [release instructions](../../scripts/dmsg/README.md).
 - LDC signed the 1.5.8 and 1.5.10 macOS bridges. Both accept the Yiwen

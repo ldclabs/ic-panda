@@ -10,7 +10,7 @@
 //! otherwise refuse with `BUSY`, unless `--interrupt`; the running operation
 //! always finishes first, and everything unsettled is journaled and resumes
 //! after the restart (plan DT10). An update replaces the binary only after its
-//! checksum (and, on macOS, its signer) checked, and only once the daemon
+//! checksum and applicable release signature checked, and only once the daemon
 //! stopped; it then starts the new daemon and checks its version.
 
 use crate::home::Home;
