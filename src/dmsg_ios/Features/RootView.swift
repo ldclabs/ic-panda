@@ -6,7 +6,7 @@ struct RootView: View {
     @State private var showApprovals = false
     @State private var showIncoming = false
     @State private var showGlobalSearch = false
-    private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } }
+    private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } + model.unreadLetters }
 
     var body: some View {
         @Bindable var model = model
@@ -107,8 +107,10 @@ private struct WorkspaceOverlays: ViewModifier {
                 Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
                 Button("Open") {
                     guard !model.concealed, model.notifications.presented?.id == plan.id else { return }
-                    model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target)
                     model.notifications.presented = nil
+                    if !model.openWorkspaceReminder(account: plan.account, target: plan.target) {
+                        model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target)
+                    }
                 }
             }.padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius)).padding(.horizontal, 16).padding(.bottom, bottomInset)
         }.ignoresSafeArea(.all, edges: .bottom)
@@ -199,7 +201,7 @@ struct ActivityButton: View {
             let status = WorkspaceStatus.current(model, at: timeline.date)
             let approvals = model.session?.approvalsWaiting ?? 0
             let reminders = model.notifications.status?.counts
-            let reminderCount = reminders?.actionable ?? 0
+            let reminderCount = (reminders?.actionable ?? 0) + (reminders?.unread ?? 0)
             let decisions = approvals > 0 || reminderCount > 0 || reminders?.unverified == true
             let syncFirst = !model.localAccount && status != nil && (status?.urgent == true || !decisions)
             Menu {

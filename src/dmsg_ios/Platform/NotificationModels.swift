@@ -196,8 +196,9 @@ enum NotificationTime {
         }
         return nil
     }
-    static func tomorrow(_ now: Date = .now) -> UInt64 {
-        let calendar = Calendar.current
+    static func tomorrow(_ now: Date = .now, timezone: String? = nil) -> UInt64 {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone.flatMap(TimeZone.init(identifier:)) ?? .current
         let day = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
         return UInt64(calendar.date(bySettingHour: 8, minute: 0, second: 0, of: day)!.timeIntervalSince1970 * 1000)
     }

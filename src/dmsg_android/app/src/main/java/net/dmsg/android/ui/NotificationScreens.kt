@@ -134,7 +134,7 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     AssistChip(onClick = { client.notifications.edit(global = value.global.copy(pausedUntil = System.currentTimeMillis().toULong() + 900_000u)) }, label = { Text(str(R.string.text_pause_15_min_157680c)) })
                                     AssistChip(onClick = { client.notifications.edit(global = value.global.copy(pausedUntil = System.currentTimeMillis().toULong() + 3_600_000u)) }, label = { Text(str(R.string.text_pause_1_hour_f49d294)) })
-                                    AssistChip(onClick = { client.notifications.edit(global = value.global.copy(pausedUntil = ZonedDateTime.now().toLocalDate().plusDays(1).atTime(8, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli().toULong())) }, label = { Text(str(R.string.text_until_tomorrow_ff2f949)) })
+                                    AssistChip(onClick = { client.notifications.edit(global = value.global.copy(pausedUntil = tomorrowMorning(value.global.quiet?.timezone))) }, label = { Text(str(R.string.text_until_tomorrow_ff2f949)) })
                                 }
                             },
                         )
@@ -227,9 +227,18 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
             }
         }
     }
-    if (confirmingAccount) AlertDialog(onDismissRequest = { confirmingAccount = false }, title = { Text(str(R.string.text_enable_this_account_s_reminders_5429cc5)) }, text = {
-        Text(str(R.string.text_this_is_a_separate_choice_for_this_account_when_remote_delivery_i_76004c5))
-    }, confirmButton = { TextButton(onClick = { confirmingAccount = false; draft?.account?.let { client.notifications.edit(account = it.copy(enabled = true)) } }) { Text(str(R.string.text_enable_for_this_account_85ff77f)) } }, dismissButton = { TextButton(onClick = { confirmingAccount = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    if (confirmingAccount) {
+        val noticeStatus by client.notifications.status.state.collectAsStateWithLifecycle()
+        val otherEnabled = noticeStatus.valueOrNull()?.accounts.orEmpty().filter { it.enabled && it.account != draft?.accountId }.map { it.account }
+        AlertDialog(onDismissRequest = { confirmingAccount = false }, title = { Text(str(R.string.text_enable_this_account_s_reminders_5429cc5)) }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(str(R.string.text_this_is_a_separate_choice_for_this_account_when_remote_delivery_i_76004c5))
+                if (otherEnabled.isNotEmpty()) {
+                    Text(otherEnabled.joinToString("\n"), style = MaterialTheme.typography.bodySmall.code(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { confirmingAccount = false; draft?.account?.let { client.notifications.edit(account = it.copy(enabled = true)) } }) { Text(str(R.string.text_enable_for_this_account_85ff77f)) } }, dismissButton = { TextButton(onClick = { confirmingAccount = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }
     if (confirmingRetry) AlertDialog(onDismissRequest = { confirmingRetry = false }, title = { Text(str(R.string.text_apply_your_reviewed_preferences_4d34d52)) }, text = { Text(str(R.string.text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b)) }, confirmButton = { TextButton(onClick = { confirmingRetry = false; client.notifications.retrySave() }) { Text(str(R.string.text_apply_3d57c12)) } }, dismissButton = { TextButton(onClick = { confirmingRetry = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
@@ -341,11 +350,16 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
     if (markAll) AlertDialog(onDismissRequest = { markAll = false }, title = { Text(str(R.string.text_mark_all_reminders_read_9114c6d)) }, text = { Text(str(R.string.text_this_affects_reminders_on_this_device_it_does_not_read_messages_a_3ad1bd5)) }, confirmButton = { TextButton(onClick = { markAll = false; client.notifications.markAllRead() }) { Text(str(R.string.text_mark_as_read_008b048)) } }, dismissButton = { TextButton(onClick = { markAll = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
     if (clearing) AlertDialog(onDismissRequest = { clearing = false }, title = { Text(str(R.string.text_clear_ended_reminder_history_9d42924)) }, text = { Text(str(R.string.text_open_tasks_and_business_records_remain_605e91e)) }, confirmButton = { TextButton(onClick = { clearing = false; client.notifications.clearRecent() }) { Text(str(R.string.text_clear_a390bf3)) } }, dismissButton = { TextButton(onClick = { clearing = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
     snoozing?.let { item ->
+        val quietZone = client.notifications.preferences.value()?.global?.quiet?.timezone
+        val now = System.currentTimeMillis().toULong()
         AlertDialog(onDismissRequest = { snoozing = null }, title = { Text(str(R.string.text_remind_later_e978e2b)) }, text = {
             Column {
                 Text(str(R.string.text_reminders_never_extend_a_request_s_deadline_b7b27e2))
-                listOf(900_000uL to str(R.string.text_in_15_minutes_b066bbd), 3_600_000uL to str(R.string.text_in_1_hour_f1619d5)).forEach { (delay, label) ->
-                    val until = System.currentTimeMillis().toULong() + delay
+                listOf(
+                    (now + 900_000uL) to str(R.string.text_in_15_minutes_b066bbd),
+                    (now + 3_600_000uL) to str(R.string.text_in_1_hour_f1619d5),
+                    tomorrowMorning(quietZone) to str(R.string.text_until_tomorrow_ff2f949),
+                ).forEach { (until, label) ->
                     TextButton(onClick = { snoozing = null; client.notifications.snooze(item, until) }, enabled = item.deadline?.let { until < it } != false) { Text(label) }
                 }
             }

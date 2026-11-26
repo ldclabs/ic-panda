@@ -80,9 +80,6 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     val active = LocalPageActive.current
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
-    LaunchedEffect(active, selected, letter?.id) {
-        if (active) letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) }
-    }
     Column(Modifier.fillMaxSize()) {
         if (route.id == null || draftRoute) {
             WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),

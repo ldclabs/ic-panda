@@ -96,8 +96,8 @@ class ChannelCoordinator(private val client: ClientController) {
             updated(channel)
         }
     }
-    fun mute(channel: String, muted: Boolean, until: ULong? = null) = client.perform({ core -> if (muted) core.channelMuteUntil(channel, until) else core.setChannelMuted(channel, false) }, key = "channel:settings:$channel") { updated(channel) }
-    fun hide(channel: String, hidden: Boolean) = client.perform({ it.setChannelHidden(channel, hidden) }, key = "channel:settings:$channel") { updated(channel); browseHidden() }
+    fun mute(channel: String, muted: Boolean, until: ULong? = null) = client.perform({ core -> if (muted) core.channelMuteUntil(channel, until) else core.setChannelMuted(channel, false) }, key = "channel:settings:$channel") { updated(channel); client.notices.refresh(receive = true) }
+    fun hide(channel: String, hidden: Boolean) = client.perform({ it.setChannelHidden(channel, hidden) }, key = "channel:settings:$channel") { updated(channel); browseHidden(); client.notices.refresh(receive = true) }
     private fun updated(channel: String) { if (selected == channel) load(channel); client.messages.browse() }
     fun change(channel: String, action: ChannelAction) {
         val pending = changesValue.value[channel] ?: PendingChannelChange(action).also { changesValue.value += channel to it }

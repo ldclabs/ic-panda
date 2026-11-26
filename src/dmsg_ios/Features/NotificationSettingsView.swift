@@ -76,7 +76,7 @@ struct NotificationSettingsView: View {
                     Menu("Pause notifications") {
                         Button(NoticeCopy.text("noticePause15")) { Task { await pause(NotificationTime.now + 900_000) } }
                         Button(NoticeCopy.text("noticePauseHour")) { Task { await pause(NotificationTime.now + 3_600_000) } }
-                        Button(NoticeCopy.text("noticePauseTomorrow")) { Task { await pause(NotificationTime.tomorrow()) } }
+                        Button(NoticeCopy.text("noticePauseTomorrow")) { Task { await pause(NotificationTime.tomorrow(timezone: draft?.global.quietHours?.timezone)) } }
                     }
                     if let until = draft?.global.pausedUntil, until > NotificationTime.now {
                         HStack {
@@ -170,7 +170,7 @@ struct NotificationSettingsView: View {
                 }
                 if saved?.conflict == true || saveFailed {
                     SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
-                } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || saved?.registrationRequired == true || model.push.registration != .enabled) {
+                } else if saved?.global.enabled == true && saved?.account?.enabled == true && (model.push.working || saved?.pending == true || saved?.registrationRequired == true || model.push.registration != .enabled) {
                     SettingsAction(model.push.working ? "Waiting for notification registration…" : "Retry registration", prominent: focusRegistration, working: model.push.working) {
                         Task {
                             let epoch = model.epoch
@@ -267,7 +267,10 @@ struct NotificationSettingsView: View {
         let current = scope; working = true; defer { working = false }
         do {
             if let hours = value.global.quietHours, hours.start == hours.end { throw MobileError.Failure(code: "INVALID_INPUT") }
-            if value.global.enabled && !saved.global.enabled { _ = try await model.push.requestPermission() }
+            if (value.global.enabled && !saved.global.enabled) ||
+                (value.global.enabled && value.account?.enabled == true && saved.account?.enabled != true && permission == .notDetermined) {
+                _ = try await model.push.requestPermission()
+            }
             #if DEBUG
             if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-notification-slow-save") {
                 // Like an in-flight native/FFI call, this finishes after its caller leaves.

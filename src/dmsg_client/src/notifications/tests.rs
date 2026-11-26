@@ -400,6 +400,60 @@ fn notifications_muted_arrivals_do_not_replay_when_mute_expires() {
 }
 
 #[test]
+fn foreground_unverified_message_for_unlocked_account_waits_for_local_verification() {
+    let store = Store::memory().unwrap();
+    let (mut item, settings, mut runtime, mut ctx) = example();
+    configure(&store, 0, settings).unwrap();
+    item.unread = None;
+    item.unverified = true;
+    upsert(&store, item.clone()).unwrap();
+
+    ctx.foreground = true;
+    ctx.unlocked_account = Some(item.account.clone());
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert!(
+        batch.plans.is_empty(),
+        "unverified foreground hint for active unlocked account must wait"
+    );
+    assert_eq!(
+        store.notification_item(&item.id).unwrap().unwrap().notified,
+        0,
+        "waiting for verification must not consume the notified watermark"
+    );
+
+    // Local verification with real unread messages can now present once.
+    item.unread = Some(1);
+    item.unverified = false;
+    upsert(&store, item.clone()).unwrap();
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert_eq!(batch.plans.len(), 1);
+    assert_eq!(batch.plans[0].count, Some(1));
+    assert!(batch.plans[0].in_app);
+
+    // Another (locked) account's unverified message may still surface generically.
+    let mut other = Item::new(
+        "account-b".into(),
+        Target::Channel("channel-b".into()),
+        3,
+        1_000,
+    );
+    other.unread = None;
+    other.unverified = true;
+    assert!(matches!(
+        evaluate(
+            &other,
+            &Settings {
+                enabled: true,
+                ..Settings::default()
+            },
+            &runtime,
+            &ctx
+        ),
+        Decision::Present { in_app: true, .. }
+    ));
+}
+
+#[test]
 fn notifications_view_and_snooze_are_version_bound_and_do_not_resolve_actions() {
     let store = Store::memory().unwrap();
     let mut item = Item::new("a".into(), Target::Approval("r".into()), 1, 10);

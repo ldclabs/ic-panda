@@ -169,17 +169,25 @@ struct ReminderDestinationView: View {
             case .channel(let id):
                 if let cached = try? await engine.channels(), let saved = cached.items.first(where: { $0.id == id }), epoch == model.epoch, !Task.isCancelled {
                     channel = saved; ready = true
+                    if model.openWorkspaceReminder(account: destination.account, target: destination.target, item: item) { return }
                 }
                 _ = try await coreOperation { try await engine.refreshChannel(channel: id, operation: $0) }
-                let value = try await engine.channels().items.first { $0.id == id }
+                await model.loadChannels()
+                let value = model.channels.first { $0.id == id }
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 channel = value; unavailable = value == nil ? .missing : nil
+                if value != nil, model.openWorkspaceReminder(account: destination.account, target: destination.target, item: item) { return }
             case .inbox(let id):
                 if let value = try? await engine.inbox(refresh: false), let cached = try? model.decode(value) as [InboxLetter],
-                   let saved = cached.first(where: { $0.orderId == id }), epoch == model.epoch, !Task.isCancelled { letter = saved; ready = true }
+                   let saved = cached.first(where: { $0.orderId == id }), epoch == model.epoch, !Task.isCancelled {
+                    letter = saved; ready = true
+                    if model.openWorkspaceReminder(account: destination.account, target: destination.target, item: item) { return }
+                }
                 let rows: [InboxLetter] = try model.decode(try await engine.inbox(refresh: true))
                 guard epoch == model.epoch, !Task.isCancelled else { return }
+                model.updateUnreadLetters(rows)
                 letter = rows.first { $0.orderId == id }; unavailable = id != nil && letter == nil ? .missing : nil
+                if unavailable == nil, model.openWorkspaceReminder(account: destination.account, target: destination.target, item: item) { return }
             case .approval(let id):
                 let value: ApprovalView = try model.decode(try await engine.approval(id: id))
                 guard epoch == model.epoch, !Task.isCancelled else { return }

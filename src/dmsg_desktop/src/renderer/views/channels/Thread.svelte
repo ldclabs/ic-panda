@@ -194,6 +194,15 @@
       read()
       if (writes && document.hasFocus() && !document.querySelector('[aria-modal="true"]')) input?.focus({ preventScroll: true })
     })
+    const onResume = () => {
+      if (document.visibilityState === 'visible' && atEnd) read()
+    }
+    window.addEventListener('focus', onResume)
+    document.addEventListener('visibilitychange', onResume)
+    return () => {
+      window.removeEventListener('focus', onResume)
+      document.removeEventListener('visibilitychange', onResume)
+    }
   })
 
   /** A letter typed with nothing focused, or the timeline focused, belongs in the composer. */

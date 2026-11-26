@@ -36,7 +36,9 @@ struct ChannelSettingsView: View {
                 Menu(NoticeCopy.text("noticeLater")) {
                     Button(NoticeCopy.text("noticePause15")) { Task { await mute(until: NotificationTime.now + 900_000) } }
                     Button(NoticeCopy.text("noticePauseHour")) { Task { await mute(until: NotificationTime.now + 3_600_000) } }
-                    Button(NoticeCopy.text("noticePauseTomorrow")) { Task { await mute(until: NotificationTime.tomorrow()) } }
+                    Button(NoticeCopy.text("noticePauseTomorrow")) {
+                        Task { await mute(until: NotificationTime.tomorrow(timezone: model.notifications.preferences?.global.quietHours?.timezone)) }
+                    }
                 }.disabled(working || details == nil)
                 if let until = details?.mutedUntil, until > NotificationTime.now {
                     Text(Date(timeIntervalSince1970: Double(until) / 1000), style: .relative).foregroundStyle(.secondary)
@@ -143,6 +145,7 @@ struct ChannelSettingsView: View {
             let next: Details = try model.decode(result)
             self.details = next; muted = next.muted
             await model.loadChannels()
+            await model.notifications.refresh(model, receive: true)
         } catch {
             guard epoch == model.epoch else { return }
             muted = details.muted; model.report(error)
@@ -157,6 +160,7 @@ struct ChannelSettingsView: View {
                 let next: Details = try model.decode(result); details = next; name = next.name; muted = next.muted
                 model.settingsDrafts.removeValue(forKey: "channel:" + channel); model.notice = String(localized: "Saved")
                 await model.loadChannels()
+                await model.notifications.refresh(model, receive: true)
             }
         }
         catch { if epoch == model.epoch { model.report(error) } }

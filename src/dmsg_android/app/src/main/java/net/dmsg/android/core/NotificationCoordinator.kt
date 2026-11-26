@@ -43,6 +43,12 @@ class NotificationCoordinator(private val client: ClientController) {
             "channel" -> client.navigation.push(Route("messages", id = target.id))
             "inbox" -> client.navigation.push(Route("inbox", id = target.id))
             "approval" -> client.approvals.open(target.id!!)
+            "wallet" -> {
+                val wallet = target.wallet
+                val proposal = target.id?.toULongOrNull()
+                if (wallet != null && proposal != null) client.navigation.push(Route("wallet-proposal", id = wallet, sequence = proposal))
+                else { openedValue.value = null; client.showError("REMINDER_UNAVAILABLE") }
+            }
             "plan" -> client.navigation.push(Route("membership"))
             "recovery" -> client.navigation.push(Route("recovery", id = target.id))
             "task" -> client.navigation.push(Route(if (target.id!!.startsWith("conflicts:")) "conflicts" else "sync"))
@@ -63,7 +69,7 @@ class NotificationCoordinator(private val client: ClientController) {
             val value = core.notificationReference(account, target.json()).decode()
             val item = if (value == JsonNull) null else parseReminder(value)
             val eligible = withContext(Dispatchers.Main.immediate) {
-                client.accepts(stamp) && viewports[owner] === viewport && viewport.active() && item != null && item.account == account && item.target == target && item.open && !item.unverified && viewport.through?.let { it >= item.version } != false &&
+                client.accepts(stamp) && viewports[owner] === viewport && viewport.active() && item != null && item.account == account && item.target == target && !item.unverified && viewport.through?.let { it >= item.version } != false &&
                     (target.kind != "channel" || viewport.through?.let { it >= item.version } == true)
             }
             if (!eligible || item == null) return@perform null
@@ -76,7 +82,7 @@ class NotificationCoordinator(private val client: ClientController) {
             val (item, changed) = result
             viewport.item = item.copy(observed = maxOf(item.observed, item.version))
             if (openedValue.value?.id == item.id) openedValue.value = viewport.item
-            if (changed) status()
+            if (changed) { status(); client.notices.refresh(receive = true) }
         }
     }
 
@@ -140,13 +146,13 @@ class NotificationCoordinator(private val client: ClientController) {
         status()
     }
     fun refresh() = client.perform({ it.notificationRefresh() }, key = "notices:refresh", quiet = true, onError = { list(); load() }) { list(); load() }
-    fun markRead(item: ReminderItem) = client.perform({ it.notificationMarkRead(item.account, item.id, item.version.toString()) }, key = "notices:read:" + item.id) { list() }
-    fun markAllRead() = client.perform({ it.notificationMarkAllRead() }, key = "notices:read-all") { list() }
+    fun markRead(item: ReminderItem) = client.perform({ it.notificationMarkRead(item.account, item.id, item.version.toString()) }, key = "notices:read:" + item.id) { list(); client.notices.refresh(receive = true) }
+    fun markAllRead() = client.perform({ it.notificationMarkAllRead() }, key = "notices:read-all") { list(); client.notices.refresh(receive = true) }
     fun clearRecent() {
         val account = client.state.value.session?.account ?: return
-        client.perform({ it.notificationClearRecent(account) }, key = "notices:clear") { list() }
+        client.perform({ it.notificationClearRecent(account) }, key = "notices:clear") { list(); client.notices.refresh(receive = true) }
     }
-    fun snooze(item: ReminderItem, until: ULong) = client.perform({ it.notificationSnooze(item.account, item.id, item.version.toString(), until) }, key = "notices:snooze:" + item.id) { list() }
+    fun snooze(item: ReminderItem, until: ULong) = client.perform({ it.notificationSnooze(item.account, item.id, item.version.toString(), until) }, key = "notices:snooze:" + item.id) { list(); client.notices.refresh(receive = true) }
     fun clear(retainDraft: Boolean = false) {
         preferences.reset(); status.reset(); reminders.reset(); saving = false; observing.clear(); viewports.clear(); openedValue.value = null; openedTarget = null
         if (!retainDraft) { draftValue.value = null; errorValue.value = null; dirty = false; saved = null; recentValue.value = false }

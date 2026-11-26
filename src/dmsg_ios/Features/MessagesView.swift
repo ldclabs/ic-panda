@@ -376,7 +376,10 @@ struct MessagesView: View {
         let epoch = model.epoch
         do {
             _ = try await engine.channelSettings(channel: channel.id, name: channel.name, muted: muted, hidden: false)
-            if epoch == model.epoch { await model.loadChannels() }
+            if epoch == model.epoch {
+                await model.loadChannels()
+                await model.notifications.refresh(model, receive: true)
+            }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 
@@ -496,13 +499,17 @@ struct MessagesView: View {
             #else
             _ = try await model.engine?.markLetter(order: letter.id, read: read, archived: archived)
             #endif
-            if epoch == model.epoch { await loadLetters(refresh: false) }
+            if epoch == model.epoch {
+                await loadLetters(refresh: false)
+                await model.notifications.refresh(model)
+            }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 
     private func loadLetters(refresh: Bool) async {
         guard model.unlocked, !model.concealed else { return }
         if refresh { await inbox.refresh(read: readLetters) } else { await inbox.cached(read: readLetters) }
+        model.updateUnreadLetters(inbox.letters)
         await model.letters.load(model)
         model.people.request(inbox.letters.map(\.sender) + model.letters.history.map(\.recipient), model: model)
     }

@@ -30,7 +30,7 @@ class NoticeNavigation(private val client: ClientController) {
     fun open(item: ReminderItem) {
         client.beginNavigationIntent()
         requestRoute = null; intention = client.navigationIntent; source = item; owner = client.currentStamp(); routed = null
-        local = NoticeDestination(item.account, item.target, !item.open)
+        local = NoticeDestination(item.account, item.target, false)
         destination.accept(destination.begin(false), local!!)
         client.persistNavigation()
         continueIfReady()

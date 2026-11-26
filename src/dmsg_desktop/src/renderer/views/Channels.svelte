@@ -627,7 +627,7 @@
   /** The messages shown through `seq` are read; a read receipt goes only when chosen (C04). */
   function markRead(seq: number) {
     if (reading) return
-    seq = Math.min(seq, channel?.message_cursor ?? 0)
+    seq = Math.min(seq, channel?.latest_cursor ?? channel?.message_cursor ?? 0)
     if (channel && Number.isSafeInteger(seq) && seq > 0) noticeRead = { channel: channel.id, seq }
     if (!channel || seq <= Math.max(channel.read ?? 0, marked)) return
     marked = seq
@@ -796,7 +796,7 @@
     if (me) setPins(me, pins)
   }
 
-  const markAllRead = (entry: any) => attempt(() => call('channel/mark', { id: entry.id, through: entry.message_cursor, receipt: readReceipts() }))
+  const markAllRead = (entry: any) => attempt(() => call('channel/mark', { id: entry.id, through: entry.latest_cursor ?? entry.message_cursor, receipt: readReceipts() }))
   const channelOf = (element: Element) => channels.find((c) => c.id === element.closest('[data-channel]')?.getAttribute('data-channel')) ?? null
 
   function onKey(event: KeyboardEvent) {

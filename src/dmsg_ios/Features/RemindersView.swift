@@ -64,7 +64,11 @@ struct RemindersView: View {
                     }
                 }
                 ForEach(visibleItems) { item in
-                    Button { destination = ReminderDestination(account: item.account, target: item.target, item: item) } label: {
+                    Button {
+                        if !model.openWorkspaceReminder(account: item.account, target: item.target, item: item) {
+                            destination = ReminderDestination(account: item.account, target: item.target, item: item)
+                        }
+                    } label: {
                         ReminderRow(item: item, channel: preview(for: item))
                     }.buttonStyle(.plain).compactObjectRow().accessibilityIdentifier("reminders.item")
                         .accessibilityValue(item.isUnread ? String(localized: "Unread reminder") : NoticeCopy.text("noticeRead"))
@@ -220,7 +224,8 @@ private struct SnoozeReminderView: View {
     @State private var working = false
     private var choices: [(String, UInt64)] {
         let now = NotificationTime.now
-        return [("noticePause15", now + 900_000), ("noticePauseHour", now + 3_600_000), ("noticePauseTomorrow", NotificationTime.tomorrow())]
+        let zone = model.notifications.preferences?.global.quietHours?.timezone
+        return [("noticePause15", now + 900_000), ("noticePauseHour", now + 3_600_000), ("noticePauseTomorrow", NotificationTime.tomorrow(timezone: zone))]
     }
     var body: some View {
         List {

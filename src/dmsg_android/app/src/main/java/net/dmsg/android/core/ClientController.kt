@@ -176,11 +176,14 @@ class ClientController internal constructor(private val application: Application
             }
         }
     }
+    internal val isAppForeground get() = appForeground
     internal fun receivedHint(kind: String, resource: String?) {
         when (kind) {
             "channel", "message" -> messages.hint(resource)
+            "read" -> messages.hintRead(resource)
             "approval", "connect" -> refresh("approvals")
-            "inbox", "letter" -> refresh("inbox")
+            "inbox", "letter" -> { refresh("inbox"); notices.refresh(receive = true) }
+            "notification" -> notices.refresh(receive = true)
             "file-request" -> fileRequests.browse()
         }
     }
@@ -346,6 +349,7 @@ class ClientController internal constructor(private val application: Application
             sessions.fence.invalidate()
             val owner = sessions.snapshot?.account
             val pending = owner?.let(messages::pending).orEmpty()
+            val pendingCursors = messages.takePendingCursors()
             val letterDrafts = letters.pending()
             val feedbackDraft = feedback.pending()
             val vaultInputs = vaultDrafts.pending()
@@ -361,7 +365,9 @@ class ClientController internal constructor(private val application: Application
                             withTimeout(2000) {
                                 for (draft in vaultInputs) handle.checkpointVaultDraft(draft)
                                 for (draft in pending) { handle.saveAuthoredDraft(draft.native()); messages.saved(draft) }
+                                for (channel in pendingCursors) runCatching { handle.reportChannelCursor(channel, OperationToken()) }
                                 for (draft in letterDrafts) handle.saveLetterDraft(draft.id, draft.recipient, draft.text, draft.invitation)
+                                runCatching { notices.deliverBackgroundLocal(handle) }
                                 feedbackDraft?.let { value ->
                                     val current = parseFeedback(handle.feedback().decode())
                                     if (current == null || current.id == value.id && current.state == "draft") {

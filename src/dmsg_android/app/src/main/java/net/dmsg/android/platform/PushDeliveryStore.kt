@@ -30,7 +30,10 @@ class PushDeliveryStore(context: Context) {
     }
     fun sequence(): Long = synchronized(lock) { read().getLong("sequence") }
     fun consented(): Boolean = synchronized(lock) { read().optBoolean("armed") }
-    fun blocked(): Boolean = synchronized(lock) { read().optBoolean("blocked", true) }
+    fun blocked(account: String? = null): Boolean = synchronized(lock) {
+        val s = read()
+        s.optBoolean("blocked", true) || (account != null && s.optJSONObject("pending")?.optBoolean(account) == true)
+    }
     fun armed(): Boolean = synchronized(lock) { val s = read(); s.optBoolean("armed") && s.optJSONObject("global")?.optBoolean("enabled") == true }
     fun block() = synchronized(lock) { write(read().put("blocked", true)) }
     fun consent(account: String) = synchronized(lock) { val s = read().put("armed", true); s.optJSONObject("suspended")?.remove(account); write(s) }
@@ -45,28 +48,27 @@ class PushDeliveryStore(context: Context) {
             require(validAccount(it.account) && validNoticeHash(it.installation) && validNoticeHash(it.registration) && validNoticeHash(it.tokenHash) && it.revision > 0uL && it.preferences.accountId == account)
         }
     }.getOrNull()
-    fun forget(account: String) = synchronized(lock) { val s = read(); (s.optJSONObject("suspended") ?: JSONObject().also { s.put("suspended", it) }).put(account, true); s.getJSONObject("leases").remove(account); s.optJSONObject("pending")?.remove(account); s.put("blocked", s.optJSONObject("pending")?.length()?.let { it > 0 } == true); write(s) }
+    fun forget(account: String) = synchronized(lock) { val s = read(); (s.optJSONObject("suspended") ?: JSONObject().also { s.put("suspended", it) }).put(account, true); s.getJSONObject("leases").remove(account); s.optJSONObject("pending")?.remove(account); write(s) }
     fun put(value: Lease, preferencesJson: String, expectedSequence: Long): Boolean = synchronized(lock) {
         val s = read(); if (s.getLong("sequence") != expectedSequence || s.optJSONObject("suspended")?.optBoolean(value.account) == true) return@synchronized false
         require(value.preferences.accountId == value.account && value.preferences.account?.enabled == true)
         val rows = s.getJSONObject("leases"); require(rows.has(value.account) || rows.length() < 16)
         rows.put(value.account, JSONObject().put("installation", value.installation).put("registration", value.registration).put("revision", value.revision.toString()).put("expires", value.expires).put("token_hash", value.tokenHash).put("preferences", preferencesJson))
         s.put("global", JSONObject(value.preferences.global.json()))
-        // Only a confirmed preference revision can reopen background delivery.
+        // Only a confirmed preference revision can reopen background delivery for this account.
         val pending = s.optJSONObject("pending") ?: JSONObject().also { s.put("pending", it) }
         if (value.preferences.pending || value.preferences.conflict) pending.put(value.account, true) else pending.remove(value.account)
-        s.put("blocked", pending.length() > 0)
+        s.put("blocked", false)
         write(s); true
     }
     /** Persist the pending local close before any asynchronous preferences save or account cleanup. */
     fun edit(preferences: NoticePreferences) = synchronized(lock) {
-        val s = read().put("blocked", true).put("global", JSONObject(preferences.global.json()))
+        val s = read().put("global", JSONObject(preferences.global.json()))
         val pending = s.optJSONObject("pending") ?: JSONObject().also { s.put("pending", it) }
         preferences.accountId?.let { id ->
             if (preferences.account?.enabled == false) { s.getJSONObject("leases").remove(id); pending.remove(id) }
             else pending.put(id, true)
         }
-        s.put("blocked", pending.length() > 0)
         write(s)
     }
     fun permitted(value: RemoteNotice, now: Long = System.currentTimeMillis()): Boolean = synchronized(lock) {
@@ -74,6 +76,7 @@ class PushDeliveryStore(context: Context) {
         if (!s.optBoolean("armed") || s.optBoolean("blocked", true) || now < s.optLong("written", now) - 60000 || value.expires <= now) return@synchronized false
         val rows = s.getJSONObject("leases")
         val lease = rows.keys().asSequence().mapNotNull { decodeLease(it, rows.getJSONObject(it)) }.firstOrNull { it.registration == value.registration } ?: return@synchronized false
+        if (s.optJSONObject("pending")?.optBoolean(lease.account) == true) return@synchronized false
         if (lease.expires <= now || !value.route.value.startsWith(lease.installation)) return@synchronized false
         val global = runCatching { parseNoticeGlobal(Json.parseToJsonElement(s.getJSONObject("global").toString()).jsonObject) }.getOrNull() ?: return@synchronized false
         global.enabled && global.pausedUntil?.let { it > now.toULong() } != true &&

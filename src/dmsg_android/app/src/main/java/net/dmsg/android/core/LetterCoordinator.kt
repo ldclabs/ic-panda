@@ -92,7 +92,7 @@ class LetterCoordinator(private val client: ClientController) {
     }
     fun mark(letter: Letter, read: Boolean = letter.read, archived: Boolean = letter.archived, reopen: Boolean = false) =
         client.perform({ core -> if (reopen) core.reopenLetterContact(letter.id, read, archived) else core.markLetter(letter.id, read, archived) },
-            key = "letter:mark:" + letter.id) { refresh(false) }
+            key = "letter:mark:" + letter.id) { refresh(false); client.notifications.status(); client.notices.refresh() }
     internal fun restore(input: LetterDraftInput) {
         if (input.id in dirty) return
         mutable.value += input.id to LetterDraft(input.id, input.recipient, input.text, input.invitation)

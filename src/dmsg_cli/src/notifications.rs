@@ -47,6 +47,7 @@ pub(crate) struct Notifications {
     scheduled: Notify,
     deadline: AtomicU64,
     context: Mutex<Option<(u64, Context)>>,
+    locale: Mutex<Option<String>>,
 }
 
 /// Never consumes a plan. A headless daemon only keeps state and emits invalidations.
@@ -134,6 +135,18 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
             d.note_result("notifications/capabilities", &result);
             d.notifications.receive.notify_one();
         }
+        if !h.with(|c| Ok(c.offline_mode())).await.unwrap_or(false) {
+            let result = dmsg_client::inbox::sync(&h, 2).await;
+            d.note_result("notifications/inbox", &result);
+            if let Ok(report) = &result {
+                if !report.changed.is_empty() {
+                    d.notifications.wake.notify_one();
+                }
+                if report.more {
+                    d.notifications.inbox.notify_one();
+                }
+            }
+        }
         // A notification is a signal to visible views, not a content fetch.
         d.emit("inbox/hint", Value::Null);
     }
@@ -201,7 +214,14 @@ pub(crate) async fn receive_run(d: Arc<Daemon>) {
             continue;
         };
         if session.unlocked_account().is_some() {
-            let registered = core::remote::register(&h, "en", None).await;
+            let language = d
+                .notifications
+                .locale
+                .lock()
+                .expect("notification locale")
+                .clone()
+                .unwrap_or_else(|| if crate::locale::zh() { "zh" } else { "en" }.into());
+            let registered = core::remote::register(&h, &language, None).await;
             if let Ok(Some(context)) = registered {
                 let result = core::remote::sync_settings(&h, &context).await;
                 d.note_result("notifications/settings", &result);
@@ -278,6 +298,24 @@ impl Daemon {
             context.now = 0; // The host never chooses the policy clock.
             context.viewing = false;
             context.remote_viewed = false;
+            context.unlocked_account = None;
+            if let Some(locale) = params.get("locale").and_then(Value::as_str)
+                && !locale.is_empty()
+                && locale.len() <= 16
+                && locale
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            {
+                let mut current = self
+                    .notifications
+                    .locale
+                    .lock()
+                    .expect("notification locale");
+                if current.as_deref() != Some(locale) {
+                    *current = Some(locale.to_string());
+                    self.notifications.receive.notify_one();
+                }
+            }
             let changed = {
                 let mut previous = self
                     .notifications
@@ -372,6 +410,7 @@ impl Daemon {
                     };
                     let _ = generation;
                     context.now = now;
+                    context.unlocked_account = c.session_state().unlocked_account().map(str::to_string);
                     let mut all = core::Batch { remove: std::mem::take(&mut runtime.removals), ..Default::default() };
                     if !all.remove.is_empty() { runtime.save(&path)?; }
                     for local in c.notification_accounts()? {

@@ -69,6 +69,8 @@ class MessageCoordinator(private val client: ClientController, private val scope
     private data class PendingQueue(val value: MessageComposer, val authored: DraftLedger.Draft)
     private val pendingQueues = mutableMapOf<String, PendingQueue>()
     private val pendingReads = mutableMapOf<String, ULong>()
+    private val cursorJobs = mutableMapOf<String, Job>()
+    private val pendingCursors = mutableSetOf<String>()
     private var selected: String? = null
     private var refreshAgain = false
 
@@ -318,6 +320,16 @@ class MessageCoordinator(private val client: ClientController, private val scope
     }
 
     fun hint(channel: String?) { invalidateDirectory(); browse(); if (channel == selected) refresh(channel) }
+    fun hintRead(channel: String?) {
+        if (channel != null && channel != "*") {
+            client.perform({ core -> client.operation { core.readChannelControls(channel, it) } }, key = "message:read-hint:$channel", replace = true, quiet = true) {
+                invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh()
+                if (channel == selected) refresh(channel)
+            }
+        } else {
+            invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh()
+        }
+    }
     fun reload() { invalidateDirectory(); browse(); selected?.let { load(it, false) } }
     fun older() { selected?.let { load(it, false, more = true) } }
     fun markVisible(channel: String, through: ULong) {
@@ -326,7 +338,28 @@ class MessageCoordinator(private val client: ClientController, private val scope
         pendingReads[channel] = through
         fun finished() { if (pendingReads[channel] == through) pendingReads.remove(channel) }
         client.perform({ it.markRead(channel, through) }, key = key, replace = true,
-            onError = { finished() }) { finished(); browse() }
+            onError = { finished() }) {
+            finished(); browse(); client.notifications.status(); client.notices.refresh()
+            scheduleCursorReport(channel)
+        }
+    }
+    private fun scheduleCursorReport(channel: String) {
+        pendingCursors += channel
+        cursorJobs.remove(channel)?.cancel()
+        cursorJobs[channel] = scope.launch {
+            delay(3_000)
+            flushCursor(channel)
+        }
+    }
+    fun flushCursor(channel: String) {
+        cursorJobs.remove(channel)?.cancel()
+        if (!pendingCursors.remove(channel)) return
+        client.perform({ core -> client.operation { core.reportChannelCursor(channel, it) } }, key = "message:cursor:$channel", replace = true, quiet = true) {}
+    }
+    internal fun takePendingCursors(): List<String> {
+        cursorJobs.values.forEach { it.cancel() }
+        cursorJobs.clear()
+        return pendingCursors.toList().also { pendingCursors.clear() }
     }
 
     fun send(channel: String, onQueued: (String) -> Unit = {}) {
@@ -370,7 +403,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
 
     fun pending(account: String) = ledger.pending(account)
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
-    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); pendingReads.clear(); refreshAgain = false }
+    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); cursorJobs.values.forEach { it.cancel() }; cursorJobs.clear(); pendingCursors.clear(); pendingReads.clear(); refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
         suspend(); syncError.value = null; channelHits.reset(); richMatches.reset(); conversationSearch.reset(); directoryText.value = ""; directoryFilesOnly.value = false; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null }

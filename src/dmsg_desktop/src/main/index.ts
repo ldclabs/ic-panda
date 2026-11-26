@@ -965,6 +965,7 @@ handle('dmsg:set-locale', 'main', async (_event, next: string) => {
   await writeFile(localeFile(), next)
   applyLocale(next)
   broadcast('dmsg:locale', next)
+  void refreshNotices()
 })
 /** An appearance picked in the main window is kept; every window, menu and dialog follows it. */
 handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
@@ -1237,7 +1238,7 @@ const refreshNotices = single(async () => {
     if (process.platform === 'darwin') app.dock?.setBadge(badge > 99 ? '99+' : badge ? String(badge) : '')
     updateTray(state)
     const visible = noticeForeground() ? [...noticeViewports.values()] : []
-    await daemon.call('notifications/context', { session: status.session, context: {
+    await daemon.call('notifications/context', { session: status.session, locale, context: {
       now: 0, allowed: Notification.isSupported() && preferences.global.enabled,
       foreground: noticeForeground(), viewing: false, visible, remote_viewed: false,
       quiet_until: quietUntil(preferences.global, Date.now()), can_update: false, remote_owner: false

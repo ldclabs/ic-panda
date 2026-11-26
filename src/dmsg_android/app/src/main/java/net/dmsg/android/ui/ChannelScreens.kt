@@ -96,11 +96,7 @@ import net.dmsg.android.core.*
                                         enabled = !working, label = { Text(label) })
                                 }
                                 AssistChip(onClick = {
-                                    val tomorrow = java.util.Calendar.getInstance().apply {
-                                        add(java.util.Calendar.DAY_OF_YEAR, 1); set(java.util.Calendar.HOUR_OF_DAY, 9)
-                                        set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
-                                    }
-                                    client.channels.mute(channel, true, tomorrow.timeInMillis.toULong())
+                                    client.channels.mute(channel, true, tomorrowMorning(client.notifications.preferences.value()?.global?.quiet?.timezone))
                                 }, enabled = !working, label = { Text(str(R.string.text_until_tomorrow_4bfab87)) })
                             }
                         },

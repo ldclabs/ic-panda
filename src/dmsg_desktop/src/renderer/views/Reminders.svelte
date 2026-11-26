@@ -18,7 +18,7 @@
   import { locale, t } from '../i18n/index.svelte'
   import { nextStep, openAccounts, unlocking } from '../shell/session'
   import { tomorrowMorning } from '../../shared/notification-time'
-  import type { NoticeItem, NoticeStatus } from '../../shared/notifications'
+  import type { NoticeItem, NoticePreferences, NoticeStatus } from '../../shared/notifications'
   import { noNames, noticeNames, noticeUnread } from './reminders/notice'
 
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
@@ -27,6 +27,7 @@
   let items = $state<NoticeItem[]>([])
   let cursor = $state<string | null>(null)
   let summary = $state<NoticeStatus | null>(null)
+  let quietZone = $state<string | null>(null)
   const counts = $derived(summary?.accounts.find((entry) => entry.account === selected)?.counts)
   let names = $state.raw(noNames())
   let loading = $state(true), busy = $state(false), error = $state('')
@@ -48,9 +49,10 @@
     error = ''
     try {
       if (!account || incoming) { items = []; cursor = null; return }
-      const [page, counts, known] = await Promise.all([
+      const [page, counts, prefs, known] = await Promise.all([
         call<{ items: NoticeItem[]; next_cursor: string | null }>('notifications/list', { account, scope: filter, cursor: append ? cursor : null, limit: 50 }),
         call<NoticeStatus>('notifications/status'),
+        call<NoticePreferences>('notifications/settings', { account }).catch(() => null),
         status?.state === 'unlocked' ? noticeNames() : Promise.resolve(noNames())
       ])
       if (!valid(turn) || selected !== account || scope !== filter) return
@@ -58,6 +60,7 @@
       items = [...new Map([...previous, ...page.items].map((item) => [item.id, item])).values()]
       cursor = page.next_cursor
       summary = counts
+      quietZone = prefs?.global?.quiet_hours?.timezone ?? null
       names = known
     } catch (cause) { if (valid(turn)) error = errorText(cause) }
     finally { if (valid(turn)) loading = false }
@@ -206,7 +209,7 @@
   {#if laterItem}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     <div class="grid gap-3">
-      {#each [{ label: t('noticePause15'), until: laterNow + 900_000 }, { label: t('noticePauseHour'), until: laterNow + 3_600_000 }, { label: t('noticePauseTomorrow'), until: tomorrowMorning(laterNow, Intl.DateTimeFormat().resolvedOptions().timeZone) }] as choice}
+      {#each [{ label: t('noticePause15'), until: laterNow + 900_000 }, { label: t('noticePauseHour'), until: laterNow + 3_600_000 }, { label: t('noticePauseTomorrow'), until: tomorrowMorning(laterNow, quietZone || Intl.DateTimeFormat().resolvedOptions().timeZone) }] as choice}
         {@const late = laterItem.deadline !== null && choice.until >= laterItem.deadline}
         <div>
           <button class={buttonClass('secondary', 'sm')} disabled={busy || late} onclick={() => snooze(choice.until)}>{choice.label}</button>

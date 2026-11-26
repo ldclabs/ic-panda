@@ -14,6 +14,7 @@ final class NativeNotifications {
     private(set) var working = false
     private(set) var fixtureItems: [ReminderItem] = []
     var presented: ReminderPlan?
+    var pendingOpenedReminder: ReminderItem?
     private var wake: Task<Void, Never>?
     private var retry = false
     private var receiveAgain = false
@@ -21,7 +22,7 @@ final class NativeNotifications {
     private struct Viewport { let value: VisibleReminder; let active: @MainActor () -> Bool }
     private var visible: [UUID: Viewport] = [:]
 
-    func clearVisibility() { visible.removeAll(); wake?.cancel(); wake = nil; presented = nil }
+    func clearVisibility() { visible.removeAll(); wake?.cancel(); wake = nil; presented = nil; pendingOpenedReminder = nil }
 
     func refresh(_ model: SessionModel, receive: Bool = false) async {
         guard !model.localAccount else { return }

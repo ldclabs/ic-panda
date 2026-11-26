@@ -10,6 +10,7 @@ struct ConversationView: View {
         _historyAnchor = State(initialValue: sequence)
     }
     @Environment(SessionModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var messages: [MessageItem] = []
@@ -78,6 +79,8 @@ struct ConversationView: View {
         let rows = ConversationTimeline.rows(shown)
         let references = Dictionary(merged.map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
         let last = shown.last
+        let readWatermark = merged.last?.sequence
+        let readScope = "\(channel.id):\(model.epoch):\(scenePhase == .active):\(model.unlocked):\(model.concealed):\(messagesKnown):\(!hasAfter):\(nearBottom):\(readWatermark ?? 0)"
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
@@ -136,15 +139,21 @@ struct ConversationView: View {
                     }
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
-                        .reminderVisible(.channel(channel.id), watermark: !hasAfter ? last?.sequence : nil,
-                                         ready: messagesKnown && !hasAfter && last?.unreadable == false) {
-                            if let last { await model.channelRead(channel.id, through: last.sequence) }
-                        }
+                        .reminderVisible(.channel(channel.id), watermark: !hasAfter ? readWatermark : nil,
+                                         ready: messagesKnown && !hasAfter && nearBottom && readWatermark != nil)
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
                 }.padding(16).motion(Motion.move, reduced: Motion.fade, value: pending.map(\.id))
             }.defaultScrollAnchor(.bottom)
                 .defaultScrollAnchor(shown.isEmpty && pending.isEmpty ? .center : .bottom, for: .alignment)
                 .scrollDismissesKeyboard(.interactively)
+                .task(id: readScope) {
+                    guard scenePhase == .active, model.unlocked, !model.concealed,
+                          messagesKnown, !hasAfter, nearBottom, let seq = readWatermark else { return }
+                    if seq > currentChannel.readThrough {
+                        await model.channelRead(channel.id, through: seq)
+                    }
+                }
+                .onDisappear { Task { await model.flushChannelCursor(channel.id) } }
                 .onChange(of: shown.count) { previousCount, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
                     else if let targetSeq = highlightedSequence, scrolledAnchor != targetSeq,
@@ -172,7 +181,7 @@ struct ConversationView: View {
                 // Opening with unread messages starts at the first of them, once.
                 .onChange(of: firstUnread) { _, sequence in
                     guard let sequence, !hasAfter, let id = shown.first(where: { $0.sequence == sequence })?.id else { return }
-                    lastSeen = sequence - 1; nearBottom = false
+                    lastSeen = sequence - 1
                     proxy.scrollTo(id, anchor: .top)
                 }
                 .overlay(alignment: .bottomTrailing) {
@@ -783,8 +792,9 @@ struct ConversationView: View {
             }
             if hasEarlier != moreBefore { hasEarlier = moreBefore }
             if nextBefore != cursorBefore { nextBefore = cursorBefore }
-            if historyAnchor == nil && highlightedSequence == nil && firstUnread == nil && channel.unread > 0 {
-                firstUnread = fresh.first { $0.sequence > channel.readThrough && $0.account != model.session?.account }?.sequence
+            let current = currentChannel
+            if historyAnchor == nil && highlightedSequence == nil && firstUnread == nil && current.unread > 0 {
+                firstUnread = fresh.first { $0.sequence > current.readThrough && $0.account != model.session?.account }?.sequence
             }
             if !messagesKnown { messagesKnown = true }
             if loadFailed { loadFailed = false }

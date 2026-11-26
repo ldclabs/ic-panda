@@ -80,6 +80,11 @@ class RemoteNoticeReceiverTest {
         val config = GoogleConfiguration(app.packageName, "production", "test-only", "public-test-only", "test-project", 123456789)
         val secondPayload = payload() + mapOf("registration" to otherRegistration, "system_id" to otherSystem,
             "route" to (installation + "4".repeat(64)), "event_id" to "5".repeat(64))
+        // An unsynced local preference edit for one account must not block another account's lease.
+        store.edit(first.preferences.copy(account = first.preferences.account!!.copy(categories = first.preferences.account.categories + ("message" to NoticeCategory(false, false)))))
+        assertFalse(store.permitted(RemoteNotice.parse(payload(), System.currentTimeMillis())!!))
+        assertTrue(store.permitted(RemoteNotice.parse(secondPayload, System.currentTimeMillis())!!))
+        assertTrue(store.put(first, saved, store.sequence()))
         val manager = app.getSystemService(NotificationManager::class.java)
         try {
             assertEquals(RemoteNoticeReceiver.Result.SUBMITTED, receiver.receive("123456789", payload(), config))

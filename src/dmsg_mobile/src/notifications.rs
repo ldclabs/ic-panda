@@ -421,6 +421,7 @@ impl MobileEngine {
                     quiet_until: context.quiet_until,
                     visible,
                     remote_owner: true,
+                    unlocked_account: c.session_state().unlocked_account().map(str::to_string),
                     ..Default::default()
                 };
                 let mut all = notice::Batch {

@@ -32,6 +32,11 @@ pub struct Context {
     pub can_update: bool,
     /// Mobile shared events have one remote OS owner, so local sync stays in-app.
     pub remote_owner: bool,
+    /// Currently unlocked account in this host; unverified foreground message
+    /// hints for this account wait for local verification instead of flashing
+    /// a generic echo or consuming the version's notified watermark.
+    #[serde(default)]
+    pub unlocked_account: Option<String>,
 }
 
 /// Observable policy result; reasons are fixed diagnostic values, not content.
@@ -235,6 +240,13 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
     }
     if ctx.remote_owner && !item.target.local_only() && !ctx.foreground {
         return keep(Reason::RemoteOwner);
+    }
+    if ctx.foreground
+        && category == Category::Message
+        && item.unverified
+        && ctx.unlocked_account.as_deref() == Some(item.account.as_str())
+    {
+        return keep(Reason::Merge);
     }
     if only_in_app || ctx.foreground {
         return Decision::Present {

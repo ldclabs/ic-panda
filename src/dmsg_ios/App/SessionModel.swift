@@ -183,6 +183,8 @@ final class SessionModel {
     private var lifecycleGeneration: UInt64 = 0
     private var backgroundFinish: (operation: OperationToken, task: UIBackgroundTaskIdentifier)?
     private var cursorReports: [String: Task<Void, Never>] = [:]
+    private var pendingCursorChannels: Set<String> = []
+    private(set) var unreadLetters: Int = 0
     private var channelChecked: [String: ContinuousClock.Instant] = [:]
     private var channelReadAhead: [String: ContinuousClock.Instant] = [:]
     private var isForeground: Bool { lifecycle == .active || lifecycle == .resuming }
@@ -622,15 +624,62 @@ final class SessionModel {
         else if dirtyDrafts[channel] == sent { dirtyDrafts[channel] = nil }
     }
 
+    func updateUnreadLetters(_ letters: [InboxLetter]) {
+        unreadLetters = letters.filter { !$0.archived && !$0.read && $0.state != "aborted" && !blockedAccounts.contains($0.sender) }.count
+    }
+
+    /// Route a message/inbox target for the currently unlocked account directly
+    /// in the main Messages workspace instead of stacking a second copy inside
+    /// the modal Reminders sheet.
+    @discardableResult
+    func openWorkspaceReminder(account: String, target: ReminderTarget?, item: ReminderItem? = nil) -> Bool {
+        guard unlocked, !localAccount, session?.account == account, let target else { return false }
+        switch target {
+        case .channel(let id):
+            if let item { notifications.pendingOpenedReminder = item }
+            reminderEntry = nil
+            selectedTab = .messages
+            route.messagesMode = 0
+            route.message = id
+            if !channels.contains(where: { $0.id == id }) {
+                Task { await loadChannels() }
+            }
+            return true
+        case .inbox(let id):
+            if let item { notifications.pendingOpenedReminder = item }
+            reminderEntry = nil
+            selectedTab = .messages
+            route.messagesMode = 1
+            route.message = id.map { "received:" + $0 }
+            return true
+        default:
+            return false
+        }
+    }
+
     /// The read position follows to this account's other devices, once reading pauses.
     func channelRead(_ channel: String, through: UInt64) async {
         guard let engine else { return }
+        let current = epoch
         try? await engine.markRead(channel: channel, through: through)
+        guard current == epoch else { return }
+        await loadChannels()
+        await notifications.refresh(self)
+        pendingCursorChannels.insert(channel)
         cursorReports[channel]?.cancel()
         cursorReports[channel] = Task {
             do { try await Task.sleep(for: .seconds(3)) } catch { return }
+            guard current == self.epoch else { return }
+            self.pendingCursorChannels.remove(channel)
             _ = try? await coreOperation { try await engine.reportChannelCursor(channel: channel, operation: $0) }
         }
+    }
+
+    /// Leaving a conversation flushes its pending remote read cursor immediately.
+    func flushChannelCursor(_ channel: String) async {
+        guard let engine, unlocked, pendingCursorChannels.remove(channel) != nil else { return }
+        cursorReports.removeValue(forKey: channel)?.cancel()
+        _ = try? await coreOperation { try await engine.reportChannelCursor(channel: channel, operation: $0) }
     }
 
     func setMessageHidden(channel: String, sequence: UInt64, hidden: Bool) async throws {
@@ -671,7 +720,9 @@ final class SessionModel {
         do {
             let destination: ReminderRoute = try decode(try await engine.notificationResolve(route: route))
             guard current == epoch else { return }
-            reminderEntry = ReminderEntry(account: destination.account, target: destination.target, ended: destination.ended)
+            if destination.ended || !openWorkspaceReminder(account: destination.account, target: destination.target) {
+                reminderEntry = ReminderEntry(account: destination.account, target: destination.target, ended: destination.ended)
+            }
         } catch {
             guard current == epoch else { return }
             // Legacy routes identify only an original account; they never select
@@ -956,7 +1007,10 @@ final class SessionModel {
             guard let resource, let engine else { return }
             Task {
                 _ = try? await coreOperation { try await engine.readChannelControls(channel: resource, operation: $0) }
-                if current == epoch { await loadChannels() }
+                if current == epoch {
+                    await loadChannels()
+                    await notifications.refresh(self)
+                }
             }
         case "inbox":
             inboxHints &+= 1
@@ -977,6 +1031,7 @@ final class SessionModel {
         guard current == epoch, !Task.isCancelled else { return }
         await loadChannels()
         await readChannelsAhead()
+        if current == epoch { await notifications.refresh(self) }
     }
 
     /// A waiting retry starts now; the automatic pass picks it up.
@@ -1066,6 +1121,11 @@ final class SessionModel {
         do {
             let result = try await engine.channels()
             guard current == epoch, !Task.isCancelled else { return }; channels = result.items
+            if let cached = try? await engine.inbox(refresh: false),
+               let letters: [InboxLetter] = try? decode(cached),
+               current == epoch, !Task.isCancelled {
+                updateUnreadLetters(letters)
+            }
         } catch { if current == epoch { reportBackground(error) } }
     }
 
@@ -1107,6 +1167,10 @@ final class SessionModel {
         let messageDrafts = pendingMessageDrafts
         let account = session?.account
         let finishing = unlocked && !immediateBackgroundLock
+        let pendingCursors = Array(pendingCursorChannels)
+        for task in cursorReports.values { task.cancel() }
+        cursorReports.removeAll()
+        pendingCursorChannels.removeAll()
         stopAutomaticSync(.background)
         automaticUnlock.rearm()
         lifecycleGeneration &+= 1
@@ -1118,7 +1182,7 @@ final class SessionModel {
         deviceTransfer.background()
         backgroundAt = .now
         if finishing, let engine {
-            finishInBackground(engine, vaultDrafts: vaultDrafts)
+            finishInBackground(engine, vaultDrafts: vaultDrafts, pendingCursors: pendingCursors)
         } else if !immediateBackgroundLock {
             engine?.suspend()
         }
@@ -1138,7 +1202,7 @@ final class SessionModel {
 
     /// What the person just did leaves before the app stops: sends an
     /// interruption left open, then already signed versions. The screen is covered.
-    private func finishInBackground(_ engine: MobileEngine, vaultDrafts: [VaultDraftInput]) {
+    private func finishInBackground(_ engine: MobileEngine, vaultDrafts: [VaultDraftInput], pendingCursors: [String]) {
         endBackgroundFinish()
         let operation = OperationToken(), syncing = automaticSyncEnabled
         let task = UIApplication.shared.beginBackgroundTask(withName: "dMsg finish") { [weak self] in
@@ -1149,6 +1213,9 @@ final class SessionModel {
         Task { [weak self] in
             do { for draft in vaultDrafts { _ = try await engine.checkpointVaultDraft(draft: draft) } }
             catch { self?.reportBackground(error) }
+            for channel in pendingCursors {
+                _ = try? await engine.reportChannelCursor(channel: channel, operation: operation)
+            }
             for row in (try? await engine.recoverableMessages()) ?? [] {
                 _ = try? await engine.sendMessage(channel: row.channel, messageId: row.message.id, operation: operation)
             }
@@ -1260,7 +1327,7 @@ final class SessionModel {
         busyOperation = nil
         privacyShield.show()
         epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
-        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.shutdown() } }
         engine = nil; security?.cancelPresence()
@@ -1298,7 +1365,10 @@ final class SessionModel {
         recoveryOperation?.cancel()
         epoch &+= 1
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
-        vault = []; vaultSearchMeta = [:]; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; filesFavoritesOnly = false; filesTag = ""; fileTags = []; fileSearchMeta = [:]; folderSearchMeta = [:]; approvals = []; search = ""
+        for task in cursorReports.values { task.cancel() }
+        cursorReports.removeAll()
+        pendingCursorChannels.removeAll()
+        vault = []; vaultSearchMeta = [:]; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; filesFavoritesOnly = false; filesTag = ""; fileTags = []; fileSearchMeta = [:]; folderSearchMeta = [:]; approvals = []; search = ""
         clearCloudBackups()
         notice = nil; error = nil; passkeySessionLimitCredential = nil
         busyOperation = nil

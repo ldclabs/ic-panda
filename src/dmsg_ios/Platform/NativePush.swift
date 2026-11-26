@@ -180,7 +180,7 @@ final class NativePush {
             let preference = try await preferences(model, account: account)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             var subscription = subscriptions[account] ?? Subscription()
-            if preference.account?.enabled != true {
+            if !preference.global.enabled || preference.account?.enabled != true {
                 pendingRetries.remove(account)
                 if subscription.route != nil {
                     _ = try await engine.unregisterPush(installation: files.installation)
@@ -217,7 +217,7 @@ final class NativePush {
             stage = "preferences"
             let current = try await preferences(model, account: account)
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            if current.account?.enabled != true {
+            if !current.global.enabled || current.account?.enabled != true {
                 _ = try await engine.unregisterPush(installation: files.installation)
                 subscription.route = nil; subscription.token = nil; subscription.expires = nil
                 subscription.revision = nil; subscription.unified = nil

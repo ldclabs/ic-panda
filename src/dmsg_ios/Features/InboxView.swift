@@ -134,6 +134,7 @@ struct InboxDetail: View {
             guard epoch == model.epoch else { return }
             letter.read = read; letter.archived = archived
             await changed()
+            await model.notifications.refresh(model)
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }

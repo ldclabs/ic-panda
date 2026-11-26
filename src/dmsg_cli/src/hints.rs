@@ -244,7 +244,6 @@ pub(crate) async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &
             let channel = hint.resource.as_deref().unwrap_or("*");
             daemon.hint_channel(channel);
             daemon.emit("channel/hint", json!({"id": channel}));
-            daemon.notifications.receive.notify_one();
         }
         // Another device of this account read further: the read of the head takes it.
         "read" if unlocked => daemon.hint_channel(hint.resource.as_deref().unwrap_or("*")),

@@ -6,6 +6,10 @@ import kotlinx.serialization.json.*
 import java.time.*
 
 val noticeCategories = listOf("security", "action", "message", "service")
+fun tomorrowMorning(timezone: String? = null, now: Instant = Instant.now()): ULong {
+    val zone = timezone?.takeIf { it in ZoneId.getAvailableZoneIds() }?.let(ZoneId::of) ?: ZoneId.systemDefault()
+    return now.atZone(zone).toLocalDate().plusDays(1).atTime(8, 0).atZone(zone).toInstant().toEpochMilli().toULong()
+}
 data class NoticeCategory(val enabled: Boolean, val sound: Boolean)
 data class NoticeQuietHours(val start: Int, val end: Int, val timezone: String) {
     val valid get() = start in 0..1439 && end in 0..1439 && start != end && timezone in ZoneId.getAvailableZoneIds()

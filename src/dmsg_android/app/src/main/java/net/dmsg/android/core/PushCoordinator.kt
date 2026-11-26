@@ -70,7 +70,7 @@ class PushCoordinator(private val client: ClientController, context: Context, pr
             val tokenHash = SystemExportStore.digest(token.toByteArray())
             val old = store.lease(account)
             val now = System.currentTimeMillis()
-            if (!force && old != null && old.tokenHash == tokenHash && old.expires > now + 86_400_000 && !preferences.pending && !preferences.registrationRequired && !preferences.conflict && old.preferences == preferences && !store.blocked()) return@perform Outcome(Status.READY)
+            if (!force && old != null && old.tokenHash == tokenHash && old.expires > now + 86_400_000 && !preferences.pending && !preferences.registrationRequired && !preferences.conflict && old.preferences == preferences && !store.blocked(account)) return@perform Outcome(Status.READY)
             val installation = core.notificationInstallation()
             val details = AndroidPushRegistration(installation, token, config.projectId)
             val challenge = core.androidPushChallenge(details).decode().objectValue()

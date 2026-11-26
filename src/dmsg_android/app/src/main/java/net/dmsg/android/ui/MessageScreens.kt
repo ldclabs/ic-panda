@@ -241,14 +241,19 @@ import net.dmsg.core.MessageItem
     val pageActive by rememberUpdatedState(LocalPageActive.current)
     var noticeActive by remember(channel) { mutableStateOf(true) }
     var visibleThrough by remember(channel) { mutableStateOf<ULong?>(null) }
-    DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner); client.messages.clearConversationSearch() } }
+    DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner); client.messages.flushCursor(channel); client.messages.clearConversationSearch() } }
     val currentTimeline = timeline.valueOrNull()?.takeIf { it.channel == channel }
     val blockedAccounts = blocked.valueOrNull()
     val rows = remember(currentTimeline, blockedAccounts) { currentTimeline?.items.orEmpty().filter { blockedAccounts?.contains(it.account) == false } }
     val sequences = remember(rows) { rows.associate { "message:" + it.id to it.sequence } }
-    val firstUnread = if (anchorSequence == null && currentTimeline?.hasAfter != true && info != null && info.unread > 0u) {
-        rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
-    } else null
+    var firstUnread by remember(channel, anchorSequence) { mutableStateOf<String?>(null) }
+    var firstUnreadLocked by remember(channel, anchorSequence) { mutableStateOf(false) }
+    if (!firstUnreadLocked && anchorSequence == null && currentTimeline?.hasAfter != true && info != null && rows.isNotEmpty()) {
+        firstUnreadLocked = true
+        if (info.unread > 0u) {
+            firstUnread = rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
+        }
+    }
     val currentOutbox = outgoing.valueOrNull()?.takeIf { it.channel == channel }
     val rawPending = currentOutbox?.items.orEmpty()
     val pending = if (currentTimeline?.hasAfter == true) emptyList() else rawPending
@@ -331,7 +336,8 @@ import net.dmsg.core.MessageItem
             client.messages.load(channel)
         }
     }
-    LaunchedEffect(channel, rows, currentTimeline?.hasAfter, pageActive, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
+    val timelineReadable = timeline is ReadState.Ready || timeline is ReadState.Stale
+    LaunchedEffect(channel, rows, currentTimeline?.hasAfter, pageActive, noticeFocused, timelineReadable, state.unlocked, state.concealed) {
         if (!pageActive || currentTimeline?.hasAfter == true) {
             visibleThrough = null
             client.notifications.hide(noticeOwner)
@@ -339,7 +345,7 @@ import net.dmsg.core.MessageItem
         }
         snapshotFlow { scroll.layoutInfo.visibleItemsInfo.mapNotNull { visible -> sequences[visible.key] }.maxOrNull() }
             .distinctUntilChanged().collect { through ->
-                if (through != null && pageActive && noticeFocused && state.unlocked && !state.concealed && timeline is ReadState.Ready) {
+                if (through != null && pageActive && noticeFocused && state.unlocked && !state.concealed && timelineReadable) {
                     if (through > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, through)
                     visibleThrough = through
                     client.notifications.observed(NoticeTarget("channel", channel), through, noticeOwner) { pageActive && noticeActive && noticeView.hasWindowFocus() && visibleThrough != null }
