@@ -70,7 +70,10 @@ without `--zap`, then install the official desktop package. Keep `~/.dmsg`;
 the app installs its shared runtime on the next start. No second daemon or
 separate beta account/workspace is created.
 
-The `dmsg-release` environment holds the signing secrets. macOS release
+The `dmsg-release` environment holds the signing secrets. It has no required
+reviewers, so signing starts without an approval. Its deployment branch policy
+admits only `main` and version tags, and the version job releases only commits
+already merged into main with a passing Test run. macOS release
 packaging requires Developer ID signing and notarization for both channels;
 local ad hoc builds can still offer manual downloads but cannot auto-install:
 
@@ -103,7 +106,11 @@ See the [macOS transfer runbook](../../src/dmsg_desktop/docs/macos-team-transfer
    Keep it in the Environment secret. The runner logs into SimplySign Desktop via
    the pinned [setup action](https://github.com/dismine/windows-app-signing-setup-action/tree/89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64).
    The signing key stays with Certum. The account must support unattended signing
-   in the authenticated session.
+   in the authenticated session. The workflow sets the action's `simplysign-url`
+   to Certum's newest SimplySign Desktop MSI (9.4.5.95). When
+   [Certum's download directory](https://files.certum.eu/software/SimplySignDesktop/Windows/)
+   lists a newer version, update the URL: an older client raises an update prompt
+   that interrupts the scripted login, and the certificate never reaches the store.
 3. Run `workflow_dispatch` on a commit already merged into main with successful
    push CI. Download the Windows artifacts. On Windows, check the CLI and
    installer with `signtool verify /pa /all /v /tw FILE.exe`. On the next version

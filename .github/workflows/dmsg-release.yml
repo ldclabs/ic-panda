@@ -4,7 +4,9 @@ name: dMsg release
 # GitHub Latest stays on the LDC bridge for legacy updaters. New clients enumerate
 # complete releases; every stable release still updates Homebrew. Beta is opt-in.
 #
-# Signing credentials in the dmsg-release environment:
+# Signing credentials in the dmsg-release environment (no required reviewers; its
+# branch policy admits main and version tags, and the version job admits only
+# commits merged into main with passing CI):
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   notarization
 #   MAC_FSKIT_PROFILE_BASE64  Yiwen Developer ID profile for net.dmsg.desktop.SecretFiles
@@ -185,6 +187,8 @@ jobs:
           $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPem($pem)
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "publisher=$($cert.Subject)" >> $env:GITHUB_OUTPUT
+      # Install Certum's newest SimplySign Desktop: an older one raises an update
+      # prompt that derails the unattended login.
       - name: Connect SimplySign
         if: runner.os == 'Windows'
         uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64 # v1.2.5
@@ -192,6 +196,13 @@ jobs:
           certum-username: ${{ secrets.CERTUM_USERNAME }}
           certum-otp-uri: ${{ secrets.CERTUM_OTP_URI }}
           certum-key-id: ${{ steps.certum.outputs.thumbprint }}
+          simplysign-url: https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.5.95/SimplySignDesktop-9.4.5.95-64-bit-en.msi
+      - name: List the code signing certificates in the user store
+        if: failure() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.EnhancedKeyUsageList -like '*Code Signing*' } |
+            Format-List Thumbprint, Subject, NotAfter, HasPrivateKey
       - name: Package
         shell: bash
         working-directory: src/dmsg_desktop
