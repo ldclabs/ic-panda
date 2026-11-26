@@ -365,16 +365,18 @@ class ClientController internal constructor(private val application: Application
                             withTimeout(2000) {
                                 for (draft in vaultInputs) handle.checkpointVaultDraft(draft)
                                 for (draft in pending) { handle.saveAuthoredDraft(draft.native()); messages.saved(draft) }
-                                for (channel in pendingCursors) runCatching { handle.reportChannelCursor(channel, OperationToken()) }
                                 for (draft in letterDrafts) handle.saveLetterDraft(draft.id, draft.recipient, draft.text, draft.invitation)
                                 runCatching { notices.deliverBackgroundLocal(handle) }
-                                feedbackDraft?.let { value ->
+                                val saved = feedbackDraft?.let { value ->
                                     val current = parseFeedback(handle.feedback().decode())
                                     if (current == null || current.id == value.id && current.state == "draft") {
                                         handle.saveFeedback(value.copy(revision = current?.revision ?: 0u))
                                         value
                                     } else null
                                 }
+                                // The read position goes last: a slow relay must not hold back the saves above.
+                                for (channel in pendingCursors) runCatching { handle.reportChannelCursor(channel, OperationToken()) }
+                                saved
                             }
                         }
                         if (epoch == backgroundEpoch) {

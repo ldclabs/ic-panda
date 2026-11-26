@@ -403,7 +403,7 @@ fn notifications_muted_arrivals_do_not_replay_when_mute_expires() {
 fn foreground_unverified_message_for_unlocked_account_waits_for_local_verification() {
     let store = Store::memory().unwrap();
     let (mut item, settings, mut runtime, mut ctx) = example();
-    configure(&store, 0, settings).unwrap();
+    configure(&store, 0, settings.clone()).unwrap();
     item.unread = None;
     item.unverified = true;
     upsert(&store, item.clone()).unwrap();
@@ -415,11 +415,22 @@ fn foreground_unverified_message_for_unlocked_account_waits_for_local_verificati
         batch.plans.is_empty(),
         "unverified foreground hint for active unlocked account must wait"
     );
+    let waiting = store.notification_item(&item.id).unwrap().unwrap();
     assert_eq!(
-        store.notification_item(&item.id).unwrap().unwrap().notified,
-        0,
+        waiting.notified, 0,
         "waiting for verification must not consume the notified watermark"
     );
+    let until = waiting.pending_since + policy::VERIFY_MS;
+    assert_eq!(batch.next_due, Some(until));
+    // A host that never verifies the hint still shows the generic one.
+    let late = Context {
+        now: until,
+        ..ctx.clone()
+    };
+    assert!(matches!(
+        evaluate(&waiting, &settings, &runtime, &late),
+        Decision::Present { in_app: true, .. }
+    ));
 
     // Local verification with real unread messages can now present once.
     item.unread = Some(1);

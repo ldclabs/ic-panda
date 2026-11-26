@@ -75,9 +75,11 @@ extension EnvironmentValues {
     @State private var viewport = ReminderViewport()
     private var activeOpenedReminder: ReminderItem? {
         if let openedReminder { return openedReminder }
+        // A reminder routed into the workspace belongs to its own target only,
+        // never to an unrelated page that acknowledges on display.
         guard let pending = model.notifications.pendingOpenedReminder,
               pending.account == model.session?.account,
-              acknowledgeOnly || pending.target == target else { return nil }
+              pending.target == target else { return nil }
         return pending
     }
     private var scope: String { "\(String(describing: target)):\(activeOpenedReminder?.id ?? ""):\(activeOpenedReminder?.version ?? ""):\(model.epoch):\(scenePhase == .active):\(hasSize):\(inScrollViewport):\(ready):\(watermark ?? 0):\(model.concealed):\(viewport.attached):\(viewport.revision)" }

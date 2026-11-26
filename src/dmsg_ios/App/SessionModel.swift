@@ -665,6 +665,7 @@ final class SessionModel {
         guard current == epoch else { return }
         await loadChannels()
         await notifications.refresh(self)
+        guard current == epoch else { return }
         pendingCursorChannels.insert(channel)
         cursorReports[channel]?.cancel()
         cursorReports[channel] = Task {
@@ -1213,14 +1214,15 @@ final class SessionModel {
         Task { [weak self] in
             do { for draft in vaultDrafts { _ = try await engine.checkpointVaultDraft(draft: draft) } }
             catch { self?.reportBackground(error) }
-            for channel in pendingCursors {
-                _ = try? await engine.reportChannelCursor(channel: channel, operation: operation)
-            }
             for row in (try? await engine.recoverableMessages()) ?? [] {
                 _ = try? await engine.sendMessage(channel: row.channel, messageId: row.message.id, operation: operation)
             }
             if syncing {
                 _ = try? await engine.flushContent(operation: operation)
+            }
+            // The read position goes last; the next read reports it if time runs out.
+            for channel in pendingCursors {
+                _ = try? await engine.reportChannelCursor(channel: channel, operation: operation)
             }
             guard let self, self.backgroundFinish?.task == task else { return }
             self.endBackgroundFinish(); engine.suspend()

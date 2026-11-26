@@ -17,7 +17,7 @@
   import { call, errorText, single } from '../rpc'
   import { locale, t } from '../i18n/index.svelte'
   import { nextStep, openAccounts, unlocking } from '../shell/session'
-  import { tomorrowMorning } from '../../shared/notification-time'
+  import { tomorrowMorning, validTimeZone } from '../../shared/notification-time'
   import type { NoticeItem, NoticePreferences, NoticeStatus } from '../../shared/notifications'
   import { noNames, noticeNames, noticeUnread } from './reminders/notice'
 
@@ -60,7 +60,9 @@
       items = [...new Map([...previous, ...page.items].map((item) => [item.id, item])).values()]
       cursor = page.next_cursor
       summary = counts
-      quietZone = prefs?.global?.quiet_hours?.timezone ?? null
+      // A zone this runtime cannot resolve falls back to the local one, as on iOS and Android.
+      const zone = prefs?.global?.quiet_hours?.timezone
+      quietZone = zone && validTimeZone(zone) ? zone : null
       names = known
     } catch (cause) { if (valid(turn)) error = errorText(cause) }
     finally { if (valid(turn)) loading = false }

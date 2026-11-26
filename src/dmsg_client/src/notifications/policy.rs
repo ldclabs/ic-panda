@@ -8,6 +8,9 @@ pub const MERGE_MS: u64 = 3_000;
 pub const WINDOW_MS: u64 = 60_000;
 /// Maximum new message/action OS presentations per installation per window.
 pub const BUDGET: usize = 3;
+/// How long a foreground host may verify its unlocked account's message hint
+/// before the generic in-app hint is shown instead.
+pub const VERIFY_MS: u64 = 10_000;
 
 /// Host-verified presentation context. The same timestamp is used for one turn.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,8 +36,9 @@ pub struct Context {
     /// Mobile shared events have one remote OS owner, so local sync stays in-app.
     pub remote_owner: bool,
     /// Currently unlocked account in this host; unverified foreground message
-    /// hints for this account wait for local verification instead of flashing
-    /// a generic echo or consuming the version's notified watermark.
+    /// hints for this account wait up to [`VERIFY_MS`] for local verification
+    /// instead of flashing a generic echo or consuming the version's notified
+    /// watermark. A host that never verifies still shows the generic hint.
     #[serde(default)]
     pub unlocked_account: Option<String>,
 }
@@ -246,7 +250,10 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
         && item.unverified
         && ctx.unlocked_account.as_deref() == Some(item.account.as_str())
     {
-        return keep(Reason::Merge);
+        let until = item.pending_since.saturating_add(VERIFY_MS);
+        if until > now {
+            return wait(until, Reason::Merge);
+        }
     }
     if only_in_app || ctx.foreground {
         return Decision::Present {

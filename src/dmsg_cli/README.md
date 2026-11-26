@@ -1619,8 +1619,11 @@ Local version changes are detected centrally and debounced for 500 ms. Unchanged
 passes back off to five minutes; edits, unlock and account hints wake synchronization.
 The existing sync turn, durable jobs and retry/reconciliation rules are reused.
 
-Background channel work reads controls only. Inbox notifications and reconnects
-emit hints without fetching bodies. Mounted, visible Channel/Inbox views read local
+Background channel work reads controls only. While unlocked, an inbox hint, an
+unlock, a reconnect or the ten-minute fallback runs one inbox pass of at most two
+pages, so a letter's reminder can wait for its verified copy. The pass takes the
+`inbox/read` turn and is skipped while a foreground refresh holds it, since both
+commit the same cursor. Mounted, visible Channel/Inbox views read local
 content first, then complete the increment from its durable cursor. They own the
 30-second fallback and hint handling. Leaving a view stops scheduling new reads;
 already submitted pages may finish into the account cache. Partial success stays

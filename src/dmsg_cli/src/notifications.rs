@@ -135,7 +135,12 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
             d.note_result("notifications/capabilities", &result);
             d.notifications.receive.notify_one();
         }
-        if !h.with(|c| Ok(c.offline_mode())).await.unwrap_or(false) {
+        // Letters are verified here so an unlocked account's reminder can wait
+        // for them. A foreground refresh holds the same turn and commits the
+        // same cursor, so this pass leaves it to that refresh.
+        if !h.with(|c| Ok(c.offline_mode())).await.unwrap_or(false)
+            && let Some(_read) = d.try_turn("inbox/read")
+        {
             let result = dmsg_client::inbox::sync(&h, 2).await;
             d.note_result("notifications/inbox", &result);
             if let Ok(report) = &result {
@@ -147,7 +152,7 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
                 }
             }
         }
-        // A notification is a signal to visible views, not a content fetch.
+        // A visible Inbox view refreshes on this hint.
         d.emit("inbox/hint", Value::Null);
     }
 }

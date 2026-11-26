@@ -149,6 +149,9 @@ struct ConversationView: View {
                 .task(id: readScope) {
                     guard scenePhase == .active, model.unlocked, !model.concealed,
                           messagesKnown, !hasAfter, nearBottom, let seq = readWatermark else { return }
+                    // Opening at the first unread message scrolls the end away
+                    // after this starts; that change cancels the read.
+                    do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
                     if seq > currentChannel.readThrough {
                         await model.channelRead(channel.id, through: seq)
                     }
