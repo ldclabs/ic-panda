@@ -90,7 +90,12 @@ for (const route of [
   assert.equal(data.url, 'https://dmsg.net/')
   assert.ok(data.operatingSystem.includes('iOS'))
   assert.ok(data.operatingSystem.includes('iPadOS'))
-  assert.ok(data.downloadUrl.includes(appStore))
+  const downloadUrl = new URL(data.downloadUrl)
+  const expectedAppStoreUrl = new URL(appStore)
+  assert.equal(downloadUrl.origin, expectedAppStoreUrl.origin)
+  assert.equal(downloadUrl.pathname, expectedAppStoreUrl.pathname)
+  assert.equal(downloadUrl.username, '')
+  assert.equal(downloadUrl.password, '')
 
   const faq = linked.find((item) => item['@type'] === 'FAQPage')
   const visibleFaq = [...document.querySelectorAll('.faq details > summary')].map((el) =>
