@@ -8,6 +8,7 @@
 //! one. Readers authenticate the current bundle by the certified
 //! `bundle_digest` and earlier ones by that chain.
 
+use crate::account::AccountState;
 use crate::client::Client;
 use crate::codec::{b64, base64url, canonical, decode, digest, sha256, unb64};
 use crate::crypto::{
@@ -863,6 +864,22 @@ impl Client {
             .and_then(|job| job.plan))
     }
 
+    pub(crate) fn initial_setup_pending(&self) -> Result<bool> {
+        let Some(security) = &self.security else {
+            return Ok(false);
+        };
+        let Some(digest) = security.snapshot.content_root_digest else {
+            return Ok(true);
+        };
+        // The commit may already be visible even though this device has
+        // yet to activate its saved candidate. Other devices still pair.
+        let job = self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)?;
+        Ok(job.is_some_and(|j| {
+            j.expected_generation == 0
+                && j.plan.is_some_and(|p| p.object_id == hex::encode(*digest))
+        }))
+    }
+
     pub(crate) fn save_root(&self, keys: &RootKeys) -> Result<()> {
         let record = RootRecord {
             generation: keys.generation,
@@ -920,14 +937,16 @@ impl Client {
             });
         }
         // Unlock already checked the user home's certified security. A
-        // matching local root needs no relay publication or request. When
-        // fast unlock is offline, keep reading the root stored on this device.
-        if self.root.is_some()
-            && self
-                .security
-                .as_ref()
-                .is_none_or(|s| self.missing_committed_root(s).is_none())
-        {
+        // matching local root needs no relay request. A fresh, certified
+        // empty root also has nothing to download on a new device.
+        let up_to_date = match &self.security {
+            Some(state) if self.root.is_some() => self.missing_committed_root(state).is_none(),
+            Some(state) => {
+                state.snapshot.content_root_digest.is_none() && state.expires_at() > now_ms()
+            }
+            None => self.root.is_some(), // Offline fast unlock with a stored root.
+        };
+        if up_to_date {
             return Ok(());
         }
         let state = self.cloud_state().await?;
@@ -980,13 +999,7 @@ impl Client {
     /// is opened, never replaced; an interrupted initial job keeps its bytes
     /// unless its reservation can no longer commit.
     pub(crate) async fn initialize_root(&mut self) -> Result<u64> {
-        if let Err(error) = self.resume().await
-            && error != Error::Expired
-        {
-            return Err(error);
-        }
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
+        let state = self.reconciled_root_state().await?;
         self.check_revoked(&state.security)?;
         state.active(&self.workspace.meta.device_id)?;
         let job = self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)?;
@@ -997,7 +1010,7 @@ impl Client {
                 if let Some(bytes) = &job.bytes
                     && bundle_digests(&parse_bundle(bytes)?)?.bundle == current.bundle_digest
                 {
-                    return self.activate(job).await;
+                    return self.activate(job, current);
                 }
                 self.load_root().await?;
                 self.workspace.delete_private(ROOT_JOB)?;
@@ -1007,20 +1020,11 @@ impl Client {
             return Ok(self.roots()?.generation);
         }
         ensure(self.root.is_none(), Error::IntegrityFailed)?;
-        if let Some(job) = job {
-            ensure(job.expected_generation == 0, Error::IntegrityFailed)?;
-            let now = now_ms();
-            if !job.reservation_current(
-                state.info.root_slot.as_ref(),
-                state.info.security_epoch,
-                now,
-            ) {
-                // The old candidate cannot commit. A new reservation uses a
-                // fresh operation ID and generation, after rereading state.
-                self.workspace.delete_private(ROOT_JOB)?;
-            }
-        }
-        self.rotate_root().await
+        ensure(
+            job.as_ref().is_none_or(|j| j.expected_generation == 0),
+            Error::IntegrityFailed,
+        )?;
+        self.advance_root(state, job).await
     }
 
     /// Commit a new root generation wrapped to every active device holding
@@ -1032,15 +1036,25 @@ impl Client {
     /// and `Error::RecoveryIncomplete` when this device has not opened the
     /// current root yet.
     pub async fn rotate_root(&mut self) -> Result<u64> {
+        let state = self.reconciled_root_state().await?;
+        let job = self.workspace.private(self.keys()?, ROOT_JOB)?;
+        self.advance_root(state, job).await
+    }
+
+    async fn reconciled_root_state(&mut self) -> Result<AccountState> {
         if let Err(error) = self.resume().await
             && error != Error::Expired
         {
             return Err(error);
         }
         let account = self.account()?.clone();
-        let mut state = self.refresh(account.home, &account.id).await?;
+        self.refresh(account.home, &account.id).await
+    }
+
+    async fn advance_root(&mut self, mut state: AccountState, job: Option<RootJob>) -> Result<u64> {
+        let account = self.account()?.clone();
         let current = state.info.current_root.clone();
-        let mut job = match self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)? {
+        let mut job = match job {
             Some(job) => job,
             None => {
                 ensure(
@@ -1067,8 +1081,10 @@ impl Client {
         save(self, &job)?;
         if let Some(bytes) = &job.bytes {
             let digests = bundle_digests(&parse_bundle(bytes)?)?;
-            if current.as_ref().map(|c| c.bundle_digest) == Some(digests.bundle) {
-                return self.activate(job).await;
+            if let Some(current) = &current
+                && current.bundle_digest == digests.bundle
+            {
+                return self.activate(job, current);
             }
         }
         if current.as_ref().map_or(0, |c| c.generation) != job.expected_generation {
@@ -1118,7 +1134,7 @@ impl Client {
                             None,
                         )
                         .await?;
-                    state.info.root_slot.clone().ok_or(Error::VersionConflict)?
+                    state.info.root_slot.clone().ok_or(Error::PolicyStale)?
                 }
             };
             ensure(slot.op_id == job.op_id, Error::VersionConflict)?;
@@ -1257,25 +1273,28 @@ impl Client {
         let plan = job.plan.as_ref().ok_or(Error::IntegrityFailed)?;
         self.download(&plan.upload_id, "manifest", &plan.manifest_digest)
             .await?;
-        self.mutate(
-            AccountCommand::CommitRoot {
-                expected_generation: job.expected_generation,
-                op_id: job.op_id,
-                root: reference,
-            },
-            None,
-        )
-        .await?;
-        self.activate(job).await
+        let committed = self
+            .mutate(
+                AccountCommand::CommitRoot {
+                    expected_generation: job.expected_generation,
+                    op_id: job.op_id,
+                    root: reference,
+                },
+                None,
+            )
+            .await?;
+        let current = committed
+            .info
+            .current_root
+            .as_ref()
+            .ok_or(Error::PolicyStale)?;
+        self.activate(job, current)
     }
 
-    /// Make a committed job's root this device's root.
-    async fn activate(&mut self, job: RootJob) -> Result<u64> {
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
+    /// Activate only the candidate matching the freshly verified commitment.
+    fn activate(&mut self, job: RootJob, current: &ContentRootRef) -> Result<u64> {
         let bytes = job.bytes.ok_or(Error::IntegrityFailed)?.into_vec();
         let digests = bundle_digests(&parse_bundle(&bytes)?)?;
-        let current = state.info.current_root.ok_or(Error::IntegrityFailed)?;
         let context = job.context.ok_or(Error::IntegrityFailed)?;
         ensure(
             current.bundle_digest == digests.bundle && current.generation == context.generation,

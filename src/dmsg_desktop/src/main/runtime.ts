@@ -32,7 +32,7 @@ export function requireRuntimeVersion(version: unknown, minimum: string) {
 export async function resolveRuntime(packaged: boolean, resources: string): Promise<Runtime> {
   if (!packaged) return { binary: process.env.DMSG_BIN || 'dmsg' }
   const bundled = join(resources, 'runtime', process.platform === 'win32' ? 'dmsg.exe' : 'dmsg')
-  const { stdout } = await run(bundled, ['--json', 'install'], { timeout: 60_000 })
+  const { stdout } = await run(bundled, ['--json', 'install'], { timeout: 60_000, windowsHide: true })
   const report = JSON.parse(stdout.trim().split('\n').pop()!) as { action: string; path: string; version?: string }
   return { binary: report.path, action: report.action, version: report.version }
 }

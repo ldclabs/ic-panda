@@ -16,6 +16,62 @@ use dmsg_client::{
 };
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
+use std::time::Duration;
+
+impl Daemon {
+    pub(crate) async fn initialize_account(&self) -> Result<Value> {
+        let session = self.client().lock().await.session_generation();
+        let _turn = self.turn("account/create").await;
+        self.hold().ensure_login().await?;
+        let check_session = |client: &dmsg_client::Client| {
+            dmsg_types::ensure(client.session_generation() == session, Error::Locked)
+        };
+        let mut delays = [Duration::from_secs(1), Duration::from_secs(3)].into_iter();
+        // Registration and root mutations share the client's single persisted
+        // account journal. Serialize each attempt, releasing the client during
+        // backoff and while the OS confirms the device.
+        let prepared = resume_setup(&mut delays, || {
+            self.under_lock(async |client| {
+                check_session(client)?;
+                client.prepare_initialize_account().await
+            })
+        })
+        .await?;
+        if prepared.is_some() {
+            self.finish_login_unlock(prepared).await?;
+        }
+        let (account, generation) = resume_setup(&mut delays, || {
+            self.under_lock(async |client| {
+                check_session(client)?;
+                client.finish_initialize_account().await
+            })
+        })
+        .await?;
+        Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
+    }
+}
+
+/// Only the two journal-aware setup phases use this budget. A refusal, a
+/// failed integrity check or a service-imposed cooldown ends the attempt.
+async fn resume_setup<T, F: Future<Output = Result<T>>>(
+    delays: &mut impl Iterator<Item = Duration>,
+    attempt: impl Fn() -> F,
+) -> Result<T> {
+    loop {
+        let error = match attempt().await {
+            Ok(value) => return Ok(value),
+            Err(error) => error,
+        };
+        let transient = matches!(error, Error::ExecutionUnknown | Error::PolicyStale)
+            || matches!(&error, Error::Unavailable(reason)
+                if reason.starts_with("network: ") || reason.starts_with("relay UNAVAILABLE:"));
+        if transient && let Some(delay) = delays.next() {
+            tokio::time::sleep(delay).await;
+        } else {
+            return Err(error);
+        }
+    }
+}
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 45] = [
@@ -441,5 +497,52 @@ impl Daemon {
             _ => Err(Error::NotFound),
         })
         .await
+    }
+}
+
+#[cfg(test)]
+mod setup_tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::future::ready;
+
+    #[tokio::test]
+    async fn both_setup_phases_share_a_bounded_budget() {
+        let mut delays = [Duration::ZERO; 2].into_iter();
+        let registering = Cell::new(true);
+        resume_setup(&mut delays, || {
+            ready(if registering.replace(false) {
+                Err(Error::Unavailable("network: ic timeout".into()))
+            } else {
+                Ok(())
+            })
+        })
+        .await
+        .unwrap();
+        let attempts = Cell::new(0);
+        let result = resume_setup(&mut delays, || {
+            attempts.set(attempts.get() + 1);
+            ready(Err::<(), _>(Error::ExecutionUnknown))
+        })
+        .await;
+        assert_eq!(result, Err(Error::ExecutionUnknown));
+        assert_eq!(attempts.get(), 2);
+    }
+
+    #[tokio::test]
+    async fn setup_preserves_definitive_errors_and_relay_cooldowns() {
+        for error in [
+            Error::Locked,
+            Error::DeviceNotApproved,
+            Error::IntegrityFailed,
+            Error::Forbidden,
+            Error::Unavailable("busy: 90000".into()),
+            Error::Unavailable("storage: io".into()),
+        ] {
+            let mut delays = [Duration::ZERO; 2].into_iter();
+            let result = resume_setup(&mut delays, || ready(Err::<(), _>(error.clone()))).await;
+            assert_eq!(result, Err(error));
+            assert_eq!(delays.len(), 2);
+        }
     }
 }

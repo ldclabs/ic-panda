@@ -483,9 +483,12 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     // unavailable at startup. Only enrollment needs both capabilities.
     #[cfg(windows)]
     {
-        let hardware = std::sync::Arc::new(crate::windows_hardware::WindowsHardware::detect(
-            settings.storage == crate::home::Storage::System,
-        ));
+        let hardware = std::sync::Arc::new(
+            crate::windows_hardware::WindowsHardware::detect(
+                settings.storage == crate::home::Storage::System,
+            )
+            .await?,
+        );
         if hardware.can_enroll() {
             client.set_presence_key(hardware.clone());
         }
@@ -1846,29 +1849,7 @@ impl Daemon {
                     None => Err(Error::InvalidInput("missing enable".into())),
                 }
             }
-            // Account and device changes still wait
-            // on the IC and the relay under the client.
-            "account/create" => {
-                self.hold().ensure_login().await?;
-                // Persist account setup under the operation lock; its hardware
-                // confirmation waits outside it before content root creation.
-                let (prepared, session) = self
-                    .under_lock(async |client| {
-                        let prepared = client.prepare_initialize_account().await?;
-                        Ok((prepared, client.session_generation()))
-                    })
-                    .await?;
-                self.finish_login_unlock(prepared).await?;
-                self.under_lock(async |client| {
-                    if client.session_generation() != session {
-                        return Err(Error::Locked);
-                    }
-                    // Root journals still settle under the operation lock.
-                    let (account, generation) = client.initialize_account().await?;
-                    Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
-                })
-                .await
-            }
+            "account/create" => self.initialize_account().await,
             "account/show" => {
                 let state = self
                     .hold()

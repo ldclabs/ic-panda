@@ -31,14 +31,14 @@
   let route = $state(location.hash.slice(1) || '/channels')
   type ViewSession = { key: string; status: any }
   type Connection =
-    | { kind: 'verifying'; view: ViewSession | null }
+    | { kind: 'verifying'; view: ViewSession | null; error?: string }
     | { kind: 'disconnected'; view: ViewSession | null; error?: string }
     | { kind: 'verified'; view: ViewSession }
   let connection = $state<Connection>({ kind: 'verifying', view: null })
   const status = $derived(connection.view?.status ?? null)
   const viewSession = $derived(connection.view?.key ?? null)
   const verifiedConnection = $derived(connection.kind === 'verified')
-  const connectionError = $derived(connection.kind === 'disconnected' ? connection.error : undefined)
+  const connectionError = $derived(connection.kind === 'verified' ? undefined : connection.error)
   let reconnecting = $state(false)
   /** The status last read: the shell keeps showing it while the next is read, where the views are gone at once. */
   let lastStatus = $state<any>(null)
@@ -58,17 +58,17 @@
 
   const refresh = single(async () => {
     const revision = stateRevision
-    const remote = await window.dmsg.connection()
-    if (revision !== stateRevision) return
-    if (!remote.connected) { connection = { kind: 'disconnected', view: connection.view, error: remote.error }; return }
-    if (connection.kind === 'disconnected') connection = { kind: 'verifying', view: connection.view }
     try {
+      const remote = await window.dmsg.connection()
+      if (revision !== stateRevision) return
+      if (!remote.connected) { connection = { kind: 'disconnected', view: connection.view, error: remote.error }; return }
+      if (connection.kind === 'disconnected') connection = { kind: 'verifying', view: connection.view }
       const next: any = await call('daemon/status')
       if (revision !== stateRevision) return
       if (isMain && next.state === 'logged_out') {
-        const known = await call<any[]>('session/accounts').then((list) => list.length, () => 1)
+        const known = await call<any[]>('session/accounts')
         if (revision !== stateRevision) return
-        accounts = known
+        accounts = known.length
       }
       // Without an opaque token, a reconnect cannot prove it is the same
       // unlocked session (for example while the installed daemon is older).
@@ -79,10 +79,26 @@
       feedback.scope(next?.state === 'unlocked' ? next.account : null, key)
       lastStatus = next
       connection = { kind: 'verified', view: { key, status: next } }
-    } catch {
+    } catch (error) {
       if (revision !== stateRevision) return
-      connection = { kind: 'verifying', view: connection.view }
+      connection = { kind: 'verifying', view: connection.view, error: error instanceof Error ? error.message : String(error) }
     }
+  })
+
+  // A connected socket need not emit another event when a failed local
+  // status read becomes available. Verify until this window has its session.
+  $effect(() => {
+    if (!blocked) return
+    let active = true, delay = 1000
+    let timer = setTimeout(recheck, delay)
+    async function recheck() {
+      await refresh()
+      if (active && blocked) {
+        delay = Math.min(delay * 2, 10_000)
+        timer = setTimeout(recheck, delay)
+      }
+    }
+    return () => { active = false; clearTimeout(timer) }
   })
 
   // Portalled dialogs live outside the app's inert wrapper. Mask those too,
@@ -133,7 +149,6 @@
     const onHash = () => (route = location.hash.slice(1) || '/channels')
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
-    void refresh()
     offs.push(window.dmsg.onEvent((event) => {
       if (event.type === 'session/changed' || event.type === 'connection/changed') {
         stateRevision++
@@ -165,7 +180,17 @@
       toast(() => notificationBody(locale(), plan.category, plan.count), { testid: 'notification-toast', ms: 6000,
         action: { label: t('open'), run: () => window.dmsg.notificationOpen(plan.account, plan.covered.length === 1 ? plan.covered[0].id : plan.category, plan.covered.length === 1 ? plan.covered[0].version : undefined) } })
     }))
-    return () => offs.forEach((off) => off())
+    const verifyWhenShown = () => { if (blocked && !document.hidden) void refresh() }
+    window.addEventListener('focus', verifyWhenShown)
+    document.addEventListener('visibilitychange', verifyWhenShown)
+    // Subscribe before reading the initial snapshot, including on a reload.
+    void refresh()
+    return () => {
+      stateRevision++
+      window.removeEventListener('focus', verifyWhenShown)
+      document.removeEventListener('visibilitychange', verifyWhenShown)
+      offs.forEach((off) => off())
+    }
   })
 </script>
 
@@ -202,7 +227,7 @@
 {#if Single}
   <main class="h-screen" inert={blocked} aria-hidden={blocked}>
     <RecoveryBanner />
-    {#if route.startsWith('/approval/')}
+    {#if viewSession && route.startsWith('/approval/')}
       {#await Single then { default: Approval }}
         {#key `${viewSession}:${route}`}
           <Approval id={route.slice('/approval/'.length)} />
@@ -211,7 +236,7 @@
     {/if}
   </main>
   <Toaster />
-{:else if Shell}
+{:else if Shell && lastStatus}
   {#await Shell then { default: MainShell }}
     <MainShell {status} {lastStatus} {route} {viewSession} verified={verifiedConnection} {blocked} {accounts} {refresh} {go} />
   {/await}

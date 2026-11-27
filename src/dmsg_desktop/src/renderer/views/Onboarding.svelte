@@ -17,7 +17,7 @@
   import { call, code, errorText, onChange, when } from '../rpc'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */
-  let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
+  let { status, refresh, create }: { status: any; refresh: () => Promise<void>; create: () => Promise<void> } = $props()
 
   let account = $state('')
   let direct = $state(false)
@@ -48,8 +48,6 @@
       if (alive) { busy = false; await refresh() }
     }
   }
-
-  const create = () => attempt(async () => void (await call('account/create')))
 
   const bindRequest = () =>
     attempt(async () => {
@@ -202,7 +200,7 @@
 {:else if status?.state === 'root_required'}
   <Section title={t('accountSetup')} description={t(status.setup_pending ? 'accountSetupHint' : 'pairPreparingVault')} icon="account" testid="account-setup">
     <button class={buttonClass('primary')} disabled={busy} onclick={() => status.setup_pending ? create() : joined()} data-testid="retry-account-setup">
-      {t(status.setup_pending ? 'retryAccountSetup' : 'checkApproval')}
+      {t(status.setup_pending ? 'continueAccountSetup' : 'checkApproval')}
     </button>
   </Section>
 {/if}

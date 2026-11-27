@@ -515,6 +515,7 @@ const methods = {
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null,
   'daemon/status': status,
+  'device/moved_list': () => [],
   'account/create': () => {
     session = 'root_required'
     setupPending = true
@@ -1591,6 +1592,94 @@ async function formMatrix(app, page, shots, name, selector, matrix = [
   await page.waitForFunction(() => !matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
+async function accountSetupFlow(main) {
+  // A device without a ready account sees only the welcome, whatever the route said.
+  for (const [state, pending, shown] of [
+    ['pairing_required', false, 'pair-request'],
+    ['root_required', true, 'retry-account-setup'],
+    ['root_required', false, 'retry-account-setup']
+  ]) {
+    session = state
+    setupPending = pending
+    emit('session/changed')
+    await main.getByTestId(shown).waitFor()
+    await main.getByTestId('welcome').waitFor()
+    assert.equal(await main.getByTestId('sidebar').count(), 0)
+  }
+  await main.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+k`)
+  assert.equal(await main.locator('[data-testid="palette"]').count(), 0, 'the palette waits for an account')
+  // A failed create has already bound the account. The same page switches
+  // to finishing setup, and its retry reaches the same account/create API.
+  session = 'no_account'
+  setupPending = false
+  emit('session/changed')
+  await main.waitForSelector('[data-testid="create-account"]')
+  // Before binding is confirmed, keep the saved setup actionable. A late
+  // reply from this login must not attach itself to a subsequent session.
+  const register = methods['account/create']
+  methods['account/create'] = () => { throw { code: 'EXECUTION_UNKNOWN', message: 'Lost registration reply' } }
+  await main.getByTestId('create-account').click()
+  await main.getByTestId('setup-interrupted').waitFor()
+  assert.equal(await main.getByTestId('retry-account-setup').count(), 0)
+  const late = hold('account/create')
+  await main.getByTestId('create-account').click()
+  await main.getByTestId('account-setup-progress').waitFor()
+  session = 'pairing_required'
+  emit('session/changed')
+  await main.getByTestId('pair-request').waitFor()
+  await late()
+  await main.getByTestId('pair-request').waitFor()
+  assert.equal(await main.getByTestId('setup-interrupted').count(), 0)
+  methods['account/create'] = register
+  session = 'no_account'
+  emit('session/changed')
+  await main.getByTestId('create-account').waitFor()
+  await main.getByTestId('join-account').getByRole('button').click()
+  assert.equal(await main.getByTestId('bind-account').evaluate((el) => el.labels.length), 1)
+  await formMatrix(app, main, shots, 'settings-account', '[data-testid="onboarding"]')
+  const submissions = () => calls.filter((c) => c.method === 'account/create').length
+  const before = submissions()
+  const finish = hold('account/create')
+  failAccountSetup = true
+  await main.getByTestId('create-account').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('account-setup-progress').waitFor()
+  assert.equal(await main.getByTestId('welcome-logout').isDisabled(), true)
+  assert.equal(await main.getByTestId('open-account-invite').count(), 0)
+  assert.equal(await main.getByTestId('retry-account-setup').count(), 0)
+  await main.getByText('Still waiting for confirmation.', { exact: false }).waitFor({ timeout: 25_000 })
+  await formMatrix(app, main, shots, 'account-setup-progress', '[data-testid="account-setup-progress"]')
+  assert.equal(submissions(), before + 1)
+  await finish()
+  await main.waitForSelector('[data-testid="retry-account-setup"]')
+  assert.ok((await main.textContent('[data-testid="account-setup"]')).includes('Your account has been created.'))
+  assert.equal(await main.getByTestId('retry-account-setup').innerText(), 'Continue setup')
+  assert.equal(await main.locator('[data-testid="create-account"]').count(), 0)
+  assert.equal(await main.locator('button:has-text("Complete recovery")').count(), 0)
+  assert.ok(await main.locator('[data-testid="retry-account-setup"]').evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return r.top >= 0 && r.bottom <= innerHeight
+  }), 'the setup retry is visible without scrolling past account details')
+  assert.equal(await main.getByTestId('setup-interrupted').count(), 0)
+  assert.equal(await main.getByTestId('onboarding-error').count(), 0)
+  assert.equal(await main.getByTestId('welcome').getByRole('alert').count(), 0)
+  assert.equal(await main.getByTestId('open-account-invite').count(), 0)
+  await formMatrix(app, main, shots, 'account-setup-retry', '[data-testid="account-setup"]')
+  await main.screenshot({ path: join(shots, 'account-setup-retry.png') })
+  await main.getByTestId('welcome-logout').focus()
+  await main.keyboard.press('Tab')
+  assert.equal(await main.getByTestId('retry-account-setup').evaluate(el => el === document.activeElement), true)
+  await main.keyboard.press('Enter')
+  await main.getByTestId('welcome-finish').waitFor()
+  assert.equal(session, 'unlocked')
+  assert.equal(submissions(), before + 2)
+  // The account opens on the choices worth making at the start, then on the app.
+  await formMatrix(app, main, shots, 'welcome-finish', '[data-testid="welcome-finish"]')
+  await main.getByTestId('welcome-done').click()
+  await main.getByTestId('welcome').waitFor({ state: 'detached' })
+  await main.getByTestId('sidebar').waitFor()
+}
+
 async function choose(page, testid, value) {
   await page.click(`[data-testid="${testid}"]`)
   await page.click(`[data-testid="${testid}-menu"] [data-value="${value}"]`)
@@ -1613,6 +1702,22 @@ await writeFile(join(profile, 'appearance'), 'light')
 
 // A slow first initialization ends in a transient error. The next attempt succeeds.
 let releaseStartup
+let statusUnavailable = process.env.DMSG_DESKTOP_SMOKE === 'startup-status'
+let listUnavailable = true
+if (statusUnavailable) {
+  session = 'logged_out'
+  methods['session/accounts'] = () => {
+    if (listUnavailable) {
+      listUnavailable = false
+      throw { code: 'UNAVAILABLE', message: 'Account list is opening' }
+    }
+    return []
+  }
+  methods['daemon/status'] = () => {
+    if (statusUnavailable) throw { code: 'UNAVAILABLE', message: 'The first session status is not ready' }
+    return status()
+  }
+}
 if (process.env.DMSG_DESKTOP_SMOKE === 'startup') {
   const initialize = methods['app/initialize']
   releaseStartup = hold('app/initialize')
@@ -1696,6 +1801,31 @@ smoke: try {
   // writes what it reads and so runs until Svelte gives up on it.
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
+  if (process.env.DMSG_DESKTOP_SMOKE === 'startup-status') {
+    const cover = main.getByTestId('daemon-disconnected')
+    await main.getByTestId('daemon-connecting').waitFor()
+    assert.equal(await main.evaluate(async () => (await window.dmsg.connection()).connected), true)
+    await waitFor(() => latest('daemon/status'))
+    assert.equal(await main.getByTestId('sidebar').count(), 0)
+    // The socket stays connected. No daemon event or window activation will
+    // announce that the next status read can succeed.
+    statusUnavailable = false
+    await main.getByTestId('welcome-login').waitFor({ timeout: 8_000 })
+    assert.equal(await cover.count(), 0)
+    assert.equal(listUnavailable, false)
+    statusUnavailable = true
+    emit('session/changed')
+    await main.getByTestId('daemon-failed').waitFor()
+    assert.equal(await main.getByTestId('welcome-login').count(), 0)
+    statusUnavailable = false
+    await main.getByTestId('daemon-retry').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('welcome-login').waitFor()
+    assert.equal(calls.filter(c => c.method === 'app/initialize').length, 1)
+    assert.deepEqual(pageErrors, [])
+    console.log('Original cold-start window verified the session and recovered a later failed status read')
+    break smoke
+  }
   if (releaseStartup) {
     const cover = main.getByTestId('daemon-disconnected'), failed = main.getByTestId('daemon-failed')
     const starting = cover.getByRole('progressbar', { name: 'Starting up…' })
@@ -1758,6 +1888,12 @@ smoke: try {
     break smoke
   }
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'account-setup') {
+    await accountSetupFlow(main)
+    assert.deepEqual(pageErrors, [])
+    console.log('account setup smoke passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'vault-backup') {
     const { vaultBackupFlow } = await import('./vault-backup-smoke.mjs')
     await vaultBackupFlow({ app, main, methods, requests, request, account, emit, formMatrix, shots, answer, picks, latest })
@@ -2236,7 +2372,6 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {
-    methods['device/moved_list'] = () => []
     const matrix = [
       ['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540],
       ['fr', 'light', 760, 540], ['fr', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]
@@ -4466,50 +4601,7 @@ smoke: try {
     assert.equal(await main.locator('[data-testid="legacy-archives"]').count(), 0)
     assert.equal(calls.filter((c) => ['legacy/pairs', 'legacy/list'].includes(c.method)).length, reads)
   }
-  // A device without a ready account sees only the welcome, whatever the route said.
-  for (const [state, pending, shown] of [
-    ['pairing_required', false, 'pair-request'],
-    ['root_required', true, 'retry-account-setup'],
-    ['root_required', false, 'retry-account-setup']
-  ]) {
-    session = state
-    setupPending = pending
-    emit('session/changed')
-    await main.getByTestId(shown).waitFor()
-    await main.getByTestId('welcome').waitFor()
-    assert.equal(await main.getByTestId('sidebar').count(), 0)
-  }
-  await main.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+k`)
-  assert.equal(await main.locator('[data-testid="palette"]').count(), 0, 'the palette waits for an account')
-  // A failed create has already bound the account. The same page switches
-  // to finishing setup, and its retry reaches the same account/create API.
-  session = 'no_account'
-  setupPending = false
-  emit('session/changed')
-  await main.waitForSelector('[data-testid="create-account"]')
-  await main.getByTestId('join-account').getByRole('button').click()
-  assert.equal(await main.getByTestId('bind-account').evaluate((el) => el.labels.length), 1)
-  await formMatrix(app, main, shots, 'settings-account', '[data-testid="onboarding"]')
-  failAccountSetup = true
-  await main.click('[data-testid="create-account"]')
-  await main.waitForSelector('[data-testid="retry-account-setup"]')
-  assert.ok((await main.textContent('[data-testid="account-setup"]')).includes('this same account'))
-  assert.equal(await main.locator('[data-testid="create-account"]').count(), 0)
-  assert.equal(await main.locator('button:has-text("Complete recovery")').count(), 0)
-  assert.ok(await main.locator('[data-testid="retry-account-setup"]').evaluate((el) => {
-    const r = el.getBoundingClientRect()
-    return r.top >= 0 && r.bottom <= innerHeight
-  }), 'the setup retry is visible without scrolling past account details')
-  await main.screenshot({ path: join(shots, 'account-setup-retry.png') })
-  await main.click('[data-testid="retry-account-setup"]')
-  await main.waitForSelector('[data-testid="retry-account-setup"]', { state: 'detached' })
-  assert.equal(session, 'unlocked')
-  // The account opens on the choices worth making at the start, then on the app.
-  await main.getByTestId('welcome-finish').waitFor()
-  await formMatrix(app, main, shots, 'welcome-finish', '[data-testid="welcome-finish"]')
-  await main.getByTestId('welcome-done').click()
-  await main.getByTestId('welcome').waitFor({ state: 'detached' })
-  await main.getByTestId('sidebar').waitFor()
+  await accountSetupFlow(main)
   await main.click('[data-testid="settings-legacy"]')
   await main.waitForSelector('[data-testid="legacy-pair"]:not([disabled])')
   assert.equal(await main.locator('[data-testid="legacy-not-ready"]').count(), 0)

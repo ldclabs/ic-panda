@@ -393,8 +393,11 @@ Rules (`src/main/policy.ts`):
   `https://panda.fans/legacy`) only with an offer (`#pair=`). Pairing and archive
   reads wait for an unlocked account. Before then, the page explains whether
   to sign in, unlock, finish setup or approve the device, and links to Session
-  and accounts. An account whose first content root was interrupted offers
-  **Retry account setup**, which safely resumes the existing account.
+  and accounts. Account creation shows progress while the daemon registers the
+  device and prepares encrypted storage. After 15 seconds it explains that
+  confirmation is pending and completed steps are saved. The daemon reconciles
+  temporary failures automatically. If the initial
+  root still needs attention, **Continue setup** resumes the same account.
   Personal history channels can be deleted after confirmation: the archive is rewritten
   without their messages, files, channel keys and cached copies, and the
   change syncs to the account's other devices. Old revision retention and
@@ -908,7 +911,12 @@ resources or reviewed inputs. It keeps the existing message, file-task, login an
 update states, and ordinary control state stays local.
 
 - The daemon connection owns its startup attempt, initialized socket or retry
-  timer. Business RPCs are refused with `DAEMON_DISCONNECTED` until
+  timer. First-install and version-check failures retry the bundled installer
+  before starting the shared executable. The first window retries its local
+  status and account reads until it can open the verified session, including
+  when the socket stays connected and no further event arrives. Lasting
+  failures expose Retry and diagnostic details in that window. Cloud read
+  recovery updates its own banner independently. Business RPCs are refused with `DAEMON_DISCONNECTED` until
   initialization finishes; closing releases pending calls,
   and a previous attempt cannot revive or disconnect a replacement connection.
   The renderer distinguishes verification, disconnection and a verified session;

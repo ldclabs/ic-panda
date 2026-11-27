@@ -626,7 +626,7 @@ impl Proxy {
         }
     }
 
-    /// Lose the reply to the next `method` request whose path contains `path`.
+    /// Match an HTTP method/path fragment, or IC_QUERY and its Candid method.
     fn lose_next(&self, method: &str, path: &str) {
         self.rules
             .lock()
@@ -648,7 +648,7 @@ impl Proxy {
             .store(true, std::sync::atomic::Ordering::SeqCst);
     }
 
-    fn is_root_commit(bytes: &[u8]) -> bool {
+    fn ic_method(bytes: &[u8], name: &str, check: impl FnOnce(&[u8]) -> bool) -> bool {
         // An IC ingress envelope may carry CBOR's self-described tag.
         let bytes = bytes.strip_prefix(&[0xd9, 0xd9, 0xf7]).unwrap_or(bytes);
         let Ok(envelope) = cbor2::from_slice::<cbor2::Value>(bytes) else {
@@ -671,16 +671,24 @@ impl Proxy {
                 .find(|(k, _)| k.as_text() == Some(name))
                 .map(|(_, v)| v)
         };
-        if field("method_name").and_then(|v| v.as_text()) != Some("mutate_account") {
+        if field("method_name").and_then(|v| v.as_text()) != Some(name) {
             return false;
         }
         let Some(arg) = field("arg").and_then(|v| v.as_bytes()) else {
             return false;
         };
-        candid::decode_args::<(dmsg_types::user::AccountMutation,)>(arg).is_ok_and(|(mutation,)| {
-            matches!(
-                mutation.command,
-                dmsg_types::user::AccountCommand::CommitRoot { .. }
+        check(arg)
+    }
+
+    fn is_root_commit(bytes: &[u8]) -> bool {
+        Self::ic_method(bytes, "mutate_account", |arg| {
+            candid::decode_args::<(dmsg_types::user::AccountMutation,)>(arg).is_ok_and(
+                |(mutation,)| {
+                    matches!(
+                        mutation.command,
+                        dmsg_types::user::AccountCommand::CommitRoot { .. }
+                    )
+                },
             )
         })
     }
@@ -809,10 +817,14 @@ impl Proxy {
         };
         let line = head.lines().next().unwrap_or_default();
         let (method, path) = line.split_once(' ').unwrap_or_default();
+        let path = path.split(' ').next().unwrap_or("");
         let lost = {
             let mut rules = rules.lock().unwrap();
             let found = rules.iter().position(|(m, p)| {
-                m == method && path.split(' ').next().unwrap_or("").contains(p.as_str())
+                (m == method && path.contains(p.as_str()))
+                    || (m == "IC_QUERY"
+                        && path.ends_with("/query")
+                        && Self::ic_method(&body, p, |_| true))
             });
             found.map(|i| rules.remove(i)).is_some()
         };
@@ -2718,44 +2730,36 @@ fn desktop_initial_root_setup_retries_without_replacing_the_account() {
         original.expires_at = uploads.plans[1].expires_at;
         assert_eq!(original, uploads.plans[1]);
     }
-    let (a, daemon) = env.desktop("setup");
-    assert_eq!(a.login(&env.http, 51).unwrap()["state"], "no_account");
+    let (a, _) = env.desktop("setup");
+    let login = a.login(&env.http, 51).unwrap();
+    assert_eq!(login["state"], "no_account");
     assert_eq!(
         a.fail(&["legacy", "pair", "--origin", "https://dmsg.net"]),
         "RECOVERY_INCOMPLETE"
     );
-    // The relay accepts the initial bundle but its finalize reply is lost.
-    // Registration and binding have already finished when setup fails.
-    env.relay_proxy
-        .as_ref()
-        .unwrap()
-        .lose_next("POST", "/uploads/finalize");
-    let error = a.fail(&["account", "create"]);
-    assert!(
-        matches!(
-            error.as_str(),
-            "NETWORK_UNAVAILABLE" | "UNAVAILABLE" | "EXECUTION_UNKNOWN"
-        ),
-        "{error}"
-    );
-    assert_eq!(env.relay_proxy.as_ref().unwrap().pending(), 0);
-    let status = a.run(&["status"]);
-    assert_eq!(status["state"], "root_required");
-    assert_eq!(status["setup_pending"], true);
-    let account = status["account"].as_str().unwrap().to_string();
-    let device = status["device_id"].clone();
-    assert_eq!(a.run(&["account", "show"])["root_generation"], 0);
-
-    // The job survives a process restart. A login does not silently create
-    // another root; the explicit retry finishes the original reservation.
-    env.relaunch(&a, daemon);
-    assert_eq!(a.login(&env.http, 51).unwrap()["state"], "root_required");
+    // Lose the upload reservation, finalize and IC commit replies. The same
+    // upload plan and both operation receipts must settle inside one RPC.
+    let relay = env.relay_proxy.as_ref().unwrap();
+    relay.lose_next("POST", "/uploads/finalize");
+    relay.lose_next("POST", "/uploads");
+    env.ic_proxy.as_ref().unwrap().lose_root_commit();
     let created = a.run(&["account", "create"]);
-    assert_eq!(created["account"], account);
+    assert_eq!(env.relay_proxy.as_ref().unwrap().pending(), 0);
+    assert!(
+        !env.ic_proxy
+            .as_ref()
+            .unwrap()
+            .root_commit
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    let status = a.run(&["status"]);
+    assert_eq!(status["state"], "unlocked");
+    assert_eq!(created["account"], status["account"]);
     assert_eq!(created["root_generation"], 1);
-    assert_eq!(a.run(&["status"])["device_id"], device);
-    assert_eq!(a.run(&["status"])["setup_pending"], false);
+    assert_eq!(status["device_id"], login["device_id"]);
+    assert_eq!(status["setup_pending"], false);
     let version = a.run(&["account", "show"])["account_version"].clone();
+    assert_eq!(version, 2);
     let note = a.run(&["vault", "add", "--title", "survives setup retry"]);
 
     // Both a repeated click and a lost successful reply leave the same
@@ -2791,35 +2795,22 @@ fn desktop_initial_root_setup_retries_without_replacing_the_account() {
     assert_eq!(env.b.fail(&["account", "create"]), "IDEMPOTENCY_CONFLICT");
     assert_eq!(a.run(&["account", "show"])["root_generation"], 1);
 
-    // The root itself can commit before its IC reply is lost. Reconcile
-    // that exact operation, activate the kept candidate and do not rotate.
-    let (c, _) = env.desktop("committed-setup");
+    // Registration is confirmed but all transport attempts to fetch the
+    // unlock secret fail. The next setup attempt must use the saved receipt.
+    let (c, _) = env.desktop("registered-setup");
     assert_eq!(c.login(&env.http, 52).unwrap()["state"], "no_account");
-    env.ic_proxy.as_ref().unwrap().lose_root_commit();
-    let error = c.fail(&["account", "create"]);
-    assert!(
-        matches!(
-            error.as_str(),
-            "NETWORK_UNAVAILABLE" | "UNAVAILABLE" | "EXECUTION_UNKNOWN"
-        ),
-        "{error}"
-    );
-    assert!(
-        !env.ic_proxy
+    for _ in 0..3 {
+        env.ic_proxy
             .as_ref()
             .unwrap()
-            .root_commit
-            .load(std::sync::atomic::Ordering::SeqCst)
-    );
+            .lose_next("IC_QUERY", "unlock_secret");
+    }
+    let registered = c.run(&["account", "create"]);
+    assert_eq!(env.ic_proxy.as_ref().unwrap().pending(), 0);
     let committed = c.run(&["account", "show"]);
     assert_eq!(committed["root_generation"], 1);
-    let retried = c.run(&["account", "create"]);
-    assert_eq!(retried["account"], committed["account"]);
-    assert_eq!(retried["root_generation"], 1);
-    assert_eq!(
-        c.run(&["account", "show"])["account_version"],
-        committed["account_version"]
-    );
+    assert_eq!(registered["account"], committed["account"]);
+    assert_eq!(committed["account_version"], 2);
     assert_eq!(c.run(&["status"])["state"], "unlocked");
 }
 

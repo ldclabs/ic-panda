@@ -573,7 +573,7 @@ async fn a_slow_failed_block_does_not_stall_or_reupload_acknowledged_neighbors()
 }
 
 #[tokio::test]
-async fn a_lost_backup_commit_is_confirmed_immediately_under_the_original_plan() {
+async fn lost_backup_and_root_commits_are_confirmed_under_the_original_plan() {
     struct Lost {
         plan: UploadPlan,
     }
@@ -599,9 +599,17 @@ async fn a_lost_backup_commit_is_confirmed_immediately_under_the_original_plan()
             Err(Error::ExecutionUnknown)
         }
     }
-    let (plan, _) = fixture("backup", false);
-    assert_eq!(
-        finalize(&Lost { plan: plan.clone() }, "/v1/accounts/test", &plan).await,
-        Ok(None)
-    );
+    for kind in ["backup", "root"] {
+        let (plan, _) = fixture(kind, false);
+        assert_eq!(
+            finalize(&Lost { plan: plan.clone() }, "/v1/accounts/test", &plan).await,
+            Ok(None)
+        );
+        let mut other = plan.clone();
+        other.object_id = "ff".repeat(32);
+        assert_eq!(
+            finalize(&Lost { plan: other }, "/v1/accounts/test", &plan).await,
+            Err(Error::IdempotencyConflict)
+        );
+    }
 }

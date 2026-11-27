@@ -80,6 +80,43 @@ fn old_initial_job() -> RootJob {
     }
 }
 
+#[tokio::test]
+async fn initial_setup_uses_certified_empty_state_and_recognizes_its_own_commit() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut client);
+    client.published = None;
+    client.root = None;
+    client.workspace.delete_private(ROOT).unwrap();
+    // No relay is running. An empty fresh commitment needs no publication.
+    client.load_root().await.unwrap();
+    assert!(client.root.is_none());
+    assert!(client.status().unwrap().setup_pending);
+
+    let mut job = old_initial_job();
+    client
+        .security
+        .as_mut()
+        .unwrap()
+        .snapshot
+        .content_root_digest = Some(Hash::new([0x36; 32]));
+    let save = |c: &Client, job: &RootJob| {
+        c.workspace
+            .put_private(c.keys().unwrap(), ROOT_JOB, job)
+            .unwrap()
+    };
+    assert!(!client.status().unwrap().setup_pending);
+    save(&client, &job);
+    assert!(client.status().unwrap().setup_pending);
+    job.expected_generation = 1;
+    save(&client, &job);
+    assert!(!client.status().unwrap().setup_pending);
+    job.expected_generation = 0;
+    job.plan.as_mut().unwrap().object_id = "44".repeat(32);
+    save(&client, &job);
+    assert!(!client.status().unwrap().setup_pending);
+}
+
 #[test]
 fn legacy_retry_rebuilds_only_the_uncommitted_v3_bytes() {
     let vector = load("root-v2.json");

@@ -12,7 +12,7 @@ import WebSocket from 'ws'
 import type { DaemonEvent, PreviewJsonPayload, PreviewMeta, PreviewResult, PreviewSource } from '../shared/contract'
 import { DaemonError } from './error.ts'
 import { ReadRecovery } from './recovery.ts'
-import { requireRuntimeVersion } from './runtime.ts'
+import { requireRuntimeVersion, type Runtime } from './runtime.ts'
 import { isRead, requestKey } from '../shared/requests.ts'
 
 const run = promisify(execFile)
@@ -44,11 +44,12 @@ type Connection =
   | { kind: 'waiting'; timer: NodeJS.Timeout }
 
 /**
- * Library work that lasts as long as its bytes: a folder imported, a file
- * written out, the whole library checked. It has no time limit; a daemon
- * that goes away still fails it.
+ * Bulk transfers and account setup have their own lifetimes. Setup includes
+ * an OS prompt and several individually bounded IC and relay operations.
+ * A disconnect still settles every pending call.
  */
 const UNTIMED = new Set([
+  'account/create',
   'files/import', 'files/export', 'files/open', 'files/verify', 'files/cloud_fetch', 'files/cloud_verify', 'files/backup_run',
   'vault/backup_export', 'vault/backup_inspect', 'vault/backup_save', 'local_import/commit'
 ])
@@ -56,6 +57,8 @@ const UNTIMED = new Set([
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */
   binary: string
+  /** Prepare the shared executable before the first connection; failures retry with it. */
+  resolveRuntime?: () => Promise<Runtime>
   /** Packaged desktop version; do not attach to an older daemon still draining its work. */
   minimumVersion?: string
   /** The dMsg home. */
@@ -70,6 +73,7 @@ export class Daemon extends EventEmitter {
   readonly options: DaemonOptions
   lastError: string | undefined
   private connection: Connection = { kind: 'stopped' }
+  private preparing?: Promise<Runtime>
   private endpoint: { url: string; token: string } | null = null
   private waiting = new Map<number, Waiting>()
   private next = 0
@@ -95,7 +99,7 @@ export class Daemon extends EventEmitter {
     this.options = options
     this.recovery = new ReadRecovery(
       (method, params) => this.requestOnce(method, params),
-      () => this.emit('state'),
+      () => this.emit('event', { type: 'network/recovery' }),
       () => this.emit('event', { type: 'resync' }),
       options.timing?.recovery,
     )
@@ -107,12 +111,12 @@ export class Daemon extends EventEmitter {
     const home = ['--home', this.options.home]
     // Returns once the daemon answers; a bad config.toml fails here. Allow
     // time for macOS Keychain permission prompts after a signing-team change.
-    const started = await run(this.options.binary, [...home, '--json', 'start'], { timeout: 135_000 })
+    const started = await run(this.options.binary, [...home, '--json', 'start'], { timeout: 135_000, windowsHide: true })
     if (this.options.minimumVersion) {
       const status = JSON.parse(started.stdout.trim().split('\n').pop()!) as { version?: string }
       requireRuntimeVersion(status.version, this.options.minimumVersion)
     }
-    const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 120_000 })
+    const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 120_000, windowsHide: true })
     return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
   }
 
@@ -130,6 +134,21 @@ export class Daemon extends EventEmitter {
 
   private async tryConnect(attempt: ConnectionAttempt): Promise<void> {
     try {
+      if (this.options.resolveRuntime) {
+        this.preparing ??= this.options.resolveRuntime().then(runtime => {
+          if (this.options.minimumVersion) requireRuntimeVersion(runtime.version, this.options.minimumVersion)
+          return runtime
+        }).catch(error => {
+          this.preparing = undefined
+          throw new Error(`dmsg install failed: ${reasonOf(error)}`)
+        })
+        const runtime = await this.preparing
+        if (!this.owns(attempt)) return
+        this.options.binary = runtime.binary
+        this.options.resolveRuntime = undefined
+        this.preparing = undefined
+        this.emit('runtime', runtime)
+      }
       const { url, token } = await this.credential()
       if (!this.owns(attempt)) return
       this.endpoint = { url, token }

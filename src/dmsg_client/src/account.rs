@@ -706,6 +706,16 @@ impl Client {
             let key = prepared.open();
             self.complete_login_unlock(prepared, key).await?;
         }
+        self.finish_initialize_account().await
+    }
+
+    /// Finish the initial root on this already bound, unlocked workspace.
+    /// Hosts can resume this phase without registering or prompting again.
+    ///
+    /// # Errors
+    /// As [`Self::initialize_account`].
+    pub async fn finish_initialize_account(&mut self) -> Result<(AccountRef, u64)> {
+        self.keys()?;
         let account = self.account()?.clone();
         let generation = self.initialize_root().await?;
         Ok((account, generation))
@@ -745,14 +755,30 @@ impl Client {
 
     async fn prepare_create_account(&mut self) -> Result<(AccountRef, Option<LoginUnlock>)> {
         ensure(self.workspace.provisional(), Error::Forbidden)?;
-        if let Some(journal) = self.resume().await?
-            && let (Request::Create(_), Some(account)) = (&journal.request, journal.account)
+        self.resume().await?;
+        // Registration can already be confirmed when the following device
+        // check or unlock-secret read loses its reply. Finish that binding.
+        if let Some(Journal {
+            stage: Stage::Confirmed,
+            request: Request::Create(input),
+            account: Some(account),
+            home,
+            caller,
+        }) = self.workspace.private(self.keys()?, JOURNAL)?
         {
-            return self.prepare_join(journal.home, account).await;
+            ensure(caller == self.session()?.principal, Error::AuthRequired)?;
+            ensure(
+                input.device.device_id == self.workspace.meta.device_id,
+                Error::IntegrityFailed,
+            )?;
+            return self.prepare_join(home, account).await;
         }
-        ensure(self.locate().await?.is_none(), Error::IdempotencyConflict)?;
         let login = self.session()?;
         let homes = user_homes(&login.ic, self.config.handle, &self.config.user_homes).await?;
+        ensure(
+            find_account(&login.ic, &homes.user_homes).await?.is_none(),
+            Error::IdempotencyConflict,
+        )?;
         let index = usize::from(random_id()[0]) % homes.registration_homes.len().max(1);
         let home = *homes
             .registration_homes

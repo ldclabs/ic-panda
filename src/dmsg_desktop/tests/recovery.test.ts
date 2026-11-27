@@ -12,6 +12,43 @@ async function until(check: () => boolean) {
 }
 const unavailable = () => Object.assign(new Error('private URL'), { code: 'NETWORK_UNAVAILABLE' })
 
+test('cold start retries the shared runtime and validates it before opening a socket', async (t) => {
+  const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
+  await new Promise<void>(resolve => server.on('listening', resolve))
+  let installs = 0, sockets = 0
+  server.on('connection', socket => {
+    sockets++
+    socket.on('message', raw => socket.send(JSON.stringify({ id: JSON.parse(String(raw)).id, result: {} })))
+  })
+  const daemon = new Daemon({
+    home: '', binary: 'unprepared', minimumVersion: '1.6.1',
+    fixed: { url: `http://127.0.0.1:${(server.address() as { port: number }).port}`, token: 'test' },
+    resolveRuntime: async () => {
+      if (++installs === 1) throw new Error('shared binary is busy')
+      return { binary: 'verified', version: installs === 2 ? '1.6.0' : '1.6.1' }
+    },
+  })
+  t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
+  await daemon.connect()
+  assert.match(daemon.lastError!, /shared binary is busy/)
+  await daemon.connect()
+  assert.match(daemon.lastError!, /needs daemon/)
+  assert.equal(sockets, 0)
+  assert.equal(daemon.options.binary, 'unprepared')
+  // Let the real backoff drive the successful install. Reopening the same
+  // verified runtime later needs only a new authenticated connection.
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('automatic runtime retry did not connect')), 5000)
+    daemon.once('state', () => { clearTimeout(timeout); resolve() })
+  })
+  assert.equal(daemon.connected, true)
+  assert.equal(daemon.options.binary, 'verified')
+  daemon.close()
+  await daemon.connect()
+  assert.equal(installs, 3)
+  assert.equal(sockets, 2)
+})
+
 test('initialization owns the connection attempt and business calls are refused until it finishes', async (t) => {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
   await new Promise<void>(resolve => server.on('listening', resolve))
@@ -120,8 +157,13 @@ test('desktop RPC recovers reads but never replays timed-out, uncertain or disco
   const daemon = new Daemon({ binary: '', home: '', fixed: { url: `http://127.0.0.1:${address.port}`, token: 'test' }, timing: { read: 100, write: 20, recovery: 1 } })
   t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
   await daemon.connect()
+  let transportChanges = 0, recoveryChanges = 0
+  daemon.on('state', () => transportChanges++)
+  daemon.on('event', event => { if (event.type === 'network/recovery') recoveryChanges++ })
   await assert.rejects(daemon.call('agent/principal'), { code: 'NETWORK_UNAVAILABLE' })
   await until(() => counts['agent/principal'] === 2 && daemon.recovery.state === 'idle')
+  assert.equal(transportChanges, 0)
+  assert.ok(recoveryChanges >= 2)
   // Account data is fenced, while the login's own completion survives unlock.
   await assert.rejects(daemon.call('profile/show'), { code: 'LOCKED' })
   assert.deepEqual(await daemon.call('session/login_result'), {})
@@ -153,7 +195,7 @@ test('entitlement updates are never queued as ordinary read recovery', () => {
   recovery.reset()
 })
 
-test('file downloads and local account imports outlive the normal write deadline without replay', async (t) => {
+test('account setup, file downloads and local imports outlive the normal write deadline without replay', async (t) => {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
   await new Promise<void>(resolve => server.on('listening', resolve))
   const counts: Record<string, number> = {}
@@ -167,6 +209,7 @@ test('file downloads and local account imports outlive the normal write deadline
   t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
   await daemon.connect()
   for (const [method, params] of [
+    ['account/create', null],
     ['files/cloud_fetch', { upload_id: 'same-backup' }],
     ['files/cloud_verify', { upload_id: 'same-backup' }],
     ['local_import/commit', { id: 'reviewed-plan', items: [], files: [0], folder: 'root' }]

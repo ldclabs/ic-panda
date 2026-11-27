@@ -12,10 +12,10 @@
         if (alive) network.state = connection.connected ? connection.recovery ?? 'idle' : 'recovering'
       } catch { if (alive) network.state = 'offline' }
     }
-    void read()
     const off = window.dmsg.onEvent((event) => {
-      if (event.type === 'connection/changed') void read()
+      if (event.type === 'connection/changed' || event.type === 'network/recovery') void read()
     })
+    void read()
     return () => { alive = false; off(); network.state = 'idle' }
   })
 </script>

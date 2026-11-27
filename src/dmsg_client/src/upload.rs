@@ -352,14 +352,15 @@ pub(crate) async fn finalize<H: Hold>(
         .await;
     let result = match result {
         Ok(result) => result,
-        Err(error @ (Error::ExecutionUnknown | Error::Unavailable(_))) if plan.kind == "backup" => {
+        Err(error @ (Error::ExecutionUnknown | Error::Unavailable(_)))
+            if matches!(plan.kind.as_str(), "backup" | "root")
+                && crate::transport::retry_after(&error).is_none() =>
+        {
             if let Ok(Some(status)) = h.find(&format!("{base}/uploads/{}", plan.upload_id)).await {
                 let status: UploadStatus =
                     serde_json::from_value(status).map_err(|_| Error::IntegrityFailed)?;
                 ensure(status.plan == *plan, Error::IdempotencyConflict)?;
-                if status.status == "committed"
-                    && (plan.kind != "avatar" || status.public_url.is_some())
-                {
+                if status.status == "committed" {
                     return Ok(status.public_url);
                 }
             }

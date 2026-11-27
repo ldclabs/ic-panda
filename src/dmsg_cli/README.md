@@ -177,7 +177,8 @@ them fails on this Mac; the first that opens settles it.
 
 On Windows (`src/windows_hardware.rs`), new bindings and Passkey login
 require the system credential store, a P-256-capable TPM 2.0 and Windows
-Hello at daemon startup. Existing workspace anchors are still checked if
+Hello at daemon startup. If the Hello broker leaves its support check pending
+for ten seconds, startup reports the timeout and the desktop retries. Existing workspace anchors are still checked if
 Hello or the credential store becomes unavailable. The TPM signs through the
 Microsoft Platform Crypto Provider without prompting. Workspace anchors are named
 `dmsg-anchor-<id>`.
@@ -190,8 +191,8 @@ so a recreated key with the same name is recognized. Its secret comes from
 the deterministic RSASSA-PKCS1-v1_5 signature over the challenge. New bindings
 verify that Windows Hello reproduces the secret before using it. Making that key and
 every use of it ask for the face, fingerprint or PIN. Binding and fast-key
-enrollment wait outside the client lock. An unanswered prompt expires after
-a minute. Windows Hello always accepts the PIN. Biometry-only keys, approval keys
+enrollment wait outside the client lock. Both a silent Hello key lookup and
+an unanswered prompt expire after a minute. Windows Hello always accepts the PIN. Biometry-only keys, approval keys
 and wallet cosigners stay unavailable. A cleared TPM or a reset Windows
 Hello loses the keys, which makes the workspace moved or its binding lost,
 as other hardware loss does. The Windows Credential Manager keeps at most
@@ -506,7 +507,12 @@ Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one
 field at a time); file keys never do.
 
-If account creation succeeds but its initial content root fails, `status`
+`account create` automatically reconciles transient connection failures and
+uncertain replies during registration and initial root setup. The two phases
+share two retries, after one and three seconds. Each attempt checks the original
+session and resumes its journal. The OS handles device confirmation outside
+the retry loop.
+If account creation succeeds but its initial content root still fails, `status`
 shows `root_required` with `setup_pending: true`. After reconnecting or
 logging in again, repeat `account create` to finish the same account. The
 client reconciles the journal and checks certified state first: a live initial

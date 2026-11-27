@@ -1,12 +1,21 @@
+<script module lang="ts">
+  // A session event can remount the welcome while the daemon is still setting
+  // up this device. Keep the click and its result scoped to the original login.
+  type Setup = { session: string; device: string; started: number; failure?: { interrupted: boolean; text: string } }
+  let setup = $state.raw<Setup | null>(null)
+</script>
+
 <script lang="ts">
   import { isLocale, localeNames, locales } from '../../shared/locales'
   import Icon from '../components/Icon.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import Section from '../components/page/Section.svelte'
+  import Progress from '../components/Progress.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { locale, setLocale, t } from '../i18n/index.svelte'
-  import { call, errorText } from '../rpc'
+  import { call, code, errorText } from '../rpc'
   import Moved from '../views/Moved.svelte'
   import Onboarding from '../views/Onboarding.svelte'
   import LocalAccount from './LocalAccount.svelte'
@@ -28,6 +37,35 @@
   let busy = $state(false)
   let error = $state('')
   let alerts = $state(false)
+  const currentSetup = $derived(setup && setup.session === status?.session && setup.device === status?.device_id ? setup : null)
+  const settingUp = $derived(!!currentSetup && !currentSetup.failure)
+  let slow = $state(false)
+
+  $effect(() => {
+    slow = false
+    if (!settingUp || !currentSetup) return
+    const timer = setTimeout(() => { slow = true }, Math.max(0, currentSetup.started + 15_000 - Date.now()))
+    return () => clearTimeout(timer)
+  })
+
+  async function create() {
+    if (settingUp) return
+    const operation: Setup = { session: status.session, device: status.device_id, started: Date.now() }
+    setup = operation
+    let failure: Setup['failure']
+    try {
+      await call('account/create')
+    } catch (e) {
+      const interrupted = ['UNAVAILABLE', 'NETWORK_UNAVAILABLE', 'EXECUTION_UNKNOWN', 'DAEMON_DISCONNECTED', 'POLICY_STALE'].includes(code(e))
+      failure = { interrupted, text: errorText(e) }
+    } finally {
+      try {
+        await refresh()
+      } finally {
+        if (setup === operation) setup = failure ? { ...operation, failure } : null
+      }
+    }
+  }
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -73,7 +111,7 @@
       {#if step === 0}
         <Select value={locale()} options={locales.map((code) => ({ value: code, label: localeNames[code] }))} label={t('language')} onChange={pickLanguage} testid="welcome-language" class="w-44" />
       {:else if step === 1}
-        <button class={buttonClass('ghost', 'sm')} onclick={logout} data-testid="welcome-logout">{t('logout')}</button>
+        <button class={buttonClass('ghost', 'sm')} disabled={settingUp} onclick={logout} data-testid="welcome-logout">{t('logout')}</button>
       {/if}
     </header>
 
@@ -90,7 +128,7 @@
 
     {#if error}<Notice failure={error} tone="danger" testid="welcome-error">{error}</Notice>{/if}
 
-    {#if step < 2}<button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={() => accountJoinRequested.set(true)} data-testid="open-account-invite">{t('joinOpen')}</button>{/if}
+    {#if step < 2 && !settingUp && !status?.setup_pending}<button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={() => accountJoinRequested.set(true)} data-testid="open-account-invite">{t('joinOpen')}</button>{/if}
     {#if step === 0}
       <div class="grid gap-4">
         <h1 class="text-title-1 leading-tight font-semibold">{t('welcomeTitle')}</h1>
@@ -112,8 +150,19 @@
         </div>
       </div>
     {:else if step === 1}
-      <Onboarding {status} {refresh} />
-      <Moved {status} {refresh} />
+      {#if settingUp}
+        <Section title={t('accountSetup')} icon="account">
+          <div role="status"><Progress label={t(slow ? 'accountSetupSlow' : 'accountSetupWorking')} testid="account-setup-progress" /></div>
+        </Section>
+      {:else}
+        {#if currentSetup?.failure?.interrupted}
+          {#if !status.setup_pending}<Notice tone="warn" testid="setup-interrupted">{t('accountSetupUnconfirmed')}</Notice>{/if}
+        {:else if currentSetup?.failure}
+          <Notice failure={currentSetup.failure.text} tone="danger" testid="setup-failure">{currentSetup.failure.text}</Notice>
+        {/if}
+        <Onboarding {status} {refresh} {create} />
+        {#if !status.setup_pending}<Moved {status} {refresh} />{/if}
+      {/if}
     {:else}
       <div class="grid gap-4" data-testid="welcome-finish">
         <h1 class="text-title-1 leading-tight font-semibold">{t('welcomeReadyTitle')}</h1>

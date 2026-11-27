@@ -43,7 +43,7 @@ import { DaemonError } from './error'
 import { PreparedOperation } from './prepared-operation'
 import { preferencesWriter } from './preferences'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
-import { requireRuntimeVersion, resolveRuntime } from './runtime'
+import { resolveRuntime, type Runtime } from './runtime'
 import { Notifications } from './notifications'
 import { isNoticeAccount, isNoticeHash, isNoticeSequence, isNoticeTarget, noticeCategories, noticeRoute, type NoticeCategory, type NoticeBatch, type NoticeItem, type NoticePreferences, type NoticeStatus, type NoticeTarget } from '../shared/notifications'
 import { quietUntil, validTimeZone } from '../shared/notification-time'
@@ -69,6 +69,8 @@ const homeArg = process.argv.find((a) => a.startsWith('--dmsg-home='))?.slice(12
 const home = resolve(homeArg || process.env.DMSG_HOME || join(homedir(), '.dmsg'))
 const daemon = new Daemon({
   binary: process.env.DMSG_BIN || 'dmsg',
+  minimumVersion: app.isPackaged ? app.getVersion() : undefined,
+  resolveRuntime: () => resolveRuntime(app.isPackaged, process.resourcesPath),
   home,
   fixed:
     testMode && process.env.DMSG_DESKTOP_DAEMON
@@ -135,6 +137,10 @@ const updates = new Updates(() => {
 }, async () => {
   const status = await daemon.call('daemon/status', {}) as { account_kind?: string; offline_mode?: boolean }
   return status.account_kind !== 'local' && !status.offline_mode
+})
+daemon.once('runtime', (runtime: Runtime) => {
+  try { updates.start(runtime.action === 'homebrew') }
+  catch (error) { console.warn('dMsg update checks could not start:', reasonOf(error)) }
 })
 /** A copied secret leaves the clipboard after this long, unless something replaced it; locking or quitting clears it sooner. */
 const CLEAR_MS = 30_000
@@ -1656,26 +1662,7 @@ app.whenReady().then(async () => {
   }
   // Opened at login, the app starts in the tray.
   if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain(noticeActivation ? '/reminders' : undefined)
-  let installed = true
-  let homebrew = false
-  if (!daemon.options.fixed) {
-    try {
-      const runtime = await resolveRuntime(app.isPackaged, process.resourcesPath)
-      homebrew = runtime.action === 'homebrew'
-      daemon.options.binary = runtime.binary
-      if (app.isPackaged) {
-        daemon.options.minimumVersion = app.getVersion()
-        requireRuntimeVersion(runtime.version, app.getVersion())
-      }
-    } catch (error) {
-      // Without the shared `dmsg` nothing can start the daemon; the next app start installs again.
-      installed = false
-      daemon.lastError = `dmsg install failed: ${reasonOf(error)}`
-      daemon.emit('state')
-    }
-  }
-  updates.start(homebrew)
-  if (installed) await daemon.connect()
+  await daemon.connect()
   const link = pendingLink ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)
 })

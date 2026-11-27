@@ -15,6 +15,7 @@ function run(suite, options = {}) {
 }
 run('smoke')
 run('smoke', { DMSG_DESKTOP_SMOKE: 'startup' })
+run('smoke', { DMSG_DESKTOP_SMOKE: 'startup-status' })
 run('smoke', { DMSG_DESKTOP_SMOKE: 'succession' })
 run('smoke', { DMSG_DESKTOP_SMOKE: 'notifications', DMSG_DESKTOP_SHOW: '1' })
 for (const suite of ['channel-messages-smoke', 'approval-smoke', 'wallet-upgrade-smoke', 'vault-detail-smoke', 'references-smoke', 'secrets-smoke', 'update-install-smoke']) run(suite)

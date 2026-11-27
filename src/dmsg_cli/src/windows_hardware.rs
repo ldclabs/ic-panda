@@ -51,7 +51,10 @@ impl WindowsHardware {
     /// Both, when this PC has a TPM 2.0 that makes P-256 keys and the
     /// Windows user has set up Windows Hello; checked once, when the daemon
     /// starts, so that an anchor never stands without a presence key.
-    pub fn detect(system_storage: bool) -> Self {
+    ///
+    /// # Errors
+    /// A support query that times out leaves enrollment undetermined.
+    pub async fn detect(system_storage: bool) -> Result<Self> {
         // WinRT runs in the process's multithreaded apartment, kept for good.
         let tpm = system_storage
             && provider().is_ok_and(|p| unsafe {
@@ -59,14 +62,34 @@ impl WindowsHardware {
             });
         let can_enroll = tpm
             && unsafe { CoIncrementMTAUsage() }.is_ok()
-            && KeyCredentialManager::IsSupportedAsync()
-                .and_then(|supported| supported.join())
-                .unwrap_or(false);
-        Self { can_enroll }
+            && hello_supported(
+                KeyCredentialManager::IsSupportedAsync(),
+                Duration::from_secs(10),
+            )
+            .await?;
+        Ok(Self { can_enroll })
     }
 
     pub fn can_enroll(&self) -> bool {
         self.can_enroll
+    }
+}
+
+/// A stalled broker must not indefinitely delay the listener or silently
+/// authorize enrollment without hardware.
+async fn hello_supported(
+    probe: windows::core::Result<IAsyncOperation<bool>>,
+    timeout: Duration,
+) -> Result<bool> {
+    let Ok(probe) = probe else { return Ok(false) };
+    match tokio::time::timeout(timeout, probe.clone()).await {
+        Ok(answer) => Ok(answer.unwrap_or(false)),
+        Err(_) => {
+            let _ = probe.Cancel();
+            Err(Error::Unavailable(
+                "windows hello: support check timed out".into(),
+            ))
+        }
     }
 }
 
@@ -341,10 +364,11 @@ fn declined(status: KeyCredentialStatus) -> Error {
     }
 }
 
-/// The daemon has no window of its own. Look for the prompt only while the
-/// operation is pending, and cancel an unanswered prompt after one minute.
-fn asking<T: RuntimeType + Send + 'static>(
+/// Bound silent key lookups as well as prompts. Only an interactive
+/// operation may bring the system's confirmation window to the foreground.
+fn wait_for_hello<T: RuntimeType + Send + 'static>(
     operation: windows::core::Result<IAsyncOperation<T>>,
+    prompt: bool,
 ) -> Result<T> {
     let operation = operation.map_err(hello)?;
     let (send, receive) = mpsc::channel();
@@ -355,17 +379,19 @@ fn asking<T: RuntimeType + Send + 'static>(
         .map_err(hello)?;
     tokio::task::block_in_place(|| {
         let deadline = Instant::now() + Duration::from_secs(60);
-        for _ in 0..20 {
-            match receive.recv_timeout(Duration::from_millis(250)) {
-                Ok(result) => return result.map_err(hello),
-                Err(mpsc::RecvTimeoutError::Disconnected) => break,
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
-            }
-            if let Ok(window) =
-                unsafe { FindWindowW(w!("Credential Dialog Xaml Host"), PCWSTR::null()) }
-            {
-                let _ = unsafe { SetForegroundWindow(window) };
-                break;
+        if prompt {
+            for _ in 0..20 {
+                match receive.recv_timeout(Duration::from_millis(250)) {
+                    Ok(result) => return result.map_err(hello),
+                    Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {}
+                }
+                if let Ok(window) =
+                    unsafe { FindWindowW(w!("Credential Dialog Xaml Host"), PCWSTR::null()) }
+                {
+                    let _ = unsafe { SetForegroundWindow(window) };
+                    break;
+                }
             }
         }
         match receive.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
@@ -383,18 +409,16 @@ fn asking<T: RuntimeType + Send + 'static>(
 /// The Windows Hello key; made, asking for the person, only when `make`.
 fn credential(make: bool) -> Result<KeyCredential> {
     let name = HSTRING::from(HELLO);
-    let opened = KeyCredentialManager::OpenAsync(&name)
-        .and_then(|opening| opening.join())
-        .map_err(hello)?;
+    let opened = wait_for_hello(KeyCredentialManager::OpenAsync(&name), false)?;
     match opened.Status().map_err(hello)? {
         KeyCredentialStatus::Success => return opened.Credential().map_err(hello),
         KeyCredentialStatus::NotFound if make => {}
         status => return Err(declined(status)),
     }
-    let made = asking(KeyCredentialManager::RequestCreateAsync(
-        &name,
-        KeyCredentialCreationOption::FailIfExists,
-    ))?;
+    let made = wait_for_hello(
+        KeyCredentialManager::RequestCreateAsync(&name, KeyCredentialCreationOption::FailIfExists),
+        true,
+    )?;
     match made.Status().map_err(hello)? {
         KeyCredentialStatus::Success => made.Credential().map_err(hello),
         // Another process made it first.
@@ -406,7 +430,7 @@ fn credential(make: bool) -> Result<KeyCredential> {
 /// The secret of `challenge`, from Windows Hello's signature over it.
 fn secret(credential: &KeyCredential, challenge: &[u8]) -> Result<Zeroizing<Key>> {
     let data = CryptographicBuffer::CreateFromByteArray(challenge).map_err(hello)?;
-    let signed = asking(credential.RequestSignAsync(&data))?;
+    let signed = wait_for_hello(credential.RequestSignAsync(&data), true)?;
     match signed.Status().map_err(hello)? {
         KeyCredentialStatus::Success => {}
         status => return Err(declined(status)),
@@ -523,10 +547,29 @@ mod tests {
         ));
     }
 
+    #[tokio::test]
+    async fn an_unanswered_support_check_is_distinct_from_unsupported() {
+        for expected in [true, false] {
+            let ready = IAsyncOperation::ready(Ok(expected));
+            assert_eq!(
+                hello_supported(Ok(ready), Duration::from_secs(1)).await,
+                Ok(expected)
+            );
+        }
+        let (release, wait) = mpsc::channel::<()>();
+        let stalled = IAsyncOperation::spawn(move || {
+            let _ = wait.recv();
+            Ok(true)
+        });
+        let result = hello_supported(Ok(stalled), Duration::from_millis(10)).await;
+        drop(release);
+        assert!(matches!(result, Err(Error::Unavailable(_))));
+    }
+
     /// An anchor asks nothing to make or to use; this needs a TPM 2.0.
-    #[test]
-    fn anchors_sign_without_asking() {
-        let hardware = WindowsHardware::detect(true);
+    #[tokio::test]
+    async fn anchors_sign_without_asking() {
+        let hardware = WindowsHardware::detect(true).await.unwrap();
         if !hardware.can_enroll() {
             return;
         }
