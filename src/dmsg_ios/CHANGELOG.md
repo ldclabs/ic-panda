@@ -7,6 +7,25 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.3.0
 
+### Build 40 — 2026-11-27
+
+- Share files or a vault item with a nearby dMsg device, including from a
+  standalone workspace. Scan the receiver's QR code and compare the six-digit
+  code on both devices. Nearby discovery is optional.
+- Choose which fields and attachments to include from a vault item. Approve
+  the snapshot after the receiver accepts the transfer. The receiver can review
+  it before importing it.
+- Open channel and inbox reminders directly in Messages. Opening a conversation
+  at the first unread message leaves later messages unread until you reach them.
+  Snoozing a reminder until tomorrow uses your quiet-hours time zone when set.
+- Keep the status bar and image layout stable as you swipe between full-screen
+  previews.
+- Removed multisig wallet actions and limits from the iOS account and plan
+  screens. Use dMsg on desktop to manage existing wallets.
+- Yiwen AI Limited now signs the app and its five extensions. If you use the
+  App Store version 1.2.3, open and unlock it on this device before updating so
+  it can migrate your saved keys to the shared Keychain group.
+
 ### Build 39 — 2026-11-25
 
 - Search the current workspace or all workspaces with pinyin and initials.

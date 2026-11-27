@@ -14,9 +14,9 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
-    # LDC Labs Limited. Must match the app ID in dmsg.net's
-    # apple-app-site-association, or the login callback never returns.
-    DEVELOPMENT_TEAM: S9Z2WAMAV8
+    # Yiwen AI Limited. The association files for dmsg.net and connect.dmsg.net
+    # must include this team's app ID for the login and pairing links.
+    DEVELOPMENT_TEAM: 63G8VNQPXB
     # Simulators have no provisioning profile to supply this namespace. Device
     # builds continue to use the prefix from their actual signing profile.
     "AppIdentifierPrefix[sdk=iphonesimulator*]": "$(DEVELOPMENT_TEAM)."
@@ -50,7 +50,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/dMsg.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         DMSG_USE_STAGING: NO
         DMSG_IN_APP_PURCHASES_ENABLED: YES
         DMSG_APNS_ENVIRONMENT: production
@@ -76,7 +76,7 @@ targets:
         INFOPLIST_FILE: Extensions/Share/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Share/Share.entitlements
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgWidget:
@@ -94,7 +94,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.widget
         INFOPLIST_FILE: Extensions/Widget/Info.plist
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgCredentials:
@@ -117,7 +117,7 @@ targets:
         INFOPLIST_FILE: Extensions/Credentials/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Credentials/Extension.entitlements
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgFiles:
@@ -138,7 +138,7 @@ targets:
         INFOPLIST_FILE: Extensions/Files/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Files/Extension.entitlements
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgFilesUI:
@@ -159,7 +159,7 @@ targets:
         INFOPLIST_FILE: Extensions/FilesUI/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/FilesUI/Extension.entitlements
         MARKETING_VERSION: "1.3.0"
-        CURRENT_PROJECT_VERSION: "39"
+        CURRENT_PROJECT_VERSION: "40"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgTests:
