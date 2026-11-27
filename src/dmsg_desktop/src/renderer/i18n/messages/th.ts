@@ -3028,7 +3028,6 @@ export default {
     "locked": "ล็อกอยู่",
     "root_required": "ต้องใช้คีย์หลักของเนื้อหา",
     "unlocked": "ปลดล็อกแล้ว",
-    "moved_pc": "คัดลอกมาจากคอมพิวเตอร์เครื่องอื่น",
     "moved": "คัดลอกมาจาก Mac เครื่องอื่น"
   }
 } satisfies Catalog

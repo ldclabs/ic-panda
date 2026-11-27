@@ -363,6 +363,16 @@ impl Daemon {
                 )
                 .await;
             }
+            "account/bind_accept" => {
+                let account = account(params, "account")?;
+                self.hold().ensure_login().await?;
+                // Serialize accepting the binding with selecting its workspace.
+                // The prepared hardware prompt can then run outside the lock.
+                let prepared = self
+                    .under_lock(async |client| client.prepare_bind_accept(&account).await)
+                    .await?;
+                return Ok(to_json(&self.finish_login_unlock(prepared).await?));
+            }
             "recovery/complete" => {
                 self.hold().ensure_login().await?;
                 // The takeover journal is serialized; its local hardware
@@ -390,7 +400,6 @@ impl Daemon {
         if matches!(
             method,
             "account/bind_request"
-                | "account/bind_accept"
                 | "recovery/request"
                 | "recovery/dispute"
                 | "handle/reconcile"
@@ -403,9 +412,6 @@ impl Daemon {
                 let token = client.bind_request(&account(params, "account")?).await?;
                 Ok(json!({"qr": dmsg_client::qr::png_data(&token)?, "token": token}))
             }
-            "account/bind_accept" => Ok(to_json(
-                &client.bind_accept(&account(params, "account")?).await?,
-            )),
             "recovery/request" => client.recovery_request().await,
             "recovery/dispute" => {
                 let status = client.recovery_status().await?;

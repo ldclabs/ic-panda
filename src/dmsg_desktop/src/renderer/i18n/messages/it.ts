@@ -3028,7 +3028,6 @@ export default {
     "locked": "Bloccato",
     "root_required": "Radice dei contenuti richiesta",
     "unlocked": "Sbloccato",
-    "moved_pc": "Copiato da un altro PC",
     "moved": "Copiato da un altro Mac"
   }
 } satisfies Catalog

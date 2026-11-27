@@ -3028,7 +3028,6 @@ export default {
     "locked": "Naka-lock",
     "root_required": "Kailangan ang root key ng nilalaman",
     "unlocked": "Naka-unlock",
-    "moved_pc": "Kinopya mula sa ibang PC",
     "moved": "Kinopya mula sa ibang Mac"
   }
 } satisfies Catalog

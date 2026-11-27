@@ -3028,7 +3028,6 @@ export default {
     "locked": "Kilitli",
     "root_required": "İçerik kökü gerekli",
     "unlocked": "Kilitli değil",
-    "moved_pc": "Başka bir bilgisayardan kopyalandı",
     "moved": "Başka bir Mac’ten kopyalandı"
   }
 } satisfies Catalog

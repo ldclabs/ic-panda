@@ -795,6 +795,7 @@ impl Client {
         let own = registered.and_then(|r| local.iter().find(|k| k.key_id == r.key_id));
         Ok(json!({
             "available": self.approval_keys.as_ref().is_some_and(|hardware| hardware.available()),
+            "device_binding_available": self.secure().is_some() && self.presence.as_ref().and_then(|p| p.presence()).is_some(),
             "device_bound": self.workspace.bound()?,
             "biometry": self.presence.as_ref().is_some_and(|p| p.supports_biometry_only()),
             "key": registered.map(|k| json!({

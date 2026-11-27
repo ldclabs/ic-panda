@@ -35,6 +35,7 @@ import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
 import type { DaemonEvent, PreviewSource } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
+import { windowsMovedState } from '../shared/session-state'
 import { single } from '../shared/single'
 import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
@@ -1414,10 +1415,11 @@ function updateTray(state: string) {
   trayState = state
   if (!tray) return
   if (trayImages) tray.setImage(trayImages[trayVariant(state, waiting)])
-  tray.setToolTip(text.tooltip(app.getVersion(), text.state(state), waiting))
+  const label = windowsMovedState(state, locale, process.platform) ?? text.state(state)
+  tray.setToolTip(text.tooltip(app.getVersion(), label, waiting))
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `dMsg: ${text.state(state)}`, enabled: false },
+      { label: `dMsg: ${label}`, enabled: false },
       ...(trayLocal ? [] : [{ label: `${notificationText(locale).noticeTitle} (${waiting})`, click: () => showMain('/reminders') }]),
       { type: 'separator' },
       { label: text.open, click: () => showMain() },

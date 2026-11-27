@@ -141,7 +141,7 @@ impl Identity for HardwareIdentity {
 
 impl DeviceLogin {
     fn new(auth: Principal, hardware: &dyn HardwareAnchor) -> Result<Self> {
-        let (handle, public) = hardware.create()?;
+        let (handle, public) = hardware.create_login_key()?;
         Ok(Self {
             auth,
             handle: handle.into(),
@@ -823,11 +823,14 @@ impl LogoutRequest {
     /// Best effort: the local logout stands whatever the service answers.
     pub(crate) async fn send(self) {
         let attempt = async {
-            let ic = Ic::connect(&self.config, self.key.identity(self.hardware)).await?;
+            let ic = Ic::connect(&self.config, self.key.identity(self.hardware.clone())).await?;
             let result: Result<()> = ic.update(self.key.auth, "logout", ()).await?;
             result
         };
         let _ = tokio::time::timeout(std::time::Duration::from_secs(3), attempt).await;
+        // The locally forgotten key has finished its last possible signature,
+        // including when the remote logout timed out while offline.
+        let _ = self.hardware.discard_local_key(&self.key.handle);
     }
 }
 

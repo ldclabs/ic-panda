@@ -3038,7 +3038,6 @@ export default {
     locked: 'Заблокировано',
     root_required: 'Нужен корень контента',
     unlocked: 'Разблокировано',
-    moved_pc: 'Скопировано с другого компьютера',
     moved: 'Скопировано с другого Mac'
   }
 } satisfies Catalog

@@ -654,7 +654,9 @@ unbound workspace by default, using the unlock secret already queried.
 existing factor or first-time verification; no content keys are released
 before the hardware answers. Hosts run its `open` outside the client and
 finish with `complete_login_unlock`; for a new binding `open` also makes the
-key, since Windows Hello asks for the person to make one. Account setup and recovery expose
+key, since Windows Hello asks for the person to make one. For an explicitly
+unbound workspace, a declined optional fast-key enrollment leaves login usable.
+Account setup and recovery expose
 `prepare_initialize_account` / `prepare_recovery_complete` for the same
 split before completing root setup or recovery. Old unbound fast unlock
 requires login to migrate. Explicit unbinding persists `bound_declined` so

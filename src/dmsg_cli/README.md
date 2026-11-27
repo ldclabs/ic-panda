@@ -175,25 +175,29 @@ pairs or recovers; `device/moved_list` lists the copies and
 Secure Enclave keys when its anchor was made counts as moved when the first of
 them fails on this Mac; the first that opens settles it.
 
-On Windows (`src/windows_hardware.rs`) the daemon uses this hardware only
-when, at start, the PC has a TPM 2.0 that makes P-256 keys and the Windows
-user has set up Windows Hello; otherwise it behaves as before and Passkey
-login stays hidden. The TPM, through the Microsoft Platform Crypto Provider,
-keeps the anchors and the Passkey login keys: non-exportable, signing
-without asking, named `dmsg-anchor-<id>` in the user's key store. One
+On Windows (`src/windows_hardware.rs`), new bindings and Passkey login
+require the system credential store, a P-256-capable TPM 2.0 and Windows
+Hello at daemon startup. Existing workspace anchors are still checked if
+Hello or the credential store becomes unavailable. The TPM signs through the
+Microsoft Platform Crypto Provider without prompting. Workspace anchors are named
+`dmsg-anchor-<id>`.
+New login keys use an unnamed TPM key with a TPM-wrapped handle stored in the
+login credential, so abandoning an attempt leaves no named signing key. One
 Windows Hello key of the user, `dmsg-presence-v1`, takes the place of the
 Secure Enclave for fast unlock, device binding and high-risk confirmation:
-each slot keeps a random challenge, and its secret comes from Windows
-Hello's signature over it (RSASSA-PKCS1-v1_5 is deterministic; a new
-binding checks this before anything depends on it). Making that key and
-every use of it ask for the face, fingerprint or PIN, so a login's new
-binding makes its key with the answer, outside the client. Windows Hello
-always accepts the PIN: there are no biometry-only keys, and approval keys
+each new slot keeps a random challenge and the Hello public-key fingerprint,
+so a recreated key with the same name is recognized. Its secret comes from
+the deterministic RSASSA-PKCS1-v1_5 signature over the challenge. New bindings
+verify that Windows Hello reproduces the secret before using it. Making that key and
+every use of it ask for the face, fingerprint or PIN. Binding and fast-key
+enrollment wait outside the client lock. An unanswered prompt expires after
+a minute. Windows Hello always accepts the PIN. Biometry-only keys, approval keys
 and wallet cosigners stay unavailable. A cleared TPM or a reset Windows
 Hello loses the keys, which makes the workspace moved or its binding lost,
 as other hardware loss does. The Windows Credential Manager keeps at most
-2,560 bytes per credential; `src/secure.rs` keeps a longer secret, such as
-a Passkey login, in parts named after its digest behind a short index.
+2,560 bytes per credential. `src/secure/parts.rs` keeps a longer secret, such as
+a Passkey login, in parts named after its digest behind a short index. An
+interrupted replacement or deletion cleans up its remaining parts on retry.
 
 Older Macs without Secure Enclave use a device-bound digest of IOPlatformUUID
 to detect ordinary system copies; this is weaker than an enclave anchor.

@@ -3028,7 +3028,6 @@ export default {
     "locked": "Vergrendeld",
     "root_required": "Hoofdsleutel voor inhoud nodig",
     "unlocked": "Ontgrendeld",
-    "moved_pc": "Gekopieerd van een andere pc",
     "moved": "Gekopieerd van een andere Mac"
   }
 } satisfies Catalog

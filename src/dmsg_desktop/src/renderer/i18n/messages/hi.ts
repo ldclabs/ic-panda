@@ -3028,7 +3028,6 @@ export default {
     "locked": "लॉक किया गया",
     "root_required": "कंटेंट रूट आवश्यक है",
     "unlocked": "अनलॉक किया गया",
-    "moved_pc": "दूसरे PC से कॉपी किया गया",
     "moved": "दूसरे Mac से कॉपी किया गया"
   }
 } satisfies Catalog

@@ -349,7 +349,7 @@ enum DeviceBoundCommand {
     /// Bind this workspace to this device's hardware (a Mac's Secure
     /// Enclave, Windows Hello on a PC): from now on every unlock needs it,
     /// as well as a login or fast unlock. Copies made before keep opening
-    /// with a login. Asks for Touch ID or Windows Hello once.
+    /// with a login. Follow the system prompts to verify the new key.
     Enable {
         /// Take only the fingerprints enrolled now, never the login password
         /// (Touch ID only).

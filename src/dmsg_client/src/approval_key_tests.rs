@@ -748,6 +748,17 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
 }
 
 #[test]
+fn device_binding_can_be_available_without_approval_keys() {
+    let dir = TempDir::new();
+    let store = Arc::new(crate::testing::MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(store));
+    client.set_presence_key(Arc::new(Fingerprints::default()));
+    let view = client.approval_key_view(&info(&client, None, &[])).unwrap();
+    assert_eq!(view["available"], false);
+    assert_eq!(view["device_binding_available"], true);
+}
+
+#[test]
 fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
     let dir = TempDir::new();
     let software = Arc::new(Software::default());
@@ -799,6 +810,7 @@ fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
         json!({
             "available": true,
             "device_bound": false,
+            "device_binding_available": false,
             "biometry": true,
             "key": {
                 "key_id": hex::encode(*key.key_id),

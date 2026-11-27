@@ -206,12 +206,13 @@ impl BoundSlot {
     }
 }
 
-/// An immutable device-bound hardware request. Hosts run `open` outside their
-/// client executor, then return its result to the same account and generation.
+/// A prepared hardware request for an existing slot or a new fast-unlock key.
+/// Hosts run `open` outside their client executor and return the answer to
+/// the same account and generation.
 pub struct DevicePresence {
     account: AccountId,
     generation: u64,
-    slot: BoundSlot,
+    key: LoginKey,
     hardware: Arc<dyn PresenceKey>,
 }
 
@@ -221,18 +222,15 @@ impl DevicePresence {
     /// # Errors
     /// Preserves cancellation, temporary unavailability and permanent key loss.
     pub fn open(&self) -> Result<Zeroizing<Key>> {
-        self.slot.open(self.hardware.as_ref())
+        self.key.open(self.hardware.as_ref())
     }
 }
 
 /// A login unlock awaiting the hardware factor, with its login factor sealed
 /// in zeroizing memory and its originating account/session fixed.
 pub struct LoginUnlock {
-    account: AccountId,
-    generation: u64,
-    hardware: Arc<dyn PresenceKey>,
+    presence: DevicePresence,
     secret: Zeroizing<Key>,
-    key: LoginKey,
 }
 
 /// The hardware key a login unlock opens.
@@ -247,6 +245,9 @@ enum LoginKey {
     /// some hardware (Windows Hello) asks for the person to make one. It must
     /// recover the secret it returned at creation.
     New(OnceLock<(BoundSlot, Zeroizing<Key>)>),
+    /// A separate fast key for an explicitly unbound workspace. Failure to
+    /// enroll this optional key must not invalidate a successful login.
+    NewFast(OnceLock<(BoundSlot, Zeroizing<Key>)>),
 }
 
 impl LoginUnlock {
@@ -258,10 +259,15 @@ impl LoginUnlock {
     /// `Error::IntegrityFailed` for a new key that returns another secret or
     /// a second attempt to make one.
     pub fn open(&self) -> Result<Zeroizing<Key>> {
-        let hardware = self.hardware.as_ref();
-        let made = match &self.key {
+        self.presence.open()
+    }
+}
+
+impl LoginKey {
+    fn open(&self, hardware: &dyn PresenceKey) -> Result<Zeroizing<Key>> {
+        let made = match self {
             LoginKey::Bound(slot) | LoginKey::Fast(slot) => return slot.open(hardware),
-            LoginKey::New(made) => made,
+            LoginKey::New(made) | LoginKey::NewFast(made) => made,
         };
         ensure(made.get().is_none(), Error::IntegrityFailed)?;
         let created_at = now_ms();
@@ -289,9 +295,9 @@ impl LoginUnlock {
 
     /// The slot opened; for a new binding, once `open` made it.
     fn slot(&self) -> Option<&BoundSlot> {
-        match &self.key {
+        match self {
             LoginKey::Bound(slot) | LoginKey::Fast(slot) => Some(slot),
-            LoginKey::New(made) => made.get().map(|(slot, _)| slot),
+            LoginKey::New(made) | LoginKey::NewFast(made) => made.get().map(|(slot, _)| slot),
         }
     }
 }
@@ -1633,36 +1639,41 @@ impl Client {
             };
             return self.login_unlock(secret, key).map(Some);
         }
-        self.keys = Some(self.workspace.unlock(&secret)?);
-        self.workspace.meta.login_unlocked_at = Some(now_ms());
-        self.workspace.save_meta()?;
+        if let Some(presence) = self.optional_fast_enrollment()? {
+            return Ok(Some(LoginUnlock { presence, secret }));
+        }
+        self.unlock_login_only(&secret, now_ms())?;
         self.after_login_unlock()?;
         Ok(None)
     }
 
+    fn unlock_login_only(&mut self, secret: &Key, now: u64) -> Result<()> {
+        self.keys = Some(self.workspace.unlock(secret)?);
+        self.workspace.meta.login_unlocked_at = Some(now);
+        self.workspace.save_meta()
+    }
+
     fn login_unlock(&self, secret: Zeroizing<Key>, key: LoginKey) -> Result<LoginUnlock> {
         Ok(LoginUnlock {
-            account: self.account()?.id,
-            generation: self.session_generation,
-            hardware: self
-                .presence
-                .clone()
-                .ok_or_else(|| Error::Unavailable("hardware: no hardware key".into()))?,
+            presence: self.device_presence(key)?,
             secret,
-            key,
         })
     }
 
     fn check_login_unlock(&self, prepared: &LoginUnlock) -> Result<()> {
         ensure(
-            self.session_generation == prepared.generation
-                && self.account()?.id == prepared.account,
+            self.session_generation == prepared.presence.generation
+                && self.account()?.id == prepared.presence.account,
             Error::Locked,
         )?;
-        match &prepared.key {
+        match &prepared.presence.key {
             LoginKey::Bound(slot) => {
                 ensure(self.bound_slot()?.as_ref() == Some(slot), Error::Locked)
             }
+            LoginKey::NewFast(_) => ensure(
+                !self.workspace.bound()? && !self.default_binding_needed()?,
+                Error::Locked,
+            ),
             LoginKey::Fast(_) | LoginKey::New(_) => ensure(
                 !self.binding_declined() && !self.workspace.bound()?,
                 Error::Locked,
@@ -1679,8 +1690,8 @@ impl Client {
         now: u64,
     ) -> Result<()> {
         self.check_login_unlock(&prepared)?;
-        let LoginUnlock { secret, key, .. } = prepared;
-        let (slot, binding) = match key {
+        let LoginUnlock { secret, presence } = prepared;
+        let (slot, binding) = match presence.key {
             LoginKey::Bound(slot) => (slot, false),
             LoginKey::Fast(slot) => {
                 // Also verify the old fast wrapping before replacing it.
@@ -1688,6 +1699,7 @@ impl Client {
                     .unlock_fast(&presence_key(device, &self.fast_name()?))?;
                 (slot, true)
             }
+            LoginKey::NewFast(_) => return Err(Error::IntegrityFailed),
             LoginKey::New(made) => {
                 let (slot, expected) = made.into_inner().ok_or(Error::IntegrityFailed)?;
                 ensure(*expected == *device, Error::IntegrityFailed)?;
@@ -1720,16 +1732,23 @@ impl Client {
         self.check_login_unlock(&prepared)?;
         self.session()?;
         self.hardware_ready()?;
-        let device = match prepared.slot() {
-            Some(slot) => self.binding_hardware_key(slot, device)?,
-            // A new binding whose key was never made has only its failure.
-            None => return Err(device.err().unwrap_or(Error::IntegrityFailed)),
+        let fast_only = matches!(prepared.presence.key, LoginKey::NewFast(_));
+        let device = match (fast_only, prepared.presence.key.slot()) {
+            (true, _) => device,
+            (false, Some(slot)) => Ok(self.binding_hardware_key(slot, device)?),
+            (false, None) => return Err(device.err().unwrap_or(Error::IntegrityFailed)),
         };
         let account = self.account()?.clone();
         // The device may have been revoked while the system was asking.
         let security = self.refresh_security(account.home, &account.id).await?;
         self.check_revoked(&security)?;
-        self.apply_login_keys(prepared, &device, now_ms())?;
+        if fast_only {
+            self.unlock_login_only(&prepared.secret, now_ms())?;
+            self.complete_optional_fast_unlock(prepared.presence, device)?;
+        } else {
+            let device = device?;
+            self.apply_login_keys(prepared, &device, now_ms())?;
+        }
         if let Err(error) = self.resume().await
             && error != Error::Expired
         {
@@ -1768,6 +1787,50 @@ impl Client {
             }
         }
         self.keep_login()
+    }
+
+    /// Called only on the login-only path, including immediately after unbinding.
+    fn optional_fast_enrollment(&self) -> Result<Option<DevicePresence>> {
+        let meta = &self.workspace.meta;
+        if meta.fast_unlock.is_none()
+            && !meta.fast_declined
+            && self.secure.is_some()
+            && self
+                .presence
+                .as_ref()
+                .is_some_and(|p| !p.creates_without_prompt() && p.presence().is_some())
+        {
+            return self
+                .device_presence(LoginKey::NewFast(OnceLock::new()))
+                .map(Some);
+        }
+        Ok(None)
+    }
+
+    /// A failed optional enrollment leaves the login usable. A lock or
+    /// account switch while the prompt was open still invalidates the answer.
+    pub fn complete_optional_fast_unlock(
+        &mut self,
+        prepared: DevicePresence,
+        device: Result<Zeroizing<Key>>,
+    ) -> Result<Status> {
+        ensure(
+            self.session_generation == prepared.generation
+                && self.account()?.id == prepared.account,
+            Error::Locked,
+        )?;
+        self.keys()?;
+        if !self.workspace.meta.fast_declined && self.workspace.meta.fast_unlock.is_none() {
+            match self.complete_enable_fast_unlock(prepared, device) {
+                Ok(status) => return Ok(status),
+                Err(Error::Locked) => return Err(Error::Locked),
+                Err(_) => {
+                    self.keys()?;
+                }
+            }
+        }
+        self.keep_login()?;
+        self.status()
     }
 
     /// [`Self::after_login_unlock`] of a device-bound workspace, with the
@@ -1812,7 +1875,7 @@ impl Client {
     /// deleted on a failure: a fingerprint-only key whose fingerprints
     /// changed returns `Error::IntegrityFailed`, a key that cannot ask now
     /// `Error::Unavailable`.
-    fn device_presence(&self, slot: BoundSlot) -> Result<DevicePresence> {
+    fn device_presence(&self, key: LoginKey) -> Result<DevicePresence> {
         let hardware = self
             .presence
             .clone()
@@ -1820,21 +1883,9 @@ impl Client {
         Ok(DevicePresence {
             account: self.account()?.id,
             generation: self.session_generation,
-            slot,
+            key,
             hardware,
         })
-    }
-
-    fn check_device_presence(&self, prepared: &DevicePresence) -> Result<()> {
-        ensure(
-            self.session_generation == prepared.generation
-                && self.account()?.id == prepared.account,
-            Error::Locked,
-        )?;
-        ensure(
-            self.bound_slot()?.as_ref() == Some(&prepared.slot),
-            Error::Locked,
-        )
     }
 
     /// A key made after the anchor cannot establish where older keys came
@@ -1992,6 +2043,15 @@ impl Client {
     /// Returns `Error::Locked` while locked, `Error::AuthRequired` without
     /// a login and `Error::NotFound` for a workspace that is not bound.
     pub async fn unbind_device(&mut self) -> Result<Status> {
+        if let Some(prepared) = self.prepare_unbind_device().await? {
+            let key = prepared.open();
+            return self.complete_optional_fast_unlock(prepared, key);
+        }
+        self.status()
+    }
+
+    /// Remove the binding and return any interactive fast-key enrollment to the host.
+    pub async fn prepare_unbind_device(&mut self) -> Result<Option<DevicePresence>> {
         self.keys()?;
         let account = self.account()?.clone();
         let secret = self.unlock_secret(account.home, &account.id).await?;
@@ -2007,14 +2067,17 @@ impl Client {
         if self.renewable() {
             // Unbinding signs this device out, ending its service session as
             // a local logout does; this caller already waits on the network.
-            let status = self.logout()?;
+            self.logout()?;
             if let Some(remote) = remote {
                 remote.send().await;
             }
-            return Ok(status);
+            return Ok(None);
+        }
+        if let Some(prepared) = self.optional_fast_enrollment()? {
+            return Ok(Some(prepared));
         }
         self.after_login_unlock()?;
-        self.status()
+        Ok(None)
     }
 
     /// Seal the current login under the LDK while fast unlock asks for the
@@ -2096,19 +2159,24 @@ impl Client {
     }
 
     /// Prepare re-enabling fast unlock. A bound workspace returns its hardware
-    /// request; an ordinary workspace creates the new entry without prompting.
+    /// request, as does new enrollment on hardware that prompts at creation.
     ///
     /// # Errors
     /// As [`Self::enable_fast_unlock`].
     pub fn prepare_enable_fast_unlock(&mut self) -> Result<Option<DevicePresence>> {
-        let secure = self.secure.clone().ok_or(Error::NotFound)?;
+        ensure(self.secure.is_some(), Error::NotFound)?;
         self.keys()?;
         if let Some(slot) = self.bound_slot()? {
-            return Ok(Some(self.device_presence(slot)?));
+            return Ok(Some(self.device_presence(LoginKey::Bound(slot))?));
         }
         let name = self.fast_name()?;
         let hardware = self.presence.clone().filter(|key| key.presence().is_some());
         let (stored, key) = match hardware {
+            Some(hardware) if !hardware.creates_without_prompt() => {
+                return self
+                    .device_presence(LoginKey::NewFast(OnceLock::new()))
+                    .map(Some);
+            }
             Some(hardware) => {
                 let (handle, peer, secret) = hardware.create(false)?;
                 let stored = FastKey::Present {
@@ -2123,17 +2191,22 @@ impl Client {
                 (FastKey::Plain(ByteArray::new(*key)), key)
             }
         };
-        let presence = matches!(stored, FastKey::Present { .. });
-        secure.set(&name, &Zeroizing::new(canonical(&stored)))?;
-        let keys = self.keys.take().ok_or(Error::Locked)?;
-        let enabled = self.workspace.enable_fast(&keys, &key, now_ms(), presence);
-        self.keys = Some(keys);
-        enabled.inspect_err(|_| self.lock())?;
-        self.keep_login()?;
+        self.store_fast_key(&name, &stored, &key)?;
         Ok(None)
     }
 
-    /// Re-enable bound fast unlock only after this session's hardware answer.
+    fn store_fast_key(&mut self, name: &str, stored: &FastKey, key: &Key) -> Result<()> {
+        let secure = self.secure.as_ref().ok_or(Error::NotFound)?;
+        let presence = matches!(stored, FastKey::Present { .. });
+        secure.set(name, &Zeroizing::new(canonical(stored)))?;
+        let keys = self.keys.take().ok_or(Error::Locked)?;
+        let enabled = self.workspace.enable_fast(&keys, key, now_ms(), presence);
+        self.keys = Some(keys);
+        enabled.inspect_err(|_| self.lock())?;
+        self.keep_login()
+    }
+
+    /// Re-enable fast unlock only after this session's hardware answer.
     ///
     /// # Errors
     /// As [`Self::enable_fast_unlock`], plus `Locked` for an obsolete answer.
@@ -2142,15 +2215,38 @@ impl Client {
         prepared: DevicePresence,
         device: Result<Zeroizing<Key>>,
     ) -> Result<Status> {
-        self.check_device_presence(&prepared)?;
-        let device = device?;
-        let keys = self.keys.take().ok_or(Error::Locked)?;
-        let enabled =
-            self.workspace
-                .enable_fast_bound(&keys, &device, prepared.slot.id(), now_ms());
-        self.keys = Some(keys);
-        enabled.inspect_err(|_| self.lock())?;
-        self.keep_login()?;
+        ensure(
+            self.session_generation == prepared.generation
+                && self.account()?.id == prepared.account,
+            Error::Locked,
+        )?;
+        self.keys()?;
+        match prepared.key {
+            LoginKey::Bound(slot) => {
+                ensure(self.bound_slot()?.as_ref() == Some(&slot), Error::Locked)?;
+                let device = device?;
+                let keys = self.keys.take().ok_or(Error::Locked)?;
+                let enabled = self
+                    .workspace
+                    .enable_fast_bound(&keys, &device, slot.id(), now_ms());
+                self.keys = Some(keys);
+                enabled.inspect_err(|_| self.lock())?;
+                self.keep_login()?;
+            }
+            LoginKey::NewFast(made) => {
+                ensure(!self.workspace.bound()?, Error::Locked)?;
+                let device = device?;
+                let (slot, expected) = made.into_inner().ok_or(Error::IntegrityFailed)?;
+                ensure(*expected == *device, Error::IntegrityFailed)?;
+                let name = self.fast_name()?;
+                let stored = FastKey::Present {
+                    handle: slot.handle,
+                    peer: slot.peer,
+                };
+                self.store_fast_key(&name, &stored, &presence_key(&device, &name))?;
+            }
+            LoginKey::New(_) | LoginKey::Fast(_) => return Err(Error::IntegrityFailed),
+        }
         self.status()
     }
 

@@ -3046,7 +3046,6 @@ const sessionStates = {
   locked: 'Locked',
   root_required: 'Content root needed',
   unlocked: 'Unlocked',
-  moved_pc: 'Copied from another PC',
   moved: 'Copied from another Mac'
 }
 

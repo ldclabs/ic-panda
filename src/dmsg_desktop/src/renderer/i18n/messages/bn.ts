@@ -3028,7 +3028,6 @@ export default {
     "locked": "লক করা",
     "root_required": "বিষয়বস্তুর মূল কী প্রয়োজন",
     "unlocked": "আনলক করা",
-    "moved_pc": "অন্য PC থেকে কপি করা",
     "moved": "অন্য Mac থেকে কপি করা"
   }
 } satisfies Catalog

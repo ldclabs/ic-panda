@@ -3038,7 +3038,6 @@ export default {
     locked: 'Verrouillé',
     root_required: 'Racine de contenu requise',
     unlocked: 'Déverrouillé',
-    moved_pc: 'Copié depuis un autre PC',
     moved: 'Copié depuis un autre Mac'
   }
 } satisfies Catalog

@@ -3028,7 +3028,6 @@ export default {
     "locked": "Gesperrt",
     "root_required": "Inhaltsstamm erforderlich",
     "unlocked": "Entsperrt",
-    "moved_pc": "Von einem anderen PC kopiert",
     "moved": "Von einem anderen Mac kopiert"
   }
 } satisfies Catalog

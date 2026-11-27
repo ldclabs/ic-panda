@@ -259,7 +259,7 @@ impl Client {
                 "created_at": p.created_at,
             })).collect()),
             "created_at": root.as_ref().map(|r| r.created_at),
-            "hardware": self.presence.as_ref().and_then(|p| p.presence()),
+            "hardware": self.presence.as_ref().filter(|p| p.creates_without_prompt()).and_then(|p| p.presence()),
             "key": key,
         }))
     }
@@ -283,7 +283,7 @@ impl Client {
             let hardware = self
                 .presence
                 .clone()
-                .filter(|p| p.presence().is_some())
+                .filter(|p| p.creates_without_prompt() && p.presence().is_some())
                 .ok_or_else(|| Error::Unavailable("no hardware key on this device".into()))?;
             let protector = protect(
                 hardware.as_ref(),
@@ -337,7 +337,7 @@ pub async fn add_protector<H: Hold>(h: &H, biometry_only: bool) -> Result<Json> 
     let hardware = opener
         .hardware
         .clone()
-        .filter(|p| p.presence().is_some())
+        .filter(|p| p.creates_without_prompt() && p.presence().is_some())
         .ok_or_else(|| Error::Unavailable("no hardware key on this device".into()))?;
     let root_id = opener.root.root_id;
     let protector = asking(move || {

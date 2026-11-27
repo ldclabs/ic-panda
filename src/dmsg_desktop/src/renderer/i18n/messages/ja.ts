@@ -3028,7 +3028,6 @@ export default {
     "locked": "ロック中",
     "root_required": "コンテンツルートが必要です",
     "unlocked": "ロック解除済み",
-    "moved_pc": "別の PC からコピー",
     "moved": "別の Mac からコピー"
   }
 } satisfies Catalog

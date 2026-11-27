@@ -3028,7 +3028,6 @@ export default {
     "locked": "لاک ہے",
     "root_required": "مواد کی بنیادی کلید درکار ہے",
     "unlocked": "ان لاک ہے",
-    "moved_pc": "دوسرے PC سے کاپی شدہ",
     "moved": "دوسرے Mac سے کاپی شدہ"
   }
 } satisfies Catalog

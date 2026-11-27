@@ -479,16 +479,16 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         client.set_presence_key(enclave.clone());
         client.set_hardware_anchor(enclave)?;
     }
-    // With the system credential store, a TPM 2.0 keeps the anchors and the
-    // Passkey login keys, and Windows Hello the fast-unlock and device-bound
-    // keys; both or neither, so an anchor never stands without the person's
-    // key. Approval keys and wallet cosigners stay unavailable here.
+    // Existing anchors still have to answer when Hello or the TPM is
+    // unavailable at startup. Only enrollment needs both capabilities.
     #[cfg(windows)]
-    if settings.storage == crate::home::Storage::System
-        && let Some(hardware) = crate::windows_hardware::WindowsHardware::detect()
     {
-        let hardware = std::sync::Arc::new(hardware);
-        client.set_presence_key(hardware.clone());
+        let hardware = std::sync::Arc::new(crate::windows_hardware::WindowsHardware::detect(
+            settings.storage == crate::home::Storage::System,
+        ));
+        if hardware.can_enroll() {
+            client.set_presence_key(hardware.clone());
+        }
         client.set_hardware_anchor(hardware)?;
     }
     let local_roots = match &settings.agent_ca {
@@ -740,6 +740,27 @@ impl Daemon {
             .await
     }
 
+    async fn finish_fast_setup(
+        &self,
+        prepared: dmsg_client::client::DevicePresence,
+        optional: bool,
+    ) -> Result<dmsg_client::Status> {
+        let (prepared, key) = blocking(move || {
+            let key = prepared.open();
+            Ok((prepared, key))
+        })
+        .await?;
+        self.hold()
+            .with(|client| {
+                if optional {
+                    client.complete_optional_fast_unlock(prepared, key)
+                } else {
+                    client.complete_enable_fast_unlock(prepared, key)
+                }
+            })
+            .await
+    }
+
     /// After any sign-out: the account's mounts and connect report go at once
     /// rather than at the next background check.
     async fn signed_out(&self) {
@@ -749,7 +770,7 @@ impl Daemon {
     }
 
     /// Announcements for local transports waiting on a person's decision.
-    #[cfg(unix)]
+    #[cfg(any(unix, test))]
     pub(crate) fn subscribe_events(&self) -> broadcast::Receiver<Value> {
         self.events.subscribe()
     }
@@ -1769,29 +1790,53 @@ impl Daemon {
                 self.status().await
             }
             "session/fast_unlock" => {
-                let mut client = self.client.lock().await;
-                let status = match params["enable"].as_bool() {
-                    Some(true) => client.enable_fast_unlock()?,
-                    Some(false) => client.disable_fast_unlock()?,
-                    None => return Err(Error::InvalidInput("missing enable".into())),
+                let enable = params["enable"]
+                    .as_bool()
+                    .ok_or_else(|| Error::InvalidInput("missing enable".into()))?;
+                let generation = self.client.lock().await.session_generation();
+                let _turn = self.turn("session/fast_unlock").await;
+                let (prepared, status) = self
+                    .hold()
+                    .with(|client| {
+                        ensure(client.session_generation() == generation, Error::Locked)?;
+                        if enable {
+                            Ok((client.prepare_enable_fast_unlock()?, client.status()?))
+                        } else {
+                            Ok((None, client.disable_fast_unlock()?))
+                        }
+                    })
+                    .await?;
+                let status = match prepared {
+                    Some(prepared) => self.finish_fast_setup(prepared, false).await?,
+                    None => status,
                 };
                 Ok(to_json(&status))
             }
-            // Binding rewraps the local data key under the client: it reads
-            // the unlock secret and asks for the person once, so nothing
-            // else unlocks or locks meanwhile.
+            // Prompt outside the client. Commit and account authorization are
+            // serialized after checking that the original session still owns the answer.
             "session/device_bound" => {
                 self.hold().ensure_login().await?;
                 match params["enable"].as_bool() {
                     Some(true) => {
                         let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
-                        self.under_lock(async |client| client.bind_device(biometry_only).await)
+                        let prepared = self
+                            .hold()
+                            .with(|client| client.prepare_device_binding(biometry_only))
+                            .await?;
+                        let opened = blocking(move || prepared.open()).await?;
+                        self.under_lock(async |client| client.complete_device_binding(opened).await)
                             .await
                     }
                     Some(false) => {
-                        let status = self
-                            .under_lock(async |client| client.unbind_device().await)
+                        let (prepared, status) = self
+                            .under_lock(async |client| {
+                                Ok((client.prepare_unbind_device().await?, client.status()?))
+                            })
                             .await?;
+                        let status = match prepared {
+                            Some(prepared) => self.finish_fast_setup(prepared, true).await?,
+                            None => status,
+                        };
                         // Unbinding a Passkey login also signs this device out.
                         if status.state == "logged_out" {
                             self.signed_out().await;

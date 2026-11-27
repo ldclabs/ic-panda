@@ -3028,7 +3028,6 @@ export default {
     "locked": "Dikunci",
     "root_required": "Kunci akar kandungan diperlukan",
     "unlocked": "Dibuka kunci",
-    "moved_pc": "Disalin dari PC lain",
     "moved": "Disalin dari Mac lain"
   }
 } satisfies Catalog

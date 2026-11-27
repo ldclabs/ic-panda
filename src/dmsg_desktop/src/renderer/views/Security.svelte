@@ -65,6 +65,7 @@
   const pending = untrack(() => settingsApprovals<Pending>('security', status))
 
   const blocked = $derived(busy || needsLogin || !security || !!loadError)
+  const canBindDevice = $derived(keys?.device_binding_available ?? keys?.available)
   const own = $derived(keys?.key ?? null)
   const required = $derived((keys?.policy ?? []).length > 0)
   const missing = $derived((keys?.devices ?? []).filter((device: any) => !device.key_id))
@@ -78,7 +79,7 @@
       case 'login': return !!request.trim() && !!shown.trim()
       case 'key': return !!keys?.available && !keyError && !pending.key
       case 'key-request': return !!keys?.available && !keyError && !made
-      case 'bound': return !!keys?.available && !keys.device_bound && !keyError
+      case 'bound': return !!canBindDevice && !keys.device_bound && !keyError
     }
   })
   const unchanged = $derived(editor === 'policy' ? dailyLimit(daily) !== null && !policy : editor === 'hardware' ? !hardwareChanged : false)
@@ -309,7 +310,7 @@
       </Collapsible>
     </Section>
 
-    {#if keys.available}
+    {#if canBindDevice || keys.device_bound}
       <Section title={t('deviceBound')} description={t('deviceBoundHint')} icon="lock" testid="device-bound">
         <div class="flex flex-wrap items-center gap-3">
           <Pill tone={keys.device_bound ? 'forest' : 'neutral'}>{keys.device_bound ? t('on') : t('off')}</Pill>

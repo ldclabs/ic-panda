@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 
 /** Focused Electron coverage, using the smoke runner's isolated profile and daemon fixture. */
-export async function securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created }) {
+export async function securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created, formMatrix }) {
   let security = methods['account/security']()
   let keys = methods['device/key']()
   let failPolicy = false, failKeys = false, failSecurity = false
@@ -198,6 +198,33 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await main.getByTestId('device-bound-toggle').click()
   assert.equal(await main.getByTestId('security-biometry').getAttribute('aria-checked'), 'false')
   await closeEditor()
+  // Windows Hello can bind the workspace independently of hardware approval keys.
+  Object.assign(keys, { available: false, device_binding_available: true, biometry: false })
+  methods['session/device_bound'] = p => {
+    keys.device_bound = p.enable
+    return { device_bound: p.enable }
+  }
+  await refresh()
+  await main.getByTestId('approval-keys-unavailable').waitFor()
+  const binding = main.getByTestId('device-bound-toggle')
+  await binding.focus()
+  await main.keyboard.press('Enter')
+  await submit.waitFor()
+  assert.equal(await main.getByTestId('security-biometry').count(), 0)
+  assert.equal(await submit.isEnabled(), true)
+  if (await main.evaluate(() => window.dmsg.platform === 'win32')) {
+    await formMatrix(app, main, shots, 'windows-hello-binding-dialog', '[data-testid="security-editor"]')
+  }
+  await submit.focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('security-editor').waitFor({ state: 'detached' })
+  assert.deepEqual(last('session/device_bound').params, { enable: true, biometry_only: false })
+  await waitFor(() => keys.device_bound)
+  await binding.click()
+  await waitFor(() => !keys.device_bound)
+  Object.assign(keys, { available: true, device_binding_available: true, biometry: true })
+  await refresh()
+  await main.getByTestId('approval-keys-unavailable').waitFor({ state: 'detached' })
   await main.getByTestId('security-key-transfer').getByRole('button').click()
   await main.getByTestId('security-key-approve').click()
   await main.getByTestId('device-pair-request').fill('wrong-kind-handoff')

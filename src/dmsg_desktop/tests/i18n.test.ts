@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { textFor } from '../src/main/text.ts'
 import { localeDir, locales, matchLocale, resolveLocale } from '../src/shared/locales.ts'
+import { windowsMovedState } from '../src/shared/session-state.ts'
 import en from '../src/renderer/i18n/messages/en.ts'
 import zh from '../src/renderer/i18n/messages/zh.ts'
 import ru from '../src/renderer/i18n/messages/ru.ts'
@@ -87,7 +88,10 @@ test('Windows shows its own hardware where a label names the Mac’s', () => {
       assert.ok(!mac.test(messages[windows!]), `${name}.${windows} names the Mac`)
       assert.deepEqual(placeholders(messages[windows!]), placeholders(messages[label]), `${name}.${windows}`)
     }
-    assert.ok(!mac.test(catalog.sessionStates.moved_pc), `${name}.moved_pc names the Mac`)
+    const moved = windowsMovedState('moved', name as keyof typeof catalogs, 'win32')
+    assert.ok(moved && !mac.test(moved), `${name} moved state on Windows`)
+    assert.equal(windowsMovedState('locked', name as keyof typeof catalogs, 'win32'), undefined)
+    assert.equal(windowsMovedState('moved', name as keyof typeof catalogs, 'darwin'), undefined)
   }
   // Each other label that names the Mac's hardware is about what Windows
   // does not offer: biometry-only keys, the Mac password, approval keys and

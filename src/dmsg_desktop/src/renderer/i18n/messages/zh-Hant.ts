@@ -3028,7 +3028,6 @@ export default {
     "locked": "已鎖定",
     "root_required": "需要內容根",
     "unlocked": "已解鎖",
-    "moved_pc": "從另一台電腦複製而來",
     "moved": "從另一台 Mac 複製而來"
   }
 } satisfies Catalog

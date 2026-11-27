@@ -3028,7 +3028,6 @@ export default {
     "locked": "잠김",
     "root_required": "콘텐츠 루트가 필요함",
     "unlocked": "잠금 해제됨",
-    "moved_pc": "다른 PC에서 복사됨",
     "moved": "다른 Mac에서 복사됨"
   }
 } satisfies Catalog

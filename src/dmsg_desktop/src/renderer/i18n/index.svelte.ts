@@ -7,6 +7,7 @@
  * already composed into its state (an error, a notice) stays as it was.
  */
 import { defaultLocale, localeDir, type Locale } from '../../shared/locales'
+import { windowsMovedState } from '../../shared/session-state'
 import { rememberFailures } from '../failure'
 import en, { type Catalog, type Label } from './messages/en'
 import { windowsLabels } from './windows'
@@ -72,7 +73,7 @@ export function stateLabel(state: string): string {
 /** A daemon session state for people; unknown states show as they are. */
 export function sessionLabel(state: string): string {
   const states: Record<string, string> = catalogs[current]!.sessionStates
-  return states[windows && state === 'moved' ? 'moved_pc' : state] ?? state
+  return windowsMovedState(state, current, window.dmsg.platform) ?? states[state] ?? state
 }
 
 /** Dynamic vocabulary keys still use the same complete, checked catalogs. */

@@ -3038,7 +3038,6 @@ export default {
     locked: 'مقفل',
     root_required: 'يلزم جذر المحتوى',
     unlocked: 'مفتوح',
-    moved_pc: 'منسوخ من حاسوب آخر',
     moved: 'منسوخ من جهاز Mac آخر'
   }
 } satisfies Catalog

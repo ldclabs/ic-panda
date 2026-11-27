@@ -86,6 +86,12 @@ pub trait PresenceKey: Send + Sync {
         self.biometry_state().is_some()
     }
 
+    /// Whether creating a key needs no user interaction. Native wallet protectors
+    /// require this so creating a root never prompts under the client lock.
+    fn creates_without_prompt(&self) -> bool {
+        true
+    }
+
     /// Ask the person to confirm approving a high-risk request of type
     /// `what` (such as `checkout` or `device_revoke`), which names the
     /// system's question.
@@ -207,9 +213,15 @@ impl Drop for SigningCancellation {
 /// has not been copied to other hardware, such as by a system migration or
 /// a restored backup.
 pub trait HardwareAnchor: Send + Sync {
-    /// Release a platform-owned anchor key once its standalone workspace no longer references it.
+    /// Release an unreferenced platform-owned anchor or login key.
     fn discard_local_key(&self, _handle: &[u8]) -> Result<()> {
         Ok(())
+    }
+
+    /// Make an independent login key. Providers can return a hardware-wrapped
+    /// handle so abandoned login attempts leave no named keys.
+    fn create_login_key(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        self.create()
     }
 
     /// Sign a bounded IC request or delegation message with an independent

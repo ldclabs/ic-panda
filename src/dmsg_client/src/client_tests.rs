@@ -494,11 +494,18 @@ struct Hardware {
     /// The enrolled fingerprints.
     fingerprints: std::sync::atomic::AtomicU8,
     create_fails: std::sync::atomic::AtomicBool,
+    interactive_create: std::sync::atomic::AtomicBool,
     wrong_secret: std::sync::atomic::AtomicBool,
     no_presence: std::sync::atomic::AtomicBool,
 }
 
 impl PresenceKey for Hardware {
+    fn creates_without_prompt(&self) -> bool {
+        !self
+            .interactive_create
+            .load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     fn presence(&self) -> Option<Presence> {
         (!self.no_presence.load(std::sync::atomic::Ordering::SeqCst))
             .then_some(Presence::Biometrics)
@@ -544,6 +551,65 @@ impl PresenceKey for Hardware {
     }
 }
 
+#[tokio::test]
+async fn interactive_fast_enrollment_is_optional_and_bound_to_its_session() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    hardware.interactive_create.store(true, SeqCst);
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    client.workspace.meta.bound_declined = true;
+    let prepared = client
+        .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(prepared.presence.key, LoginKey::NewFast(_)));
+    assert_eq!(hardware.made.load(SeqCst), 0);
+    assert!(client.keys().is_err());
+    hardware.declines.store(true, SeqCst);
+    let answer = prepared.open();
+    assert_eq!(answer.as_ref().unwrap_err(), &Error::Forbidden);
+    // Apply the already-authorized login as the network completion does.
+    client
+        .unlock_login_only(&prepared.secret, now_ms())
+        .unwrap();
+    let status = client
+        .complete_optional_fast_unlock(prepared.presence, answer)
+        .unwrap();
+    assert!(!status.fast_unlock);
+    assert!(client.keys().is_ok());
+
+    assert!(client.wallet_native_status(None).unwrap()["hardware"].is_null());
+    assert!(matches!(
+        client.wallet_native_create(false, false),
+        Err(Error::Unavailable(_))
+    ));
+    assert_eq!(hardware.made.load(SeqCst), 1);
+    hardware.declines.store(false, SeqCst);
+    let prepared = client.prepare_enable_fast_unlock().unwrap().unwrap();
+    let key = prepared.open();
+    assert!(
+        client
+            .complete_enable_fast_unlock(prepared, key)
+            .unwrap()
+            .fast_unlock
+    );
+    client.disable_fast_unlock().unwrap();
+    let name = client.fast_name().unwrap();
+    let prepared = client.prepare_enable_fast_unlock().unwrap().unwrap();
+    let key = prepared.open();
+    client.lock();
+    assert_eq!(
+        client
+            .complete_enable_fast_unlock(prepared, key)
+            .unwrap_err(),
+        Error::Locked
+    );
+    assert!(storage.get(&name).unwrap().is_none());
+}
+
 /// Log `client` in as the test login `seed`, which expires at `expires_at`.
 async fn log_in(client: &mut Client, seed: u8, expires_at: u64) -> Principal {
     let login = crate::login::kept_for_tests(seed, expires_at)
@@ -574,7 +640,7 @@ async fn default_binding_requires_proven_hardware_before_releasing_content_keys(
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(matches!(prepared.key, LoginKey::New(_)));
+        assert!(matches!(prepared.presence.key, LoginKey::New(_)));
         assert_eq!(hardware.opened.load(SeqCst), 0);
         assert!(client.keys().is_err());
         assert!(client.root.is_none());
@@ -607,7 +673,7 @@ async fn default_binding_requires_proven_hardware_before_releasing_content_keys(
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(matches!(prepared.key, LoginKey::Bound(_)));
+        assert!(matches!(prepared.presence.key, LoginKey::Bound(_)));
         let device = prepared.open().unwrap();
         client
             .apply_login_keys(prepared, &device, now_ms())
@@ -639,11 +705,11 @@ async fn default_binding_reuses_old_hardware_proof_instead_of_blessing_a_copy() 
             .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
             .unwrap()
             .unwrap();
-        assert!(matches!(prepared.key, LoginKey::Fast(_)));
+        assert!(matches!(prepared.presence.key, LoginKey::Fast(_)));
         assert_eq!(hardware.made.load(SeqCst), made);
         hardware.forgot.store(moved, SeqCst);
         let opened = prepared.open();
-        let key = client.binding_hardware_key(prepared.slot().unwrap(), opened);
+        let key = client.binding_hardware_key(prepared.presence.key.slot().unwrap(), opened);
         if moved {
             assert_eq!(key.err(), Some(Error::Forbidden));
             assert!(client.workspace.meta.anchor.as_ref().unwrap().foreign);
@@ -680,7 +746,7 @@ async fn a_new_binding_key_cannot_settle_an_older_late_anchor() {
         .unwrap();
     let opened = prepared.open();
     let key = client
-        .binding_hardware_key(prepared.slot().unwrap(), opened)
+        .binding_hardware_key(prepared.presence.key.slot().unwrap(), opened)
         .unwrap();
     assert!(client.workspace.meta.anchor.as_ref().unwrap().late);
     client.apply_login_keys(prepared, &key, now_ms()).unwrap();
@@ -784,7 +850,7 @@ fn default_binding_does_not_treat_temporarily_unavailable_enclave_as_unsupported
         .unwrap()
         .unwrap();
     assert!(matches!(prepared.open(), Err(Error::Unavailable(_))));
-    assert!(prepared.slot().is_none());
+    assert!(prepared.presence.key.slot().is_none());
     assert!(client.keys().is_err());
     assert!(!client.workspace.meta.bound_declined);
 }

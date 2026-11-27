@@ -45,7 +45,8 @@ desktop is one of its clients, like the CLI.
   belongs in `src/shared`, while the renderer's runtime depends on Svelte and DOM APIs.
   Labels that name the Mac's Touch ID, Secure Enclave or a copy from another Mac
   have Windows texts (Windows Hello, this PC) that `t` shows on Windows, listed
-  in `i18n/windows.ts`; `tests/i18n.test.ts` checks that none of them names the Mac.
+  in `i18n/windows.ts`. The tray and renderer share the Windows migration
+  state in `src/shared/session-state.ts`. The language tests cover all 23 catalogs.
 
   The main window's shell (`shell/`) has a sidebar with the account
   switcher (this device's accounts, another login), the views in three

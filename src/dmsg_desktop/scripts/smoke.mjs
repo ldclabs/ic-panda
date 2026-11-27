@@ -2437,7 +2437,7 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'security') {
-    await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
+    await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created, formMatrix })
     assert.deepEqual(pageErrors, [])
     console.log('desktop account security smoke test passed')
     break smoke

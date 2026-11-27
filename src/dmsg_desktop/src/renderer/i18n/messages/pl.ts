@@ -3028,7 +3028,6 @@ export default {
     "locked": "Zablokowano",
     "root_required": "Wymagany główny klucz treści",
     "unlocked": "Odblokowano",
-    "moved_pc": "Skopiowano z innego komputera",
     "moved": "Skopiowano z innego Maca"
   }
 } satisfies Catalog

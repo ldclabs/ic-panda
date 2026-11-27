@@ -3028,7 +3028,6 @@ export default {
     "locked": "Đã khóa",
     "root_required": "Cần khóa gốc nội dung",
     "unlocked": "Đã mở khóa",
-    "moved_pc": "Sao chép từ máy tính khác",
     "moved": "Sao chép từ máy Mac khác"
   }
 } satisfies Catalog
