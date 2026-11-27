@@ -20,6 +20,7 @@ use dmsg_types::{Error, Result, ensure};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::Duration;
 
@@ -41,7 +42,6 @@ pub(crate) const METHODS: [&str; 10] = [
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
         "nearby/status" | "nearby/browse" | "nearby/scan" => &[],
-        "nearby/send_start" => &["nearby/changed", "approval/changed"],
         _ => &["nearby/changed"],
     }
 }
@@ -121,13 +121,8 @@ impl Nearby {
     /// Snapshot of receive/send state enriched with a QR data URL and optional mDNS notice.
     pub(crate) fn view(&self) -> Value {
         let mut view = self.core.view();
+        with_qr(&mut view);
         if let Some(recv) = view.get_mut("receive").and_then(Value::as_object_mut) {
-            if let Some(offer) = recv.get("offer").and_then(Value::as_str)
-                && !offer.is_empty()
-                && let Ok(qr_png) = qr::png_data(offer)
-            {
-                recv.insert("qr".into(), Value::String(qr_png));
-            }
             let mdns_error = self
                 .handles
                 .lock()
@@ -167,6 +162,7 @@ impl Nearby {
 
     fn change_hook(&self, daemon: Arc<Daemon>) -> Arc<dyn Fn() + Send + Sync> {
         let core = self.core.clone();
+        let approving = AtomicBool::new(false);
         Arc::new(move || {
             let mut view = core.view();
             let recv_state = view["receive"]["state"]
@@ -182,13 +178,7 @@ impl Nearby {
             {
                 daemon.note_activity();
             }
-            if let Some(recv) = view.get_mut("receive").and_then(Value::as_object_mut)
-                && let Some(offer) = recv.get("offer").and_then(Value::as_str)
-                && !offer.is_empty()
-                && let Ok(qr_png) = qr::png_data(offer)
-            {
-                recv.insert("qr".into(), Value::String(qr_png));
-            }
+            with_qr(&mut view);
             if matches!(recv_state.as_str(), "done" | "failed" | "cancelled") {
                 let mut h = daemon
                     .nearby
@@ -201,11 +191,27 @@ impl Nearby {
             if recv_state == "done" {
                 daemon.emit("files/changed", json!({"nearby": true}));
             }
-            if send_state == "awaiting_approval" {
+            // Once more when the wait ends: the send settles or cancels the approval.
+            let awaiting = send_state == "awaiting_approval";
+            let was_awaiting = approving.swap(awaiting, Ordering::Relaxed);
+            if awaiting || was_awaiting {
                 daemon.emit("approval/changed", Value::Null);
             }
             daemon.emit("nearby/changed", view);
         })
+    }
+}
+
+/// Attach the offer's QR image while the receiver waits for a sender; a
+/// transfer reports progress per chunk and shows no code.
+fn with_qr(view: &mut Value) {
+    if let Some(recv) = view.get_mut("receive").and_then(Value::as_object_mut)
+        && recv.get("state").and_then(Value::as_str) == Some("waiting")
+        && let Some(offer) = recv.get("offer").and_then(Value::as_str)
+        && !offer.is_empty()
+        && let Ok(qr_png) = qr::png_data(offer)
+    {
+        recv.insert("qr".into(), Value::String(qr_png));
     }
 }
 

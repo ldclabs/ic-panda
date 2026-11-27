@@ -344,6 +344,55 @@ fn folders_files_and_versions_round_trip_through_a_reload() {
     assert_eq!(usage.blobs, 6);
 }
 
+#[test]
+fn nearby_imports_neither_resume_nor_get_resumed_and_are_swept() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let data = pattern(CHUNK + 10, 3);
+    struct FirstChunk<'a>(&'a [u8], usize);
+    impl std::io::Read for FirstChunk<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            if self.1 >= CHUNK {
+                return Err(std::io::Error::other("stopped"));
+            }
+            let n = buf.len().min(CHUNK - self.1);
+            buf[..n].copy_from_slice(&self.0[self.1..self.1 + n]);
+            self.1 += n;
+            Ok(n)
+        }
+    }
+    // A local import of "same.bin" that stopped after its first chunk.
+    let stopped = client.import_stream(
+        &mut FirstChunk(&data, 0),
+        data.len() as u64,
+        "same.bin",
+        ROOT,
+        None,
+        Origin::Imported,
+        &mut no_progress,
+    );
+    assert!(stopped.is_err());
+    let kept = client.import_jobs().unwrap()[0].chunks.clone();
+
+    // A nearby file of that name and size starts an import of its own...
+    let mut nearby = client
+        .nearby_import_start(data.len() as u64, "same.bin", ROOT)
+        .unwrap();
+    client
+        .import_part(&mut nearby, 0, &pattern(CHUNK, 9))
+        .unwrap();
+    // ...which its aborted transfer leaves behind.
+    drop(nearby);
+    assert_eq!(client.import_jobs().unwrap().len(), 2);
+
+    // Only the nearby import goes, with its chunk; the local one can resume.
+    client.nearby_import_sweep(u64::MAX).unwrap();
+    let left = client.import_jobs().unwrap();
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].chunks, kept);
+    assert_eq!(client.blobs().unwrap().entries().unwrap().len(), 1);
+}
+
 /// The test account's root, as `testing::unlocked` sets it.
 #[allow(non_snake_case)]
 fn RootKeys_single() -> crate::root::RootKeys {

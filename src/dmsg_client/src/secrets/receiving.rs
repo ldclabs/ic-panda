@@ -4,7 +4,7 @@ use crate::{
     cloud::Cloud,
     downloads::Slot,
     files::{BlobStore, CHUNK, FileManifest},
-    hold::{Hold, Unlocked},
+    hold::{Hold, Session, Unlocked},
     library::link,
     upload::ChunkRef,
 };
@@ -574,7 +574,8 @@ pub(crate) async fn stage_nearby_package<H: Hold>(
     ensure(actual == expected_sha256, Error::IntegrityFailed)?;
     let parsed = package::parse(&raw_bytes)?;
     let preview = parsed.manifest.preview();
-    let bound = Unlocked::new(h).await?;
+    // Standalone workspaces receive face to face too: bind the session, not an account.
+    let bound = Session::new(h).await?;
     let now = now_ms();
     let expires_at = now + 30 * MINUTE;
     let id = hex::encode(random_id());
@@ -658,7 +659,7 @@ async fn received_bytes<H: Hold>(h: &H, received: &Received) -> Result<Zeroizing
 impl ImportRun {
     /// Import only after complete validation, with the durable receipt and content in one transaction.
     pub async fn run<H: Hold>(self, h: &H) -> Result<Value> {
-        let bound = Unlocked::new(h).await?;
+        let bound = Session::new(h).await?;
         let result = self.execute(&bound).await;
         match result {
             Ok(view) => Ok(view),

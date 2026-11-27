@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     files::{CHUNK, Source as BlobSource},
-    hold::{Hold, Unlocked},
+    hold::{Hold, Session, Unlocked},
     library::link::{self, LinkRecord, LinkSource},
     upload::UploadPlan,
 };
@@ -186,6 +186,11 @@ pub struct Preparation {
     job: Job,
 }
 impl Preparation {
+    /// Exact plaintext size of the package this preparation builds.
+    pub(crate) fn plain_bytes(&self) -> u64 {
+        self.job.plan.plain_bytes
+    }
+
     /// Reject a host-specific payload budget before persisting a preparation.
     pub fn limit_size(self, max_plain_bytes: u64) -> Result<Self> {
         ensure_valid(
@@ -721,6 +726,11 @@ impl Client {
                 return self.approval_view(&r);
             }
         }
+        // A standalone workspace shares a snapshot only face to face.
+        ensure(
+            !self.is_local() || job.plan.nearby.is_some(),
+            crate::local::only(),
+        )?;
         let now = now_ms();
         self.share_check(&job, false, now)?;
         job.boot = self.secret_boot.clone();
@@ -912,7 +922,7 @@ async fn append<H: Hold>(
 impl ShareRun {
     /// Encrypt a snapshot in bounded chunks, upload immutable ciphertext, then publish at most once.
     pub async fn run<H: Hold>(self, h: &H) -> Result<Value> {
-        let bound = Unlocked::new(h).await?;
+        let bound = Session::new(h).await?;
         let outcome = self.execute(&bound).await;
         match outcome {
             Ok(()) => {

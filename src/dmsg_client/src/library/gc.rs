@@ -93,6 +93,9 @@ impl Client {
             return Ok(None);
         }
         self.library_maintained_at = Some(now);
+        // A nearby receive never resumes; one stopped by a lock or a quit
+        // holds its chunks until this pass, a day after it began.
+        self.nearby_import_sweep(now.saturating_sub(DAY))?;
         let keep_ms = self.config.files_trash_days * DAY;
         let expired: Vec<String> = {
             let catalog = self.catalog()?;

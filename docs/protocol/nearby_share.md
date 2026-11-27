@@ -11,7 +11,7 @@ Two physically nearby dMsg devices (different accounts, same account, or offline
 
 - **QR-only by default**: Opening Receive listens locally and displays a `dmsg-nearby/1:` QR code (and copyable offer text) without broadcasting mDNS.
 - **Opt-in local discovery**: When the receiver enables discoverability, it advertises `_dmsg-share._tcp` with a 16-hex ephemeral instance name and TXT keys `v=1`, `n=<alias <= 32 UTF-8 bytes>` and `p=<4-byte ephemeral pk hint>`. No `AccountId`, handle or permanent device ID is advertised.
-- **Parallel racing with blind relay fallback**: Online logged-in receivers asynchronously open an ephemeral blind relay room (zero R2 storage, 5-minute join deadline, 100 MiB / 60 s idle / 15-minute transfer ceiling). Senders dial private LAN candidates and mDNS/AWDL immediately, launching the relay after 1.8 s in parallel; the first completed handshake wins.
+- **Parallel racing with blind relay fallback**: Online logged-in receivers asynchronously open an ephemeral blind relay room (zero R2 storage, a join deadline equal to the offer's 270 s — the relay accepts at most 5 minutes, leaving 30 s for clock skew — and 100 MiB / 60 s idle / 15-minute transfer ceiling). The receiver waits in the room until a sender joins or the deadline passes, not for the 10 s handshake timeout. Senders dial private LAN candidates and mDNS/AWDL immediately, launching the relay after 1.8 s in parallel; the first completed handshake wins.
 - **Address guardrails**: `addrs` accepts only private (RFC 1918 / RFC 4193 ULA) and link-local literals; `relay.env` must match the client's configured environment and never steers to an arbitrary URL.
 
 ## 2. Commitment-then-Reveal Handshake
@@ -35,7 +35,7 @@ Two physically nearby dMsg devices (different accounts, same account, or offline
 - Post-handshake frames use AES-256-GCM with `nonce = direction || 0x000000 || seq_be` and `aad = CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`, max plaintext `1 MiB + 64 KiB`.
 - Receivers grant initial chunk credits (`W = 4`) in `Accept` and replenish every 2 chunks via `Credit`.
 - **Files**: No high-risk approval; received through `library::import` (`free_name`, fresh `FileKey`, bounded by `files_max_bytes`, default 4 GiB, max 10 GiB / 64 files per session), committed and acknowledged per file (`FileAck`).
-- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, <= 64 fields, <= 20 attachments, `dmsg-` reserved entries forbidden), with `Action::SecretShare` on the sender and verified preview + `Action::SecretPackageImport` on the receiver.
+- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, <= 64 fields, <= 20 attachments, `dmsg-` reserved entries forbidden), with `Action::SecretShare` on the sender, requested only after the receiver accepts and cancelled with its approval when the wait times out, the approval is declined or the sender cancels, and verified preview + `Action::SecretPackageImport` on the receiver.
 
 ## 4. Ephemeral Blind Relay (`dmsg-nearby-relay/1`)
 

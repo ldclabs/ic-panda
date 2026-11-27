@@ -762,6 +762,8 @@ impl Client {
         expires_at: u64,
     ) -> Result<Request> {
         if self.is_local() {
+            // Snapshots move between standalone workspaces face to face:
+            // `secret_share_request` admits only nearby shares here.
             ensure(
                 matches!(
                     action,
@@ -769,6 +771,8 @@ impl Client {
                         | Action::SecretDiscoveryImport { .. }
                         | Action::SecretMountConfig { .. }
                         | Action::SecretMountRead { .. }
+                        | Action::SecretPackageImport { .. }
+                        | Action::SecretShare { .. }
                 ),
                 crate::local::only(),
             )?;

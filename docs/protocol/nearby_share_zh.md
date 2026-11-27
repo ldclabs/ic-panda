@@ -11,7 +11,7 @@
 
 - **默认「仅扫码」**：接收方打开「近场接收」时仅监听本机端口并展示 `dmsg-nearby/1:` 二维码（及可粘贴文本），**不发送 mDNS 广播**。
 - **可选局域网发现**：用户显式开启「让附近设备看到我」后，接收方在 `_dmsg-share._tcp` 下以 16 位随机 hex 实例名广播，TXT 仅含 `v=1`、`n=<32B以内显示名>` 与 `p=<4字节临时公钥短提示>`，不暴露 `AccountId`、handle 或永久设备 ID。
-- **并行竞速与盲中继兜底**：接收方若为在线已登录设备，会异步向已配置中继申请短命盲中继房间（不落 R2、加入截止 5 分钟、配对后限 100 MiB / 60 秒空闲 / 15 分钟绝对上限）。发送方扫码后先拨号私网候选地址与 mDNS/AWDL，延迟 1.8 秒后并行拉起盲中继，先完成握手者胜出。
+- **并行竞速与盲中继兜底**：接收方若为在线已登录设备，会异步向已配置中继申请短命盲中继房间（不落 R2；加入截止 270 秒，与二维码有效期相同，中继最多接受 5 分钟，余下 30 秒留给时钟偏差；配对后限 100 MiB / 60 秒空闲 / 15 分钟绝对上限）。接收方在房间里等待发送方加入直至截止，而非 10 秒的握手超时。发送方扫码后先拨号私网候选地址与 mDNS/AWDL，延迟 1.8 秒后并行拉起盲中继，先完成握手者胜出。
 - **地址安全约束**：二维码内 `addrs` 仅允许私网（RFC 1918 / RFC 4193 ULA）与链路本地地址，拒绝公网 IP、多播与域名；`relay.env` 必须匹配本机部署环境，绝不盲连二维码中的任意 URL。
 
 ## 2. 抗 MITM 承诺-揭示握手（Commitment-then-Reveal）
@@ -38,7 +38,7 @@
 - 握手后每帧为 AES-256-GCM 密文，nonce 为 `direction (1B) || 0x000000 || seq (8B BE)`，AAD 为 `CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`，明文上限 `1 MiB + 64 KiB`。
 - **按块信用窗口**：接收方在 `Accept` 授予初始信用 `W = 4` 块，每消费 2 块回发 `Credit { granted }`，LAN 与 WebSocket 中继共用同一背压流控。
 - **文件分享**：普通文件不走高风险审批；接收方复用 `library::import`（`free_name` 不并入同名文件、独立 `FileKey`、按 `files_max_bytes` 验收，默认 4 GiB，单次会话 ≤ 10 GiB / 64 文件），**逐文件独立提交并回执 `FileAck`**。
-- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、≤ 64 字段、≤ 20 附件、默认全不选、拦截 `dmsg-` 保留条目）。发送方经高风险 `Action::SecretShare`（绑定 `transcript` 与 6 位码）批准后流式发出；接收方整包校验后进入现有 `secrets/receiving` 真实无值预览与 `Action::SecretPackageImport` 原子导入。
+- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、≤ 64 字段、≤ 20 附件、默认全不选、拦截 `dmsg-` 保留条目）。接收方接受后，发送方才创建分享任务并请求高风险 `Action::SecretShare`（绑定 `transcript` 与 6 位码），批准后流式发出；等待批准超时、被拒绝或发送方取消时撤销该任务及其审批；接收方整包校验后进入现有 `secrets/receiving` 真实无值预览与 `Action::SecretPackageImport` 原子导入。
 
 ## 4. 中继合同（`dmsg-nearby-relay/1`）
 

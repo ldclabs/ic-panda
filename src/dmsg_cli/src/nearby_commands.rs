@@ -253,8 +253,8 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
             print(json_out, &view, |v| {
                 let mut text = format_status(v);
                 text.push_str(&tr!(
-                    "\nCheck `dmsg approvals list` to complete the high-risk SecretShare approval once connected.",
-                    "\n连接建立后，请通过 `dmsg approvals list` 或桌面审批窗口完成保险库高风险分享审批。"
+                    "\nAfter the receiver accepts, complete the high-risk SecretShare approval from `dmsg approvals list`.",
+                    "\n对方接受后，请通过 `dmsg approvals list` 或桌面审批窗口完成保险库高风险分享审批。"
                 ));
                 text
             });

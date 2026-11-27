@@ -24,6 +24,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use zeroize::{Zeroize, Zeroizing};
 
 pub(crate) const IMPORT: &str = "lib-import:";
+/// The receipt of an import a nearby share writes.
+const NEARBY: &str = "nearby";
 /// Host-specific decode bounds. Oversized images still import normally;
 /// only their optional thumbnail is omitted.
 #[derive(Clone, Copy)]
@@ -85,6 +87,33 @@ pub(crate) struct ImportJob {
     started_at: u64,
     #[serde(default)]
     receipt: Option<String>,
+}
+
+impl ImportJob {
+    fn new(
+        size: u64,
+        name: &str,
+        folder: &str,
+        into: Option<String>,
+        origin: Origin,
+        now: u64,
+    ) -> Self {
+        Self {
+            folder: folder.into(),
+            file: into.clone(),
+            file_id: into.unwrap_or_else(random_hex),
+            name: name.into(),
+            size,
+            mime: String::new(),
+            version: random_hex(),
+            key: b64(&Zeroizing::new(random_key())[..]),
+            origin,
+            chunks: vec![],
+            plain: vec![],
+            started_at: now,
+            receipt: None,
+        }
+    }
 }
 
 /// One import's state between bounded client steps. No account key leaves
@@ -333,28 +362,18 @@ impl Client {
                 "file",
             )?;
         }
-        let now = now_ms();
         let (job, resumed) = match self.import_job(folder, name, size, into.as_deref(), &origin)? {
             Some(job) => (job, true),
             None => (
-                ImportJob {
-                    folder: folder.into(),
-                    file: into.clone(),
-                    file_id: into.clone().unwrap_or_else(random_hex),
-                    name: name.into(),
-                    size,
-                    mime: String::new(),
-                    version: random_hex(),
-                    key: b64(&Zeroizing::new(random_key())[..]),
-                    origin,
-                    chunks: vec![],
-                    plain: vec![],
-                    started_at: now,
-                    receipt: None,
-                },
+                ImportJob::new(size, name, folder, into, origin, now_ms()),
                 false,
             ),
         };
+        self.import_open(job, resumed)
+    }
+
+    /// Record `job` so its chunks are kept, and hold its version key.
+    fn import_open(&mut self, job: ImportJob, resumed: bool) -> Result<Importing> {
         let job_key = format!("{IMPORT}{}", job.version);
         self.workspace.put_private(self.keys()?, &job_key, &job)?;
         let key = Zeroizing::new(
@@ -522,7 +541,7 @@ impl Client {
             self.save_version(&file_id, &job.version, &version)?;
             self.workspace
                 .put_private(self.keys()?, &format!("{FILE}{file_id}"), &file)?;
-            if let Some(receipt) = &job.receipt {
+            if let Some(receipt) = job.receipt.as_ref().filter(|r| r.as_str() != NEARBY) {
                 self.workspace.put_private(
                     self.keys()?,
                     &format!("lib-import-complete:{receipt}"),
@@ -543,7 +562,8 @@ impl Client {
     }
 
     /// Start receiving a stranger's nearby file into `folder` without merging
-    /// into an existing same-named file.
+    /// into an existing same-named file. It never resumes an unfinished
+    /// import, and no import resumes it: the sender is gone with the connection.
     pub(crate) fn nearby_import_start(
         &mut self,
         size: u64,
@@ -554,7 +574,10 @@ impl Client {
         let catalog = self.catalog()?;
         catalog.live_folder(folder)?;
         let name = catalog.free_name(folder, &super::catalog::safe_name(raw_name));
-        self.import_start(size, &name, folder, None, Origin::Imported)
+        validate_name(&name)?;
+        let mut job = ImportJob::new(size, &name, folder, None, Origin::Imported, now_ms());
+        job.receipt = Some(NEARBY.into());
+        self.import_open(job, false)
     }
 
     /// Remove an unfinished nearby import job and collect its unreferenced chunks.
@@ -562,6 +585,23 @@ impl Client {
         let key = format!("{IMPORT}{}", importing.job.version);
         let _ = self.workspace.delete_private(&key);
         let _ = self.collect_blobs();
+    }
+
+    /// Drop the nearby imports started before `before` with their chunks: a
+    /// transfer stopped by a cancel, a lock or a quit leaves its import behind.
+    pub(crate) fn nearby_import_sweep(&mut self, before: u64) -> Result<()> {
+        let mut dropped = false;
+        for job in self.import_jobs()? {
+            if job.receipt.as_deref() == Some(NEARBY) && job.started_at < before {
+                self.workspace
+                    .delete_private(&format!("{IMPORT}{}", job.version))?;
+                dropped = true;
+            }
+        }
+        if dropped {
+            self.collect_blobs()?;
+        }
+        Ok(())
     }
 
     /// The unfinished import of this file into this place.
@@ -581,6 +621,7 @@ impl Client {
                     && j.size == size
                     && j.file.as_deref() == into
                     && &j.origin == origin
+                    && j.receipt.as_deref() != Some(NEARBY)
             }) {
                 return Ok(Some(job));
             }

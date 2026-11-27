@@ -3,7 +3,7 @@
 
 use super::offer::bearer_token;
 use super::wire::FrameTransport;
-use super::{RELAY_JOIN_TTL_MS, RELAY_MAX_BYTES};
+use super::{OFFER_TTL_MS, RELAY_MAX_BYTES};
 use crate::codec::sha256;
 use crate::crypto::random_id;
 use crate::hold::Hold;
@@ -62,7 +62,9 @@ pub async fn create_room<H: Hold>(h: &H) -> Result<RelayRoom> {
     let send_token = Zeroizing::new(random_16());
     let recv_hash = sha256(recv_token.as_slice());
     let send_hash = sha256(send_token.as_slice());
-    let join_expires_at = now_ms() + RELAY_JOIN_TTL_MS;
+    // The relay accepts a deadline at most `RELAY_JOIN_TTL_MS` past its own
+    // clock; the offer's lifetime leaves 30 seconds for a clock running ahead.
+    let join_expires_at = now_ms() + OFFER_TTL_MS;
     let request_id = Hash::new(random_id());
 
     #[derive(Serialize)]

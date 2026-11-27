@@ -136,13 +136,16 @@ fn random_16() -> [u8; 16] {
 ///
 /// When `require_qr` is `true` (default QR-only mode), a peer that cannot prove
 /// possession of `qrs` is rejected immediately before notifying the UI.
+/// `hello_wait` bounds the wait for the sender's first message: a direct
+/// connection arrives with it, a relay room waits until a sender joins.
 pub async fn receiver_handshake<T: FrameTransport>(
     transport: &mut T,
     r_key: &EphemeralKey,
     qrs: &[u8; 16],
     require_qr: bool,
+    hello_wait: std::time::Duration,
 ) -> Result<HandshakeSecrets> {
-    let hello: ClientHello = tokio::time::timeout(HELLO_TIMEOUT, recv_plain(transport))
+    let hello: ClientHello = tokio::time::timeout(hello_wait, recv_plain(transport))
         .await
         .map_err(|_| Error::Unavailable("nearby: hello timed out".into()))??;
     ensure(hello.v == FORMAT, Error::UnsupportedProtocol)?;
@@ -277,16 +280,25 @@ pub async fn verify_identity<H: Hold>(
         IDENTITY_DOMAIN,
         &(transcript, expected_role, &account, device),
     );
-    dmsg_protocol::verify(&Hash::new(*sign_pk), msg.as_slice(), signature.as_slice())?;
+    let sign_pk = Hash::new(*sign_pk);
+    dmsg_protocol::verify(&sign_pk, msg.as_slice(), signature.as_slice())?;
     let status = h
         .with(|c| {
-            let same_env = c.workspace.meta.environment == environment;
-            let own = c.content_id().ok().map(|id| id.to_string());
-            if same_env && own.as_deref() == Some(account.as_str()) && !c.is_local() {
-                Ok("same_account".to_string())
+            // An account ID is public: only a key the certified device map
+            // registers for that device makes the sender one of our devices.
+            let own = !c.is_local()
+                && c.workspace.meta.environment == environment
+                && c.content_id().is_ok_and(|id| id.to_string() == account)
+                && c.security
+                    .as_ref()
+                    .and_then(|s| s.device(&device))
+                    .is_some_and(|d| d.revoked_at.is_none() && d.input.signing_pub == sign_pk);
+            Ok(if own {
+                "same_account"
             } else {
-                Ok("signature_only".to_string())
+                "signature_only"
             }
+            .to_string())
         })
         .await?;
     Ok(PeerIdentity {
@@ -363,7 +375,21 @@ where
         }
     }
 
-    let decision = decide(kind, files.clone(), package_size, alias.clone()).await?;
+    let alias = alias.map(|a| super::offer::sanitize_alias(&a));
+    // The sender sends nothing until it is accepted: a frame, a closed
+    // connection or its own timeout means it left while the person decides.
+    let decision = tokio::select! {
+        decision = decide(kind, files.clone(), package_size, alias.clone()) => decision?,
+        early = channel.recv(CONFIRM_TIMEOUT) => {
+            return Err(match early {
+                Ok(Body::Abort { code }) => {
+                    Error::Unavailable(format!("nearby: peer stopped ({code})"))
+                }
+                Ok(_) => Error::IntegrityFailed,
+                Err(err) => err,
+            });
+        }
+    };
     let (folder, selected, share_identity) = match decision {
         ReceiveDecision::Accept {
             folder,
@@ -440,7 +466,10 @@ where
                             .iter()
                             .find(|f| f.index == index)
                             .ok_or(Error::IntegrityFailed)?;
-                        ensure(expected.size == size, Error::IntegrityFailed)?;
+                        ensure(
+                            expected.size == size && expected.name == name,
+                            Error::IntegrityFailed,
+                        )?;
                         progress.current_name = Some(name.clone());
                         on_progress(progress.clone());
 

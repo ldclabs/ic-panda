@@ -13,7 +13,10 @@ use super::wire::{
     Channel, EphemeralKey, FileSummary, FrameTransport, HandshakeSecrets, OfferKind, RECEIVER,
     SENDER, StreamTransport,
 };
-use super::{MAX_SESSION_BYTES, OFFER_TTL_MS, RELAY_MAX_BYTES, RELAY_MAX_FILES};
+use super::{
+    HELLO_TIMEOUT, MAX_SESSION_BYTES, OFFER_TTL_MS, RELAY_JOIN_TTL_MS, RELAY_MAX_BYTES,
+    RELAY_MAX_FILES,
+};
 use crate::hold::{Hold, Session};
 use crate::secrets::shares::{NearbyTarget, ShareInput};
 use crate::{error_code, now_ms};
@@ -608,8 +611,12 @@ impl NearbyHost {
                 None
             }
         };
-        if let (Some(h), Some(rid)) = (h, rid) {
-            let _ = cancel_room(h, rid).await;
+        if let Some(h) = h {
+            // An aborted transfer stops between chunks without its cleanup.
+            let _ = h.with(|c| c.nearby_import_sweep(u64::MAX)).await;
+            if let Some(rid) = rid {
+                let _ = cancel_room(h, rid).await;
+            }
         }
         self.view()
     }
@@ -662,39 +669,27 @@ impl NearbyHost {
                 (OfferKind::Files, total, items.len())
             }
             SendPayload::VaultItem(input) => {
-                // Validate selection and compute exact package size upfront without persisting yet.
+                // Check the selection and size the package before connecting;
+                // the share job is saved only once the receiver accepts.
                 let plain_bytes = h
                     .with(|c| {
-                        let prepared = c.secret_nearby_preparation(
-                            input.clone(),
-                            NearbyTarget {
-                                transcript: "00".repeat(32),
-                                sas: "000000".into(),
-                                peer_label: "preview".into(),
-                            },
-                        )?;
-                        let _ = &prepared;
-                        // Extract plain bytes via temporary check without saving job.
-                        let mut check = input.clone();
-                        check.expires_in_ms = None;
-                        check.max_download_sessions = None;
-                        let entry = c.vault_show(&check.item_id)?;
-                        ensure(
-                            !entry.deleted
-                                && !entry.item.reserved()
-                                && entry.revision == check.revision,
-                            Error::VersionConflict,
-                        )?;
-                        let mut size = 0u64;
-                        for a in &check.attachments {
-                            let (_, _, m) = c.library_manifest(&a.file_id, Some(&a.version_id))?;
-                            size = size.checked_add(m.size).ok_or(Error::QuotaExceeded)?;
-                        }
-                        Ok(size)
+                        let target = NearbyTarget {
+                            transcript: "00".repeat(32),
+                            sas: "000000".into(),
+                            peer_label: String::new(),
+                        };
+                        Ok(c.secret_nearby_preparation(input.clone(), target)?
+                            .plain_bytes())
                     })
-                    .await?;
-                let _ = plain_bytes;
-                (OfferKind::SecretPackage, 0, 1)
+                    .await
+                    .map_err(|e| {
+                        if e == crate::secrets::failure("SECRET_VERSION_STALE") {
+                            Error::VersionConflict
+                        } else {
+                            e
+                        }
+                    })?;
+                (OfferKind::SecretPackage, plain_bytes, 1)
             }
         };
 
@@ -817,13 +812,14 @@ impl NearbyHost {
     pub fn send_cancel(&self) -> Json {
         let mut guard = lock(&self.send);
         if let Some(st) = guard.as_mut() {
-            if let Some(task) = st.task.take() {
+            if let Some(tx) = st.approval_tx.take() {
+                // A send waiting on its Vault approval cancels the share job
+                // and the approval itself before it ends.
+                let _ = tx.send(Err(Error::Unavailable("nearby: cancelled".into())));
+            } else if let Some(task) = st.task.take() {
                 task.abort();
             }
             if let Some(tx) = st.sas_tx.take() {
-                let _ = tx.send(Err(Error::Unavailable("nearby: cancelled".into())));
-            }
-            if let Some(tx) = st.approval_tx.take() {
                 let _ = tx.send(Err(Error::Unavailable("nearby: cancelled".into())));
             }
             if matches!(
@@ -911,7 +907,15 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
         };
 
         let transport_name = transport.kind_name().to_string();
-        let Ok(secrets) = receiver_handshake(&mut transport, &r_key, &qrs, require_qr).await else {
+        // A relay room is joined when the person scans the code; the relay
+        // closes it at its join deadline.
+        let hello_wait = match transport {
+            AnyTransport::Relay(_) => Duration::from_millis(RELAY_JOIN_TTL_MS),
+            _ => HELLO_TIMEOUT,
+        };
+        let Ok(secrets) =
+            receiver_handshake(&mut transport, &r_key, &qrs, require_qr, hello_wait).await
+        else {
             return;
         };
         let peer_id = hex::encode(&secrets.sid[..8]);
@@ -1231,7 +1235,6 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
             .await
         }
         SendPayload::VaultItem(input) => {
-            // Prepare exact package metadata bound to this verified transcript!
             let peer_label = lock(&send_arc)
                 .as_ref()
                 .filter(|s| s.id == id)
@@ -1242,82 +1245,107 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                 sas: secrets.sas.clone(),
                 peer_label,
             };
-            let (job_id, plain_bytes, approval_view) = bound
-                .with(|c| {
-                    let prepared = c.secret_nearby_preparation(input, target_info)?;
-                    let job_view = c.secret_share_save_preparation(prepared)?;
-                    let job_id = job_view["id"]
-                        .as_str()
-                        .ok_or(Error::IntegrityFailed)?
-                        .to_string();
-                    let plain_bytes = job_view["plan"]["plain_bytes"]
-                        .as_u64()
-                        .ok_or(Error::IntegrityFailed)?;
-                    let approval = c.secret_share_request(&approval_source, &job_id)?;
-                    Ok((job_id, plain_bytes, approval))
-                })
-                .await?;
-            let approval_id = approval_view["id"]
-                .as_str()
-                .ok_or(Error::IntegrityFailed)?
-                .to_string();
-
             let send_for_approval = send_arc.clone();
             let cb_approval = on_change.clone();
             let h_for_approval = h.clone();
-            let job_id_for_wait = job_id.clone();
 
             send_secret_package_after_handshake(
                 &bound,
                 channel,
                 secrets,
-                plain_bytes,
+                total_bytes,
                 alias,
                 share_identity,
                 confirm_sas,
                 move |_s: &HandshakeSecrets| async move {
-                    let bound_for_approval = Session::new(&h_for_approval).await?;
-                    let (tx, mut rx) = oneshot::channel();
-                    {
-                        let mut guard = lock(&send_for_approval);
-                        if let Some(st) = guard.as_mut().filter(|s| s.id == id) {
-                            st.share_job_id = Some(job_id_for_wait.clone());
-                            st.approval_id = Some(approval_id.clone());
-                            st.approval_tx = Some(tx);
-                            st.state = "awaiting_approval";
-                        }
+                    let bound = Session::new(&h_for_approval).await?;
+                    // The receiver accepted: only now ask for the high-risk approval.
+                    let (job_id, approval_id) = bound
+                        .with(|c| {
+                            let prepared = c.secret_nearby_preparation(input, target_info)?;
+                            let job = c.secret_share_save_preparation(prepared)?;
+                            let job_id = job["id"]
+                                .as_str()
+                                .ok_or(Error::IntegrityFailed)?
+                                .to_string();
+                            let approval = c.secret_share_request(&approval_source, &job_id)?;
+                            let approval_id = approval["id"]
+                                .as_str()
+                                .ok_or(Error::IntegrityFailed)?
+                                .to_string();
+                            Ok((job_id, approval_id))
+                        })
+                        .await?;
+                    let approved = wait_for_approval(
+                        &bound,
+                        &send_for_approval,
+                        id,
+                        &job_id,
+                        approval_id,
+                        &cb_approval,
+                    )
+                    .await;
+                    if approved.is_err() {
+                        let _ = bound.with(|c| c.secret_share_cancel(&job_id)).await;
                     }
-                    cb_approval();
-
-                    // Poll approval status in case host approved externally without calling `send_approval_ready`.
-                    let mut tick = tokio::time::interval(Duration::from_millis(400));
-                    let deadline = tokio::time::Instant::now() + super::CONFIRM_TIMEOUT;
-                    loop {
-                        tokio::select! {
-                            res = &mut rx => {
-                                return res.map_err(|_| Error::Unavailable("nearby: cancelled".into()))?;
-                            }
-                            _ = tick.tick() => {
-                                if tokio::time::Instant::now() >= deadline {
-                                    return Err(Error::Expired);
-                                }
-                                let view = bound_for_approval
-                                    .with(|c| c.secret_share_get(&job_id_for_wait, false))
-                                    .await?;
-                                match view["state"].as_str() {
-                                    Some("ready_for_nearby") => return Ok(job_id_for_wait),
-                                    Some("cancelled" | "failed") => {
-                                        return Err(Error::Unavailable("nearby: share approval rejected".into()));
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
+                    approved.map(|()| job_id)
                 },
                 on_progress,
             )
             .await
         }
     }
+}
+
+/// Wait until the `SecretShare` approval of `job_id` staged the package for
+/// this session, the person declined it or [`super::CONFIRM_TIMEOUT`] passed.
+async fn wait_for_approval<H: Hold>(
+    h: &H,
+    send: &Arc<Mutex<Option<SendState>>>,
+    id: u64,
+    job_id: &str,
+    approval_id: String,
+    on_change: &Arc<dyn Fn() + Send + Sync>,
+) -> Result<()> {
+    let (tx, mut rx) = oneshot::channel();
+    if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
+        st.share_job_id = Some(job_id.to_string());
+        st.approval_id = Some(approval_id);
+        st.approval_tx = Some(tx);
+        st.state = "awaiting_approval";
+    }
+    on_change();
+    let waited: Result<()> = async {
+        // Poll as well, in case the host approved without calling `send_approval_ready`.
+        let mut tick = tokio::time::interval(Duration::from_millis(400));
+        let deadline = tokio::time::Instant::now() + super::CONFIRM_TIMEOUT;
+        loop {
+            tokio::select! {
+                res = &mut rx => {
+                    return res
+                        .map_err(|_| Error::Unavailable("nearby: cancelled".into()))?
+                        .map(|_| ());
+                }
+                _ = tick.tick() => {
+                    if tokio::time::Instant::now() >= deadline {
+                        return Err(Error::Expired);
+                    }
+                    let view = h.with(|c| c.secret_share_get(job_id, false)).await?;
+                    match view["state"].as_str() {
+                        Some("ready_for_nearby") => return Ok(()),
+                        Some("cancelled" | "failed") => {
+                            return Err(Error::Unavailable("nearby: share approval rejected".into()));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    .await;
+    // Past the wait, cancelling aborts the send task again.
+    if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
+        st.approval_tx = None;
+    }
+    waited
 }

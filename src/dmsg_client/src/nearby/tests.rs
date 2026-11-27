@@ -110,7 +110,7 @@ async fn commitment_then_reveal_blocks_tampered_reveal_wrong_r_pk_and_missing_qr
     let r_pk = r_key.public_bytes();
     let (s_res, r_res) = tokio::join!(
         sender_handshake(&mut st, Some(&r_pk), Some(&qrs)),
-        receiver_handshake(&mut rt, &r_key, &qrs, true),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
     );
     let (s_sec, r_sec) = (s_res.unwrap(), r_res.unwrap());
     assert_eq!(s_sec.sid, r_sec.sid);
@@ -125,7 +125,7 @@ async fn commitment_then_reveal_blocks_tampered_reveal_wrong_r_pk_and_missing_qr
     let mut rt = StreamTransport::new(r_io);
     let (_s_res, r_res) = tokio::join!(
         sender_handshake(&mut st, None, None),
-        receiver_handshake(&mut rt, &r_key, &qrs, true),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
     );
     assert_eq!(r_res.unwrap_err(), Error::Forbidden);
 
@@ -136,7 +136,7 @@ async fn commitment_then_reveal_blocks_tampered_reveal_wrong_r_pk_and_missing_qr
     let mut rt = StreamTransport::new(r_io);
     let (s_res, _r_res) = tokio::join!(
         sender_handshake(&mut st, Some(&wrong_pk), Some(&qrs)),
-        receiver_handshake(&mut rt, &r_key, &qrs, false),
+        receiver_handshake(&mut rt, &r_key, &qrs, false, HELLO_TIMEOUT),
     );
     assert_eq!(s_res.unwrap_err(), Error::IntegrityFailed);
 
@@ -163,7 +163,10 @@ async fn commitment_then_reveal_blocks_tampered_reveal_wrong_r_pk_and_missing_qr
         .await
         .unwrap();
     };
-    let (_, r_res) = tokio::join!(attacker, receiver_handshake(&mut rt, &r_key, &qrs, false));
+    let (_, r_res) = tokio::join!(
+        attacker,
+        receiver_handshake(&mut rt, &r_key, &qrs, false, HELLO_TIMEOUT)
+    );
     assert_eq!(r_res.unwrap_err(), Error::IntegrityFailed);
 }
 
@@ -185,7 +188,7 @@ async fn browse_mode_leaks_zero_metadata_before_sas_confirmation() {
     let mut rt = StreamTransport::new(r_io);
     let (s_sec, r_sec) = tokio::join!(
         sender_handshake(&mut st, None, None),
-        receiver_handshake(&mut rt, &r_key, &qrs, false),
+        receiver_handshake(&mut rt, &r_key, &qrs, false, HELLO_TIMEOUT),
     );
     let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
     assert!(!s_sec.qr_bound);
@@ -253,7 +256,7 @@ async fn multi_file_transfer_commits_individually_with_credit_window_and_free_na
     let mut rt = StreamTransport::new(r_io);
     let (s_sec, r_sec) = tokio::join!(
         sender_handshake(&mut st, Some(&r_pk), Some(&qrs)),
-        receiver_handshake(&mut rt, &r_key, &qrs, true),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
     );
     let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
     let s_ch = Channel::new(st, &s_sec, SENDER);
@@ -407,7 +410,7 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
     let mut rt = StreamTransport::new(r_io);
     let (s_sec, r_sec) = tokio::join!(
         sender_handshake(&mut st, Some(&r_pk), Some(&qrs)),
-        receiver_handshake(&mut rt, &r_key, &qrs, true),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
     );
     let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
     let s_ch = Channel::new(st, &s_sec, SENDER);
@@ -878,7 +881,7 @@ async fn ws_blind_relay_transport_transfers_end_to_end_when_lan_unavailable() {
 
     let (s_sec, r_sec) = tokio::join!(
         sender_handshake(&mut send_ws, Some(&r_pk), Some(&qrs)),
-        receiver_handshake(&mut recv_ws, &r_key, &qrs, true),
+        receiver_handshake(&mut recv_ws, &r_key, &qrs, true, HELLO_TIMEOUT),
     );
     let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
     assert_eq!(s_sec.sas, r_sec.sas);
@@ -921,4 +924,410 @@ async fn ws_blind_relay_transport_transfers_end_to_end_when_lan_unavailable() {
     assert_eq!(s_out.unwrap().sent_items, 1);
     assert_eq!(r_out.unwrap().files[0].name, "relay-doc.txt");
     relay_server.abort();
+}
+
+fn standalone(dir: &std::path::Path) -> Client {
+    let mut c = Client::open(crate::testing::config(false), dir, None).unwrap();
+    let request = c.prepare_local_create().unwrap();
+    c.complete_local_create(
+        request
+            .authenticate(Some("nearby fixture password"))
+            .unwrap(),
+    )
+    .unwrap();
+    c
+}
+
+/// Pump frames both ways between two in-memory bridges, as the Apple byte bridges do.
+fn bridge_pair() -> (BridgeTransport, BridgeTransport) {
+    let (s_bridge, mut s_handle) = BridgeTransport::pair(16);
+    let (r_bridge, mut r_handle) = BridgeTransport::pair(16);
+    tokio::spawn(async move {
+        loop {
+            tokio::select! {
+                Some(b) = s_handle.outbound.recv() => {
+                    if r_handle.inbound.send(b).await.is_err() { break; }
+                }
+                Some(b) = r_handle.outbound.recv() => {
+                    if s_handle.inbound.send(b).await.is_err() { break; }
+                }
+                else => break,
+            }
+        }
+    });
+    (s_bridge, r_bridge)
+}
+
+async fn until(what: &str, hosts: [&NearbyHost; 2], mut ready: impl FnMut() -> bool) {
+    for _ in 0..250 {
+        if ready() {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!(
+        "timed out waiting for {what}: {} {}",
+        hosts[0].view(),
+        hosts[1].view()
+    );
+}
+
+/// Two Standalone workspaces whose Vault send the receiver accepted; the
+/// sender waits on its `SecretShare` approval.
+async fn standalone_vault_send(
+    dir: &std::path::Path,
+) -> (TestHold, TestHold, NearbyHost, NearbyHost, String) {
+    let (mut sender, receiver) = {
+        let _fixture = crate::testing::PASSWORD_FIXTURE.lock().await;
+        (
+            standalone(&dir.join("sender")),
+            standalone(&dir.join("receiver")),
+        )
+    };
+    assert!(sender.is_local() && receiver.is_local());
+    let entry = sender
+        .vault_create(
+            "api",
+            &Changes {
+                title: Some("Router".into()),
+                fields: Some(vec![FieldChange {
+                    id: Some("credential".into()),
+                    kind: Some("concealed".into()),
+                    label: Some("Password".into()),
+                    value: Some("router-secret-1".into()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let sender_hold = TestHold::new(sender);
+    let receiver_hold = TestHold::new(receiver);
+    let recv_host = NearbyHost::new();
+    let send_host = NearbyHost::new();
+    let noop: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {});
+
+    let started = recv_host
+        .receive_start(
+            receiver_hold.clone(),
+            Some("Bob".into()),
+            false,
+            crate::files::MAX_FILE,
+            noop.clone(),
+        )
+        .await
+        .unwrap();
+    let offer =
+        NearbyOffer::parse(started["receive"]["offer"].as_str().unwrap(), Some("local")).unwrap();
+    let (s_bridge, r_bridge) = bridge_pair();
+    recv_host
+        .receive_attach_bridge(
+            receiver_hold.clone(),
+            r_bridge,
+            crate::files::MAX_FILE,
+            noop.clone(),
+        )
+        .unwrap();
+    send_host
+        .send_start(
+            sender_hold.clone(),
+            SendTarget::Offer {
+                offer,
+                resolved: None,
+                awdl: Some(s_bridge),
+            },
+            SendPayload::VaultItem(ShareInput {
+                item_id: entry.id.clone(),
+                revision: entry.revision.clone(),
+                field_ids: vec!["credential".into()],
+                include_notes: false,
+                attachments: vec![],
+                expires_in_ms: None,
+                max_download_sessions: None,
+            }),
+            Some("Alice".into()),
+            false,
+            "gui".into(),
+            noop.clone(),
+        )
+        .await
+        .unwrap();
+
+    until("the pending peer", [&recv_host, &send_host], || {
+        recv_host.view()["receive"]["pending_peers"]
+            .as_array()
+            .is_some_and(|p| !p.is_empty())
+    })
+    .await;
+    // No share job or approval exists before the receiver accepts.
+    assert!(send_host.view()["send"]["approval_id"].is_null());
+    let listed = sender_hold.with(|c| c.secret_shares()).await.unwrap();
+    assert_eq!(listed["shares"], json!([]));
+    let peer_id = recv_host.view()["receive"]["pending_peers"][0]["peer_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    recv_host
+        .receive_accept(&peer_id, ROOT.into(), vec![], false)
+        .unwrap();
+
+    until("the share approval", [&recv_host, &send_host], || {
+        send_host.view()["send"]["approval_id"].is_string()
+    })
+    .await;
+    let approval_id = send_host.view()["send"]["approval_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    (
+        sender_hold,
+        receiver_hold,
+        recv_host,
+        send_host,
+        approval_id,
+    )
+}
+
+#[tokio::test]
+async fn standalone_workspaces_share_a_vault_snapshot_and_approve_only_after_acceptance() {
+    let dir = TempDir::new();
+    let (sender_hold, receiver_hold, recv_host, send_host, approval_id) =
+        standalone_vault_send(&dir.0).await;
+    let decision = {
+        let mut c = sender_hold.0.lock().await;
+        let shown = c
+            .approval_view(&c.approval_record(&approval_id).unwrap())
+            .unwrap();
+        c.approval_decide(
+            &approval_id,
+            shown["digest"].as_str().unwrap(),
+            true,
+            "gui",
+            false,
+        )
+        .await
+        .unwrap()
+    };
+    let crate::approval::Decision::SecretShare(run) = decision else {
+        panic!("expected a SecretShare decision");
+    };
+    let settled = run.run(&sender_hold).await.unwrap();
+    assert_eq!(settled["state"], "ready_for_nearby");
+
+    until("both sides to finish", [&recv_host, &send_host], || {
+        let (rv, sv) = (recv_host.view(), send_host.view());
+        let ended = |s: &Json| matches!(s.as_str(), Some("done" | "failed" | "cancelled"));
+        ended(&rv["receive"]["state"]) && ended(&sv["send"]["state"])
+    })
+    .await;
+    let (rv, sv) = (recv_host.view(), send_host.view());
+    assert_eq!(rv["receive"]["state"], "done", "{rv}");
+    assert_eq!(sv["send"]["state"], "done", "{sv}");
+
+    let preview = rv["receive"]["outcome"]["package_preview"].clone();
+    let selection = Selection {
+        package_id: preview["package_id"].as_str().unwrap().into(),
+        digest: preview["digest"].as_str().unwrap().into(),
+        fields: vec![
+            preview["preview"]["fields"][0]["id"]
+                .as_str()
+                .unwrap()
+                .into(),
+        ],
+        include_notes: false,
+        attachments: vec![],
+        folder: ROOT.into(),
+    };
+    let request = receiver_hold
+        .with(|c| c.secret_package_request("gui", selection))
+        .await
+        .unwrap();
+    let decision = {
+        let mut c = receiver_hold.0.lock().await;
+        c.approval_decide(
+            request["id"].as_str().unwrap(),
+            request["digest"].as_str().unwrap(),
+            true,
+            "gui",
+            false,
+        )
+        .await
+        .unwrap()
+    };
+    let crate::approval::Decision::SecretPackageImport(run) = decision else {
+        panic!("expected a SecretPackageImport decision");
+    };
+    assert_eq!(run.run(&receiver_hold).await.unwrap()["state"], "done");
+    let items = receiver_hold
+        .with(|c| c.vault_list(&crate::vault::Filter::default()))
+        .await
+        .unwrap();
+    assert_eq!(items.len(), 1);
+    let imported = receiver_hold
+        .with(|c| c.vault_show(&items[0].id))
+        .await
+        .unwrap();
+    assert_eq!(imported.item.fields[0].value, "router-secret-1");
+}
+
+#[tokio::test]
+async fn cancelling_a_vault_send_cancels_its_share_job_and_approval() {
+    let dir = TempDir::new();
+    let (sender_hold, _receiver_hold, _recv_host, send_host, approval_id) =
+        standalone_vault_send(&dir.0).await;
+    let job_id = send_host.view()["send"]["share_job_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    send_host.send_cancel();
+
+    let mut job = Json::Null;
+    for _ in 0..250 {
+        job = sender_hold
+            .with(|c| c.secret_share_get(&job_id, false))
+            .await
+            .unwrap();
+        if job["state"] == "cancelled" {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(job["state"], "cancelled", "{job}");
+    let c = sender_hold.0.lock().await;
+    let approval = c
+        .approval_view(&c.approval_record(&approval_id).unwrap())
+        .unwrap();
+    assert_eq!(approval["state"], "cancelled");
+    assert_eq!(send_host.view()["send"]["state"], "cancelled");
+}
+
+#[tokio::test]
+async fn receiver_drops_a_sender_that_leaves_and_a_file_unlike_its_offer() {
+    let dir = TempDir::new();
+    let receiver_hold = TestHold::new(unlocked(&dir.0.join("receiver"), false, None));
+    let r_key = EphemeralKey::from_seed([0x31; 32]);
+    let qrs = [0x32; 16];
+    let r_pk = r_key.public_bytes();
+    let offered = Body::OfferMeta {
+        kind: OfferKind::Files,
+        files: vec![super::wire::FileSummary {
+            index: 0,
+            name: "report.pdf".into(),
+            mime: "application/pdf".into(),
+            size: 3,
+        }],
+        package_size: None,
+        alias: Some("Al\u{7}ice".into()),
+    };
+
+    // A sender that leaves while the person decides ends the receive at once.
+    let (s_io, r_io) = duplex(64 * 1024);
+    let (mut st, mut rt) = (StreamTransport::new(s_io), StreamTransport::new(r_io));
+    let (s_sec, r_sec) = tokio::join!(
+        sender_handshake(&mut st, Some(&r_pk), Some(&qrs)),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
+    );
+    let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
+    let mut s_ch = Channel::new(st, &s_sec, SENDER);
+    s_ch.send(&offered).await.unwrap();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        drop(s_ch);
+    });
+    let left = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        receive_after_handshake(
+            &receiver_hold,
+            Channel::new(rt, &r_sec, RECEIVER),
+            r_sec,
+            crate::files::MAX_FILE,
+            |_, _, _, alias| {
+                assert_eq!(alias.as_deref(), Some("Alice"));
+                std::future::pending::<Result<ReceiveDecision>>()
+            },
+            |_| {},
+        ),
+    )
+    .await
+    .expect("the receiver notices the sender left");
+    assert!(left.is_err());
+
+    // A file whose name differs from the accepted offer is refused.
+    let (s_io, r_io) = duplex(64 * 1024);
+    let (mut st, mut rt) = (StreamTransport::new(s_io), StreamTransport::new(r_io));
+    let (s_sec, r_sec) = tokio::join!(
+        sender_handshake(&mut st, Some(&r_pk), Some(&qrs)),
+        receiver_handshake(&mut rt, &r_key, &qrs, true, HELLO_TIMEOUT),
+    );
+    let (s_sec, r_sec) = (s_sec.unwrap(), r_sec.unwrap());
+    let mut s_ch = Channel::new(st, &s_sec, SENDER);
+    s_ch.send(&offered).await.unwrap();
+    let (received, _sender) = tokio::join!(
+        receive_after_handshake(
+            &receiver_hold,
+            Channel::new(rt, &r_sec, RECEIVER),
+            r_sec,
+            crate::files::MAX_FILE,
+            |_, _, _, _| async {
+                Ok(ReceiveDecision::Accept {
+                    folder: ROOT.into(),
+                    selected: vec![0],
+                    share_identity: false,
+                })
+            },
+            |_| {},
+        ),
+        async {
+            let accept = s_ch.recv(CONFIRM_TIMEOUT).await.unwrap();
+            assert!(matches!(accept, Body::Accept { .. }));
+            s_ch.send(&Body::FileBegin {
+                index: 0,
+                name: "payload.exe".into(),
+                mime: "application/octet-stream".into(),
+                size: 3,
+                sha256: hex::encode(*crate::codec::sha256(b"abc")),
+            })
+            .await
+            .unwrap();
+            s_ch
+        },
+    );
+    assert_eq!(received.unwrap_err(), Error::IntegrityFailed);
+    let jobs = receiver_hold.with(|c| c.import_jobs()).await.unwrap();
+    assert!(jobs.is_empty());
+}
+
+#[tokio::test]
+async fn same_account_identity_needs_a_registered_device_key() {
+    let dir = TempDir::new();
+    let sender = unlocked(&dir.0.join("sender"), false, None);
+    let mut receiver = unlocked(&dir.0.join("receiver"), false, None);
+    // Both test devices sign as the same account.
+    let mut devices = crate::testing::account_state(&sender).security.devices;
+    let sender_device = sender.workspace.meta.device_id;
+    let sender_hold = TestHold::new(sender);
+    let transcript = dmsg_types::Hash::new([0x5c; 32]);
+    let frame = super::session::build_identity(&sender_hold, &transcript, "sender")
+        .await
+        .unwrap();
+
+    let status = |receiver: Client, frame: Body| async move {
+        let hold = TestHold::new(receiver);
+        let identity = super::session::verify_identity(&hold, &transcript, "sender", frame).await;
+        (
+            identity.unwrap().status,
+            Arc::try_unwrap(hold.0).ok().unwrap().into_inner(),
+        )
+    };
+    // The account ID alone is public.
+    let (seen, mut receiver_back) = status(receiver, frame.clone()).await;
+    assert_eq!(seen, "signature_only");
+    receiver_back.security = Some(crate::testing::security(1, devices.clone()));
+    let (seen, mut receiver_back) = status(receiver_back, frame.clone()).await;
+    assert_eq!(seen, "same_account");
+    devices.get_mut(&sender_device).unwrap().revoked_at = Some(1);
+    receiver_back.security = Some(crate::testing::security(1, devices));
+    receiver = receiver_back;
+    let (seen, _) = status(receiver, frame).await;
+    assert_eq!(seen, "signature_only");
 }
