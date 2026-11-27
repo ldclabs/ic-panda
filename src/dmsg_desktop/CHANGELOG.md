@@ -6,6 +6,27 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.1] - 2026-11-27
+
+- Use Nearby Share to send selected files or a vault snapshot to another
+  dMsg device, including from a standalone workspace. Scan the receiver's
+  QR code or paste its offer, then check the six-digit code on both devices.
+  Local discovery is opt-in. The CLI supports the same transfers with
+  `dmsg nearby`.
+- Choose which vault fields and attachments to share. The sender approves
+  the snapshot after the recipient accepts the transfer, and the recipient
+  can preview it before approving the import.
+- Use Passkey login on Windows PCs with Windows Hello set up and a TPM 2.0
+  that supports P-256. Windows Hello also supports fast unlock and device
+  binding.
+- Retry a failed first launch from the same window and resume account setup
+  if device binding was interrupted after registration.
+- Keep channel read status current when returning to the latest message,
+  and sync incoming letters in the background while the account is unlocked.
+- The Windows app, installer and CLI now carry timestamped Yiwen AI Limited
+  signatures. The PowerShell installer and `dmsg update` verify the CLI
+  against the publisher certificate for the selected release.
+
 ## [1.6.1-beta.2] - 2026-11-26
 
 The fixes below are also part of the `1.6.1-beta.1` source tag.
@@ -1037,6 +1058,7 @@ The fixes below are also part of the `1.6.1-beta.1` source tag.
 
 The first release of the dMsg client.
 
+[1.6.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1
 [1.6.1-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.2
 [1.6.1-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.1
 [1.6.0]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0

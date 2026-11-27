@@ -1,6 +1,6 @@
 [package]
 name = "dmsg_cli"
-version = "1.6.1-beta.2"
+version = "1.6.1"
 edition.workspace = true
 license.workspace = true
 description = "dmsg: the dMsg command line client and daemon"
@@ -45,18 +45,21 @@ zeroize.workspace = true
 tempfile = "3"
 # The TPM (CNG Platform Crypto Provider) and Windows Hello (WinRT).
 windows = { version = "0.62", features = [
-    "Foundation",
-    "Security_Credentials",
-    "Security_Cryptography",
-    "Storage_Streams",
-    "Win32_Foundation",
-    "Win32_Security_Cryptography",
-    "Win32_System_Com",
-    "Win32_System_WinRT",
-    "Win32_UI_WindowsAndMessaging",
+  "Foundation",
+  "Security_Credentials",
+  "Security_Cryptography",
+  "Storage_Streams",
+  "Win32_Foundation",
+  "Win32_Security_Cryptography",
+  "Win32_System_Com",
+  "Win32_System_WinRT",
+  "Win32_UI_WindowsAndMessaging",
 ] }
 windows-future = "0.3"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_NetworkManagement_Dns"] }
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_NetworkManagement_Dns",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 fuse3 = { workspace = true, features = ["tokio-runtime", "unprivileged"] }

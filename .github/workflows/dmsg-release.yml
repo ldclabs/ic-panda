@@ -44,57 +44,73 @@ jobs:
       - id: version
         run: node scripts/dmsg/release-config.cjs
 
-  binary:
+  binary-linux:
     needs: version
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            asset: dmsg-macos-arm64
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             asset: dmsg-linux-x86_64
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             asset: dmsg-linux-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            asset: dmsg-windows-x64.exe
     runs-on: ${{ matrix.os }}
-    steps:
+    env:
+      CLI_TARGET: ${{ matrix.target }}
+      CLI_ASSET: ${{ matrix.asset }}
+      CLI_ARTIFACT: release-${{ matrix.asset }}
+    steps: &build_cli
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Keep in step with rust-toolchain.toml.
       - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: 1.98.1
-          targets: ${{ matrix.target }}
+          targets: ${{ env.CLI_TARGET }}
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          # Preserve the old matrix job's cache key for each OS and architecture.
+          shared-key: binary
       - name: Build
         shell: bash
         run: |
-          cargo build --release --locked -p dmsg_cli --target ${{ matrix.target }}
+          cargo build --release --locked -p dmsg_cli --target "$CLI_TARGET"
           mkdir release
           exe=dmsg; [ "$RUNNER_OS" = Windows ] && exe=dmsg.exe
-          cp "target/${{ matrix.target }}/release/$exe" "release/${{ matrix.asset }}"
-          "release/${{ matrix.asset }}" --version
+          cp "target/$CLI_TARGET/release/$exe" "release/$CLI_ASSET"
+          "release/$CLI_ASSET" --version
       - name: Checksum
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         shell: bash
         working-directory: release
-        run: |
-          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
-          $sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+        run: sha256sum "$CLI_ASSET" > "$CLI_ASSET.sha256"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ${{ runner.os == 'Windows' && 'unsigned-windows-cli' || format('release-{0}', matrix.asset) }}
+          name: ${{ env.CLI_ARTIFACT }}
           path: release/*
           if-no-files-found: error
 
-  # Its own job, so only it and the desktop jobs see the signing secrets.
+  binary-macos:
+    needs: version
+    runs-on: macos-latest
+    env:
+      CLI_TARGET: aarch64-apple-darwin
+      CLI_ASSET: dmsg-macos-arm64
+      CLI_ARTIFACT: unsigned-macos-cli
+    steps: *build_cli
+
+  binary-windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      CLI_TARGET: x86_64-pc-windows-msvc
+      CLI_ASSET: dmsg-windows-x64.exe
+      CLI_ARTIFACT: unsigned-windows-cli
+    steps: *build_cli
+
   sign-macos:
-    needs: binary
+    needs: binary-macos
     # SecretsFS uses the macOS 27 FSKit handlers.
     runs-on: xcode-27
     environment: dmsg-release
@@ -107,7 +123,7 @@ jobs:
           command -v xcodegen || brew install xcodegen
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-dmsg-macos-arm64
+          name: unsigned-macos-cli
           path: release
       - name: Sign the CLI and build the distribution FSKit module
         env:
@@ -127,29 +143,24 @@ jobs:
         with:
           name: release-dmsg-macos-arm64
           path: release/*
-          overwrite: true
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: signed-secretsfs
           path: ${{ runner.temp }}/SecretsFS.zip
+          compression-level: 0
           if-no-files-found: error
 
-  desktop:
-    needs: [version, binary, sign-macos]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            asset: dmsg-macos-arm64
-          - os: windows-latest
-            asset: dmsg-windows-x64.exe
-    runs-on: ${{ matrix.os }}
+  desktop-macos:
+    needs: sign-macos
+    runs-on: macos-latest
     environment: dmsg-release
     env:
       # The package bundles this release's own dmsg, byte for byte.
-      DMSG_DESKTOP_RUNTIME: ${{ github.workspace }}/runtime/${{ matrix.asset }}
-    steps:
+      DMSG_DESKTOP_RUNTIME: ${{ github.workspace }}/runtime/dmsg-macos-arm64
+      CLI_ARTIFACT: release-dmsg-macos-arm64
+      DESKTOP_ARTIFACT: release-desktop-macos-latest
+    steps: &package_desktop
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The pnpm version pinned by packageManager in the root package.json.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
@@ -160,7 +171,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --filter @dmsg/desktop
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ${{ runner.os == 'Windows' && 'unsigned-windows-cli' || format('release-{0}', matrix.asset) }}
+          name: ${{ env.CLI_ARTIFACT }}
           path: runtime
       - if: runner.os == 'macOS'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -247,14 +258,25 @@ jobs:
           node ../src/dmsg_desktop/scripts/verify-release.cjs .
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-desktop-${{ matrix.os }}
+          name: ${{ env.DESKTOP_ARTIFACT }}
           path: desktop-release/*
+          compression-level: 0
           if-no-files-found: error
+
+  desktop-windows:
+    needs: binary-windows
+    runs-on: windows-latest
+    environment: dmsg-release
+    env:
+      DMSG_DESKTOP_RUNTIME: ${{ github.workspace }}/runtime/dmsg-windows-x64.exe
+      CLI_ARTIFACT: unsigned-windows-cli
+      DESKTOP_ARTIFACT: release-desktop-windows-latest
+    steps: *package_desktop
 
   release:
     permissions:
       contents: write
-    needs: [version, binary, sign-macos, desktop]
+    needs: [version, binary-linux, desktop-macos, desktop-windows]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     environment: dmsg-release
