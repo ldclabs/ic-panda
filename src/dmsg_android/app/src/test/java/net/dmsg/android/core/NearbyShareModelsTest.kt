@@ -6,7 +6,7 @@ import org.junit.Test
 
 class NearbyShareModelsTest {
     @Test fun groupedNearbySasSplitsSixDigits() {
-        assertEquals("482 913", groupedNearbySas("482913"))
+        assertEquals("482\u00a0913", groupedNearbySas("482913"))
         assertEquals("1234", groupedNearbySas("1234"))
     }
 
@@ -26,6 +26,7 @@ class NearbyShareModelsTest {
             "expires_at": 1730000000000,
             "relay_ready": true,
             "transport": null,
+            "verification_codes": ["084391"],
             "pending_peers": [
               {
                 "peer_id": "p1",
@@ -65,6 +66,7 @@ class NearbyShareModelsTest {
         assertTrue(recv.active)
         assertEquals(41234.toUShort(), recv.port)
         assertTrue(recv.relayReady)
+        assertEquals(listOf("084391"), recv.verificationCodes)
         assertEquals(1, recv.pendingPeers.size)
         assertEquals("report.pdf", recv.pendingPeers.single().files.single().name)
         val send = requireNotNull(parsed.send)

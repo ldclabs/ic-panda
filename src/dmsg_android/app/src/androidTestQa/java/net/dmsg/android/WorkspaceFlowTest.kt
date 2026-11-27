@@ -108,6 +108,51 @@ class WorkspaceFlowTest {
         capture("ux-new-login-saved")
     }
 
+    @Test fun nearbyReceiverCanCompareCodesBeforeTheSenderReleasesItsOffer() {
+        val entry = runBlocking { native.vaultPage("", null, false, 0u, 100u) }.items.first { it.title == "Studio account" }
+        val item = runBlocking { native.vaultItem(entry.id, null) }.item
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("nearby-receive")) }
+        compose.waitUntil(10_000) { client.nearby.status.value?.receive?.active == true }
+        compose.onNodeWithText(net.dmsg.android.platform.str(R.string.nearby_allow_discovery))
+            .performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.nearby.status.value?.receive?.discoverable == true }
+        val recv = requireNotNull(client.nearby.status.value?.receive)
+        val addr = requireNotNull(net.dmsg.android.platform.TransferAddress.parse(recv.addrs.first()))
+        val peer = net.dmsg.android.platform.NearbyDiscoveredPeer(recv.advert, recv.alias, recv.pkHint, addr.host, addr.port)
+        val selection = net.dmsg.core.SecretSnapshotInput(item.id, item.revision, listOf("password"), false, emptyList(), null, null)
+        compose.runOnIdle { client.nearby.sendVault(null, peer, selection, false) }
+        compose.waitUntil(10_000) {
+            client.nearby.status.value?.receive?.verificationCodes?.isNotEmpty() == true || client.nearby.error.value != null
+        }
+        assertNull(client.nearby.error.value)
+        val snapshot = requireNotNull(client.nearby.status.value)
+        val sas = requireNotNull(snapshot.send?.sas)
+        assertEquals(listOf(sas), snapshot.receive?.verificationCodes)
+        assertTrue(snapshot.receive!!.pendingPeers.isEmpty())
+        val code = compose.onNodeWithText(net.dmsg.android.core.groupedNearbySas(sas))
+        code.performScrollTo().assertIsDisplayed()
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        code.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        assertTrue("The two groups must read in wire order", layout.getBoundingBox(0).left < layout.getBoundingBox(4).left)
+        capture("nearby-sas-light")
+        compose.runOnIdle { client.dark(true) }
+        code.performScrollTo().assertIsDisplayed()
+        capture("nearby-sas-dark")
+        compose.runOnIdle { client.nearby.confirmSas() }
+        compose.waitUntil(10_000) { client.nearby.status.value?.receive?.pendingPeers?.singleOrNull()?.kind == "secret_package" }
+        val identity = compose.onNodeWithText(net.dmsg.android.platform.str(R.string.nearby_share_identity))
+        identity.performScrollTo().assertIsOff().performClick().assertIsOn()
+        val firstPeer = requireNotNull(client.nearby.status.value?.receive?.pendingPeers?.singleOrNull())
+        compose.runOnIdle { client.nearby.reject(firstPeer.peerId) }
+        compose.waitUntil(10_000) { client.nearby.status.value?.send?.active == false }
+        compose.runOnIdle { client.nearby.sendVault(null, peer, selection, false) }
+        compose.waitUntil(10_000) { client.nearby.status.value?.send?.state == "awaiting_sas" }
+        compose.runOnIdle { client.nearby.confirmSas() }
+        compose.waitUntil(10_000) { client.nearby.status.value?.receive?.pendingPeers?.singleOrNull()?.peerId?.let { it != firstPeer.peerId } == true }
+        identity.performScrollTo().assertIsOff()
+    }
+
     @Test fun browsingSearchCanClearSubmitAndCloseAcrossWorkspaces() {
         val entry = compose.onNodeWithTag("browse-search-entry")
         val editor = compose.onNodeWithTag("browse-search-editor")

@@ -73,6 +73,7 @@ export interface NearbyReceiveView {
   transport?: string | null
   mdns_error?: string | null
   pending_peers: NearbyPendingPeer[]
+  verification_codes?: string[]
   active_peer?: string | null
   progress: NearbyProgress
   outcome?: {

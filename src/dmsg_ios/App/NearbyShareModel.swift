@@ -91,6 +91,7 @@ final class NearbyShareModel {
         let relayReady: Bool
         let transport: String?
         let pendingPeers: [PendingPeer]
+        let verificationCodes: [String]?
         let activePeer: String?
         let progress: Progress
         let outcome: ReceiveOutcome?
@@ -148,7 +149,8 @@ final class NearbyShareModel {
     nonisolated static func groupedSas(_ sas: String) -> String {
         guard sas.count == 6 else { return sas }
         let idx = sas.index(sas.startIndex, offsetBy: 3)
-        return "\(sas[..<idx]) \(sas[idx...])"
+        // Keep the groups in protocol order when embedded in right-to-left text.
+        return "\(sas[..<idx])\u{00a0}\(sas[idx...])"
     }
 
     func startReceive(_ model: SessionModel, discoverable: Bool) async {
@@ -371,13 +373,13 @@ final class NearbyShareModel {
         stopBrowse()
         connector?.stop()
         connector = nil
+        status = nil
+        peers = []
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
     func reset() {
         background()
-        status = nil
-        peers = []
         error = nil
         localNetworkDenied = false
         reloadedFilesForReceiveId = nil
@@ -394,8 +396,8 @@ final class NearbyShareModel {
                 guard let self, current == self.epoch, let engine = model.engine else { return }
                 if let next: Status = try? model.decode(engine.nearbyStatus()) {
                     self.status = next
-                    if let recv = next.receive, recv.state == "done",
-                       recv.outcome?.kind == "files",
+                    if let recv = next.receive, !recv.active, recv.progress.completedItems > 0,
+                       recv.outcome?.kind != "secret_package",
                        self.reloadedFilesForReceiveId != recv.id {
                         self.reloadedFilesForReceiveId = recv.id
                         await model.loadFiles()

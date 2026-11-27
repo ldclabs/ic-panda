@@ -132,6 +132,37 @@ try {
   await page.evaluate(() => { location.hash = '/files' })
   await page.getByTestId('files').waitFor()
   assert.equal(await page.getByTestId('files-scope-cloud').count(), 0)
+  await page.getByTestId('files-nearby-receive').click()
+  await page.getByTestId('nearby-receive-qr').waitFor()
+  const discovery = page.getByTestId('nearby-discoverable-switch')
+  await discovery.focus()
+  await page.keyboard.press('Space')
+  await page.waitForFunction(async () => (await window.dmsg.call('nearby/status', {})).receive?.discoverable)
+  const { receive } = await rpc('nearby/status')
+  await rpc('nearby/send_start', { host: '127.0.0.1', port: receive.port, files: [{ file_id: file.id }] })
+  const dialog = page.getByTestId('nearby-share-dialog')
+  const verification = dialog.getByRole('status').filter({ hasText: /\d{3} \d{3}/ })
+  await verification.waitFor()
+  const { send } = await rpc('nearby/status')
+  assert.ok((await verification.innerText()).includes(send.sas.slice(0, 3) + ' ' + send.sas.slice(3)))
+  assert.equal(await dialog.getByText(file.name, { exact: true }).count(), 0)
+  if (shots) {
+    await mkdir(shots, { recursive: true })
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(760, 540))
+    for (const [locale, appearance] of [['zh', 'light'], ['de', 'dark'], ['ar', 'dark'], ['en', 'light']]) {
+      await page.evaluate(async ([l, a]) => { await window.dmsg.setLocale(l); await window.dmsg.setAppearance(a) }, [locale, appearance])
+      await verification.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: join(shots, 'nearby-' + locale + '-' + appearance + '.png'), animations: 'disabled' })
+    }
+  }
+  await rpc('nearby/send_confirm_sas')
+  await dialog.getByText(file.name, { exact: true }).waitFor()
+  await page.getByTestId('nearby-peer-reject').click()
+  await page.getByTestId('nearby-pending-peer').waitFor({ state: 'hidden' })
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'hidden' })
+  await assert.rejects(cli('nearby', 'send', '--wait', '--host', '127.0.0.1', '--port', String(receive.port), file.id),
+    error => error.code > 0 && (error.stdout + error.stderr).includes('UNAVAILABLE'))
   await page.keyboard.press('Tab')
   if (shots) {
     await mkdir(shots, { recursive: true })

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { windowParams } from '../src/main/policy.ts'
 import {
   attachmentAvailable,
   buildSendStartParams,
@@ -20,6 +21,15 @@ import {
   type NearbyReceiveView,
   type NearbySendView
 } from '../src/renderer/views/nearby.ts'
+
+test('the nearby window can reach its daemon methods and the main process sets the approval source', () => {
+  for (const action of ['status', 'browse', 'scan', 'receive_start', 'receive_accept', 'receive_reject',
+    'receive_cancel', 'send_confirm_sas', 'send_cancel']) {
+    assert.deepEqual(windowParams(`nearby/${action}`, { human: true }), {})
+  }
+  assert.deepEqual(windowParams('nearby/send_start', { source: 'cli', human: true }), { source: 'gui' })
+  assert.throws(() => windowParams('nearby/unknown', {}))
+})
 
 test('SAS codes format 6 digits into two groups and preserve non-6-digit text', () => {
   assert.equal(formatSas('123456'), '123 456')

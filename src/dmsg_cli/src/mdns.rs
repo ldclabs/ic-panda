@@ -2,7 +2,7 @@
 //! for macOS (Bonjour `dns_sd.h`), Windows (Win32 DNS-SD with UDP mDNS fallback)
 //! and Linux (pure-Rust RFC 6762/6763 multicast DNS via `socket2`).
 
-use dmsg_client::nearby::{DiscoveredPeer, SERVICE, sanitize_alias};
+use dmsg_client::nearby::{DiscoveredPeer, sanitize_alias};
 use dmsg_types::{Error, Result};
 use std::time::Duration;
 
@@ -111,6 +111,7 @@ pub(crate) fn decode_txt(raw: &[u8]) -> (Option<String>, String, String) {
 #[cfg(target_os = "macos")]
 mod macos {
     use super::*;
+    use dmsg_client::nearby::SERVICE;
     use std::cell::{Cell, RefCell};
     use std::collections::BTreeMap;
     use std::ffi::{CStr, CString, c_char, c_void};
@@ -775,9 +776,9 @@ mod windows_impl {
     use std::sync::mpsc;
     use windows_sys::Win32::Foundation::DNS_REQUEST_PENDING;
     use windows_sys::Win32::NetworkManagement::Dns::{
-        DNS_QUERY_REQUEST_VERSION1, DNS_SERVICE_BROWSE_REQUEST, DNS_SERVICE_CANCEL,
-        DNS_SERVICE_INSTANCE, DNS_SERVICE_REGISTER_REQUEST, DnsServiceBrowse,
-        DnsServiceBrowseCancel, DnsServiceDeRegister, DnsServiceFreeInstance, DnsServiceRegister,
+        DNS_QUERY_REQUEST_VERSION1, DNS_SERVICE_INSTANCE, DNS_SERVICE_REGISTER_REQUEST,
+        DnsServiceConstructInstance, DnsServiceDeRegister, DnsServiceFreeInstance,
+        DnsServiceRegister,
     };
 
     fn wide(text: &str) -> Vec<u16> {
@@ -785,72 +786,63 @@ mod windows_impl {
     }
 
     pub(super) enum Advert {
-        Native(NativeAdvert),
-        Fallback(udp_mdns::Advert),
+        Native(#[expect(dead_code)] NativeAdvert),
+        Fallback(#[expect(dead_code)] udp_mdns::Advert),
     }
 
-    pub(super) struct NativeAdvert {
-        instance_name: Vec<u16>,
-        host_name: Vec<u16>,
-        keys: Vec<Vec<u16>>,
-        vals: Vec<Vec<u16>>,
-        key_ptrs: Vec<*const u16>,
-        val_ptrs: Vec<*const u16>,
-        port: u16,
+    // DNSAPI allocates both the input instance and the copy returned to each callback.
+    struct Instance(*mut DNS_SERVICE_INSTANCE);
+    unsafe impl Send for Instance {}
+
+    impl Drop for Instance {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { DnsServiceFreeInstance(self.0) }
+            }
+        }
     }
 
-    unsafe impl Send for NativeAdvert {}
+    pub(super) struct NativeAdvert(Instance);
 
     unsafe extern "system" fn register_cb(
         status: u32,
         ctx: *const c_void,
         instance: *const DNS_SERVICE_INSTANCE,
     ) {
-        if !instance.is_null() {
-            unsafe { DnsServiceFreeInstance(instance) };
-        }
-        if !ctx.is_null() {
-            let tx = unsafe { Box::from_raw(ctx as *mut mpsc::Sender<u32>) };
-            let _ = tx.send(status);
-        }
+        let pending =
+            unsafe { Box::from_raw(ctx as *mut (Instance, mpsc::Sender<Result<NativeAdvert>>)) };
+        let registered = (!instance.is_null()).then(|| Instance(instance.cast_mut()));
+        let result = match registered {
+            Some(instance) if status == 0 => Ok(NativeAdvert(instance)),
+            _ => Err(Error::Unavailable(format!("win dns-sd register: {status}"))),
+        };
+        // A late success drops the advertisement if the caller already timed out.
+        let _ = pending.1.send(result);
     }
 
     unsafe extern "system" fn deregister_cb(
         _status: u32,
-        _ctx: *const c_void,
+        ctx: *const c_void,
         instance: *const DNS_SERVICE_INSTANCE,
     ) {
+        drop(Instance(ctx as *mut DNS_SERVICE_INSTANCE));
         if !instance.is_null() {
-            unsafe { DnsServiceFreeInstance(instance) };
+            drop(Instance(instance.cast_mut()));
         }
     }
 
     impl Drop for NativeAdvert {
         fn drop(&mut self) {
-            let mut inst = DNS_SERVICE_INSTANCE {
-                pszInstanceName: self.instance_name.as_mut_ptr(),
-                pszHostName: self.host_name.as_mut_ptr(),
-                ip4Address: null_mut(),
-                ip6Address: null_mut(),
-                wPort: self.port,
-                wPriority: 0,
-                wWeight: 0,
-                dwPropertyCount: self.key_ptrs.len() as u32,
-                keys: self.key_ptrs.as_mut_ptr() as *mut *mut u16,
-                values: self.val_ptrs.as_mut_ptr() as *mut *mut u16,
-                dwInterfaceIndex: 0,
-            };
             let req = DNS_SERVICE_REGISTER_REQUEST {
                 Version: DNS_QUERY_REQUEST_VERSION1,
-                InterfaceIndex: 0,
-                pServiceInstance: &mut inst,
+                pServiceInstance: self.0.0,
+                pQueryContext: self.0.0.cast(),
                 pRegisterCompletionCallback: Some(deregister_cb),
-                pQueryContext: null_mut(),
-                hCredentials: null_mut(),
-                unicastEnabled: 0,
+                ..Default::default()
             };
-            unsafe {
-                let _ = DnsServiceDeRegister(&req, null_mut());
+            if unsafe { DnsServiceDeRegister(&req, null_mut()) } == DNS_REQUEST_PENDING as u32 {
+                // Ownership passes to deregister_cb until withdrawal completes.
+                self.0.0 = null_mut();
             }
         }
     }
@@ -861,56 +853,43 @@ mod windows_impl {
         alias: &str,
         pk_hint: &str,
     ) -> Result<NativeAdvert> {
-        let mut instance_name = wide(&format!("{instance}._dmsg-share._tcp.local"));
-        let mut host_name = wide(&format!("dmsg-{instance}.local"));
-        let keys = vec![wide("v"), wide("n"), wide("p")];
-        let vals = vec![wide("1"), wide(&sanitize_alias(alias)), wide(pk_hint)];
-        let mut key_ptrs: Vec<*const u16> = keys.iter().map(|k| k.as_ptr()).collect();
-        let mut val_ptrs: Vec<*const u16> = vals.iter().map(|v| v.as_ptr()).collect();
-        let mut inst = DNS_SERVICE_INSTANCE {
-            pszInstanceName: instance_name.as_mut_ptr(),
-            pszHostName: host_name.as_mut_ptr(),
-            ip4Address: null_mut(),
-            ip6Address: null_mut(),
-            wPort: port,
-            wPriority: 0,
-            wWeight: 0,
-            dwPropertyCount: key_ptrs.len() as u32,
-            keys: key_ptrs.as_mut_ptr() as *mut *mut u16,
-            values: val_ptrs.as_mut_ptr() as *mut *mut u16,
-            dwInterfaceIndex: 0,
+        let name = wide(&format!("{instance}._dmsg-share._tcp.local"));
+        let host = wide(&format!("dmsg-{instance}.local"));
+        let keys = ["v", "n", "p"].map(wide);
+        let vals = [wide("1"), wide(&sanitize_alias(alias)), wide(pk_hint)];
+        let instance = unsafe {
+            DnsServiceConstructInstance(
+                name.as_ptr(),
+                host.as_ptr(),
+                null(),
+                null(),
+                port,
+                0,
+                0,
+                3,
+                keys.each_ref().map(|s| s.as_ptr()).as_ptr(),
+                vals.each_ref().map(|s| s.as_ptr()).as_ptr(),
+            )
         };
-        let (tx, rx) = mpsc::channel();
-        let ctx = Box::into_raw(Box::new(tx)) as *mut c_void;
+        if instance.is_null() {
+            return Err(Error::Unavailable("win dns-sd instance".into()));
+        }
+        let (tx, rx) = mpsc::channel::<Result<NativeAdvert>>();
+        let pending = Box::into_raw(Box::new((Instance(instance), tx)));
         let req = DNS_SERVICE_REGISTER_REQUEST {
             Version: DNS_QUERY_REQUEST_VERSION1,
-            InterfaceIndex: 0,
-            pServiceInstance: &mut inst,
+            pServiceInstance: instance,
             pRegisterCompletionCallback: Some(register_cb),
-            pQueryContext: ctx,
-            hCredentials: null_mut(),
-            unicastEnabled: 0,
+            pQueryContext: pending.cast(),
+            ..Default::default()
         };
-        let mut cancel = DNS_SERVICE_CANCEL {
-            reserved: null_mut(),
-        };
-        let code = unsafe { DnsServiceRegister(&req, &mut cancel) };
+        let code = unsafe { DnsServiceRegister(&req, null_mut()) };
         if code != DNS_REQUEST_PENDING as u32 {
-            let _ = unsafe { Box::from_raw(ctx as *mut mpsc::Sender<u32>) };
+            drop(unsafe { Box::from_raw(pending) });
             return Err(Error::Unavailable(format!("win dns-sd register: {code}")));
         }
-        match rx.recv_timeout(Duration::from_secs(3)) {
-            Ok(0) => Ok(NativeAdvert {
-                instance_name,
-                host_name,
-                keys,
-                vals,
-                key_ptrs,
-                val_ptrs,
-                port,
-            }),
-            _ => Err(Error::Unavailable("win dns-sd register failed".into())),
-        }
+        rx.recv_timeout(Duration::from_secs(3))
+            .map_err(|_| Error::Unavailable("win dns-sd register timed out".into()))?
     }
 
     pub(super) fn advertise(
@@ -928,19 +907,6 @@ mod windows_impl {
     }
 
     pub(super) fn browse(timeout: Duration) -> Result<Vec<DiscoveredPeer>> {
-        // Use UDP multicast browse directly (captures both native Windows DNS-SD
-        // responders and Apple/Android/Linux mDNS peers on UDP 5353 cleanly).
-        let _ = (
-            DNS_SERVICE_BROWSE_REQUEST {
-                Version: DNS_QUERY_REQUEST_VERSION1,
-                InterfaceIndex: 0,
-                QueryName: null(),
-                Anonymous: unsafe { std::mem::zeroed() },
-                pQueryContext: null_mut(),
-            },
-            DnsServiceBrowse as usize,
-            DnsServiceBrowseCancel as usize,
-        );
         udp_mdns::browse(timeout)
     }
 }

@@ -1,8 +1,18 @@
+import CoreText
 import XCTest
 @testable import dMsg
 
 final class LocalizationTests: XCTestCase {
     private let languages = ["en", "zh-Hans", "zh-Hant", "fr", "es", "ru", "ar", "hi", "id", "pt-BR", "ja", "de", "ko", "it", "tr", "vi", "th", "fil", "ms", "bn", "ur", "pl", "nl"]
+
+    func testNearbyVerificationCodeKeepsBothGroupsInOrderInArabic() {
+        let prefix = "رمز التحقق "
+        let code = NearbyShareModel.groupedSas("012345")
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: prefix + code))
+        let first = CTLineGetOffsetForStringIndex(line, prefix.utf16.count + 1, nil)
+        let second = CTLineGetOffsetForStringIndex(line, prefix.utf16.count + 5, nil)
+        XCTAssertLessThan(first, second)
+    }
 
     func testVaultBackupAndImportLabelsResolveInEveryInterfaceLanguage() throws {
         let keys = ["Attachments", "Check status", "Choose a file", "Conflicts",

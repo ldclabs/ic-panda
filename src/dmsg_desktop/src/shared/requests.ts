@@ -7,7 +7,7 @@ export const READ_METHODS = new Set([
   'feedback/get', 'secrets/mounts/list', 'wallet/rpc',
   'app/initialize', 'daemon/status', 'session/status', 'session/accounts', 'session/login_result',
   'account/show', 'account/security', 'recovery/status', 'device/moved_list',
-  'device/successions', 'device/succession_review', 'transfer/status',
+  'device/successions', 'device/succession_review', 'transfer/status', 'nearby/status',
   'device/pair_inspect', 'device/pair_invite_status', 'device/saved_invitation',
   'device/pair_scan',
   'vault/templates', 'vault/list', 'vault/browse', 'vault/show', 'vault/tags', 'vault/history', 'vault/conflicts', 'vault/health', 'vault/reveal', 'vault/otp',

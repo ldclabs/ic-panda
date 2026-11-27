@@ -33,7 +33,7 @@ import net.dmsg.core.VaultItem
     val busy = state.working("nearby:receive:start") || state.working("nearby:receive:decision")
 
     var discoverable by remember { mutableStateOf(false) }
-    var shareIdentity by remember { mutableStateOf(false) }
+    val shareIdentity = remember { mutableStateMapOf<String, Boolean>() }
     var folder by remember { mutableStateOf("root") }
     var folderName by remember { mutableStateOf("") }
     var choosingFolder by remember { mutableStateOf(false) }
@@ -93,7 +93,13 @@ import net.dmsg.core.VaultItem
                             icon = Icons.Outlined.WifiTethering,
                         )
                     }
-                    if (receive.pendingPeers.isEmpty()) {
+                    receive.verificationCodes.forEach { sas ->
+                        DetailCard {
+                            Text(str(R.string.nearby_verification_code), style = MaterialTheme.typography.bodyMedium)
+                            Text(groupedNearbySas(sas), style = MaterialTheme.typography.headlineMedium.tabular())
+                        }
+                    }
+                    if (receive.pendingPeers.isEmpty() && receive.verificationCodes.isEmpty()) {
                         DetailCard {
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -133,8 +139,8 @@ import net.dmsg.core.VaultItem
                                     ) { choosingFolder = true }
                                     SettingToggle(
                                         title = str(R.string.nearby_share_identity),
-                                        checked = shareIdentity,
-                                        change = { shareIdentity = it },
+                                        checked = shareIdentity[peer.peerId] == true,
+                                        change = { shareIdentity[peer.peerId] = it },
                                         enabled = !busy,
                                     )
                                 }
@@ -143,8 +149,8 @@ import net.dmsg.core.VaultItem
                                     InfoRow(str(R.string.nearby_vault_snapshot), fileSize(peer.packageSize ?: 0uL))
                                     SettingToggle(
                                         title = str(R.string.nearby_share_identity),
-                                        checked = shareIdentity,
-                                        change = { shareIdentity = it },
+                                        checked = shareIdentity[peer.peerId] == true,
+                                        change = { shareIdentity[peer.peerId] = it },
                                         enabled = !busy,
                                     )
                                 }
@@ -158,7 +164,7 @@ import net.dmsg.core.VaultItem
                                 Button(
                                     onClick = {
                                         val picks = if (peer.kind == "files") peer.files.map { it.index }.filter { it in chosen } else emptyList()
-                                        client.nearby.accept(peer.peerId, folder, picks, shareIdentity)
+                                        client.nearby.accept(peer.peerId, folder, picks, shareIdentity[peer.peerId] == true)
                                     },
                                     enabled = !busy && (peer.kind != "files" || chosen.isNotEmpty()),
                                     modifier = Modifier.weight(1f),
@@ -246,7 +252,8 @@ import net.dmsg.core.VaultItem
     val files by client.nearby.selectedFiles.collectAsStateWithLifecycle()
     val qr by client.qr.state.collectAsStateWithLifecycle()
 
-    val send = status?.send
+    var previousSend by remember { mutableStateOf(status?.send?.takeUnless { it.active }?.id) }
+    val send = status?.send?.takeUnless { it.id == previousSend }
     val active = send?.active == true
     val busy = state.working("nearby:send:start") || state.working("nearby:send:sas")
 
@@ -280,6 +287,9 @@ import net.dmsg.core.VaultItem
 
             if (send != null && (send.active || send.state in setOf("done", "failed"))) {
                 NearbySendProgressPanel(client, send)
+                if (send.state == "failed") {
+                    Button(onClick = { previousSend = send.id }) { Text(str(R.string.nearby_start_again)) }
+                }
             } else {
                 if (files.isEmpty()) {
                     EmptyState(str(R.string.text_choose_a_file_2916860), glyph = R.drawable.glyph_file)
@@ -323,7 +333,8 @@ import net.dmsg.core.VaultItem
     val localDenied by client.nearby.localNetworkDenied.collectAsStateWithLifecycle()
     val qr by client.qr.state.collectAsStateWithLifecycle()
 
-    val send = status?.send
+    var previousSend by remember { mutableStateOf(status?.send?.takeUnless { it.active }?.id) }
+    val send = status?.send?.takeUnless { it.id == previousSend }
     val active = send?.active == true
     val busy = state.working("nearby:send:start") || state.working("nearby:send:sas")
 
@@ -402,6 +413,9 @@ import net.dmsg.core.VaultItem
 
             if (send != null && (send.active || send.state in setOf("done", "failed"))) {
                 NearbySendProgressPanel(client, send)
+                if (send.state == "failed") {
+                    Button(onClick = { previousSend = send.id }) { Text(str(R.string.nearby_start_again)) }
+                }
             } else {
                 val loaded = source
                 if (loaded == null) {

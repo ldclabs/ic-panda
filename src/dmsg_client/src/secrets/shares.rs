@@ -537,6 +537,23 @@ impl Client {
         Ok(())
     }
 
+    /// Release a stopped send, preserving a decision already recorded by the user.
+    pub(crate) fn secret_nearby_stop(&mut self, id: &str, error: String) -> Result<()> {
+        let mut job = self.share_job(id)?;
+        ensure(job.plan.nearby.is_some(), Error::Forbidden)?;
+        if matches!(job.phase.as_str(), "delivered" | "failed" | "cancelled") {
+            return Ok(());
+        }
+        if let Some(request) = &job.request
+            && self.approval_record(request)?.state.terminal()
+        {
+            return self.secret_nearby_finish(id, false, None, Some(error));
+        }
+        job.nearby_manifest = None;
+        self.save_share_job(&job)?;
+        self.secret_share_cancel(id).map(|_| ())
+    }
+
     /// Device-local source associations for dependency inspection, without any package keys.
     pub(crate) fn secret_snapshot_dependencies(
         &self,

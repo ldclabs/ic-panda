@@ -81,7 +81,7 @@ private final class AwdlConnection {
                 return
             }
             let len = data.withUnsafeBytes { raw -> Int in
-                let be = raw.load(as: UInt32.self)
+                let be = raw.loadUnaligned(as: UInt32.self)
                 return Int(UInt32(bigEndian: be))
             }
             guard len > 0, len <= maxFrameBytes else {
@@ -120,10 +120,17 @@ private final class AwdlConnection {
         var beLen = UInt32(bytes.count).bigEndian
         withUnsafeBytes(of: &beLen) { framed.append(contentsOf: $0) }
         framed.append(bytes)
+        // The bridge writer closes as soon as its queue drains. Wait until
+        // Network.framework has processed this frame, including the final Done.
+        let sent = DispatchSemaphore(value: 0)
         conn.send(content: framed, completion: .contentProcessed { [weak self] error in
             if error != nil { self?.close() }
+            sent.signal()
         })
-        return 0
+        guard sent.wait(timeout: .now() + .seconds(60)) == .success else { return -1 }
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return closed ? -1 : 0
     }
 
     func close() {

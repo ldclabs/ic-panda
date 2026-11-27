@@ -41,6 +41,7 @@ data class NearbyReceiveStatus(
     val relayReady: Boolean,
     val transport: String?,
     val pendingPeers: List<NearbyPendingPeer>,
+    val verificationCodes: List<String>,
     val activePeer: String?,
     val progress: NearbyProgress,
     val outcome: NearbyReceiveOutcome?,
@@ -70,8 +71,9 @@ data class NearbySendStatus(
 data class NearbyStatus(val receive: NearbyReceiveStatus?, val send: NearbySendStatus?)
 data class NearbySelectedFile(val id: String, val version: String?, val name: String, val size: ULong)
 
+// A nonbreaking numeric separator keeps both groups in protocol order in RTL text.
 fun groupedNearbySas(sas: String): String =
-    if (sas.length == 6) sas.substring(0, 3) + " " + sas.substring(3) else sas
+    if (sas.length == 6) sas.substring(0, 3) + "\u00a0" + sas.substring(3) else sas
 
 private fun parseNearbyFailure(value: JsonElement?): NearbyFailure? {
     val row = value?.takeIf { it != JsonNull }?.objectValue() ?: return null
@@ -131,6 +133,7 @@ fun parseNearbyStatus(value: JsonElement): NearbyStatus {
             row.requiredFlag("relay_ready"),
             row.text("transport"),
             pending,
+            row.strings("verification_codes"),
             row.text("active_peer"),
             parseNearbyProgress(row["progress"]!!.objectValue()),
             outcome,
@@ -269,7 +272,6 @@ class NearbyShareCoordinator(
             parseNearbyStatus(core.nearbyReceiveCancel().decode())
         }, key = "nearby:receive:cancel", replace = true, quiet = true) { next ->
             statusValue.value = next
-            if (next.send?.active != true) stopWatch()
         }
     }
 
@@ -393,7 +395,7 @@ class NearbyShareCoordinator(
                     if (current != sequence) return@perform
                     statusValue.value = next
                     val recv = next.receive
-                    if (recv != null && recv.state == "done" && recv.outcome?.kind == "files" && reloadedReceiveId != recv.id) {
+                    if (recv != null && !recv.active && recv.progress.completedItems > 0u && recv.outcome?.kind != "secret_package" && reloadedReceiveId != recv.id) {
                         reloadedReceiveId = recv.id
                         client.library.browse()
                     }

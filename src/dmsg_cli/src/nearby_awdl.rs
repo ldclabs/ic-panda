@@ -87,8 +87,8 @@ mod macos {
             let mut reg = registry().lock().unwrap_or_else(|e| e.into_inner());
             reg.inbound.insert(conn_id, handle.inbound);
         }
-        runtime.spawn(async move {
-            while let Some(frame) = handle.outbound.recv().await {
+        runtime.spawn_blocking(move || {
+            while let Some(frame) = handle.outbound.blocking_recv() {
                 let rc =
                     unsafe { dmsg_awdl_conn_send(conn_id, frame.as_ptr(), frame.len() as isize) };
                 if rc != 0 {
@@ -131,8 +131,11 @@ mod macos {
             let reg = registry().lock().unwrap_or_else(|e| e.into_inner());
             reg.inbound.get(&conn_id).cloned()
         };
-        if let Some(tx) = tx {
-            let _ = tx.try_send(data);
+        if let Some(tx) = tx
+            && tx.try_send(data).is_err()
+        {
+            // A missing frame would invalidate every subsequent sequence number.
+            unsafe { dmsg_awdl_conn_close(conn_id) };
         }
     }
 

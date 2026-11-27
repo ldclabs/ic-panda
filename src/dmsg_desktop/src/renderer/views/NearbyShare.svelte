@@ -285,10 +285,7 @@
     ignoredReceiveId = receiveView?.id ?? activeReceiveId
     try {
       const status = await call<NearbyStatus>('nearby/receive_start', { discoverable: wantDiscoverable })
-      if (!alive || !open || turn !== sessionRev) {
-        void call('nearby/receive_cancel', {}).catch(() => {})
-        return
-      }
+      if (!alive || !open || turn !== sessionRev) return
       receivePending = false
       if (status.receive) {
         activeReceiveId = status.receive.id
@@ -437,10 +434,7 @@
     ignoredSendId = sendView?.id ?? activeSendId
     try {
       const status = await call<NearbyStatus>('nearby/send_start', params)
-      if (!alive || !open || turn !== sessionRev) {
-        void call('nearby/send_cancel', {}).catch(() => {})
-        return
-      }
+      if (!alive || !open || turn !== sessionRev) return
       sendPending = false
       if (status.send) {
         activeSendId = status.send.id
@@ -708,6 +702,16 @@
             </Notice>
           {/if}
 
+          {#if !receiveView.pending_peers.length || receiveView.verification_codes?.length}
+            <div role="status">
+              {#each receiveView.verification_codes ?? [] as sas}
+                <p class="text-callout text-muted">{t('nearbySasPrompt')}</p>
+                <bdi dir="ltr" class="font-mono text-title-1 font-semibold tabular-nums select-text">{formatSas(sas)}</bdi>
+              {:else}
+                <p class="text-center text-callout text-muted" data-testid="nearby-waiting-sender">{t('nearbyWaitingSender')}</p>
+              {/each}
+            </div>
+          {/if}
           {#if receiveView.pending_peers.length > 0}
             <div class="grid gap-3" data-testid="nearby-pending-peers">
               {#each receiveView.pending_peers as peer (peer.peer_id)}
@@ -811,8 +815,6 @@
                 </article>
               {/each}
             </div>
-          {:else}
-            <p role="status" class="text-center text-callout text-muted" data-testid="nearby-waiting-sender">{t('nearbyWaitingSender')}</p>
           {/if}
         {:else if receiveView.state === 'running'}
           <div class="grid gap-2">

@@ -8,7 +8,7 @@ struct NearbyReceiveSheet: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var discoverable = false
-    @State private var shareIdentity = false
+    @State private var shareIdentity: [String: Bool] = [:]
     @State private var folder = "root"
     @State private var folderName = String(localized: "Files")
     @State private var choosingFolder = false
@@ -51,6 +51,7 @@ struct NearbyReceiveSheet: View {
             }
         }
         .privateScreen()
+        .interactiveDismissDisabled(receive?.active == true || nearby.working)
         .navigationTitle("Receive nearby")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -63,6 +64,7 @@ struct NearbyReceiveSheet: View {
                         dismiss()
                     }
                 }
+                .disabled(nearby.working)
             }
         }
         .task {
@@ -109,11 +111,19 @@ struct NearbyReceiveSheet: View {
             Text("QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.")
         }
 
+        let codes = receive.verificationCodes ?? []
+        if !codes.isEmpty {
+            Section("Verification code") {
+                ForEach(Array(codes.enumerated()), id: \.offset) { _, sas in
+                    Text(NearbyShareModel.groupedSas(sas)).font(.title2.monospacedDigit().bold())
+                }
+            }
+        }
         if !receive.pendingPeers.isEmpty {
             ForEach(receive.pendingPeers) { peer in
                 pendingPeerSection(peer)
             }
-        } else {
+        } else if codes.isEmpty {
             Section {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -132,6 +142,7 @@ struct NearbyReceiveSheet: View {
                 Text(NearbyShareModel.groupedSas(peer.sas))
                     .font(.title2.monospacedDigit().bold())
                     .accessibilityLabel("Verification code")
+                    .accessibilityValue(peer.sas)
                 Text(peer.qrBound
                      ? String(localized: "QR verified · Compare this 6-digit code with the sender before accepting.")
                      : String(localized: "Unverified discovery · Compare this 6-digit code face-to-face before accepting."))
@@ -163,7 +174,10 @@ struct NearbyReceiveSheet: View {
                     Text(fileSize(peer.packageSize ?? 0)).font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            Toggle("Share my dMsg identity", isOn: $shareIdentity)
+            Toggle("Share my dMsg identity", isOn: Binding(
+                get: { shareIdentity[peer.peerId] ?? false },
+                set: { shareIdentity[peer.peerId] = $0 }
+            ))
             Button("Accept") {
                 let picks: [UInt32]
                 if peer.kind == "files" {
@@ -172,7 +186,7 @@ struct NearbyReceiveSheet: View {
                 } else {
                     picks = []
                 }
-                nearby.accept(model, peerId: peer.peerId, folder: folder, selected: picks, shareIdentity: shareIdentity)
+                nearby.accept(model, peerId: peer.peerId, folder: folder, selected: picks, shareIdentity: shareIdentity[peer.peerId] ?? false)
             }
             .disabled(peer.kind == "files" && (selectedFiles[peer.peerId]?.isEmpty ?? false))
             Button("Reject", role: .destructive) {
@@ -238,7 +252,11 @@ struct NearbySendFilesSheet: View {
     @State private var cameraDenied = false
 
     private var nearby: NearbyShareModel { model.nearbyShare }
-    private var send: NearbyShareModel.SendStatus? { nearby.status?.send }
+    @State private var previousSend: UInt64?
+    private var send: NearbyShareModel.SendStatus? {
+        guard let send = nearby.status?.send, send.id != previousSend else { return nil }
+        return send
+    }
 
     var body: some View {
         Form {
@@ -247,6 +265,7 @@ struct NearbySendFilesSheet: View {
             }
             if let send, send.active || send.state == "done" || send.state == "failed" {
                 NearbySendProgressSection(send: send)
+                if send.state == "failed" { Button("Start again") { previousSend = send.id } }
             } else {
                 Section("Files to send") {
                     ForEach(files, id: \.id) { file in
@@ -273,6 +292,7 @@ struct NearbySendFilesSheet: View {
             }
         }
         .privateScreen()
+        .interactiveDismissDisabled(send?.active == true || nearby.working)
         .navigationTitle("Share nearby")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -282,9 +302,13 @@ struct NearbySendFilesSheet: View {
                     nearby.stopBrowse()
                     dismiss()
                 }
+                .disabled(nearby.working)
             }
         }
-        .onAppear { nearby.startBrowse() }
+        .onAppear {
+            if previousSend == nil { previousSend = send.flatMap { $0.active ? nil : $0.id } ?? 0 }
+            nearby.startBrowse()
+        }
         .onDisappear { nearby.stopBrowse() }
         .sheet(isPresented: $scanning) {
             QRCodeScanner { text in
@@ -313,7 +337,11 @@ struct NearbySendVaultSheet: View {
     @State private var approvalRequest: ApprovalView?
 
     private var nearby: NearbyShareModel { model.nearbyShare }
-    private var send: NearbyShareModel.SendStatus? { nearby.status?.send }
+    @State private var previousSend: UInt64?
+    private var send: NearbyShareModel.SendStatus? {
+        guard let send = nearby.status?.send, send.id != previousSend else { return nil }
+        return send
+    }
     private var populatedFields: [VaultField] { item.fields.filter { !$0.value.isEmpty } }
     private var hasSelection: Bool { !selectedFields.isEmpty || includeNotes || !selectedAttachments.isEmpty }
 
@@ -326,13 +354,14 @@ struct NearbySendVaultSheet: View {
                 NearbySendProgressSection(send: send, onOpenApproval: { id in
                     Task { await openApproval(id) }
                 })
+                if send.state == "failed" { Button("Start again") { previousSend = send.id } }
             } else {
                 Section("Select fields to share") {
                     ForEach(populatedFields, id: \.id) { field in
                         Toggle(field.label.isEmpty ? vaultFieldName(field.id) : field.label, isOn: Binding(
                             get: { selectedFields.contains(field.id) },
                             set: { if $0 { selectedFields.insert(field.id) } else { selectedFields.remove(field.id) } }
-                        ))
+                        )).accessibilityIdentifier("nearby.field.\(field.id)")
                     }
                     if !item.notes.isEmpty {
                         Toggle("Notes", isOn: $includeNotes)
@@ -378,6 +407,7 @@ struct NearbySendVaultSheet: View {
             }
         }
         .privateScreen()
+        .interactiveDismissDisabled(send?.active == true || nearby.working)
         .navigationTitle("Share nearby")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -387,9 +417,11 @@ struct NearbySendVaultSheet: View {
                     nearby.stopBrowse()
                     dismiss()
                 }
+                .disabled(nearby.working)
             }
         }
         .task {
+            if previousSend == nil { previousSend = send.flatMap { $0.active ? nil : $0.id } ?? 0 }
             nearby.startBrowse()
             for fileId in item.files {
                 if let details = try? await model.fileDetails(fileId) {

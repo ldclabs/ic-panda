@@ -59,6 +59,9 @@ pub enum NearbyCommand {
         /// Optional peer display alias when using `--host`/`--port`.
         #[arg(long)]
         peer_alias: Option<String>,
+        /// Apple peer-to-peer service instance from `dmsg nearby browse`.
+        #[arg(long, conflicts_with_all = ["offer", "host", "port"])]
+        advert: Option<String>,
         /// Sender alias shown to the receiver.
         #[arg(long)]
         alias: Option<String>,
@@ -83,6 +86,9 @@ pub enum NearbyCommand {
         /// Direct TCP port from `dmsg nearby browse`.
         #[arg(long)]
         port: Option<u16>,
+        /// Apple peer-to-peer service instance from `dmsg nearby browse`.
+        #[arg(long, conflicts_with_all = ["offer", "host", "port"])]
+        advert: Option<String>,
         /// Vault item ID.
         #[arg(long)]
         item: String,
@@ -191,6 +197,7 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
             host,
             port,
             peer_alias,
+            advert,
             alias,
             share_identity,
             wait,
@@ -208,6 +215,8 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
                         "host": host,
                         "port": port,
                         "peer_alias": peer_alias,
+                        "transport": advert.as_ref().map(|_| "awdl"),
+                        "advert": advert,
                         "alias": alias,
                         "share_identity": share_identity,
                         "files": items,
@@ -216,7 +225,7 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
                 )
                 .await?;
             if wait {
-                view = wait_send(remote).await?;
+                view = wait_send(remote, &view, json_out).await?;
             }
             print(json_out, &view, format_status);
             Ok(())
@@ -228,6 +237,7 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
             item,
             revision,
             fields,
+            advert,
             notes,
             alias,
         } => {
@@ -239,6 +249,8 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
                         "host": host,
                         "port": port,
                         "alias": alias,
+                        "transport": advert.as_ref().map(|_| "awdl"),
+                        "advert": advert,
                         "source": "cli",
                         "vault_item": {
                             "item_id": item,
@@ -279,12 +291,51 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
     }
 }
 
-async fn wait_send(remote: &Remote) -> Result<Value, Failure> {
+async fn wait_send(remote: &Remote, started: &Value, json_out: bool) -> Result<Value, Failure> {
+    let id = started["send"]["id"]
+        .as_u64()
+        .ok_or_else(|| Failure::new("UNAVAILABLE", "missing nearby send"))?;
+    let mut showed_sas = false;
     loop {
         let view = remote.call("nearby/status", Value::Null).await?;
-        let state = view["send"]["state"].as_str().unwrap_or_default();
-        if matches!(state, "done" | "failed" | "cancelled" | "") {
-            return Ok(view);
+        let send = &view["send"];
+        if send["id"].as_u64() != Some(id) {
+            return Err(Failure::new(
+                "CANCELLED",
+                "nearby send ended or was replaced",
+            ));
+        }
+        match send["state"].as_str() {
+            Some("done") => return Ok(view),
+            Some("failed") => {
+                return Err(Failure::new(
+                    send["error"]["code"].as_str().unwrap_or("UNAVAILABLE"),
+                    send["error"]["message"]
+                        .as_str()
+                        .unwrap_or("nearby send failed"),
+                ));
+            }
+            Some("cancelled") => return Err(Failure::new("CANCELLED", "nearby send cancelled")),
+            _ => {}
+        }
+        if !json_out
+            && !showed_sas
+            && let Some(sas) = send["sas"].as_str()
+        {
+            eprintln!(
+                "{}",
+                tr!("Compare with receiver: {sas}", "与接收方核对：{sas}")
+            );
+            if send["qr_bound"] == false {
+                eprintln!(
+                    "{}",
+                    tr!(
+                        "If the codes match, run `dmsg nearby confirm` in another terminal.",
+                        "两端六码一致后，在另一终端运行 `dmsg nearby confirm`。"
+                    )
+                );
+            }
+            showed_sas = true;
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
@@ -307,7 +358,12 @@ fn format_peers(reply: &Value) -> String {
         let host = p["host"].as_str().unwrap_or_default();
         let port = p["port"].as_u64().unwrap_or(0);
         let hint = p["pk_hint"].as_str().unwrap_or_default();
-        lines.push(format!("{alias}\t[{transport}]\t{host}:{port}\tpk={hint}"));
+        let endpoint = if transport == "awdl" {
+            format!("--advert {}", p["advert"].as_str().unwrap_or_default())
+        } else {
+            format!("{host}:{port}")
+        };
+        lines.push(format!("{alias}\t[{transport}]\t{endpoint}\tpk={hint}"));
     }
     lines.join("\n")
 }
@@ -326,6 +382,11 @@ fn format_status(view: &Value) -> String {
             && state == "waiting"
         {
             parts.push(format!("  offer: {offer}"));
+        }
+        if let Some(codes) = r["verification_codes"].as_array() {
+            for sas in codes.iter().filter_map(Value::as_str) {
+                parts.push(tr!("  Compare with sender: {sas}", "  与发送方核对：{sas}"));
+            }
         }
         if let Some(peers) = r["pending_peers"].as_array() {
             for p in peers {

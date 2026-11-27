@@ -20,7 +20,7 @@ use dmsg_types::{Error, Result, ensure};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::Duration;
 
@@ -149,20 +149,21 @@ impl Nearby {
             h.awdl = None;
             h.mdns_error = None;
         }
-        self.core.send_cancel();
         let daemon = self.daemon().ok();
         if let Some(d) = &daemon {
             let h = d.hold();
-            let _ = self.core.receive_cancel(Some(&h)).await;
-            d.emit("nearby/changed", self.view());
+            if self.core.reset(Some(&h)).await {
+                d.emit("nearby/changed", self.view());
+            }
         } else {
-            let _ = self.core.receive_cancel::<DaemonHold>(None).await;
+            self.core.clear();
         }
     }
 
-    fn change_hook(&self, daemon: Arc<Daemon>) -> Arc<dyn Fn() + Send + Sync> {
+    fn change_hook(&self, daemon: Arc<Daemon>, receiving: bool) -> Arc<dyn Fn() + Send + Sync> {
         let core = self.core.clone();
         let approving = AtomicBool::new(false);
+        let completed = AtomicU64::new(0);
         Arc::new(move || {
             let mut view = core.view();
             let recv_state = view["receive"]["state"]
@@ -188,7 +189,10 @@ impl Nearby {
                 h.advert = None;
                 h.awdl = None;
             }
-            if recv_state == "done" {
+            let committed = view["receive"]["progress"]["completed_items"]
+                .as_u64()
+                .unwrap_or(0);
+            if receiving && committed > completed.fetch_max(committed, Ordering::Relaxed) {
                 daemon.emit("files/changed", json!({"nearby": true}));
             }
             // Once more when the wait ends: the send settles or cancels the approval.
@@ -318,7 +322,7 @@ impl Daemon {
             .map(str::to_owned)
             .unwrap_or_else(default_alias);
         let discoverable = params["discoverable"].as_bool().unwrap_or(false);
-        let on_change = self.nearby.change_hook(daemon.clone());
+        let on_change = self.nearby.change_hook(daemon.clone(), true);
 
         {
             let mut handles = self
@@ -386,12 +390,17 @@ impl Daemon {
                     .handles
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());
-                match mdns_res {
-                    Ok(advert) => handles.advert = Some(advert),
-                    Err(e) => handles.mdns_error = Some(e.to_string()),
-                }
-                if let Ok(listener) = awdl_res {
-                    handles.awdl = Some(listener);
+                let current = self.nearby.core.view();
+                if current["receive"]["id"] == started["receive"]["id"]
+                    && current["receive"]["state"] == "waiting"
+                {
+                    match mdns_res {
+                        Ok(advert) => handles.advert = Some(advert),
+                        Err(e) => handles.mdns_error = Some(e.to_string()),
+                    }
+                    if let Ok(listener) = awdl_res {
+                        handles.awdl = Some(listener);
+                    }
                 }
             }
         }
@@ -481,9 +490,28 @@ impl Daemon {
                 .adv
                 .as_deref()
                 .and_then(|adv| nearby_awdl::connect(adv).ok());
+            let resolved = if awdl.is_none()
+                && offer.addrs.is_empty()
+                && offer.relay.is_none()
+                && let Some(advert) = offer.adv.clone()
+            {
+                Some(
+                    tokio::task::spawn_blocking(move || {
+                        mdns::browse(Duration::from_secs(2))?
+                            .into_iter()
+                            .find(|peer| peer.advert == advert)
+                            .map(|peer| (peer.host, peer.port))
+                            .ok_or(Error::NotFound)
+                    })
+                    .await
+                    .map_err(|e| Error::Unavailable(e.to_string()))??,
+                )
+            } else {
+                None
+            };
             SendTarget::Offer {
                 offer,
-                resolved: None,
+                resolved,
                 awdl,
             }
         } else {
@@ -509,7 +537,7 @@ impl Daemon {
             }
         };
 
-        let on_change = self.nearby.change_hook(daemon);
+        let on_change = self.nearby.change_hook(daemon, false);
         self.nearby
             .core
             .send_start(
@@ -650,8 +678,11 @@ mod tests {
                     rv["receive"]["outcome"]["files"][0]["name"],
                     "hello-nearby.txt"
                 );
-                // Cancel resets cleanly after completion.
                 receiver_d.nearby.cancel_all().await;
+                assert_eq!(
+                    receiver_d.nearby.view(),
+                    json!({"receive": null, "send": null})
+                );
                 return;
             }
             tokio::time::sleep(Duration::from_millis(25)).await;

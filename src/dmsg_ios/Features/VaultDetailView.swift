@@ -126,6 +126,7 @@ struct VaultDetailView: View {
                 }
                 Button("Share nearby", systemImage: "wave.3.right") { nearbySending = true }
                     .disabled(item.conflict)
+                    .accessibilityIdentifier("vault.share.nearby")
                 if !model.localAccount {
                     NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
                         .accessibilityIdentifier("vault.share").disabled(item.conflict)

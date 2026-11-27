@@ -129,8 +129,9 @@ private final class FramedAWDLBridge: @unchecked Sendable {
             Task.detached { [weak self] in
                 do {
                     try await engine.nearbyBridgePush(bridgeId: bridgeId, frame: body)
-                    self?.queue.async {
-                        guard let self, !self.closed else { return }
+                    guard let self else { return }
+                    self.queue.async {
+                        guard !self.closed else { return }
                         self.readNextHeader()
                     }
                 } catch {
@@ -141,8 +142,8 @@ private final class FramedAWDLBridge: @unchecked Sendable {
     }
 
     func stop() {
-        queue.async { [weak self] in
-            guard let self, !self.closed else { return }
+        queue.async {
+            guard !self.closed else { return }
             self.closed = true
             self.writerTask?.cancel()
             self.writerTask = nil
@@ -197,8 +198,7 @@ final class NearbyAWDLListener: @unchecked Sendable {
     }
 
     func stop() {
-        queue.async { [weak self] in
-            guard let self else { return }
+        queue.async {
             self.listener?.stateUpdateHandler = nil
             self.listener?.newConnectionHandler = nil
             self.listener?.cancel()
@@ -250,11 +250,11 @@ final class NearbyAWDLBrowser: @unchecked Sendable {
     }
 
     func stop() {
-        queue.async { [weak self] in
-            self?.browser?.stateUpdateHandler = nil
-            self?.browser?.browseResultsChangedHandler = nil
-            self?.browser?.cancel()
-            self?.browser = nil
+        queue.async {
+            self.browser?.stateUpdateHandler = nil
+            self.browser?.browseResultsChangedHandler = nil
+            self.browser?.cancel()
+            self.browser = nil
         }
     }
 }

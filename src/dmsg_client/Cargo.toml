@@ -58,6 +58,7 @@ serde_jcs.workspace = true
 sha1.workspace = true
 sha2.workspace = true
 sha3.workspace = true
+socket2 = "0.6"
 ssh-key = { workspace = true, features = ["std", "ed25519", "rsa", "ecdsa"] }
 signature.workspace = true
 url.workspace = true
@@ -78,4 +79,4 @@ testing = []
 [dev-dependencies]
 h2 = "0.4"
 ic-verify-bls-signature.workspace = true
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

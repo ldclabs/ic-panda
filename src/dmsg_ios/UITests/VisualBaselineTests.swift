@@ -66,6 +66,22 @@ final class VisualBaselineTests: XCTestCase {
         }
     }
 
+    func testNearbyVaultSelection() {
+        for look in looks {
+            let app = launch(look, ["--ui-vault-rich", "--ui-vault-detail"])
+            let item = app.buttons["vault.item.fixture-api"]
+            XCTAssertTrue(item.waitForExistence(timeout: 10), look.name)
+            item.tap()
+            app.buttons["vault.detail.more"].tap()
+            app.buttons["vault.share.nearby"].tap()
+            let credential = app.switches["nearby.field.credential"]
+            XCTAssertTrue(credential.waitForExistence(timeout: 5), look.name)
+            XCTAssertEqual(credential.value as? String, "0")
+            shot(app, look, "nearby-vault")
+            app.terminate()
+        }
+    }
+
     func testReturningAccount() {
         for look in looks {
             let app = launch(look, ["--ui-access"])

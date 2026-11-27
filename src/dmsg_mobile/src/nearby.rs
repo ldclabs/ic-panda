@@ -40,17 +40,11 @@ pub(crate) struct MobileNearby {
 impl MobileNearby {
     /// Immediately cancel active send/receive sessions and drop all AWDL bridges.
     pub(crate) fn cancel_sync(&self) {
-        self.core.send_cancel();
-        {
-            let mut map = self.bridges.lock().unwrap_or_else(|e| e.into_inner());
-            map.clear();
-        }
-        let core = self.core.clone();
-        runtime().spawn(async move {
-            let _ = core
-                .receive_cancel::<crate::session::ScopedHost>(None)
-                .await;
-        });
+        self.core.clear();
+        self.bridges
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 
     pub(crate) fn notify_approval_ready(&self, job_id: String) {

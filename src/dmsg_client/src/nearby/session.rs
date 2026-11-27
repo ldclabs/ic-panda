@@ -552,6 +552,8 @@ where
 
                         match file_result {
                             Ok(rec) => {
+                                progress.completed_items += 1;
+                                on_progress(progress.clone());
                                 channel
                                     .send(&Body::FileAck {
                                         index,
@@ -559,8 +561,6 @@ where
                                         version_id: rec.version_id.clone(),
                                     })
                                     .await?;
-                                progress.completed_items += 1;
-                                on_progress(progress.clone());
                                 committed.push(rec);
                             }
                             Err(err) => {

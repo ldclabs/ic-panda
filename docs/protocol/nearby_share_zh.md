@@ -31,14 +31,14 @@
   - `K_tx = HKDF(shared, CBOR(["dmsg/nearby-share/key/v1", transcript, qr_bound, qrs_or_empty]))`
   - `sas = u32_be(HKDF(shared, CBOR(["dmsg/nearby-share/sas/v1", transcript]))[0..4]) % 1_000_000`
 - **核对门控**：所有模式下接收方都核对 6 位码；列表模式下发送方须先确认 6 位码一致后才发送 `OfferMeta`。核对前不发送任何文件名、标题或身份信息；可选 `Identity` 帧默认不发，仅在双方确认后按需交换。
-- **防槽位抢占**：接收页仅在用户点击「接受」时锁定单活跃会话槽位并关闭竞争连接。
+- **防槽位抢占**：列表模式在握手后即向双方显示六码。发送方核对后才发送清单，接收方点击「接受」后关闭竞争连接。尚未接受传输的接收窗口到期后关闭所有传输入口。
 
 ## 3. 帧加密、信用窗口与载荷交付
 
 - 握手后每帧为 AES-256-GCM 密文，nonce 为 `direction (1B) || 0x000000 || seq (8B BE)`，AAD 为 `CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`，明文上限 `1 MiB + 64 KiB`。
 - **按块信用窗口**：接收方在 `Accept` 授予初始信用 `W = 4` 块，每消费 2 块回发 `Credit { granted }`，LAN 与 WebSocket 中继共用同一背压流控。
 - **文件分享**：普通文件不走高风险审批；接收方复用 `library::import`（`free_name` 不并入同名文件、独立 `FileKey`、按 `files_max_bytes` 验收，默认 4 GiB，单次会话 ≤ 10 GiB / 64 文件），**逐文件独立提交并回执 `FileAck`**。
-- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、≤ 64 字段、≤ 20 附件、默认全不选、拦截 `dmsg-` 保留条目）。接收方接受后，发送方才创建分享任务并请求高风险 `Action::SecretShare`（绑定 `transcript` 与 6 位码），批准后流式发出；等待批准超时、被拒绝或发送方取消时撤销该任务及其审批；接收方整包校验后进入现有 `secrets/receiving` 真实无值预览与 `Action::SecretPackageImport` 原子导入。
+- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、≤ 64 字段、≤ 20 附件、默认全不选、拦截 `dmsg-` 保留条目）。接收方接受后，发送方才创建分享任务并请求高风险 `Action::SecretShare`（绑定 `transcript` 与 6 位码），批准后流式发出；超时、拒绝或取消会终止分享并释放暂存数据，审批历史保留用户的拒绝决定；接收方整包校验后进入现有 `secrets/receiving` 真实无值预览与 `Action::SecretPackageImport` 原子导入。
 
 ## 4. 中继合同（`dmsg-nearby-relay/1`）
 

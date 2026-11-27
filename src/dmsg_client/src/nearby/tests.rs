@@ -567,7 +567,7 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
 }
 
 #[tokio::test]
-async fn hosted_receive_and_send_over_awdl_bridge_and_lan_tcp_work_end_to_end() {
+async fn hosted_discovery_shows_matching_codes_before_offering_files() {
     let dir = TempDir::new();
     let mut sender = unlocked(&dir.0.join("sender"), false, None);
     let receiver = unlocked(&dir.0.join("receiver"), false, None);
@@ -583,19 +583,16 @@ async fn hosted_receive_and_send_over_awdl_bridge_and_lan_tcp_work_end_to_end() 
     let send_host = NearbyHost::new();
     let noop: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {});
 
-    let started = recv_host
+    recv_host
         .receive_start(
             receiver_hold.clone(),
             Some("Bob Mac".into()),
-            false,
+            true,
             crate::files::MAX_FILE,
             noop.clone(),
         )
         .await
         .unwrap();
-    let offer_text = started["receive"]["offer"].as_str().unwrap().to_string();
-    let offer = NearbyOffer::parse(&offer_text, Some("local")).unwrap();
-
     // Connect over BridgeTransport (simulating Apple AWDL NWConnection bridge).
     let (s_bridge, mut s_handle) = BridgeTransport::pair(16);
     let (r_bridge, mut r_handle) = BridgeTransport::pair(16);
@@ -624,9 +621,10 @@ async fn hosted_receive_and_send_over_awdl_bridge_and_lan_tcp_work_end_to_end() 
     send_host
         .send_start(
             sender_hold.clone(),
-            SendTarget::Offer {
-                offer,
-                resolved: None,
+            SendTarget::Direct {
+                host: String::new(),
+                port: 0,
+                alias: Some("Bob Mac".into()),
                 awdl: Some(s_bridge),
             },
             SendPayload::Files(vec![SendFileItem {
@@ -641,7 +639,19 @@ async fn hosted_receive_and_send_over_awdl_bridge_and_lan_tcp_work_end_to_end() 
         .await
         .unwrap();
 
-    // Wait for pending peer to appear on receiver.
+    until("both verification codes", [&recv_host, &send_host], || {
+        recv_host.view()["receive"]["verification_codes"][0].is_string()
+            && send_host.view()["send"]["awaiting_sas_confirm"] == true
+    })
+    .await;
+    let recv = &recv_host.view()["receive"];
+    assert_eq!(
+        recv["verification_codes"][0],
+        send_host.view()["send"]["sas"]
+    );
+    assert_eq!(recv["pending_peers"], json!([]));
+    send_host.send_confirm_sas().unwrap();
+
     let mut peer_id = String::new();
     for _ in 0..100 {
         let view = recv_host.view();
@@ -650,7 +660,8 @@ async fn hosted_receive_and_send_over_awdl_bridge_and_lan_tcp_work_end_to_end() 
         {
             peer_id = arr[0]["peer_id"].as_str().unwrap().to_string();
             assert_eq!(arr[0]["transport"], "awdl");
-            assert_eq!(arr[0]["qr_bound"], true);
+            assert_eq!(arr[0]["qr_bound"], false);
+            assert_eq!(view["receive"]["verification_codes"], json!([]));
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -1199,6 +1210,87 @@ async fn cancelling_a_vault_send_cancels_its_share_job_and_approval() {
         .unwrap();
     assert_eq!(approval["state"], "cancelled");
     assert_eq!(send_host.view()["send"]["state"], "cancelled");
+}
+
+#[tokio::test]
+async fn rejecting_a_nearby_share_ends_the_send_and_preserves_the_decision() {
+    let dir = TempDir::new();
+    let (sender, _receiver, recv_host, send_host, approval_id) =
+        standalone_vault_send(&dir.0).await;
+    let mut c = sender.0.lock().await;
+    let request = c.approval_record(&approval_id).unwrap();
+    c.approval_decide(
+        &approval_id,
+        &hex::encode(*request.digest()),
+        false,
+        "gui",
+        false,
+    )
+    .await
+    .unwrap();
+    drop(c);
+    until("rejection", [&recv_host, &send_host], || {
+        send_host.view()["send"]["state"] == "failed"
+    })
+    .await;
+    let c = sender.0.lock().await;
+    assert_eq!(
+        c.approval_record(&approval_id).unwrap().state,
+        crate::approval::State::Rejected
+    );
+    assert_eq!(c.secret_shares().unwrap()["shares"][0]["state"], "failed");
+}
+
+#[tokio::test(start_paused = true)]
+async fn unused_nearby_offer_expires_and_closes_its_listener() {
+    let dir = TempDir::new();
+    let receiver = TestHold::new(unlocked(&dir.0, false, None));
+    let host = NearbyHost::new();
+    let started = host
+        .receive_start(
+            receiver,
+            None,
+            true,
+            crate::files::MAX_FILE,
+            Arc::new(|| {}),
+        )
+        .await
+        .unwrap();
+    let port = started["receive"]["port"].as_u64().unwrap() as u16;
+    tokio::task::yield_now().await;
+    tokio::time::advance(std::time::Duration::from_millis(super::OFFER_TTL_MS + 1)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(host.view()["receive"]["error"]["code"], "EXPIRED");
+    assert!(
+        tokio::net::TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, port))
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn leaving_the_workspace_invalidates_a_receive_start_still_waiting_on_the_client() {
+    let dir = TempDir::new();
+    let receiver = TestHold::new(unlocked(&dir.0, false, None));
+    let host = NearbyHost::new();
+    let locked = receiver.0.lock().await;
+    let starting = host.receive_start(
+        receiver.clone(),
+        None,
+        false,
+        crate::files::MAX_FILE,
+        Arc::new(|| {}),
+    );
+    tokio::pin!(starting);
+    tokio::select! {
+        biased;
+        _ = &mut starting => panic!("start must wait for the client"),
+        _ = std::future::ready(()) => {}
+    }
+    host.clear();
+    drop(locked);
+    assert_eq!(starting.await, Err(Error::Expired));
+    assert!(host.view()["receive"].is_null());
 }
 
 #[tokio::test]

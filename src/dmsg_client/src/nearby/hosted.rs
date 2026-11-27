@@ -3,7 +3,7 @@
 //! `NWConnection` byte bridges and Happy Eyeballs parallel racing.
 
 use super::offer::{NearbyOffer, RelayOffer, advert, pk_hint, sanitize_alias};
-use super::relay::{WsFrameTransport, cancel_room, create_room};
+use super::relay::{RelayRoom, WsFrameTransport, cancel_room, create_room};
 use super::session::{
     Progress, ReceiveDecision, ReceiveOutcome, SendFileItem, SendOutcome, receive_after_handshake,
     receiver_handshake, send_files_after_handshake, send_secret_package_after_handshake,
@@ -30,7 +30,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio::task::AbortHandle;
 
 /// Delay before launching blind relay in parallel with local direct probes.
@@ -50,11 +50,40 @@ fn random_16() -> [u8; 16] {
 
 /// Bind a local TCP listener on an ephemeral port for nearby receiving.
 pub async fn listen() -> Result<TcpListener> {
-    match TcpListener::bind((Ipv6Addr::UNSPECIFIED, 0)).await {
+    // Windows defaults to an IPv6-only socket. The IPv4 address in the QR
+    // must also reach this port.
+    let dual_stack = || -> std::io::Result<TcpListener> {
+        let socket = socket2::Socket::new(socket2::Domain::IPV6, socket2::Type::STREAM, None)?;
+        socket.set_only_v6(false)?;
+        socket.set_nonblocking(true)?;
+        socket.bind(&SocketAddr::new(Ipv6Addr::UNSPECIFIED.into(), 0).into())?;
+        socket.listen(128)?;
+        TcpListener::from_std(socket.into())
+    };
+    match dual_stack() {
         Ok(listener) => Ok(listener),
         Err(_) => TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0))
             .await
             .map_err(|e| Error::Unavailable(format!("nearby listen: {e}"))),
+    }
+}
+
+async fn open_relay_room<H: Hold>(h: &H) -> Result<(RelayRoom, WsFrameTransport)> {
+    let room = create_room(h).await?;
+    match WsFrameTransport::connect(&room.origin, &room.rid, &room.recv_token).await {
+        Ok(socket) => Ok((room, socket)),
+        Err(error) => {
+            let _ = cancel_room(h, room.rid).await;
+            Err(error)
+        }
+    }
+}
+
+fn relay_offer(room: &RelayRoom) -> RelayOffer {
+    RelayOffer {
+        env: room.env.clone(),
+        rid: ByteArray::from(room.rid),
+        tok: ByteArray::from(*room.send_token),
     }
 }
 
@@ -212,6 +241,7 @@ pub struct PendingPeerView {
 struct PendingPeer {
     view: PendingPeerView,
     decision_tx: Option<oneshot::Sender<ReceiveDecision>>,
+    task: tokio::task::Id,
 }
 
 struct ReceiveState {
@@ -228,6 +258,9 @@ struct ReceiveState {
     relay_ready: bool,
     r_key: Arc<EphemeralKey>,
     qrs: [u8; 16],
+    slots: Arc<Semaphore>,
+    /// Browse handshakes whose sender is still checking the SAS before sharing metadata.
+    verifying: BTreeMap<String, String>,
     /// Pending unaccepted handshakes (slot is NOT locked until user accepts one).
     pending: BTreeMap<String, PendingPeer>,
     /// Locked active peer ID once accepted.
@@ -242,6 +275,20 @@ struct ReceiveState {
     tasks: Vec<AbortHandle>,
 }
 
+impl ReceiveState {
+    fn close_connections(&mut self) -> Option<[u8; 16]> {
+        self.pending.clear();
+        self.verifying.clear();
+        self.relay_ready = false;
+        for task in self.tasks.drain(..) {
+            if Some(task.id()) != tokio::task::try_id() {
+                task.abort();
+            }
+        }
+        self.relay_rid.take()
+    }
+}
+
 struct SendState {
     id: u64,
     kind: OfferKind,
@@ -251,24 +298,25 @@ struct SendState {
     qr_bound: bool,
     peer_label: String,
     /// Waiting for user to confirm 6-digit SAS in browse mode.
-    sas_tx: Option<oneshot::Sender<Result<()>>>,
+    sas_tx: Option<oneshot::Sender<()>>,
     /// Pending `SecretShare` approval ID for vault items.
     share_job_id: Option<String>,
     approval_id: Option<String>,
-    approval_tx: Option<oneshot::Sender<Result<String>>>,
+    approval_tx: Option<oneshot::Sender<()>>,
     state: &'static str,
     progress: Progress,
     outcome: Option<SendOutcome>,
     error: Option<Json>,
     started_at: u64,
     ended_at: Option<u64>,
-    task: Option<AbortHandle>,
+    cancel_tx: Option<oneshot::Sender<()>>,
 }
 
 /// Host controller managing nearby receive and send sessions for one client/daemon.
 #[derive(Default)]
 pub struct NearbyHost {
-    seq: AtomicU64,
+    receive_seq: AtomicU64,
+    send_seq: AtomicU64,
     receive: Arc<Mutex<Option<ReceiveState>>>,
     send: Arc<Mutex<Option<SendState>>>,
 }
@@ -295,6 +343,7 @@ impl NearbyHost {
                 "offer": r.offer_text,
                 "expires_at": r.expires_at,
                 "relay_ready": r.relay_ready,
+                "verification_codes": r.verifying.values().collect::<Vec<_>>(),
                 "pending_peers": pending,
                 "active_peer": r.active_peer,
                 "transport": r.transport,
@@ -343,7 +392,7 @@ impl NearbyHost {
         max_package_bytes: u64,
         on_change: Arc<dyn Fn() + Send + Sync>,
     ) -> Result<Json> {
-        self.receive_cancel(Some(&h)).await;
+        let id = self.stop_receive(Some(&h)).await;
 
         let (env, include_loopback, online) = h
             .with(|c| {
@@ -359,6 +408,13 @@ impl NearbyHost {
             .map_err(|e| Error::Unavailable(format!("nearby addr: {e}")))?
             .port();
         let addrs = local_addresses(port, include_loopback);
+        // On a cellular or public-IP connection, the relay can be the first
+        // reachable endpoint. Include it before encoding the QR in that case.
+        let first_relay = if addrs.is_empty() && !discoverable && online {
+            Some(open_relay_room(&h).await?)
+        } else {
+            None
+        };
         let r_key = Arc::new(EphemeralKey::generate());
         let qrs = random_16();
         let advert_sid = random_16();
@@ -366,7 +422,9 @@ impl NearbyHost {
         let hint = pk_hint(&r_key.public_bytes());
         let alias = sanitize_alias(alias.as_deref().unwrap_or("dMsg Device"));
         let started_at = now_ms();
-        let expires_at = started_at + OFFER_TTL_MS;
+        let expires_at = first_relay
+            .as_ref()
+            .map_or(started_at + OFFER_TTL_MS, |(room, _)| room.join_expires_at);
 
         let offer = NearbyOffer {
             v: super::FORMAT,
@@ -375,13 +433,15 @@ impl NearbyHost {
             exp: expires_at,
             adv: discoverable.then(|| adv_label.clone()),
             addrs: addrs.clone(),
-            relay: None,
+            relay: first_relay.as_ref().map(|(room, _)| relay_offer(room)),
         };
         let offer_text = offer.encode_for(Some(&env))?;
-        let id = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
-
         {
             let mut slot = lock(&self.receive);
+            ensure(
+                self.receive_seq.load(Ordering::Relaxed) == id,
+                Error::Expired,
+            )?;
             *slot = Some(ReceiveState {
                 id,
                 alias,
@@ -392,10 +452,12 @@ impl NearbyHost {
                 addrs: addrs.clone(),
                 offer_text,
                 expires_at,
-                relay_rid: None,
-                relay_ready: false,
+                relay_rid: first_relay.as_ref().map(|(room, _)| room.rid),
+                relay_ready: first_relay.is_some(),
                 r_key: r_key.clone(),
                 qrs,
+                slots: Arc::new(Semaphore::new(MAX_PENDING_PEERS)),
+                verifying: BTreeMap::new(),
                 pending: BTreeMap::new(),
                 active_peer: None,
                 transport: None,
@@ -414,14 +476,34 @@ impl NearbyHost {
         let h_tcp = h.clone();
         let cb_tcp = on_change.clone();
         let tcp_task = tokio::spawn(async move {
+            let deadline = tokio::time::Instant::now()
+                + Duration::from_millis(expires_at.saturating_sub(now_ms()));
             loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
+                let stream = match tokio::time::timeout_at(deadline, listener.accept()).await {
+                    Ok(Ok((stream, _))) => stream,
+                    Ok(Err(_)) => break,
+                    Err(_) => {
+                        let rid = {
+                            let mut slot = lock(&recv_arc);
+                            let Some(st) =
+                                slot.as_mut().filter(|s| s.id == id && s.state == "waiting")
+                            else {
+                                break;
+                            };
+                            st.state = "failed";
+                            st.error = Some(
+                                json!({"code": "EXPIRED", "message": Error::Expired.to_string()}),
+                            );
+                            st.ended_at = Some(now_ms());
+                            st.close_connections()
+                        };
+                        cb_tcp();
+                        if let Some(rid) = rid {
+                            let _ = cancel_room(&h_tcp, rid).await;
+                        }
+                        break;
+                    }
                 };
-                if !is_receive_accepting(&recv_arc, id) {
-                    drop(stream);
-                    continue;
-                }
                 spawn_incoming_peer(
                     recv_arc.clone(),
                     id,
@@ -435,25 +517,26 @@ impl NearbyHost {
         push_receive_task(&self.receive, id, tcp_task.abort_handle());
 
         // Spawn async blind relay room creation when logged in & online (never blocks local listen).
-        if online {
+        if let Some((_, ws)) = first_relay {
+            spawn_incoming_peer(
+                self.receive.clone(),
+                id,
+                h,
+                AnyTransport::Relay(Box::new(ws)),
+                max_package_bytes,
+                on_change.clone(),
+            );
+        } else if online {
             let recv_arc = self.receive.clone();
             let h_relay = h.clone();
             let cb_relay = on_change.clone();
-            let r_key_relay = r_key.clone();
-            let relay_task = tokio::spawn(async move {
-                let Ok(room) = create_room(&h_relay).await else {
+            // Let setup observe a cancelled/replaced window and release the
+            // room even when the create reply arrives after a LAN acceptance.
+            tokio::spawn(async move {
+                let Ok((room, ws)) = open_relay_room(&h_relay).await else {
                     return;
                 };
                 let rid = room.rid;
-                let send_tok = *room.send_token;
-                let recv_tok = *room.recv_token;
-                let origin = room.origin.clone();
-                let env_name = room.env.clone();
-
-                let Ok(ws) = WsFrameTransport::connect(&origin, &rid, &recv_tok).await else {
-                    let _ = cancel_room(&h_relay, rid).await;
-                    return;
-                };
 
                 let attached = {
                     let mut guard = lock(&recv_arc);
@@ -464,19 +547,10 @@ impl NearbyHost {
                         st.relay_rid = Some(rid);
                         st.relay_ready = true;
                         let updated = NearbyOffer {
-                            v: super::FORMAT,
-                            pk: ByteArray::from(r_key_relay.public_bytes()),
-                            qrs: ByteArray::from(st.qrs),
-                            exp: st.expires_at,
-                            adv: st.discoverable.then(|| st.advert.clone()),
-                            addrs: st.addrs.clone(),
-                            relay: Some(RelayOffer {
-                                env: env_name.clone(),
-                                rid: ByteArray::from(rid),
-                                tok: ByteArray::from(send_tok),
-                            }),
+                            relay: Some(relay_offer(&room)),
+                            ..offer
                         };
-                        if let Ok(encoded) = updated.encode_for(Some(&env_name)) {
+                        if let Ok(encoded) = updated.encode_for(Some(&room.env)) {
                             st.offer_text = encoded;
                         }
                         true
@@ -498,10 +572,8 @@ impl NearbyHost {
                     cb_relay,
                 );
             });
-            push_receive_task(&self.receive, id, relay_task.abort_handle());
         }
 
-        let _ = env;
         on_change();
         Ok(self.view())
     }
@@ -548,6 +620,7 @@ impl NearbyHost {
             .as_mut()
             .filter(|s| s.state == "waiting" && s.active_peer.is_none())
             .ok_or(Error::NotFound)?;
+        ensure(now_ms() < st.expires_at, Error::Expired)?;
         let mut chosen = st.pending.remove(peer_id).ok_or(Error::NotFound)?;
         let tx = chosen.decision_tx.take().ok_or(Error::Forbidden)?;
 
@@ -561,6 +634,15 @@ impl NearbyHost {
         }
 
         st.active_peer = Some(peer_id.to_string());
+        st.verifying.clear();
+        st.tasks.retain(|task| {
+            if task.id() == chosen.task {
+                true
+            } else {
+                task.abort();
+                false
+            }
+        });
         st.transport = Some(chosen.view.transport.clone());
         st.state = "running";
         let _ = tx.send(ReceiveDecision::Accept {
@@ -589,27 +671,22 @@ impl NearbyHost {
     /// Stop the current receive session, aborting listeners/connections and
     /// best-effort cancelling any open relay room.
     pub async fn receive_cancel<H: Hold>(&self, h: Option<&H>) -> Json {
-        let rid = {
+        self.stop_receive(h).await;
+        self.view()
+    }
+
+    async fn stop_receive<H: Hold>(&self, h: Option<&H>) -> u64 {
+        let (id, rid) = {
             let mut guard = lock(&self.receive);
-            if let Some(st) = guard.as_mut() {
-                for task in st.tasks.drain(..) {
-                    task.abort();
-                }
-                for (_, mut peer) in std::mem::take(&mut st.pending) {
-                    if let Some(tx) = peer.decision_tx.take() {
-                        let _ = tx.send(ReceiveDecision::Reject {
-                            code: "CANCELLED".into(),
-                        });
-                    }
-                }
+            let id = self.receive_seq.fetch_add(1, Ordering::Relaxed) + 1;
+            let rid = guard.as_mut().and_then(|st| {
                 if matches!(st.state, "waiting" | "running") {
                     st.state = "cancelled";
                     st.ended_at = Some(now_ms());
                 }
-                st.relay_rid.take()
-            } else {
-                None
-            }
+                st.close_connections()
+            });
+            (id, rid)
         };
         if let Some(h) = h {
             // An aborted transfer stops between chunks without its cleanup.
@@ -618,7 +695,7 @@ impl NearbyHost {
                 let _ = cancel_room(h, rid).await;
             }
         }
-        self.view()
+        id
     }
 
     /// Start sending Files or a Vault snapshot using either a `dmsg-nearby/1:`
@@ -635,7 +712,7 @@ impl NearbyHost {
         approval_source: String,
         on_change: Arc<dyn Fn() + Send + Sync>,
     ) -> Result<Json> {
-        self.send_cancel();
+        let id = self.stop_send();
 
         let (env, relay_origin, online) = h
             .with(|c| {
@@ -708,10 +785,11 @@ impl NearbyHost {
             ),
         };
 
-        let id = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
         let started_at = now_ms();
+        let (cancel_tx, cancel_rx) = oneshot::channel();
         {
             let mut slot = lock(&self.send);
+            ensure(self.send_seq.load(Ordering::Relaxed) == id, Error::Expired)?;
             *slot = Some(SendState {
                 id,
                 kind,
@@ -730,17 +808,18 @@ impl NearbyHost {
                 error: None,
                 started_at,
                 ended_at: None,
-                task: None,
+                cancel_tx: Some(cancel_tx),
             });
         }
 
         let send_arc = self.send.clone();
         let cb = on_change.clone();
-        let task = tokio::spawn(async move {
-            let result = run_sender(
+        tokio::spawn(async move {
+            let mut created_job = None;
+            let sending = run_sender(
                 send_arc.clone(),
                 id,
-                h,
+                h.clone(),
                 target,
                 payload,
                 alias,
@@ -748,11 +827,22 @@ impl NearbyHost {
                 approval_source,
                 relay_origin,
                 online,
+                env == "local",
                 total_bytes,
                 file_count,
                 cb.clone(),
-            )
-            .await;
+                &mut created_job,
+            );
+            let result = tokio::select! {
+                biased;
+                _ = cancel_rx => Err(Error::Unavailable("nearby: cancelled".into())),
+                result = sending => result,
+            };
+            if let (Err(err), Some(job_id)) = (&result, created_job) {
+                let _ = h
+                    .with(|c| c.secret_nearby_stop(&job_id, error_code(err)))
+                    .await;
+            }
 
             let mut guard = lock(&send_arc);
             if let Some(st) = guard.as_mut().filter(|s| s.id == id) {
@@ -774,15 +864,12 @@ impl NearbyHost {
                 st.sas_tx = None;
                 st.approval_tx = None;
                 st.ended_at = Some(now_ms());
-                st.task = None;
+                st.cancel_tx = None;
             }
             drop(guard);
             cb();
         });
 
-        if let Some(st) = lock(&self.send).as_mut().filter(|s| s.id == id) {
-            st.task = Some(task.abort_handle());
-        }
         on_change();
         Ok(self.view())
     }
@@ -793,7 +880,7 @@ impl NearbyHost {
         let st = guard.as_mut().ok_or(Error::NotFound)?;
         let tx = st.sas_tx.take().ok_or(Error::Forbidden)?;
         st.state = "awaiting_accept";
-        let _ = tx.send(Ok(()));
+        let _ = tx.send(());
         drop(guard);
         Ok(self.view())
     }
@@ -802,26 +889,31 @@ impl NearbyHost {
     pub fn send_approval_ready(&self, share_job_id: String) -> Result<Json> {
         let mut guard = lock(&self.send);
         let st = guard.as_mut().ok_or(Error::NotFound)?;
+        ensure(
+            st.share_job_id.as_ref() == Some(&share_job_id),
+            Error::NotFound,
+        )?;
         let tx = st.approval_tx.take().ok_or(Error::Forbidden)?;
-        let _ = tx.send(Ok(share_job_id));
+        let _ = tx.send(());
         drop(guard);
         Ok(self.view())
     }
 
     /// Cancel the active send session.
     pub fn send_cancel(&self) -> Json {
+        self.stop_send();
+        self.view()
+    }
+
+    fn stop_send(&self) -> u64 {
         let mut guard = lock(&self.send);
+        let id = self.send_seq.fetch_add(1, Ordering::Relaxed) + 1;
         if let Some(st) = guard.as_mut() {
-            if let Some(tx) = st.approval_tx.take() {
-                // A send waiting on its Vault approval cancels the share job
-                // and the approval itself before it ends.
-                let _ = tx.send(Err(Error::Unavailable("nearby: cancelled".into())));
-            } else if let Some(task) = st.task.take() {
-                task.abort();
+            if let Some(tx) = st.cancel_tx.take() {
+                let _ = tx.send(());
             }
-            if let Some(tx) = st.sas_tx.take() {
-                let _ = tx.send(Err(Error::Unavailable("nearby: cancelled".into())));
-            }
+            st.sas_tx = None;
+            st.approval_tx = None;
             if matches!(
                 st.state,
                 "connecting" | "awaiting_sas" | "awaiting_accept" | "awaiting_approval" | "running"
@@ -830,15 +922,35 @@ impl NearbyHost {
                 st.ended_at = Some(now_ms());
             }
         }
-        drop(guard);
-        self.view()
+        id
     }
 
-    /// Abort both receive and send sessions immediately (called on lock, account
-    /// switch or mobile backgrounding).
-    pub async fn reset<H: Hold>(&self, h: Option<&H>) {
-        let _ = self.receive_cancel(h).await;
-        let _ = self.send_cancel();
+    /// Forget both sessions at a workspace boundary, including their file names,
+    /// package previews and credentials. Dropping the send signal stops its task.
+    pub fn clear(&self) -> (bool, Option<[u8; 16]>) {
+        let sent = {
+            let mut send = lock(&self.send);
+            self.send_seq.fetch_add(1, Ordering::Relaxed);
+            send.take().is_some()
+        };
+        let mut receive = lock(&self.receive);
+        self.receive_seq.fetch_add(1, Ordering::Relaxed);
+        match receive.take() {
+            Some(mut st) => (true, st.close_connections()),
+            None => (sent, None),
+        }
+    }
+
+    /// Stop both sessions and release any open room before leaving the workspace.
+    pub async fn reset<H: Hold>(&self, h: Option<&H>) -> bool {
+        let (changed, rid) = self.clear();
+        if changed && let Some(h) = h {
+            let _ = h.with(|c| c.nearby_import_sweep(u64::MAX)).await;
+            if let Some(rid) = rid {
+                let _ = cancel_room(h, rid).await;
+            }
+        }
+        changed
     }
 }
 
@@ -874,14 +986,12 @@ pub enum SendPayload {
     VaultItem(ShareInput),
 }
 
-fn is_receive_accepting(recv: &Arc<Mutex<Option<ReceiveState>>>, id: u64) -> bool {
-    lock(recv).as_ref().is_some_and(|st| {
-        st.id == id && st.state == "waiting" && st.pending.len() < MAX_PENDING_PEERS
-    })
-}
-
 fn push_receive_task(recv: &Arc<Mutex<Option<ReceiveState>>>, id: u64, handle: AbortHandle) {
-    if let Some(st) = lock(recv).as_mut().filter(|s| s.id == id) {
+    if let Some(st) = lock(recv)
+        .as_mut()
+        .filter(|s| s.id == id && matches!(s.state, "waiting" | "running"))
+    {
+        st.tasks.retain(|task| !task.is_finished());
         st.tasks.push(handle);
     } else {
         handle.abort();
@@ -896,15 +1006,23 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
     max_package_bytes: u64,
     on_change: Arc<dyn Fn() + Send + Sync>,
 ) {
+    let Some((permit, r_key, qrs, require_qr)) = lock(&recv)
+        .as_ref()
+        .filter(|s| s.id == id && s.state == "waiting" && now_ms() < s.expires_at)
+        .and_then(|s| {
+            Some((
+                s.slots.clone().try_acquire_owned().ok()?,
+                s.r_key.clone(),
+                s.qrs,
+                !s.discoverable,
+            ))
+        })
+    else {
+        return;
+    };
     let recv_for_task = recv.clone();
     let task = tokio::spawn(async move {
-        let Some((r_key, qrs, require_qr)) = lock(&recv_for_task)
-            .as_ref()
-            .filter(|s| s.id == id && s.state == "waiting")
-            .map(|s| (s.r_key.clone(), s.qrs, !s.discoverable))
-        else {
-            return;
-        };
+        let _permit = permit;
 
         let transport_name = transport.kind_name().to_string();
         // A relay room is joined when the person scans the code; the relay
@@ -923,6 +1041,20 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
         let qr_bound = secrets.qr_bound;
         let channel = Channel::new(transport, &secrets, RECEIVER);
 
+        if !qr_bound {
+            {
+                let mut guard = lock(&recv_for_task);
+                let Some(st) = guard
+                    .as_mut()
+                    .filter(|s| s.id == id && s.state == "waiting")
+                else {
+                    return;
+                };
+                st.verifying.insert(peer_id.clone(), sas.clone());
+            }
+            on_change();
+        }
+
         let recv_for_decide = recv_for_task.clone();
         let cb_decide = on_change.clone();
         let peer_for_decide = peer_id.clone();
@@ -940,9 +1072,11 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
                 let (tx, rx) = oneshot::channel();
                 let inserted = {
                     let mut guard = lock(&recv_for_decide);
-                    if let Some(st) = guard.as_mut().filter(|s| {
-                        s.id == id && s.state == "waiting" && s.pending.len() < MAX_PENDING_PEERS
-                    }) {
+                    if let Some(st) = guard
+                        .as_mut()
+                        .filter(|s| s.id == id && s.state == "waiting")
+                    {
+                        st.verifying.remove(&peer_for_decide);
                         st.pending.insert(
                             peer_for_decide.clone(),
                             PendingPeer {
@@ -957,6 +1091,7 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
                                     alias,
                                 },
                                 decision_tx: Some(tx),
+                                task: tokio::task::id(),
                             },
                         );
                         true
@@ -988,6 +1123,7 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
         let relay_to_cancel = {
             let mut guard = lock(&recv_for_task);
             if let Some(st) = guard.as_mut().filter(|s| s.id == id) {
+                st.verifying.remove(&peer_id);
                 st.pending.remove(&peer_id);
                 if st.active_peer.as_deref() == Some(&peer_id) {
                     match outcome {
@@ -1006,10 +1142,7 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
                         }
                     }
                     st.ended_at = Some(now_ms());
-                    for task in st.tasks.drain(..) {
-                        task.abort();
-                    }
-                    st.relay_rid.take()
+                    st.close_connections()
                 } else {
                     None
                 }
@@ -1017,12 +1150,38 @@ fn spawn_incoming_peer<H: Hold + Clone + Send + 'static>(
                 None
             }
         };
+        on_change();
         if let Some(rid) = relay_to_cancel {
             let _ = cancel_room(&h, rid).await;
         }
-        on_change();
     });
     push_receive_task(&recv, id, task.abort_handle());
+}
+
+/// Resolve Bonjour names once and dial only the validated local addresses.
+async fn connect_discovered(host: &str, port: u16, allow_loopback: bool) -> Result<TcpStream> {
+    let ip = host.split_once('%').map_or(host, |(ip, _)| ip);
+    ensure(
+        port != 0
+            && (ip.parse::<std::net::IpAddr>().is_ok()
+                || host
+                    .trim_end_matches('.')
+                    .to_ascii_lowercase()
+                    .ends_with(".local")),
+        Error::Forbidden,
+    )?;
+    let io = |e| Error::Unavailable(format!("nearby connect: {e}"));
+    tokio::time::timeout(HELLO_TIMEOUT, async {
+        let addrs: Vec<_> = tokio::net::lookup_host((host, port))
+            .await
+            .map_err(io)?
+            .filter(|addr| super::offer::is_allowed_local_ip(addr.ip(), allow_loopback))
+            .collect();
+        ensure(!addrs.is_empty(), Error::Forbidden)?;
+        TcpStream::connect(addrs.as_slice()).await.map_err(io)
+    })
+    .await
+    .map_err(|_| Error::Unavailable("nearby: peer did not answer".into()))?
 }
 
 /// Happy Eyeballs parallel racer for connecting and handshaking with a nearby receiver.
@@ -1030,6 +1189,7 @@ async fn race_sender_connect(
     target: SendTarget,
     relay_origin: &str,
     online: bool,
+    allow_loopback: bool,
     total_bytes: u64,
     file_count: usize,
 ) -> Result<(AnyTransport, HandshakeSecrets)> {
@@ -1040,13 +1200,7 @@ async fn race_sender_connect(
             let mut transport = if let Some(bridge) = awdl {
                 AnyTransport::Bridge(bridge)
             } else {
-                let stream = tokio::time::timeout(
-                    Duration::from_secs(10),
-                    TcpStream::connect((host.as_str(), port)),
-                )
-                .await
-                .map_err(|_| Error::Unavailable("nearby: peer did not answer".into()))?
-                .map_err(|e| Error::Unavailable(format!("nearby connect: {e}")))?;
+                let stream = connect_discovered(&host, port, allow_loopback).await?;
                 AnyTransport::Tcp(StreamTransport::new(stream))
             };
             let secrets = sender_handshake(&mut transport, None, None).await?;
@@ -1072,13 +1226,7 @@ async fn race_sender_connect(
 
             if let Some((host, port)) = resolved {
                 set.spawn(async move {
-                    let stream = tokio::time::timeout(
-                        Duration::from_secs(8),
-                        TcpStream::connect((host.as_str(), port)),
-                    )
-                    .await
-                    .map_err(|_| Error::Unavailable("nearby: mDNS connect timed out".into()))?
-                    .map_err(|e| Error::Unavailable(format!("nearby connect: {e}")))?;
+                    let stream = connect_discovered(&host, port, allow_loopback).await?;
                     let mut t = AnyTransport::Tcp(StreamTransport::new(stream));
                     let secrets = sender_handshake(&mut t, Some(&expected_pk), Some(&qrs)).await?;
                     Ok((t, secrets))
@@ -1161,13 +1309,22 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
     approval_source: String,
     relay_origin: String,
     online: bool,
+    allow_loopback: bool,
     total_bytes: u64,
     file_count: usize,
     on_change: Arc<dyn Fn() + Send + Sync>,
+    created_job: &mut Option<String>,
 ) -> Result<SendOutcome> {
     let bound = Session::new(&h).await?;
-    let (transport, secrets) =
-        race_sender_connect(target, &relay_origin, online, total_bytes, file_count).await?;
+    let (transport, secrets) = race_sender_connect(
+        target,
+        &relay_origin,
+        online,
+        allow_loopback,
+        total_bytes,
+        file_count,
+    )
+    .await?;
     let transport_name = transport.kind_name().to_string();
     let max_bytes = if transport_name == "relay" {
         RELAY_MAX_BYTES
@@ -1204,9 +1361,10 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
             }
         }
         cb_sas();
-        rx.await
-            .map_err(|_| Error::Unavailable("nearby: cancelled".into()))??;
-        Ok(())
+        tokio::time::timeout(super::CONFIRM_TIMEOUT, rx)
+            .await
+            .map_err(|_| Error::Expired)?
+            .map_err(|_| Error::Unavailable("nearby: cancelled".into()))
     };
 
     let send_for_prog = send_arc.clone();
@@ -1247,10 +1405,10 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
             };
             let send_for_approval = send_arc.clone();
             let cb_approval = on_change.clone();
-            let h_for_approval = h.clone();
+            let bound = &bound;
 
             send_secret_package_after_handshake(
-                &bound,
+                bound,
                 channel,
                 secrets,
                 total_bytes,
@@ -1258,7 +1416,6 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                 share_identity,
                 confirm_sas,
                 move |_s: &HandshakeSecrets| async move {
-                    let bound = Session::new(&h_for_approval).await?;
                     // The receiver accepted: only now ask for the high-risk approval.
                     let (job_id, approval_id) = bound
                         .with(|c| {
@@ -1268,6 +1425,7 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                                 .as_str()
                                 .ok_or(Error::IntegrityFailed)?
                                 .to_string();
+                            *created_job = Some(job_id.clone());
                             let approval = c.secret_share_request(&approval_source, &job_id)?;
                             let approval_id = approval["id"]
                                 .as_str()
@@ -1276,19 +1434,16 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                             Ok((job_id, approval_id))
                         })
                         .await?;
-                    let approved = wait_for_approval(
-                        &bound,
+                    wait_for_approval(
+                        bound,
                         &send_for_approval,
                         id,
                         &job_id,
                         approval_id,
                         &cb_approval,
                     )
-                    .await;
-                    if approved.is_err() {
-                        let _ = bound.with(|c| c.secret_share_cancel(&job_id)).await;
-                    }
-                    approved.map(|()| job_id)
+                    .await?;
+                    Ok(job_id)
                 },
                 on_progress,
             )
@@ -1310,7 +1465,7 @@ async fn wait_for_approval<H: Hold>(
     let (tx, mut rx) = oneshot::channel();
     if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
         st.share_job_id = Some(job_id.to_string());
-        st.approval_id = Some(approval_id);
+        st.approval_id = Some(approval_id.clone());
         st.approval_tx = Some(tx);
         st.state = "awaiting_approval";
     }
@@ -1322,28 +1477,24 @@ async fn wait_for_approval<H: Hold>(
         loop {
             tokio::select! {
                 res = &mut rx => {
-                    return res
-                        .map_err(|_| Error::Unavailable("nearby: cancelled".into()))?
-                        .map(|_| ());
+                    return res.map_err(|_| Error::Unavailable("nearby: cancelled".into()));
                 }
                 _ = tick.tick() => {
                     if tokio::time::Instant::now() >= deadline {
                         return Err(Error::Expired);
                     }
-                    let view = h.with(|c| c.secret_share_get(job_id, false)).await?;
-                    match view["state"].as_str() {
-                        Some("ready_for_nearby") => return Ok(()),
-                        Some("cancelled" | "failed") => {
-                            return Err(Error::Unavailable("nearby: share approval rejected".into()));
-                        }
-                        _ => {}
+                    use crate::approval::State;
+                    match h.with(|c| Ok(c.approval_record(&approval_id)?.state)).await? {
+                        State::AwaitingUser | State::Executing => {}
+                        State::Done => return Ok(()),
+                        State::Expired => return Err(Error::Expired),
+                        _ => return Err(Error::Forbidden),
                     }
                 }
             }
         }
     }
     .await;
-    // Past the wait, cancelling aborts the send task again.
     if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
         st.approval_tx = None;
     }

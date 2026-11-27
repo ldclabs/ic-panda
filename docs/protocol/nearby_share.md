@@ -28,14 +28,14 @@ Two physically nearby dMsg devices (different accounts, same account, or offline
 
 - Both peers run X25519 (rejecting all-zero outputs) and derive `K_tx` and a 6-digit SAS via HKDF-SHA-256.
 - Receivers check the 6-digit SAS in every mode; browse-mode senders confirm the SAS before transmitting `OfferMeta`. Optional signed `Identity` frames are off by default and exchanged only after confirmation.
-- The receiver locks its single active session slot only when the user accepts a peer.
+- In browse mode both devices display the SAS as soon as the handshake completes. The receiver can accept after the sender confirms and sends the offer. Acceptance closes competing connections. An unused receive window closes at the advertised deadline across all transports.
 
 ## 3. Framing, Credit Window and Payloads
 
 - Post-handshake frames use AES-256-GCM with `nonce = direction || 0x000000 || seq_be` and `aad = CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`, max plaintext `1 MiB + 64 KiB`.
 - Receivers grant initial chunk credits (`W = 4`) in `Accept` and replenish every 2 chunks via `Credit`.
 - **Files**: No high-risk approval; received through `library::import` (`free_name`, fresh `FileKey`, bounded by `files_max_bytes`, default 4 GiB, max 10 GiB / 64 files per session), committed and acknowledged per file (`FileAck`).
-- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, <= 64 fields, <= 20 attachments, `dmsg-` reserved entries forbidden), with `Action::SecretShare` on the sender, requested only after the receiver accepts and cancelled with its approval when the wait times out, the approval is declined or the sender cancels, and verified preview + `Action::SecretPackageImport` on the receiver.
+- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, <= 64 fields, <= 20 attachments, `dmsg-` reserved entries forbidden), with `Action::SecretShare` on the sender, requested only after the receiver accepts. A timeout, rejection or cancellation stops the share and releases its staged data. The approval history preserves an explicit rejection. The receiver previews the verified package and approves `Action::SecretPackageImport` to import it.
 
 ## 4. Ephemeral Blind Relay (`dmsg-nearby-relay/1`)
 
