@@ -6,6 +6,22 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.2] - 2026-11-28
+
+- Choose Nearby Share, a link or a channel from the Share menu in file
+  details. The full-window file preview also offers Nearby Share and links.
+  Open Nearby Receive from the sidebar or the command palette.
+- Select vault fields, notes and attachments in one sharing form. Nearby
+  Share sends the snapshot as soon as the recipient accepts the transfer.
+  The recipient can preview it before choosing Import. This also works in
+  standalone workspaces.
+- Publish a prepared CLI snapshot with `dmsg secrets shares publish <id>`.
+  Retrying an interrupted publication reuses the original job. Desktop
+  updates wait for active snapshot publications and imports before
+  restarting the daemon.
+- The inbox badge counts unread letters from unblocked senders. Channel
+  badges use verified message history and omit archived channels.
+
 ## [1.6.1] - 2026-11-27
 
 - Use Nearby Share to send selected files or a vault snapshot to another
@@ -1058,6 +1074,7 @@ The fixes below are also part of the `1.6.1-beta.1` source tag.
 
 The first release of the dMsg client.
 
+[1.6.2]: https://github.com/ldclabs/ic-panda/compare/1.6.1...1.6.2
 [1.6.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1
 [1.6.1-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.2
 [1.6.1-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.6.0...1.6.1-beta.1
