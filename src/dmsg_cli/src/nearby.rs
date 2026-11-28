@@ -449,7 +449,10 @@ impl Daemon {
         let payload = if let Some(vault_val) = params.get("vault_item").filter(|v| !v.is_null()) {
             let input: ShareInput = serde_json::from_value(vault_val.clone())
                 .map_err(|_| Error::InvalidInput("vault_item".into()))?;
-            SendPayload::VaultItem(input)
+            SendPayload::VaultItem {
+                input,
+                max_plain_bytes: dmsg_client::files::MAX_FILE,
+            }
         } else if let Some(files_val) = params.get("files").filter(|v| !v.is_null()) {
             let files: Vec<FileParam> = serde_json::from_value(files_val.clone())
                 .map_err(|_| Error::InvalidInput("files".into()))?;

@@ -902,6 +902,39 @@ try {
   assert.equal(await main.getByTestId('snapshot-source-item').count(), 0)
   assert.equal(await review.isEnabled(), true)
   assert.equal(await workflows.getByRole('checkbox').count(), 1)
+  const tokenField = workflows.getByRole('checkbox', { name: 'Token', exact: true })
+  await tokenField.press('Space')
+  const listBeforeRevision = methods['vault/list']
+  const attachmentId = '56'.repeat(32)
+  let releaseAttachment
+  methods['files/show'] = async ({ id }) => {
+    assert.equal(id, attachmentId)
+    if (!releaseAttachment) await new Promise(resolve => { releaseAttachment = resolve })
+    return { file: { id, current: '57'.repeat(32), local: true, name: 'Attached note' } }
+  }
+  methods['vault/list'] = () => listBeforeRevision().map(row => ({
+    ...row, revision: '45'.repeat(32), item: { ...row.item, files: [attachmentId] }
+  }))
+  emit('vault/changed')
+  await workflows.getByText('Source or dependencies changed. Inspect them again before continuing.').waitFor()
+  assert.equal(await tokenField.isChecked(), false)
+  assert.equal(await review.isEnabled(), false)
+  await tokenField.press('Space')
+  await waitForFixture(() => releaseAttachment)
+  assert.equal(await review.isEnabled(), false)
+  releaseAttachment()
+  const attachment = workflows.getByRole('checkbox', { name: 'Attached note' })
+  await attachment.waitFor()
+  assert.equal(await attachment.isChecked(), false)
+  const attachmentReads = calls.filter(c => c.method === 'files/show').length
+  await main.getByTestId('snapshot-mode').locator('[data-value="nearby"]').click()
+  await review.click()
+  await main.getByTestId('nearby-vault-preset').waitFor()
+  assert.equal(await main.getByTestId('nearby-vault-selection').count(), 0)
+  assert.equal(calls.filter(c => c.method === 'files/show').length, attachmentReads)
+  await main.keyboard.press('Escape')
+  await main.getByTestId('nearby-share-dialog').waitFor({ state: 'hidden' })
+  await main.getByTestId('snapshot-mode').locator('[data-value="link"]').click()
   const prepare = methods['secrets/shares/prepare']
   let releasePreview
   methods['secrets/shares/prepare'] = async (p) => {
@@ -928,6 +961,22 @@ try {
   methods['secrets/shares/publish'] = publish
   await review.click()
   assert.equal(calls.filter(c => c.method === 'secrets/shares/prepare').length, prepares)
+
+  // An unknown publication can only check the same job until the outcome is known.
+  methods['secrets/shares/publish'] = () => ({ state: 'unknown' })
+  methods['secrets/shares/reconcile'] = ({ id }) => {
+    assert.equal(id, 'a1'.repeat(32))
+    return { state: 'published' }
+  }
+  await review.click()
+  await review.filter({ hasText: 'Check original result' }).waitFor()
+  const attempts = publishCount()
+  await review.click()
+  await waitForFixture(() => calls.some(c => c.method === 'secrets/shares/reconcile'))
+  assert.equal(publishCount(), attempts)
+  assert.equal(calls.filter(c => c.method === 'secrets/shares/prepare').length, prepares + 1)
+  methods['secrets/shares/publish'] = publish
+  methods['vault/list'] = listBeforeRevision
 
   // A failed health read does not hide discovery or rotation, and retries locally.
   const health = methods['secrets/health']

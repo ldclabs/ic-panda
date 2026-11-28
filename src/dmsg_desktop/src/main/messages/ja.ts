@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg に未完了の処理があります",
   updateBusy: (busy: string) => `未完了：${busy}。後でもう一度試すか、今すぐ再起動して更新できます。処理は保存されており、更新後に dMsg のロックを解除すると再開します。`,
   inFlightApprovals: (n: number) => `結果未確定の承認済みリクエスト ${n} 件`,
+  inFlightSnapshot: "保管庫スナップショット",
   inFlightAccount: "結果未確定のアカウント更新",
   inFlightRoot: "コンテンツルートの更新",
   separator: "、",

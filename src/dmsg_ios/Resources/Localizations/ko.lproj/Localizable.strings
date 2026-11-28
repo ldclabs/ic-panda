@@ -1286,6 +1286,8 @@
 	<string>선택한 레코드 가져오기</string>
 	<key>Import selected secrets</key>
 	<string>선택한 비밀 가져오기</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>가져온 첨부파일은 이 기기에 남고 이 폴더의 접근 권한을 따릅니다.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>이 기기로 가져왔습니다. 클라우드 백업은 별도 작업입니다.</string>
 	<key>In Trash</key>

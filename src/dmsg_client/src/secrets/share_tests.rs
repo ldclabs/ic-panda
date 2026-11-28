@@ -130,17 +130,36 @@ async fn snapshot_scope_and_retry_keep_ids_and_reject_stale_revision_without_app
             .unwrap()
             .contains("SECRET_SNAPSHOT_ONLY")
     );
-    let _run = c.secret_share_start(&id).unwrap();
+    let run = c.secret_share_start(&id, false).unwrap();
     assert_eq!(
         c.secret_share_get(&id, false).unwrap()["state"],
         "encrypting"
     );
     assert!(c.approvals(true).unwrap().is_empty());
+    assert!(c.in_flight().unwrap().snapshot_work);
+    assert!(matches!(
+        c.secret_share_start(&id, false),
+        Err(Error::Pending)
+    ));
+    drop(run);
+    assert!(!c.in_flight().unwrap().snapshot_work);
+    assert_eq!(
+        c.secret_shares().unwrap()["shares"][0]["state"],
+        "interrupted"
+    );
     // Resuming an unpublished interrupted job preserves the original plan and key.
-    let _retry = c.secret_share_start(&id).unwrap();
+    let retry = c.secret_share_start(&id, false).unwrap();
+    drop(retry);
     let resumed = c.share_job(&id).unwrap();
     assert_eq!(resumed.plan, original.plan);
     assert_eq!(resumed.key, original.key);
+    let mut committing = resumed.clone();
+    committing.publish_attempted = true;
+    committing.phase = "publishing".into();
+    c.save_share_job(&committing).unwrap();
+    assert_eq!(c.secret_share_get(&id, false).unwrap()["state"], "unknown");
+    assert_eq!(publish(&c.hold(), &id).await, Err(Error::ExecutionUnknown));
+    c.save_share_job(&resumed).unwrap();
     c.vault_edit(
         &original.plan.input.item_id,
         None,

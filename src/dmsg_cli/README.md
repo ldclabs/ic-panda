@@ -293,8 +293,8 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
 - **Stopping for an update** (plan DT10). `restart` and `update` stop a
   running daemon with `daemon/stop {if_idle: true}`: the daemon refuses new
   requests and background passes, waits for the running operation and stops
-  only if no approved request, account update or root rotation is left
-  unsettled; otherwise it keeps running and answers what is in flight. The
+  once snapshot publications and imports finish and approved requests, account
+  updates and root rotations settle. While busy it reports the work in flight. The
   command asks again every two seconds for `--wait` seconds and then fails with
   `BUSY`, replacing nothing. Locked, unsettled work cannot reconcile, so unlock
   first, or use `--interrupt`: the work is journaled and resumes after the

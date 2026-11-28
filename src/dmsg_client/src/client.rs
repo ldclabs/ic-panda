@@ -466,6 +466,8 @@ pub struct LocalAccount {
 pub struct InFlight {
     /// Approved requests whose outcome is not known yet.
     pub approvals: u64,
+    /// A local snapshot import or publication still has a live worker.
+    pub snapshot_work: bool,
     /// An account update whose outcome is not known yet; read while unlocked.
     pub account_update: bool,
     /// A root rotation that has not committed.
@@ -475,7 +477,7 @@ pub struct InFlight {
 impl InFlight {
     /// Whether anything is in flight.
     pub fn any(&self) -> bool {
-        self.approvals > 0 || self.account_update || self.root_rotation
+        self.approvals > 0 || self.snapshot_work || self.account_update || self.root_rotation
     }
 }
 
@@ -494,6 +496,7 @@ pub struct Client {
     /// Each count fences only the earlier reads of its own display kind.
     pub(crate) cache_invalidations: BTreeMap<crate::cache::Kind, u64>,
     pub(crate) secret_boot: String,
+    pub(crate) active_snapshots: Vec<std::sync::Weak<str>>,
     pub(crate) secret_scans: BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>,
     pub(crate) secret_mount_clock: Option<Arc<dyn crate::secrets::mounts::Clock>>,
     pub(crate) secret_mount_runtime: BTreeMap<String, crate::secrets::mounts::Runtime>,
@@ -917,6 +920,7 @@ impl Client {
             display_generation: 0,
             cache_invalidations: BTreeMap::new(),
             secret_boot: hex::encode(crate::crypto::random_id()),
+            active_snapshots: Vec::new(),
             secret_active: BTreeMap::new(),
             ssh_connections: BTreeMap::new(),
             secret_mount_runtime: BTreeMap::new(),
@@ -1419,6 +1423,10 @@ impl Client {
     pub fn in_flight(&self) -> Result<InFlight> {
         Ok(InFlight {
             approvals: self.approvals_unsettled()?,
+            snapshot_work: self
+                .active_snapshots
+                .iter()
+                .any(|work| work.strong_count() > 0),
             account_update: self.keys.is_some() && self.pending()?.is_some(),
             root_rotation: self
                 .workspace

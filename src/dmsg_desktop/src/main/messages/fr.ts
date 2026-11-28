@@ -68,6 +68,7 @@ const text: Text = {
   updateBlocked: "dMsg a encore des opérations inachevées",
   updateBusy: (busy: string) => `Opérations inachevées : ${busy}. Réessayez plus tard ou redémarrez pour mettre à jour maintenant. Vos tâches sont enregistrées et reprendront après le déverrouillage de dMsg mis à jour.`,
   inFlightApprovals: (n: number) => `${n} demande(s) approuvée(s) dont le résultat n’est pas établi`,
+  inFlightSnapshot: "Instantané du coffre",
   inFlightAccount: 'une mise à jour du compte dont le résultat est inconnu',
   inFlightRoot: 'une rotation de la racine',
   separator: ', ',

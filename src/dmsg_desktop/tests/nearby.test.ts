@@ -1,3 +1,4 @@
+import { sourceItems } from '../src/renderer/views/secrets/model.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { windowParams } from '../src/main/policy.ts'
@@ -109,15 +110,16 @@ test('vault entry blocking and snapshot selection reject managed, deleted, confl
   assert.equal(attachmentAvailable(details['f-cloud']), false)
   assert.equal(attachmentAvailable({ file: { current: 'v-1', local: true, trashed_at: 123 } }), false)
 
+  const [source] = sourceItems([entry])
   // Empty selection yields null.
-  assert.equal(buildVaultSendSelection(entry, false, [], false, [], details), null)
+  assert.equal(buildVaultSendSelection(source, [], false, [], details), null)
   // Empty-valued field alone yields null.
-  assert.equal(buildVaultSendSelection(entry, false, ['empty'], false, [], details), null)
+  assert.equal(buildVaultSendSelection(source, ['empty'], false, [], details), null)
   // Cloud-only attachment selection yields null.
-  assert.equal(buildVaultSendSelection(entry, false, ['username'], false, ['f-cloud'], details), null)
+  assert.equal(buildVaultSendSelection(source, ['username'], false, ['f-cloud'], details), null)
   // Valid selection preserves item field order and current attachment version.
   assert.deepEqual(
-    buildVaultSendSelection(entry, false, ['credential', 'username', 'empty'], true, ['f-local'], details),
+    buildVaultSendSelection(source, ['credential', 'username', 'empty'], true, ['f-local'], details),
     {
       item_id: 'item-1',
       revision: 'rev-1',

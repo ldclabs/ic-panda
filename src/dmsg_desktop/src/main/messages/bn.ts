@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg-এ কিছু কাজ এখনও অসম্পূর্ণ",
   updateBusy: (busy: string) => `অসম্পূর্ণ: ${busy}। আপনি পরে আবার চেষ্টা করতে পারেন অথবা এখনই আপডেট করতে রিস্টার্ট করতে পারেন। আপনার কাজ সংরক্ষিত আছে এবং আপডেট করা dMsg আনলক করার পর আবার শুরু হবে।`,
   inFlightApprovals: (n: number) => `অনুমোদিত অনুরোধ, ফলাফল এখনও অনিশ্চিত: ${n}`,
+  inFlightSnapshot: "ভল্ট স্ন্যাপশট",
   inFlightAccount: "একটি অ্যাকাউন্ট আপডেট যার ফলাফল জানা নেই",
   inFlightRoot: "মূল কী পরিবর্তন",
   separator: ", ",

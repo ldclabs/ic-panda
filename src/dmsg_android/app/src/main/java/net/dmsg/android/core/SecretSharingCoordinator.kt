@@ -13,7 +13,7 @@ data class SecretShareJob(val id: String, val state: String, val title: String, 
 data class SnapshotSource(val item: VaultItem, val attachments: SecretAttachments)
 data class SnapshotDraft(val id: String = UUID.randomUUID().toString(), val source: SnapshotSource, val fields: Set<String> = emptySet(), val notes: Boolean = false,
     val attachments: Set<String> = emptySet(), val channel: String? = null, val nearby: Boolean = false, val lifetime: ULong = 86_400_000u, val sessions: String = "1", val password: String = "",
-    val prepared: String? = null, val uncertain: Boolean = false) {
+    val prepared: String? = null, val uncertain: Boolean = false, val initialChannel: String? = null) {
     val selected: Boolean get() = fields.isNotEmpty() || notes || attachments.isNotEmpty()
     fun input(): SecretSnapshotInput {
         check(selected && !source.item.reserved && !source.item.deleted && !source.item.conflict) { "INVALID_SELECTION" }
@@ -81,7 +81,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
     private var selectedJob: String? = null
 
     fun composer(item: String, channel: String? = null) {
-        if (mutableDraft.value?.source?.item?.id == item) return
+        if (mutableDraft.value?.let { it.source.item.id == item && it.initialChannel == channel } == true) return
         val request = source.begin(false)
         mutableDraft.value = null
         val localAccount = client.state.value.session?.accountKind == "local"
@@ -100,6 +100,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
                 notes = it.item.notes.isNotEmpty(),
                 attachments = it.attachments.files.filter { a -> a.selectable }.mapTo(linkedSetOf()) { a -> a.id },
                 channel = if (nearbyOnly) null else channel,
+                initialChannel = channel,
                 nearby = nearbyOnly,
             )
         }
@@ -136,10 +137,13 @@ class SecretSharingCoordinator(private val client: ClientController) {
         }, key = "secret:prepare:" + current.id, onError = { code ->
             if (mutableDraft.value?.id == current.id) mutableDraft.value = current.copy(uncertain = code in setOf("EXECUTION_UNKNOWN", "CANCELLED"))
         }) { value ->
-            if (mutableDraft.value?.id == current.id) mutableDraft.value = current.copy(password = "", prepared = value.id)
-            if (client.navigation.state.value.current.let { it.page == "secret-compose" && it.id == current.source.item.id }) {
-                client.navigation.push(Route("secret-share", value.id))
-                publish(value.id)
+            if (mutableDraft.value?.id == current.id) {
+                mutableDraft.value = current.copy(password = "", prepared = value.id)
+                val route = client.navigation.state.value.current
+                if (route.page == "secret-compose" && route.id == current.source.item.id && route.channel == current.initialChannel) {
+                    client.navigation.push(Route("secret-share", value.id))
+                    publish(value.id)
+                }
             }
             list()
         }
@@ -236,10 +240,14 @@ class SecretSharingCoordinator(private val client: ClientController) {
         }
         mutableIncoming.value = current.copy(pending = selection)
         client.perform({ core -> client.operation { core.secretPackageImport(selection, it) }.decode().objectValue() }, key = "secret:import", onError = { code ->
-            if (code !in setOf("EXECUTION_UNKNOWN", "CANCELLED", "PLATFORM_UNAVAILABLE", "UNAVAILABLE")) mutableIncoming.value = current.copy(pending = null)
+            if (mutableIncoming.value.pending == selection && code !in setOf("EXECUTION_UNKNOWN", "CANCELLED", "PLATFORM_UNAVAILABLE", "UNAVAILABLE")) {
+                mutableIncoming.value = current.copy(pending = null)
+            }
         }) { value ->
             if (value.required("state") == "done") {
-                mutableIncoming.value = current.copy(password = "", completed = value.strings("ids"), pending = null)
+                if (mutableIncoming.value.pending == selection) {
+                    mutableIncoming.value = current.copy(password = "", completed = value.strings("ids"), pending = null)
+                }
                 client.vault.changed()
                 client.library.browse()
             }

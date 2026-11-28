@@ -1286,6 +1286,8 @@
 	<string>Nhập bản ghi đã chọn</string>
 	<key>Import selected secrets</key>
 	<string>Nhập các bí mật đã chọn</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Tệp đính kèm đã nhập nằm trên thiết bị này và kế thừa quyền truy cập của thư mục này.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Đã nhập vào thiết bị này. Sao lưu đám mây là thao tác riêng.</string>
 	<key>In Trash</key>

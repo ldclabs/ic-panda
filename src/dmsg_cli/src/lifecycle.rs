@@ -156,6 +156,9 @@ fn describe(in_flight: &Value) -> String {
             "一次结果未知的账户更新"
         ));
     }
+    if in_flight["snapshot_work"] == true {
+        parts.push(tr!("a Vault snapshot", "保险库快照"));
+    }
     if in_flight["root_rotation"] == true {
         parts.push(tr!("a root rotation", "一次换根"));
     }

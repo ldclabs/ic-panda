@@ -741,7 +741,10 @@ impl NearbyHost {
                 ensure(total <= MAX_SESSION_BYTES, Error::QuotaExceeded)?;
                 (OfferKind::Files, total, items.len())
             }
-            SendPayload::VaultItem(input) => {
+            SendPayload::VaultItem {
+                input,
+                max_plain_bytes,
+            } => {
                 // Check the selection and size the package before connecting;
                 // the share job is saved only once the receiver accepts.
                 let plain_bytes = h
@@ -752,6 +755,7 @@ impl NearbyHost {
                             peer_label: String::new(),
                         };
                         Ok(c.secret_nearby_preparation(input.clone(), target)?
+                            .limit_size(*max_plain_bytes)?
                             .plain_bytes())
                     })
                     .await
@@ -960,7 +964,12 @@ pub enum SendPayload {
     /// One or more library files.
     Files(Vec<SendFileItem>),
     /// One Vault entry snapshot selection (`dmsg-secret-package/1`).
-    VaultItem(ShareInput),
+    VaultItem {
+        /// Pinned sender selection.
+        input: ShareInput,
+        /// This sender's package size ceiling.
+        max_plain_bytes: u64,
+    },
 }
 
 fn push_receive_task(recv: &Arc<Mutex<Option<ReceiveState>>>, id: u64, handle: AbortHandle) {
@@ -1368,7 +1377,10 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
             )
             .await
         }
-        SendPayload::VaultItem(input) => {
+        SendPayload::VaultItem {
+            input,
+            max_plain_bytes,
+        } => {
             let peer_label = lock(&send_arc)
                 .as_ref()
                 .filter(|s| s.id == id)
@@ -1395,7 +1407,9 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                     // The receiver accepted: stage the snapshot directly for this transcript.
                     let job_id = bound
                         .with(|c| {
-                            let prepared = c.secret_nearby_preparation(input, target_info)?;
+                            let prepared = c
+                                .secret_nearby_preparation(input, target_info)?
+                                .limit_size(max_plain_bytes)?;
                             let job = c.secret_share_save_preparation(prepared)?;
                             let job_id = job["id"]
                                 .as_str()
@@ -1410,7 +1424,7 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                         st.state = "running";
                     }
                     cb_job();
-                    let settled = crate::secrets::shares::publish(bound, &job_id).await?;
+                    let settled = crate::secrets::shares::stage_nearby(bound, &job_id).await?;
                     ensure(
                         settled["state"] == "ready_for_nearby",
                         Error::Unavailable("nearby: snapshot staging cancelled".into()),

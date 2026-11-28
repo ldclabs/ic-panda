@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg ma jeszcze niedokończone operacje",
   updateBusy: (busy: string) => `Niedokończone: ${busy}. Spróbuj ponownie później lub uruchom ponownie, aby teraz zaktualizować. Zadania są zapisane i zostaną wznowione po odblokowaniu zaktualizowanego dMsg.`,
   inFlightApprovals: (n: number) => `Zatwierdzone żądania bez potwierdzonego wyniku: ${n}`,
+  inFlightSnapshot: "Migawka sejfu",
   inFlightAccount: "aktualizacja konta, której wynik nie jest znany",
   inFlightRoot: "wymiana klucza głównego",
   separator: ", ",

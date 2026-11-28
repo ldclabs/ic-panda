@@ -1286,6 +1286,8 @@
 	<string>Geselecteerde records importeren</string>
 	<key>Import selected secrets</key>
 	<string>Importeer geselecteerde geheimen</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Geïmporteerde bijlagen blijven op dit apparaat en erven de toegangsverleningen van deze map.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Geïmporteerd op dit apparaat. Een cloudback-up maken is een aparte actie.</string>
 	<key>In Trash</key>

@@ -115,8 +115,8 @@ enum Command {
     Start,
     /// Stop the daemon after the running operation.
     Stop,
-    /// Restart the daemon once no approved request, account update or root
-    /// rotation is left unsettled.
+    /// Restart the daemon after active snapshots, approvals, account updates
+    /// and root rotations settle.
     Restart {
         /// Restart even with work in flight; it resumes afterwards.
         #[arg(long)]
@@ -973,6 +973,12 @@ fn updated(r: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn old_snapshot_request_command_cannot_publish() {
+        assert!(Cli::try_parse_from(["dmsg", "secrets", "shares", "request", "id"]).is_err());
+        assert!(Cli::try_parse_from(["dmsg", "secrets", "shares", "publish", "id"]).is_ok());
+    }
 
     #[test]
     fn recovery_status_distinguishes_pending_stale_and_unknown() {

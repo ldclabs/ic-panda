@@ -67,6 +67,7 @@ const text = {
   updateBlocked: "dMsg still has unfinished work",
   updateBusy: (busy: string) => `Still unfinished: ${busy}. You can try again later, or restart to update now. Your tasks are saved and will resume after you unlock the updated dMsg.`,
   inFlightApprovals: (n: number) => `${n} approved request(s) whose outcome is not settled`,
+  inFlightSnapshot: "Vault snapshot",
   inFlightAccount: 'an account update whose outcome is not known',
   inFlightRoot: 'a root rotation',
   separator: ', ',

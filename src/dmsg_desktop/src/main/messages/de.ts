@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg hat noch nicht abgeschlossene Vorgänge",
   updateBusy: (busy: string) => `Noch nicht abgeschlossen: ${busy}. Versuchen Sie es später erneut oder starten Sie jetzt zur Aktualisierung neu. Ihre Aufgaben sind gespeichert und werden fortgesetzt, sobald Sie das aktualisierte dMsg entsperren.`,
   inFlightApprovals: (n: number) => `${n} genehmigte Anfrage(n), deren Ergebnis noch aussteht`,
+  inFlightSnapshot: "Tresor-Schnappschuss",
   inFlightAccount: "eine Kontoaktualisierung mit noch offenem Ergebnis",
   inFlightRoot: "eine Rotation des Inhaltsstamms",
   separator: ", ",

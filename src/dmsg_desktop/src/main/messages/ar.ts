@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "لا تزال لدى dMsg عمليات غير مكتملة",
   updateBusy: (busy: string) => `عمليات غير مكتملة: ${busy}. يمكنك المحاولة لاحقًا أو إعادة التشغيل للتحديث الآن. مهامك محفوظة وستُستأنف بعد فتح قفل dMsg المحدَّث.`,
   inFlightApprovals: (n: number) => `طلبات تمت الموافقة عليها ولم تُحسم نتيجتها: ${n}`,
+  inFlightSnapshot: "لقطة الخزنة",
   inFlightAccount: 'تحديث للحساب نتيجته غير معروفة',
   inFlightRoot: 'تدوير للجذر',
   separator: '، ',

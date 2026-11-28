@@ -51,30 +51,34 @@ struct SecretPackageImportView: View {
                     }
                     if !(preview.alreadyImported ?? []).isEmpty { NoticeBar(text: String(localized: "This package has already been imported on this device. Existing copies remain independent.")) }
                 }
-                Section("Select fields to import") {
-                    ForEach(preview.preview.fields) { field in
-                        Toggle(field.title,
-                               isOn: Binding(get: { fields.contains(field.id) }, set: { if $0 { fields.insert(field.id) } else { fields.remove(field.id) } }))
+                if completed == nil {
+                    Section("Select fields to import") {
+                        ForEach(preview.preview.fields) { field in
+                            Toggle(field.title,
+                                   isOn: Binding(get: { fields.contains(field.id) }, set: { if $0 { fields.insert(field.id) } else { fields.remove(field.id) } }))
+                        }
+                        if preview.preview.notes { Toggle("Notes", isOn: $notes) }
+                        if preview.preview.fields.contains(where: { fields.contains($0.id) && $0.type == "otp" }) {
+                            NoticeBar(text: String(localized: "Selected OTP fields include the reusable seed, not just a current code."))
+                        }
                     }
-                    if preview.preview.notes { Toggle("Notes", isOn: $notes) }
-                    if preview.preview.fields.contains(where: { fields.contains($0.id) && $0.type == "otp" }) {
-                        NoticeBar(text: String(localized: "Selected OTP fields include the reusable seed, not just a current code."))
-                    }
-                }
-                if !preview.preview.attachments.isEmpty {
-                    Section("Select attachments to import") {
-                        ForEach(Array(preview.preview.attachments.enumerated()), id: \.offset) { index, file in
-                            Toggle(isOn: Binding(get: { attachments.contains(index) }, set: { if $0 { attachments.insert(index) } else { attachments.remove(index) } })) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(file.name).lineLimit(2)
-                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
+                    if !preview.preview.attachments.isEmpty {
+                        Section {
+                            ForEach(Array(preview.preview.attachments.enumerated()), id: \.offset) { index, file in
+                                Toggle(isOn: Binding(get: { attachments.contains(index) }, set: { if $0 { attachments.insert(index) } else { attachments.remove(index) } })) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(file.name).lineLimit(2)
+                                        Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
+                                    }
                                 }
                             }
+                            Button { choosingFolder = true } label: { LabeledContent("Destination folder", value: folderName) }
+                        } header: {
+                            Text("Select attachments to import")
+                        } footer: {
+                            Text("Imported attachments stay on this device and inherit this folder's access grants.")
                         }
-                        Button { choosingFolder = true } label: { LabeledContent("Destination folder", value: folderName) }
                     }
-                }
-                if completed == nil {
                     SettingsAction("Import", prominent: true, working: working) { previewTask = Task { await importPackage() } }
                         .disabled(!hasSelection || working)
                 }

@@ -1609,7 +1609,7 @@
 
 <Dialog bind:open={snapshotOpen} title={workflowText('channelSnapshot')} description={workflowText('channelWarning')}>
   {#if snapshotError}<p class="text-danger">{snapshotError}</p>{/if}
-  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} />{/key}{/if}
+  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} onNavigate={() => (snapshotOpen = false)} />{/key}{/if}
 </Dialog>
 
 <FileLightbox

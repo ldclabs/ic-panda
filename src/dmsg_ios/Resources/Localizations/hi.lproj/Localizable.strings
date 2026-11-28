@@ -1286,6 +1286,8 @@
 	<string>चयनित रिकॉर्ड आयात करें</string>
 	<key>Import selected secrets</key>
 	<string>चयनित रहस्य आयात करें</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>आयातित संलग्नक इसी डिवाइस पर रहते हैं और इस फ़ोल्डर की पहुँच अनुमतियाँ अपनाते हैं।</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>इस डिवाइस पर इम्पोर्ट हो गया। क्लाउड बैकअप अलग से करना होगा।</string>
 	<key>In Trash</key>

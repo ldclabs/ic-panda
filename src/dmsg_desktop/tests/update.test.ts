@@ -36,6 +36,7 @@ test('an update proceeds without prompting once the daemon confirms it stopped',
   const stopped = await stopForUpdate(async () => replies.shift(), async () => assert.fail('must not prompt'), 60_000, async () => {})
   assert.equal(stopped, true)
   assert.equal(describe({ account_update: true }, textFor('en')), 'an account update whose outcome is not known')
+  assert.equal(describe({ snapshot_work: true }, textFor('en')), 'Vault snapshot')
 })
 
 test('a stuck root job can be interrupted only after an explicit choice, with a confirmed stop', async () => {

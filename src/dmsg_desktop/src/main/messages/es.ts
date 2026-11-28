@@ -68,6 +68,7 @@ const text: Text = {
   updateBlocked: "dMsg aún tiene operaciones sin terminar",
   updateBusy: (busy: string) => `Sin terminar: ${busy}. Puedes volver a intentarlo más tarde o reiniciar para actualizar ahora. Tus tareas están guardadas y se reanudarán cuando desbloquees dMsg tras la actualización.`,
   inFlightApprovals: (n: number) => `${n} solicitud(es) aprobada(s) con un resultado sin confirmar`,
+  inFlightSnapshot: "Instantánea de la bóveda",
   inFlightAccount: 'una actualización de la cuenta con resultado desconocido',
   inFlightRoot: 'una rotación de la raíz',
   separator: ', ',

@@ -1286,6 +1286,8 @@
 	<string>নির্বাচিত রেকর্ড আমদানি করুন</string>
 	<key>Import selected secrets</key>
 	<string>নির্বাচিত গোপনীয়তা আমদানি করুন</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>আমদানি করা সংযুক্তি এই ডিভাইসে থাকে ও এই ফোল্ডারের প্রবেশাধিকার পায়।</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>এই ডিভাইসে আমদানি হয়েছে। ক্লাউড ব্যাকআপ আলাদাভাবে করতে হবে।</string>
 	<key>In Trash</key>

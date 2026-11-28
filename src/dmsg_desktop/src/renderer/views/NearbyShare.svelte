@@ -22,11 +22,8 @@
   import { toggle } from './secrets/model'
   import { openFile } from './secrets/navigation.svelte'
   import { workflowText as w } from './secrets/workflow-text'
-  import { snapshotFieldName, type Field } from './vault/vault'
   import {
-    attachmentAvailable,
     buildSendStartParams,
-    buildVaultSendSelection,
     formatSas,
     identityStatusLabelKey,
     isReceiveActive,
@@ -77,7 +74,6 @@
   let sessionRev = 0
   let wasOpen = false
   let activeMode: NearbyMode = 'receive'
-  let lastVaultKey = ''
 
   let busy = $state(false)
   let error = $state('')
@@ -109,36 +105,8 @@
   let selectedPeer = $state<DiscoveredPeer | null>(null)
   let shareIdentity = $state(false)
 
-  // Vault snapshot selection state
-  let selectedFields = $state<string[]>([])
-  let includeNotes = $state(false)
-  let selectedAttachments = $state<string[]>([])
-  let attachmentDetails = $state<Record<string, any>>({})
-  let vaultAttachmentsTouched = false
-
-  const vaultBlocked = $derived(mode === 'send-vault' && vaultEntryBlocked(vaultEntry, vaultConflict))
-  const vaultFields = $derived<Field[]>(
-    mode === 'send-vault' && vaultEntry?.item?.fields
-      ? (vaultEntry.item.fields as Field[]).filter((f) => Boolean(f.value))
-      : []
-  )
-  const vaultFiles = $derived<string[]>(
-    mode === 'send-vault' && vaultEntry?.item?.files ? (vaultEntry.item.files as string[]) : []
-  )
-  const vaultHasNotes = $derived(mode === 'send-vault' && Boolean(vaultEntry?.item?.notes))
-  const vaultSelection = $derived(
-    mode === 'send-vault'
-      ? (presetVaultSelection ??
-          buildVaultSendSelection(
-            vaultEntry,
-            vaultConflict,
-            selectedFields,
-            includeNotes,
-            selectedAttachments,
-            attachmentDetails
-          ))
-      : null
-  )
+  const vaultChanged = $derived(mode === 'send-vault' && presetVaultSelection?.revision !== vaultEntry?.revision)
+  const vaultBlocked = $derived(mode === 'send-vault' && (vaultChanged || vaultEntryBlocked(vaultEntry, vaultConflict)))
   const offerError = $derived(
     offerText.trim() && !isValidNearbyOffer(offerText) ? t('nearbyOfferInvalid') : ''
   )
@@ -150,7 +118,7 @@
           offerText,
           selectedPeer,
           files,
-          vaultSelection,
+          vaultSelection: vaultBlocked ? null : presetVaultSelection,
           shareIdentity
         })
   )
@@ -247,45 +215,6 @@
     } catch {
       /* keep root fallback */
     }
-  }
-
-  async function loadVaultAttachments(entry: any, turn: number) {
-    const ids = (entry?.item?.files ?? []) as string[]
-    if (!ids.length) return
-    await Promise.all(
-      ids.map((id) =>
-        call('files/show', { id })
-          .then((detail) => {
-            if (
-              alive &&
-              open &&
-              turn === sessionRev &&
-              vaultEntry?.id === entry.id &&
-              vaultEntry?.revision === entry.revision
-            ) {
-              attachmentDetails = { ...attachmentDetails, [id]: detail }
-              if (
-                !vaultAttachmentsTouched &&
-                attachmentAvailable(detail) &&
-                !selectedAttachments.includes(id)
-              ) {
-                selectedAttachments = [...selectedAttachments, id]
-              }
-            }
-          })
-          .catch(() => {
-            if (
-              alive &&
-              open &&
-              turn === sessionRev &&
-              vaultEntry?.id === entry.id &&
-              vaultEntry?.revision === entry.revision
-            ) {
-              attachmentDetails = { ...attachmentDetails, [id]: null }
-            }
-          })
-      )
-    )
   }
 
   async function startReceive(wantDiscoverable: boolean, turn = sessionRev) {
@@ -518,12 +447,6 @@
     discoveredPeers = []
     selectedPeer = null
     shareIdentity = false
-    selectedFields = []
-    includeNotes = false
-    selectedAttachments = []
-    attachmentDetails = {}
-    vaultAttachmentsTouched = false
-    lastVaultKey = ''
   }
 
   // Open / close lifecycle with clean cancellation of active sessions.
@@ -539,13 +462,6 @@
         if (mode === 'receive') {
           void loadFolders(turn)
           void startReceive(false, turn)
-        } else if (mode === 'send-vault' && vaultEntry) {
-          lastVaultKey = `${vaultEntry.id}:${vaultEntry.revision}`
-          selectedFields = ((vaultEntry.item?.fields ?? []) as Field[])
-            .filter((f) => Boolean(f.value))
-            .map((f) => f.id)
-          includeNotes = Boolean(vaultEntry.item?.notes)
-          void loadVaultAttachments(vaultEntry, turn)
         }
       } else if (!isOpen && wasOpen) {
         wasOpen = false
@@ -556,25 +472,6 @@
         if (cancelRecv) void call('nearby/receive_cancel', {}).catch(() => {})
         if (cancelSnd) void call('nearby/send_cancel', {}).catch(() => {})
       }
-    })
-  })
-
-  // Keep Vault attachments fresh if the source item updates while choosing fields.
-  $effect(() => {
-    if (!open || mode !== 'send-vault' || !vaultEntry) return
-    const key = `${vaultEntry.id}:${vaultEntry.revision}`
-    untrack(() => {
-      if (key === lastVaultKey || isSendActive(sendView)) return
-      lastVaultKey = key
-      attachmentDetails = {}
-      const validFields = new Set(
-        ((vaultEntry.item?.fields ?? []) as Field[]).filter((f) => Boolean(f.value)).map((f) => f.id)
-      )
-      selectedFields = selectedFields.filter((id) => validFields.has(id))
-      if (!vaultEntry.item?.notes) includeNotes = false
-      const validFiles = new Set((vaultEntry.item?.files ?? []) as string[])
-      selectedAttachments = selectedAttachments.filter((id) => validFiles.has(id))
-      void loadVaultAttachments(vaultEntry, sessionRev)
     })
   })
 
@@ -828,7 +725,7 @@
             {@render identityNotice(receiveView.outcome.identity)}
           {/if}
           {#if receiveView.outcome?.kind === 'secret_package' && receiveView.outcome.package_preview}
-            <PackageImport received={receiveView.outcome.package_preview} />
+            <PackageImport received={receiveView.outcome.package_preview} onNavigate={() => (open = false)} />
           {:else}
             {@const receivedFiles = receiveView.outcome?.files ?? []}
             <Notice tone="ok" testid="nearby-receive-done">
@@ -889,7 +786,7 @@
           {/if}
         {:else if mode === 'send-vault'}
           {#if vaultBlocked}
-            <Notice tone="warn" testid="nearby-vault-blocked">{ux('blockedSource')}</Notice>
+            <Notice tone="warn" testid="nearby-vault-blocked">{vaultChanged ? t('nearbyVaultChanged') : ux('blockedSource')}</Notice>
           {:else if presetVaultSelection && vaultEntry}
             <div class="grid gap-1 rounded-xl border border-line bg-surface-2 p-3 text-callout" data-testid="nearby-vault-preset">
               <span class="font-medium text-ink">{vaultEntry.item?.title}</span>
@@ -901,72 +798,6 @@
                 ].filter(Boolean).join(' · ')}
               </span>
             </div>
-          {:else if vaultEntry}
-            <fieldset class="grid gap-2 rounded-xl border border-line bg-surface-2 p-3" disabled={busy} data-testid="nearby-vault-selection">
-              <legend class="px-1 text-callout font-medium text-muted">{t('content')}</legend>
-              {#each vaultFields as field (field.id)}
-                <div>
-                  <Checkbox
-                    checked={selectedFields.includes(field.id)}
-                    onCheckedChange={(checked) => {
-                      clearStaleSendError()
-                      selectedFields = toggle(selectedFields, field.id, checked)
-                    }}
-                    testid={`nearby-vault-field-${field.id}`}
-                  >
-                    {snapshotFieldName(field, t)}
-                  </Checkbox>
-                </div>
-              {/each}
-              {#if vaultHasNotes}
-                <div>
-                  <Checkbox
-                    bind:checked={includeNotes}
-                    onCheckedChange={clearStaleSendError}
-                    testid="nearby-vault-notes"
-                  >
-                    {w('notes')}
-                  </Checkbox>
-                </div>
-              {/if}
-              {#if !vaultFields.length && !vaultHasNotes && !vaultFiles.length}
-                <p class="text-body text-muted">{t('noItems')}</p>
-              {/if}
-              {#each vaultFiles as id (id)}
-                {@const detail = attachmentDetails[id]}
-                {@const file = detail?.file}
-                {@const available = attachmentAvailable(detail)}
-                <div>
-                  <Checkbox
-                    checked={selectedAttachments.includes(id)}
-                    disabled={!available}
-                    onCheckedChange={(checked) => {
-                      vaultAttachmentsTouched = true
-                      clearStaleSendError()
-                      selectedAttachments = toggle(selectedAttachments, id, checked)
-                    }}
-                    testid={`nearby-vault-file-${id}`}
-                  >
-                    {file?.name ?? ux('file')}
-                  </Checkbox>
-                  {#if detail !== undefined && !available}
-                    <p class="text-callout text-warn">
-                      {file?.trashed_at ? t('fileMissing') : file ? ux('notLocal') : ux('unknown')}
-                    </p>
-                  {/if}
-                </div>
-              {/each}
-            </fieldset>
-
-            {#if vaultFields.some((f) => selectedFields.includes(f.id) && f.type === 'otp')}
-              <Notice tone="warn">{w('otpSeedWarning')}</Notice>
-            {/if}
-            {#if vaultEntry.item?.type === 'ssh' && vaultFields.some((f) => selectedFields.includes(f.id) && f.type === 'concealed')}
-              <Notice tone="warn">{w('privateKeyWarning')}</Notice>
-            {/if}
-            {#if vaultEntry.item?.type === 'wallet' && (includeNotes || vaultFields.some((f) => selectedFields.includes(f.id) && f.type === 'concealed'))}
-              <Notice tone="warn">{w('walletSeedWarning')}</Notice>
-            {/if}
           {/if}
         {/if}
 

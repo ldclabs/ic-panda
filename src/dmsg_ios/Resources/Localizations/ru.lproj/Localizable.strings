@@ -1286,6 +1286,8 @@
 	<string>Импортировать выбранные записи</string>
 	<key>Import selected secrets</key>
 	<string>Импортировать выбранные секреты</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Импортированные вложения остаются на устройстве и наследуют права доступа этой папки.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Импортировано на это устройство. Облачное резервное копирование выполняется отдельно.</string>
 	<key>In Trash</key>

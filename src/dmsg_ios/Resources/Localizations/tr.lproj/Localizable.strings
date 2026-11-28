@@ -1286,6 +1286,8 @@
 	<string>Seçilen kayıtları içe aktar</string>
 	<key>Import selected secrets</key>
 	<string>Seçilen gizli dizileri içe aktar</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>İçe alınan ekler bu cihazda kalır ve bu klasörün erişim izinlerini devralır.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Bu cihaza aktarıldı. Bulut yedekleme ayrı bir işlemdir.</string>
 	<key>In Trash</key>

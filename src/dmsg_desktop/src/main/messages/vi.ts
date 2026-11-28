@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg vẫn còn tác vụ chưa hoàn tất",
   updateBusy: (busy: string) => `Chưa hoàn tất: ${busy}. Bạn có thể thử lại sau hoặc khởi động lại để cập nhật ngay. Các tác vụ đã được lưu và sẽ tiếp tục sau khi bạn mở khóa dMsg đã cập nhật.`,
   inFlightApprovals: (n: number) => `${n} yêu cầu đã duyệt chưa có kết quả xác nhận`,
+  inFlightSnapshot: "Bản chụp két sắt",
   inFlightAccount: "một bản cập nhật tài khoản mà kết quả của nó không được biết đến",
   inFlightRoot: "đang thay khóa gốc",
   separator: ", ",

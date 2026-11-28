@@ -1286,6 +1286,8 @@
 	<string>منتخب ریکارڈز درآمد کریں</string>
 	<key>Import selected secrets</key>
 	<string>منتخب کردہ راز درآمد کریں</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>درآمد شدہ منسلکات اسی آلے پر رہتے ہیں اور اس فولڈر کی رسائی اپناتے ہیں۔</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>اس آلے پر درآمد ہو گیا۔ کلاؤڈ بیک اپ الگ کارروائی ہے۔</string>
 	<key>In Trash</key>

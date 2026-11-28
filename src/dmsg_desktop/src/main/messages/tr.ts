@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg’de hâlâ tamamlanmamış işlemler var",
   updateBusy: (busy: string) => `Tamamlanmamış işlemler: ${busy}. Daha sonra tekrar deneyebilir veya şimdi güncellemek için yeniden başlatabilirsiniz. Görevleriniz kaydedildi ve güncellenen dMsg’nin kilidini açtığınızda devam edecek.`,
   inFlightApprovals: (n: number) => `Sonucu henüz kesinleşmemiş ${n} onaylı istek`,
+  inFlightSnapshot: "Kasa anlık görüntüsü",
   inFlightAccount: "sonucu henüz bilinmeyen bir hesap güncellemesi",
   inFlightRoot: "bir içerik kökü rotasyonu",
   separator: ", ",

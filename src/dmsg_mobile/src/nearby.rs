@@ -242,7 +242,10 @@ impl MobileEngine {
             resolved_host,
             resolved_port,
             awdl,
-            SendPayload::VaultItem(input.into()),
+            SendPayload::VaultItem {
+                input: input.into(),
+                max_plain_bytes: MAX_PACKAGE_BYTES,
+            },
             alias,
             share_identity,
         )

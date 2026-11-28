@@ -1286,6 +1286,8 @@
 	<string>Import rekod yang dipilih</string>
 	<key>Import selected secrets</key>
 	<string>Import rahsia terpilih</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Lampiran yang diimport tetap di peranti ini dan mewarisi kebenaran akses folder ini.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Diimport ke peranti ini. Sandaran awan ialah tindakan berasingan.</string>
 	<key>In Trash</key>

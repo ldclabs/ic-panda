@@ -460,7 +460,8 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
             |_| async { Ok(()) },
             |_| async move {
                 // Stage directly without approval or cloud upload.
-                let settled = crate::secrets::shares::publish(&sender_hold_stage, &job_id).await?;
+                let settled =
+                    crate::secrets::shares::stage_nearby(&sender_hold_stage, &job_id).await?;
                 assert_eq!(settled["state"], "ready_for_nearby");
                 Ok(job_id)
             },
@@ -1007,6 +1008,35 @@ async fn standalone_vault_pending(
         .unwrap();
     let offer =
         NearbyOffer::parse(started["receive"]["offer"].as_str().unwrap(), Some("local")).unwrap();
+    let input = ShareInput {
+        item_id: entry.id,
+        revision: entry.revision,
+        field_ids: vec!["credential".into()],
+        include_notes: false,
+        attachments: vec![],
+        expires_in_ms: None,
+        max_download_sessions: None,
+    };
+    assert_eq!(
+        send_host
+            .send_start(
+                sender_hold.clone(),
+                SendTarget::Offer {
+                    offer: offer.clone(),
+                    resolved: None,
+                    awdl: None
+                },
+                SendPayload::VaultItem {
+                    input: input.clone(),
+                    max_plain_bytes: 1
+                },
+                None,
+                false,
+                noop.clone(),
+            )
+            .await,
+        Err(Error::QuotaExceeded)
+    );
     let (s_bridge, r_bridge) = bridge_pair();
     recv_host
         .receive_attach_bridge(
@@ -1024,15 +1054,10 @@ async fn standalone_vault_pending(
                 resolved: None,
                 awdl: Some(s_bridge),
             },
-            SendPayload::VaultItem(ShareInput {
-                item_id: entry.id.clone(),
-                revision: entry.revision.clone(),
-                field_ids: vec!["credential".into()],
-                include_notes: false,
-                attachments: vec![],
-                expires_in_ms: None,
-                max_download_sessions: None,
-            }),
+            SendPayload::VaultItem {
+                max_plain_bytes: crate::files::MAX_FILE,
+                input,
+            },
             Some("Alice".into()),
             false,
             noop.clone(),

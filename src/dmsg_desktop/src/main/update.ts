@@ -1,13 +1,14 @@
 /**
  * Applying an update stops the daemon first, the way `dmsg update` does: the
- * daemon stops only when nothing approved, no account update and no root
- * rotation is left unsettled (plan DT10). After a minute, the person can
+ * daemon waits for active snapshots, approvals, account updates and root
+ * rotations to settle (plan DT10). After a minute, the person can
  * defer or explicitly interrupt: the saved work resumes in the new daemon.
  */
 import type { Text } from './text'
 
 export interface InFlight {
   approvals?: number
+  snapshot_work?: boolean
   account_update?: boolean
   root_rotation?: boolean
 }
@@ -16,6 +17,7 @@ export interface InFlight {
 export function describe(inFlight: InFlight | undefined, text: Text): string {
   const parts: string[] = []
   if (inFlight?.approvals) parts.push(text.inFlightApprovals(inFlight.approvals))
+  if (inFlight?.snapshot_work) parts.push(text.inFlightSnapshot)
   if (inFlight?.account_update) parts.push(text.inFlightAccount)
   if (inFlight?.root_rotation) parts.push(text.inFlightRoot)
   return parts.join(text.separator)

@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg에 아직 완료되지 않은 작업이 있습니다",
   updateBusy: (busy: string) => `미완료: ${busy}. 나중에 다시 시도하거나 지금 다시 시작하여 업데이트할 수 있습니다. 작업은 저장되어 있으며 업데이트된 dMsg의 잠금을 해제하면 계속됩니다.`,
   inFlightApprovals: (n: number) => `결과가 아직 확정되지 않은 승인된 요청 ${n}건`,
+  inFlightSnapshot: "금고 스냅샷",
   inFlightAccount: "결과를 알 수 없는 계정 업데이트",
   inFlightRoot: "콘텐츠 루트 교체",
   separator: ", ",

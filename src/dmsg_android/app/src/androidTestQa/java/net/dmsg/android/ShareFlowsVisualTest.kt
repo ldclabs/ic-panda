@@ -32,7 +32,7 @@ class ShareFlowsVisualTest {
         }
     }
 
-    private fun seedFile(name: String = "01-design-mockup.png"): String {
+    private fun seedFile(name: String): String {
         val client = compose.activity.qaClient
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         val dir = File(app.cacheDir, "dmsg-shared/share-qa-${UUID.randomUUID()}").apply { mkdirs() }
@@ -71,7 +71,7 @@ class ShareFlowsVisualTest {
     private fun verifyAndCapture(prefix: String, captureDark: Boolean) {
         val client = compose.activity.qaClient
         compose.waitUntil(20_000) { client.state.value.unlocked }
-        val fileId = seedFile()
+        val fileId = seedFile("01-design-mockup-$prefix.png")
         compose.runOnIdle {
             client.dark(false)
             client.navigation.push(Route("files", id = fileId))

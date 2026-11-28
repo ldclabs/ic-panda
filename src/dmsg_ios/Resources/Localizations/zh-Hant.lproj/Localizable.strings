@@ -1286,6 +1286,8 @@
 	<string>匯入所選記錄</string>
 	<key>Import selected secrets</key>
 	<string>匯入所選秘密內容</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>匯入的附件儲存在本機，並繼承這個資料夾的訪問授權。</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>已匯入本機，雲端備份需另行操作。</string>
 	<key>In Trash</key>

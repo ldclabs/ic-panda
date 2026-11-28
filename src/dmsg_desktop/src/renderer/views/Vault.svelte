@@ -102,7 +102,7 @@
   let importing = $state(false)
   let backingUp = $state(false)
   let comparing = $state(false)
-  let nearby = $state<{ mode: 'receive' } | { mode: 'send-vault'; entryId: string; snapshot: any; presetSelection?: NearbyVaultSelection } | null>(null)
+  let nearby = $state<{ mode: 'receive' } | { mode: 'send-vault'; selection: NearbyVaultSelection } | null>(null)
   let compareFrom = $state(0)
   let chosen = $state<Set<string>>(new Set())
   let limit = $state(PAGE)
@@ -149,10 +149,10 @@
   const nearbyVaultEntry = $derived.by(() => {
     const active = nearby
     if (active?.mode !== 'send-vault') return null
-    return entries.find((e) => e.id === active.entryId) ?? active.snapshot
+    return entries.find((e) => e.id === active.selection.item_id)
   })
   const nearbyVaultConflict = $derived(
-    nearby?.mode === 'send-vault' ? conflicted.has(nearby.entryId) : false
+    nearby?.mode === 'send-vault' ? conflicted.has(nearby.selection.item_id) : false
   )
   const workflows = $derived(vaultWorkflows(status?.account_kind === 'local'))
   const workflow = $derived.by(() => {
@@ -746,7 +746,7 @@
         </div>
         <div class="min-h-0 flex-1">
           {#if unlocked}
-            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} standalone={status?.account_kind === 'local'} onNearbyReceive={() => finishEditing(() => { nearby = { mode: 'receive' } })} onNearbySend={(presetSelection, entryId) => { const snap = entries.find((e) => e.id === entryId); if (snap) nearby = { mode: 'send-vault', entryId, snapshot: snap, presetSelection } }} /></Page>{/key}
+            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} standalone={status?.account_kind === 'local'} onNearbyReceive={() => finishEditing(() => { nearby = { mode: 'receive' } })} onNearbySend={(selection) => { nearby = { mode: 'send-vault', selection } }} /></Page>{/key}
           {:else}<Locked {status} testid="vault-locked" />{/if}
         </div>
       </div>
@@ -948,7 +948,7 @@
   mode={nearby?.mode ?? 'receive'}
   vaultEntry={nearbyVaultEntry}
   vaultConflict={nearbyVaultConflict}
-  presetVaultSelection={nearby?.mode === 'send-vault' ? (nearby.presetSelection ?? null) : null}
+  presetVaultSelection={nearby?.mode === 'send-vault' ? nearby.selection : null}
 />
 
 <Dialog bind:open={() => leaving !== null, (next) => { if (!next) keepEditing() }} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"

@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg 仍有操作未完成",
   updateBusy: (busy: string) => `未完成：${busy}。可以稍後再試，也可以先重新啟動並更新。工作已儲存，更新後解鎖 dMsg 會繼續處理。`,
   inFlightApprovals: (n: number) => `${n} 個已批准、結果尚未確定的請求`,
+  inFlightSnapshot: "保險庫快照",
   inFlightAccount: '一次結果未知的帳戶更新',
   inFlightRoot: '一次內容根輪換',
   separator: '、',

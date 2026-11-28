@@ -189,15 +189,12 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
-                Box::pin(async move {
-                    receiving::import_limited(
-                        &c.cooperative_hold(),
-                        selection.into(),
-                        MAX_PACKAGE_BYTES,
-                    )
-                    .await
-                })
+            .run(self.held_object(move |h| {
+                Box::pin(receiving::import_limited(
+                    h,
+                    selection.into(),
+                    MAX_PACKAGE_BYTES,
+                ))
             }))
             .await
     }
@@ -269,9 +266,7 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
-                Box::pin(async move { shares::publish(&c.cooperative_hold(), &id).await })
-            }))
+            .run(self.held_object(move |h| Box::pin(async move { shares::publish(h, &id).await })))
             .await
     }
 

@@ -1286,6 +1286,8 @@
 	<string>استيراد السجلات المختارة</string>
 	<key>Import selected secrets</key>
 	<string>استيراد الأسرار المحددة</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>تبقى المرفقات المستوردة على هذا الجهاز وترث منح الوصول لهذا المجلد.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>تم الاستيراد إلى هذا الجهاز. النسخ الاحتياطي السحابي إجراء منفصل.</string>
 	<key>In Trash</key>

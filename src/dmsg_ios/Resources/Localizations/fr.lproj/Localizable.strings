@@ -1286,6 +1286,8 @@
 	<string>Importer les éléments choisis</string>
 	<key>Import selected secrets</key>
 	<string>Importer les secrets sélectionnés</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Les pièces jointes importées restent sur cet appareil et héritent des autorisations d’accès de ce dossier.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Importé sur cet appareil. La sauvegarde cloud est une action distincte.</string>
 	<key>In Trash</key>

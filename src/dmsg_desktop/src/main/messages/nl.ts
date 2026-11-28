@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg heeft nog onvoltooide taken",
   updateBusy: (busy: string) => `Nog niet voltooid: ${busy}. Probeer het later opnieuw of start nu opnieuw op om bij te werken. Je taken zijn opgeslagen en worden hervat nadat je de bijgewerkte dMsg ontgrendelt.`,
   inFlightApprovals: (n: number) => `Goedgekeurde verzoeken zonder bevestigde uitkomst: ${n}`,
+  inFlightSnapshot: "Kluismomentopname",
   inFlightAccount: "een accountupdate waarvan de uitkomst niet bekend is",
   inFlightRoot: "vervanging van de hoofdsleutel",
   separator: ", ",

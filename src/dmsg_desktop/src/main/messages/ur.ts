@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg میں کچھ کام ابھی نامکمل ہیں",
   updateBusy: (busy: string) => `نامکمل کام: ${busy}۔ آپ بعد میں دوبارہ کوشش کر سکتے ہیں یا ابھی اپ ڈیٹ کے لیے دوبارہ شروع کر سکتے ہیں۔ آپ کے کام محفوظ ہیں اور اپ ڈیٹ شدہ dMsg کو ان لاک کرنے کے بعد جاری رہیں گے۔`,
   inFlightApprovals: (n: number) => `منظور شدہ درخواستیں جن کا نتیجہ غیر مصدقہ ہے: ${n}`,
+  inFlightSnapshot: "والٹ سنیپ شاٹ",
   inFlightAccount: "ایک اکاؤنٹ اپ ڈیٹ جس کا نتیجہ معلوم نہیں ہے",
   inFlightRoot: "بنیادی کلید کی تبدیلی",
   separator: ", ",

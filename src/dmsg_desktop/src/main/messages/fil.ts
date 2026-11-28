@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "May hindi pa tapos na gawain sa dMsg",
   updateBusy: (busy: string) => `Hindi pa tapos: ${busy}. Maaari kang sumubok ulit mamaya o mag-restart para mag-update ngayon. Naka-save ang mga gawain mo at magpapatuloy pagkatapos mong i-unlock ang na-update na dMsg.`,
   inFlightApprovals: (n: number) => `Mga aprubadong kahilingang wala pang tiyak na resulta: ${n}`,
+  inFlightSnapshot: "Vault snapshot",
   inFlightAccount: "isang pag-update ng account na hindi alam ang kinalabasan",
   inFlightRoot: "pagpapalit ng root key",
   separator: ", ",

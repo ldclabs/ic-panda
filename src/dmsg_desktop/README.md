@@ -668,9 +668,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   tray says what it found. A package with the feed downloads the update in
   the background and never installs on quit. The tray and About dMsg then
   offer "Restart to Update", which first stops the daemon with
-  `daemon/stop {if_idle: true}` (`src/main/update.ts`): only when no approved
-  request, account update or root rotation is left unsettled, asking every two
-  seconds for a minute. If work remains, the native prompt offers Later
+  `daemon/stop {if_idle: true}` (`src/main/update.ts`). It checks every two
+  seconds for a minute while snapshot publications, imports, approved requests,
+  account updates or root rotations are in flight. If work remains, the native prompt offers Later
   (the default and Escape action) or an explicit restart using
   `daemon/stop {if_idle: false}`. The latter preserves the journal so the new
   daemon can resume it after unlock, including when the update fixes a stuck

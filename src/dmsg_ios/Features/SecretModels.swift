@@ -129,6 +129,9 @@ func secretStateTitle(_ state: String) -> String {
     switch state {
     case "awaiting_user", "needs_approval": String(localized: "Waiting for approval")
     case "prepared": String(localized: "Prepared on this device")
+    case "ready_for_nearby": String(localized: "Ready")
+    case "delivering": String(localized: "Sending")
+    case "delivered": String(localized: "Sent")
     case "encrypting": String(localized: "Encrypting")
     case "uploading": String(localized: "Uploading")
     case "publishing": String(localized: "Publication pending")

@@ -116,7 +116,6 @@ pub enum ShareCommand {
         password_stdin: bool,
     },
     /// Publish a prepared snapshot directly.
-    #[command(visible_alias = "request")]
     Publish {
         id: String,
     },

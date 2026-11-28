@@ -11,7 +11,7 @@
   import { panel } from './workflow-state.svelte'
   import { toggle, card } from './model'
   import { openVault, openFile } from './navigation.svelte'
-  let { received }: { received: any } = $props()
+  let { received, onNavigate }: { received: any; onNavigate?: () => void } = $props()
   let fields = $state<string[]>([]),
     attachments = $state<number[]>([]),
     notes = $state(false),
@@ -66,10 +66,10 @@
     <div class="flex flex-wrap gap-2">
       {#each ids as id}<button
           class={buttonClass('primary')}
-          onclick={() => openVault(id)}>{ux('openVault')}</button
+          onclick={() => { onNavigate?.(); openVault(id) }}>{ux('openVault')}</button
         >{/each}<button
         class={buttonClass('secondary')}
-        onclick={() => openFile()}>{ux('openFiles')}</button
+        onclick={() => { onNavigate?.(); openFile() }}>{ux('openFiles')}</button
       >
     </div>
   {:else}<fieldset

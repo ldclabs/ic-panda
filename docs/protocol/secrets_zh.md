@@ -159,7 +159,7 @@ macOS 不会自动启用文件系统扩展：首次使用前，用户须在“�
 
 `secrets/shares/prepare {input, password?}` 的 `input` 固定 `item_id`、`revision`、`field_ids`、`include_notes`、附件的 `file_id/version_id`、`expires_in_ms` 与 `max_download_sessions`。默认有效期一天、一个下载会话；有效期接受 6 分钟至 7 天，会话数 1–100。准备产生独立密钥及固定身份，不发布。密码派生在核心锁外运行，密码不持久化。
 
-`publish {id}` 直接执行加密、上传与发布（无需审批）。`list/get` 默认只有元数据；仅显式 `get {id, include_link:true}` 可在确认发布且未取消时取得链接。`reconcile` 查询原 share ID；`revoke` 撤销原身份。发布提交点之后不能再次创建，通用恢复器不能重做。未发布的上传中断可直接重试 `publish {id}`，保留原 upload/share 身份和密钥。
+`publish {id}` 直接执行加密、上传与发布（无需审批）。`list/get` 默认只有元数据；仅显式 `get {id, include_link:true}` 可在确认发布且未取消时取得链接。`reconcile` 查询原 share ID；`revoke` 撤销原身份。发布提交点之后不能再次创建，通用恢复器不能重做。工作任务在发布尝试前中断时，状态为 `interrupted`，可用 `publish {id}` 沿用原上传 ID、分享 ID 和密钥重试。发布尝试后中断时，状态为 `unknown`，可用 `reconcile` 查询原结果。CLI 使用 `dmsg secrets shares publish <id>`，旧的 `request` 命令会报错。
 
 包的外层仍为现有加密分享文件；内层 MIME 为 `application/vnd.dmsg.secret-package`，格式为 4 字节大端 JSON 长度、严格 JSON manifest、按序附件字节。manifest 上限 256 KiB，整个包最多 100 MiB、64 字段、20 附件；拒绝未知字段、重复字段、坏长度/摘要和尾随字节。包只包含所选字段/备注/附件，不带源账户、源 item/field ID、标签、权限或历史。`snapshot_id` 独立随机；字段使用包内编号，标准模板语义可由经验证的角色后缀保留。
 

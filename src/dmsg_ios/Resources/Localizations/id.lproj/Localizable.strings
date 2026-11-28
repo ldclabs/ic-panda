@@ -1286,6 +1286,8 @@
 	<string>Impor catatan yang dipilih</string>
 	<key>Import selected secrets</key>
 	<string>Impor rahasia yang dipilih</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Lampiran yang diimpor tetap di perangkat ini dan mewarisi izin akses folder ini.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Diimpor ke perangkat ini. Pencadangan cloud dilakukan secara terpisah.</string>
 	<key>In Trash</key>

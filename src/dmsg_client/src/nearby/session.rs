@@ -938,7 +938,7 @@ where
 ///
 /// `stage_job` runs after SAS confirmation and receiver acceptance: it prepares
 /// (`secret_nearby_preparation`), stages the package bound to `secrets.transcript`
-/// via `shares::publish`, and returns the staged share job ID.
+/// for this session and returns the staged share job ID.
 #[allow(clippy::too_many_arguments)]
 pub async fn send_secret_package_after_handshake<H, T, C, CFut, A, AFut, P>(
     h: &H,

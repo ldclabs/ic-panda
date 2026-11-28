@@ -24,14 +24,14 @@
     type SourceItem
   } from './model'
   import { openVault } from './navigation.svelte'
-  import { call, when } from '../../rpc'
+  import { call, code, when } from '../../rpc'
   import { copyShareLink } from '../../components/clipboard'
   import { buttonClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
-  import type { NearbyVaultSelection } from '../nearby'
-  let { sourceId, showLinks, account, standalone = false, initialMode = 'link', onNearbySend }: { account: string; sourceId: string; showLinks: (id: string) => void; standalone?: boolean; initialMode?: 'link' | 'channel' | 'nearby'; onNearbySend?: (selection: NearbyVaultSelection, entryId: string) => void } = $props()
+  import { attachmentAvailable, buildVaultSendSelection, type NearbyVaultSelection } from '../nearby'
+  let { sourceId, showLinks, account, standalone = false, initialMode = 'link', onNearbySend }: { account: string; sourceId: string; showLinks: (id: string) => void; standalone?: boolean; initialMode?: 'link' | 'channel' | 'nearby'; onNearbySend?: (selection: NearbyVaultSelection) => void } = $props()
   let shares = $state<any[]>([]),
     items = $state<SourceItem[]>([]),
     channels = $state<any[]>([]),
@@ -55,14 +55,18 @@
       mode = 'nearby'
     }
   })
-  let prepared: { id: string; shape: string; at: number } | null = null
+  let prepared = $state<{ id: string; shape: string; at: number; reconcile: boolean } | null>(null)
+  let selectedId: string | undefined
   let selectedRevision: string | undefined
-  let attachmentsTouched = false
+  let revisionChanged = $state(false)
+  let attachmentsLoading = $state(false)
+  let selectionVersion = 0
   const chosen = $derived(items.find((i) => i.id === itemId)),
     shareFields = $derived(chosen?.fields.filter((f) => f.populated) ?? []),
     draft = new DraftVersion()
   const hourLabel = $derived(new Intl.NumberFormat(locale(), { style: 'unit', unit: 'hour', unitDisplay: 'long' }).format(1))
-  const canReview = $derived(chosen && !chosen.blocked && (fields.length || notes || attachments.length) &&
+  const selection = $derived(chosen && buildVaultSendSelection(chosen, fields, notes, attachments, details))
+  const canReview = $derived(selection && !attachmentsLoading &&
     (mode === 'nearby' ? Boolean(onNearbySend) : mode === 'channel' ? !!channelId : /^(?:[1-9]\d?|100)$/.test(sessions)))
   const model = panel(
     async () =>
@@ -81,7 +85,7 @@
           (r: any[]) => {
             items = sourceItems(r)
             if (sourceId) itemId = sourceId
-            if (selectedRevision !== chosen?.revision) void select()
+            if (selectedId !== chosen?.id || selectedRevision !== chosen?.revision) void select()
           }
         ),
         !standalone && mode === 'channel' && loadChannels()
@@ -115,14 +119,19 @@
     ])
   }
   async function select() {
+    const selected = chosen
+    if (selected?.id === selectedId && selected?.revision === selectedRevision) return
+    const version = ++selectionVersion
     changed()
     attachments = []
-    attachmentsTouched = false
     details = {}
-    const selected = chosen
+    revisionChanged = !!selected && selected.id === selectedId
+    selectedId = selected?.id
     selectedRevision = selected?.revision
-    fields = selected ? selected.fields.filter((f) => f.populated).map((f) => f.id) : []
-    notes = Boolean(selected?.hasNotes)
+    const defaults = !revisionChanged
+    fields = selected && defaults ? selected.fields.filter((f) => f.populated).map((f) => f.id) : []
+    notes = defaults && Boolean(selected?.hasNotes)
+    attachmentsLoading = !!selected?.files.length
     if (!selected) return
     await Promise.all(
       selected.files.map((id) =>
@@ -130,16 +139,9 @@
           `attachment-${id}`,
           () => call('files/show', { id }),
           (r: any) => {
-            if (chosen?.id === selected.id && chosen.revision === selected.revision) {
+            if (version === selectionVersion) {
               details = { ...details, [id]: r }
-              const file = r?.file
-              if (
-                !attachmentsTouched &&
-                file?.current &&
-                file.local &&
-                file.trashed_at == null &&
-                !attachments.includes(id)
-              ) {
+              if (defaults && attachmentAvailable(r) && !attachments.includes(id)) {
                 attachments = [...attachments, id]
               }
             }
@@ -147,22 +149,15 @@
         )
       )
     )
+    if (version === selectionVersion) attachmentsLoading = false
   }
   async function prepare(event: SubmitEvent) {
     event.preventDefault()
     const source = chosen
-    if (!source || !canReview) return
+    const snapshot = selection
+    if (!source || !snapshot || !canReview) return
     if (mode === 'nearby') {
-      onNearbySend?.(
-        {
-          item_id: source.id,
-          revision: source.revision,
-          field_ids: shareFields.filter((f) => fields.includes(f.id)).map((f) => f.id),
-          include_notes: notes,
-          attachments: attachments.map((id) => ({ file_id: id, version_id: details[id].file.current }))
-        },
-        source.id
-      )
+      onNearbySend?.(snapshot)
       return
     }
     const at = draft.capture(), saved = shape()
@@ -174,20 +169,28 @@
           {
             ...(mode === 'channel' ? { channel_id: channelId } : {}),
             input: {
-              item_id: source.id, revision: source.revision,
-              field_ids: shareFields.filter((f) => fields.includes(f.id)).map((f) => f.id),
-              include_notes: notes,
-              attachments: attachments.map((id) => ({ file_id: id, version_id: details[id].file.current })),
+              ...snapshot,
               ...(mode === 'link' ? { expires_in_ms: hours * 3600000, max_download_sessions: Number(sessions) } : {})
             },
             ...(mode === 'link' && password ? { password } : {})
           }
         )
         if (!current()) return
-        prepared = { id: result.id, at, shape: saved }
+        prepared = { id: result.id, at, shape: saved, reconcile: false }
       }
-      await call<{ id: string; state: string }>('secrets/shares/publish', { id: prepared.id })
+      const job = prepared
+      let result: { state: string }
+      try {
+        result = await call(job.reconcile ? 'secrets/shares/reconcile' : 'secrets/shares/publish', { id: job.id })
+      } catch (error) {
+        if (current() && code(error) === 'EXECUTION_UNKNOWN') job.reconcile = true
+        throw error
+      }
       if (current()) {
+        if (['unknown', 'publishing', 'revoke_pending'].includes(result.state)) {
+          job.reconcile = true
+          return
+        }
         password = ''
         changed()
       }
@@ -239,6 +242,7 @@
       onChange={select}
       testid="snapshot-source"
     />{:else if model.state.loaded && !chosen}<Notice tone="warn">{ux('noSources')}</Notice>{/if}
+    {#if revisionChanged}<Notice tone="warn">{ux('sourceChanged')}</Notice>{/if}
     {#if chosen}<fieldset class="space-y-2" disabled={model.state.busy || chosen.blocked}>
         <legend class="mb-2 text-callout font-medium text-muted"
           >{t('content')}</legend
@@ -256,16 +260,15 @@
         {#if !shareFields.length && !chosen.hasNotes && !chosen.files.length}<p class="text-body text-muted">{t('noItems')}</p>{/if}
         {#each chosen.files as id}
           {@const file = details[id]?.file}
-          {@const available = file?.current && file.local && file.trashed_at == null}
+          {@const available = attachmentAvailable(details[id])}
           <div>
             <Checkbox
               checked={attachments.includes(id)}
               onCheckedChange={(checked) => {
-                attachmentsTouched = true
                 changed()
                 attachments = toggle(attachments, id, checked)
               }}
-              disabled={!available}
+              disabled={attachmentsLoading || !available}
               >{file?.name ?? ux('file')}</Checkbox
             >{#if !available}<p class="text-callout text-warn">
                 {file?.trashed_at ? t('fileMissing') : file ? ux('notLocal') : ux('unknown')}
@@ -309,7 +312,7 @@
     <button
       class={buttonClass('primary')}
       disabled={model.state.busy || !canReview}
-      data-testid="snapshot-review">{mode === 'nearby' ? t('nearbyShare') : mode === 'channel' ? w('channelDelivery') : t('createLink')}</button>
+      data-testid="snapshot-review">{prepared?.reconcile ? w('reconcile') : mode === 'nearby' ? t('nearbyShare') : mode === 'channel' ? w('channelDelivery') : t('createLink')}</button>
     {#if !chosen}<button
         type="button"
         class={buttonClass('ghost')}
@@ -322,20 +325,20 @@
         <span class="text-body">{term(share.state)}</span>
       </div>
       <p class="text-callout text-muted">
-        {share.plan.channel?.name ?? when(share.plan.expires_at)}
+        {share.plan.nearby?.peer_label ?? share.plan.channel?.name ?? when(share.plan.expires_at)}
       </p>
       {#if share.plan.channel}<p class="text-callout text-muted">
           {w('channelWarning')}
         </p>{/if}{#if share.total_chunks || ['uploading', 'publishing'].includes(share.state)}<Progress value={share.uploaded_chunks} max={share.total_chunks} label={term(share.state)} testid="share-upload-progress" />{/if}{#if share.error}<Notice tone="warn"
           >{ux('unknown')}</Notice
         >{/if}
-      <div class="flex flex-wrap gap-2">
-        {#if ['prepared', 'failed', 'needs_approval', 'awaiting_user'].includes(share.state)}<button
+      {#if !share.plan.nearby}<div class="flex flex-wrap gap-2">
+        {#if ['prepared', 'failed', 'interrupted', 'needs_approval', 'awaiting_user'].includes(share.state)}<button
             class={buttonClass('secondary')}
             disabled={model.state.busy}
             onclick={() =>
               model.act(() => call('secrets/shares/publish', { id: share.id }))}
-            >{share.state === 'failed'
+            >{['failed', 'interrupted'].includes(share.state)
               ? t('retry')
               : share.plan.channel
                 ? w('channelDelivery')
@@ -373,7 +376,7 @@
           onclick={() => (revokeTarget = share)}
           >{share.plan.channel ? t('cancel') : w('revokeShare')}</button
         >
-      </div>
+      </div>{/if}
     </article>{/each}
 </Panel>
 

@@ -43,7 +43,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     val localDenied by client.nearby.localNetworkDenied.collectAsStateWithLifecycle()
     val qr by client.qr.state.collectAsStateWithLifecycle()
 
-    val draft = current?.takeIf { it.source.item.id == id }
+    val draft = current?.takeIf { it.source.item.id == id && it.initialChannel == initialChannel }
     var destination by remember { mutableStateOf(false) }
     var discard by remember { mutableStateOf(false) }
     var limitsOpen by remember(id) { mutableStateOf(false) }
@@ -66,7 +66,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             }
         }
     }
-    LaunchedEffect(id) { client.secretSharing.composer(id, initialChannel) }
+    LaunchedEffect(id, initialChannel) { client.secretSharing.composer(id, initialChannel) }
     LaunchedEffect(qr.result) {
         client.qr.consume("nearby-send-vault")?.let { scanned ->
             offerText = scanned
@@ -308,7 +308,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
         job?.let { value ->
             when {
                 value.error != null -> Notice(errorText(value.error), true)
-                value.state in setOf("unknown", "publishing", "uploading", "encrypting", "revoke_pending") -> Notice(str(R.string.text_the_outcome_is_uncertain_check_this_original_snapshot_before_retr_83e738c))
+                value.state in setOf("unknown", "revoke_pending") -> Notice(str(R.string.text_the_outcome_is_uncertain_check_this_original_snapshot_before_retr_83e738c))
             }
             DetailCard {
                 Text(value.title, style = MaterialTheme.typography.titleLarge)
@@ -321,12 +321,12 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (value.state in setOf("prepared", "needs_approval", "awaiting_user", "interrupted", "failed") && !value.cancelRequested) {
+                if (value.nearby == null && value.state in setOf("prepared", "needs_approval", "awaiting_user", "interrupted", "failed") && !value.cancelRequested) {
                     Button(onClick = { client.secretSharing.publish(id) }, enabled = !working && read is ReadState.Ready, modifier = Modifier.fillMaxWidth()) {
                         Text(str(if (value.state == "failed") R.string.text_retry_563171c else R.string.text_publish_88bb01f))
                     }
                 }
-                if (value.state in setOf("unknown", "publishing", "uploading", "encrypting", "revoke_pending")) {
+                if (value.nearby == null && value.state in setOf("unknown", "revoke_pending")) {
                     Button(onClick = { client.secretSharing.reconcile(id) }, enabled = !working, modifier = Modifier.fillMaxWidth()) {
                         Text(str(R.string.text_reconcile_original_snapshot_88bff05))
                     }
@@ -441,7 +441,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     CodeRow(str(R.string.text_channel_0126d4b).trimEnd(' ', '·', ':'), origin.id) { client.clipboard.copy(origin.id) }
                 }
             }
-            if (value.fields.isNotEmpty() || value.notes) {
+            if (current.completed == null && (value.fields.isNotEmpty() || value.notes)) {
                 val importsOtp = value.fields.any { it.kind == "otp" && it.id in current.fields }
                 Section(
                     title = str(R.string.text_select_fields_to_import_97581a6),
@@ -457,7 +457,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     }
                 }
             }
-            if (value.attachments.isNotEmpty()) {
+            if (current.completed == null && value.attachments.isNotEmpty()) {
                 Section(
                     title = str(R.string.text_select_attachments_to_import_de0f7db),
                     footer = str(R.string.text_imported_attachments_stay_on_this_device_and_inherit_this_folder_d1a4fc8),
@@ -474,7 +474,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                         enabled = editable,
                     ) { choosingFolder = true }
                 }
-            } else {
+            } else if (current.completed == null) {
                 Text(str(R.string.text_create_an_independent_copy_of_this_exact_selection_a20b10b),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

@@ -8,6 +8,7 @@ use crate::{
 };
 use dmsg_types::{DAY, Hash, MINUTE};
 use std::collections::BTreeSet;
+use std::sync::Arc;
 const PREFIX: &str = "secret-share:";
 
 /// Explicit attachment selection, never "whatever is current when uploaded".
@@ -20,7 +21,7 @@ pub struct AttachmentInput {
     pub version_id: String,
 }
 
-/// Every field and attachment starts unselected in the UI.
+/// The exact fields, notes and file versions selected by the sender.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ShareInput {
@@ -221,10 +222,32 @@ impl Preparation {
 
 /// Snapshot work run without holding the client during network IO.
 struct ShareRun {
-    id: String,
+    id: Arc<str>,
 }
 
 impl Client {
+    /// The caller owns the strong reference until it finishes or its future is dropped.
+    pub(super) fn track_snapshot_work(&mut self, id: &str) -> Arc<str> {
+        self.active_snapshots.retain(|work| work.strong_count() > 0);
+        let id = Arc::<str>::from(id);
+        self.active_snapshots.push(Arc::downgrade(&id));
+        id
+    }
+
+    fn snapshot_running(&self, id: &str) -> bool {
+        self.active_snapshots
+            .iter()
+            .any(|work| work.upgrade().as_deref() == Some(id))
+    }
+
+    fn share_phase<'a>(&self, job: &'a Job) -> &'a str {
+        match job.phase.as_str() {
+            "encrypting" | "uploading" if !self.snapshot_running(&job.id) => "interrupted",
+            "publishing" if !self.snapshot_running(&job.id) => "unknown",
+            phase => phase,
+        }
+    }
+
     fn share_job(&self, id: &str) -> Result<Job> {
         ensure_valid(hex_id(id, 64), "share job")?;
         self.workspace
@@ -574,9 +597,9 @@ impl Client {
                         .iter()
                         .find(|r| r.share_id == job.plan.share_id)
                         .map(|r| self.link_view(r, now).state.to_owned())
-                        .unwrap_or_else(|| job.phase.clone())
+                        .unwrap_or_else(|| self.share_phase(&job).into())
                 } else {
-                    job.phase.clone()
+                    self.share_phase(&job).into()
                 };
                 entries.push(references::Dependency {
                     kind: if job.plan.channel.is_some() {
@@ -664,7 +687,7 @@ impl Client {
     }
 
     fn share_job_view(&self, job: &Job, include_link: bool) -> Result<Value> {
-        let mut value = json!({"id":job.id,"state":job.phase,"plan":job.plan.view(),"request_id":job.request,"error":job.error,"cancel_requested":job.cancel_requested,"device_local":true,"receipt":job.receipt});
+        let mut value = json!({"id":job.id,"state":self.share_phase(job),"plan":job.plan.view(),"request_id":job.request,"error":job.error,"cancel_requested":job.cancel_requested,"device_local":true,"receipt":job.receipt});
         let total = job.upload.as_ref().map_or(0, |p| p.chunks.len());
         value["uploaded_chunks"] =
             json!(if matches!(job.phase.as_str(), "published" | "revoked") {
@@ -711,8 +734,10 @@ impl Client {
     }
 
     /// Validate a prepared or unpublished interrupted job and start direct publication.
-    fn secret_share_start(&mut self, id: &str) -> Result<ShareRun> {
+    fn secret_share_start(&mut self, id: &str, nearby: bool) -> Result<ShareRun> {
         let mut job = self.share_job(id)?;
+        ensure(job.plan.nearby.is_some() == nearby, Error::Forbidden)?;
+        ensure(!self.snapshot_running(id), Error::Pending)?;
         ensure(
             !job.publish_attempted
                 && !matches!(
@@ -733,14 +758,7 @@ impl Client {
         )?;
         let now = now_ms();
         self.share_check(&job, false, now)?;
-        if let Some(old_request) = job.request.take()
-            && let Ok(mut r) = self.approval_record(&old_request)
-            && r.state == State::AwaitingUser
-        {
-            r.state = State::Cancelled;
-            r.updated_at = now;
-            self.save_approval(&r)?;
-        }
+        let old_request = job.request.take();
         job.boot = self.secret_boot.clone();
         job.session = self.session_generation;
         job.error = None;
@@ -750,8 +768,20 @@ impl Client {
             "encrypting"
         }
         .into();
-        self.save_share_job(&job)?;
-        Ok(ShareRun { id: id.into() })
+        self.workspace.store.atomic(|_| {
+            if let Some(old_request) = &old_request
+                && let Ok(mut r) = self.approval_record(old_request)
+                && !r.state.terminal()
+            {
+                r.state = State::Cancelled;
+                r.updated_at = now;
+                self.write_approval(&r)?;
+            }
+            self.save_share_job(&job)
+        })?;
+        Ok(ShareRun {
+            id: self.track_snapshot_work(id),
+        })
     }
 
     pub(crate) fn secret_share_detail(&self, id: &str, digest: &str) -> Result<Value> {
@@ -821,6 +851,9 @@ impl Client {
             return Err(Error::Forbidden);
         };
         let job = self.share_job(id)?;
+        if job.request.as_deref() != Some(&r.id) {
+            return self.secret_reconcile(r);
+        }
         let phase = if job.publish_attempted {
             "unknown"
         } else {
@@ -896,7 +929,14 @@ async fn append<H: Hold>(
 /// Publication is attempted at most once; uncertain outcomes settle as `unknown` for reconciliation.
 pub async fn publish<H: Hold>(h: &H, id: &str) -> Result<Value> {
     let bound = Session::new(h).await?;
-    let run = bound.with(|c| c.secret_share_start(id)).await?;
+    let run = bound.with(|c| c.secret_share_start(id, false)).await?;
+    run.run(&bound).await
+}
+
+/// Stage a snapshot for the nearby sender that owns its verified handshake.
+pub(crate) async fn stage_nearby<H: Hold>(h: &H, id: &str) -> Result<Value> {
+    let bound = Session::new(h).await?;
+    let run = bound.with(|c| c.secret_share_start(id, true)).await?;
     run.run(&bound).await
 }
 

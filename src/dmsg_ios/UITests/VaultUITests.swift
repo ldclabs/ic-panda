@@ -14,21 +14,24 @@ final class VaultUITests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         app.buttons["vault.detail.more"].tap()
         app.buttons["vault.share"].tap()
-        let credential = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.credential").firstMatch
+        let credential = app.switches["secret.snapshot.field.credential"]
         XCTAssertTrue(credential.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.username").firstMatch.exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.expires").firstMatch.exists)
         let review = app.buttons["secret.snapshot.prepare"]
         XCTAssertTrue(review.isEnabled)
-        let url = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.url").firstMatch
-        let region = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.region").firstMatch
-        credential.tap()
-        url.tap()
-        region.tap()
+        for field in [credential, app.switches["secret.snapshot.field.url"], app.switches["secret.snapshot.field.region"]] {
+            for _ in 0..<3 where !field.isHittable || field.frame.midY >= review.frame.minY {
+                app.swipeUp(velocity: .slow)
+            }
+            XCTAssertEqual(field.value as? String, "1")
+            field.tap()
+            XCTAssertEqual(field.value as? String, "0")
+        }
         XCTAssertFalse(review.isEnabled)
         credential.tap()
         XCTAssertTrue(review.isEnabled)
-        capture(app, "Selected fields for snapshot approval")
+        capture(app, "Selected fields for snapshot sharing")
     }
 
     func testBackupAndRestoreIsReachableFromVaultTools() {

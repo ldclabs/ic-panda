@@ -67,6 +67,7 @@ const text: Text = {
   updateBlocked: "dMsg masih memiliki tugas yang belum selesai",
   updateBusy: (busy: string) => `Belum selesai: ${busy}. Coba lagi nanti atau mulai ulang untuk memperbarui sekarang. Tugas Anda telah disimpan dan akan dilanjutkan setelah Anda membuka kunci dMsg yang diperbarui.`,
   inFlightApprovals: (n: number) => `${n} permintaan yang disetujui dengan hasil yang belum selesai`,
+  inFlightSnapshot: "Cuplikan brankas",
   inFlightAccount: "pembaruan akun yang hasilnya belum diketahui",
   inFlightRoot: "rotasi root konten",
   separator: ", ",

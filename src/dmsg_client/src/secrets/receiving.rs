@@ -114,7 +114,7 @@ pub struct Selection {
 
 enum ImportPrep {
     Done(Value),
-    Run(Box<Received>),
+    Run(Box<Received>, std::sync::Arc<str>),
 }
 
 impl Client {
@@ -200,7 +200,8 @@ impl Client {
         if changed {
             self.save_received(&received)?;
         }
-        Ok(ImportPrep::Run(Box::new(received)))
+        let work = self.track_snapshot_work(&received.id);
+        Ok(ImportPrep::Run(Box::new(received), work))
     }
 
     pub(crate) fn secret_package_detail(&self, selection: &Selection) -> Result<Value> {
@@ -619,12 +620,12 @@ pub async fn import_limited<H: Hold>(
     max_plain_bytes: u64,
 ) -> Result<Value> {
     let bound = Session::new(h).await?;
-    let received = match bound
+    let (received, _work) = match bound
         .with(|c| c.secret_package_prepare_import(&selection, max_plain_bytes))
         .await?
     {
         ImportPrep::Done(receipt) => return Ok(receipt),
-        ImportPrep::Run(received) => received,
+        ImportPrep::Run(received, work) => (received, work),
     };
     let bytes = received_bytes(&bound, &received).await?;
     let parsed = package::parse(&bytes)?;

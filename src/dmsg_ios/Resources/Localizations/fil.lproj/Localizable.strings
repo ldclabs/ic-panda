@@ -1286,6 +1286,8 @@
 	<string>Mag-import ng mga napiling tala</string>
 	<key>Import selected secrets</key>
 	<string>Mag-import ng mga napiling lihim</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Mananatili sa device ang na-import na mga attachment at mamanahin ang mga pahintulot sa access ng folder na ito.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Na-import sa device na ito. Hiwalay na aksyon ang pag-backup sa cloud.</string>
 	<key>In Trash</key>

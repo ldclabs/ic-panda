@@ -8,8 +8,9 @@ struct SecretSnapshotComposer: View {
     @State private var fields: Set<String> = []
     @State private var notes = false
     @State private var attachmentIDs: Set<String> = []
-    @State private var attachmentsTouched = false
     @State private var attachments: SecretAttachmentListing?
+    @State private var attachmentReadFailed = false
+    @State private var attachmentAttempt = 0
     @State private var destination = "link"
     @State private var initialized = false
     @State private var duration: UInt64 = 86_400_000
@@ -23,7 +24,8 @@ struct SecretSnapshotComposer: View {
     @State private var scanning = false
     @State private var cameraDenied = false
     @State private var previousSend: UInt64?
-    private var hasSelection: Bool { !fields.isEmpty || notes || !attachmentIDs.isEmpty }
+    private var attachmentsReady: Bool { item.files.isEmpty || attachments != nil }
+    private var hasSelection: Bool { attachmentsReady && (!fields.isEmpty || notes || !attachmentIDs.isEmpty) }
     private var nearby: NearbyShareModel { model.nearbyShare }
     private var nearbySend: NearbyShareModel.SendStatus? {
         guard let send = nearby.status?.send, send.id != previousSend else { return nil }
@@ -86,7 +88,7 @@ struct SecretSnapshotComposer: View {
                     Section("Select attachments to share") {
                         ForEach(attachments.files) { entry in
                             if let file = entry.details?.file {
-                                Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { attachmentsTouched = true; if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
+                                Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(file.name).lineLimit(2)
                                         Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
@@ -94,6 +96,11 @@ struct SecretSnapshotComposer: View {
                                 }.disabled(!entry.canShare)
                             } else { Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis").foregroundStyle(.secondary) }
                         }
+                    }
+                } else if !attachmentsReady {
+                    Section("Select attachments to share") {
+                        if attachmentReadFailed { Button("Retry") { attachmentAttempt += 1 } }
+                        else { ProgressView("Loading…") }
                     }
                 }
                 if destination == "nearby" {
@@ -112,7 +119,7 @@ struct SecretSnapshotComposer: View {
                                 Task { await nearby.sendVault(model, offer: nil, peer: peer, input: input, shareIdentity: shareIdentity) }
                             }
                         )
-                    } else {
+                    } else if attachmentsReady {
                         Section {
                             Text("Choose at least one field, note or attachment before selecting a nearby receiver.")
                                 .font(.footnote)
@@ -153,16 +160,24 @@ struct SecretSnapshotComposer: View {
                     initialized = true
                 }
                 if destination == "nearby" { nearby.startBrowse() }
-                if !model.localAccount { await model.loadChannels() }
+            }
+            .task { if !model.localAccount { await model.loadChannels() } }
+            .task(id: attachmentAttempt) {
+                guard !attachmentsReady, let engine = model.engine else { return }
+                attachmentReadFailed = false
                 let epoch = model.epoch
                 do {
-                    guard let snapshot = try await model.engine?.secretItemAttachments(itemId: item.id), epoch == model.epoch else { return }
+                    let snapshot = try await engine.secretItemAttachments(itemId: item.id)
+                    guard epoch == model.epoch, !Task.isCancelled else { return }
                     let listing: SecretAttachmentListing = try model.decode(snapshot)
                     attachments = listing
-                    if !attachmentsTouched {
-                        attachmentIDs = Set(listing.files.filter(\.canShare).map(\.id))
+                    attachmentIDs = Set(listing.files.filter(\.canShare).map(\.id))
+                } catch {
+                    if epoch == model.epoch, !Task.isCancelled {
+                        attachmentReadFailed = true
+                        model.report(error)
                     }
-                } catch { if epoch == model.epoch { model.report(error) } }
+                }
             }
             .onChange(of: destination) { _, next in
                 if next != "link" { password = "" }
@@ -170,8 +185,10 @@ struct SecretSnapshotComposer: View {
             }
             .onDisappear {
                 work?.cancel()
-                if nearbySend?.active == true { nearby.cancelSend(model) }
-                nearby.stopBrowse()
+                if destination == "nearby" {
+                    if nearbySend?.active == true { nearby.cancelSend(model) }
+                    nearby.stopBrowse()
+                }
             }
             .sheet(isPresented: $scanning) {
                 QRCodeScanner { text in
@@ -306,10 +323,10 @@ struct SecretShareDetailView: View {
                     DisclosureGroup("Error details") { Text(error).font(.footnote.monospaced()).textSelection(.enabled) }
                 }
                 Section {
-                    if ["prepared", "needs_approval", "awaiting_user", "interrupted", "failed"].contains(share.state) && !share.cancelRequested {
+                    if share.plan.nearby == nil && ["prepared", "needs_approval", "awaiting_user", "interrupted", "failed"].contains(share.state) && !share.cancelRequested {
                         SettingsAction(share.state == "failed" ? "Retry" : "Publish", prominent: true, working: working) { actionTask = Task { await publish() } }.disabled(working)
                     }
-                    if ["unknown", "publishing", "uploading", "encrypting", "revoke_pending"].contains(share.state) {
+                    if share.plan.nearby == nil && ["unknown", "revoke_pending"].contains(share.state) {
                         NoticeBar(text: String(localized: "The outcome is uncertain. Check the original job before attempting anything again."))
                         SettingsAction("Reconcile original snapshot", prominent: true, working: working) { actionTask = Task { await reconcile() } }.disabled(working)
                     }

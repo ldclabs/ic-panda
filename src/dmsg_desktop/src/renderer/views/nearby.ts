@@ -1,3 +1,4 @@
+import type { SourceItem } from './secrets/model'
 import type { Label } from '../i18n/messages/en'
 import { isManaged } from './vault/vault.ts'
 
@@ -227,20 +228,19 @@ export function attachmentAvailable(detail: any): boolean {
 
 /** Build the exact `vault_item` payload for `nearby/send_start`, or null if invalid/empty. */
 export function buildVaultSendSelection(
-  entry: any,
-  conflict: boolean,
+  entry: SourceItem,
   selectedFieldIds: string[],
   includeNotes: boolean,
   selectedFileIds: string[],
   fileDetails: Record<string, any>
 ): NearbyVaultSelection | null {
-  if (vaultEntryBlocked(entry, conflict)) return null
-  const populated = ((entry.item.fields ?? []) as { id: string; value?: string }[])
-    .filter((f) => Boolean(f.value) && selectedFieldIds.includes(f.id))
+  if (entry.blocked) return null
+  const populated = entry.fields
+    .filter((f) => f.populated && selectedFieldIds.includes(f.id))
     .map((f) => f.id)
-  const notes = Boolean(includeNotes && entry.item.notes)
+  const notes = includeNotes && entry.hasNotes
   const attachments: { file_id: string; version_id: string }[] = []
-  for (const id of (entry.item.files ?? []) as string[]) {
+  for (const id of entry.files) {
     if (!selectedFileIds.includes(id)) continue
     const detail = fileDetails[id]
     if (!attachmentAvailable(detail)) return null

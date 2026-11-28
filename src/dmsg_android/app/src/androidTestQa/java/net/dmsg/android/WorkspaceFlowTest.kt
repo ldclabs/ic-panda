@@ -23,6 +23,7 @@ import net.dmsg.android.core.QrState
 import net.dmsg.android.core.QrStep
 import net.dmsg.android.core.ClientController
 import net.dmsg.android.core.ReadState
+import net.dmsg.android.core.Route
 import net.dmsg.android.core.valueOrNull
 import net.dmsg.android.ui.DMsgApp
 import net.dmsg.core.MobileEngine
@@ -2176,7 +2177,7 @@ class WorkspaceFlowTest {
         capture("qa-secret-health")
     }
 
-    @Test fun selectedSnapshotPreparationStaysLocalAndReusesItsOriginalApproval() {
+    @Test fun snapshotReusesItsJobOnlyWithinTheOriginalDestination() {
         compose.onNodeWithText("Studio account").performClick()
         compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
         val item = client.vault.detail.value()!!
@@ -2204,6 +2205,10 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Open prepared snapshot").performScrollTo().performClick()
         compose.waitUntil(10_000) { client.secretSharing.job.value()?.id == job.id }
         assertEquals(job.id, client.secretSharing.draft.value!!.prepared)
+        val channel = "ab".repeat(32)
+        compose.runOnIdle { client.navigation.push(Route("secret-compose", item.id, channel = channel)) }
+        compose.waitUntil(10_000) { client.secretSharing.draft.value?.channel == channel }
+        assertNull(client.secretSharing.draft.value!!.prepared)
     }
 
     @Test fun externalPickerResultWaitsForForegroundAndCannotCrossLock() {

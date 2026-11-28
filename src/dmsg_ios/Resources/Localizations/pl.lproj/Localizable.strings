@@ -1286,6 +1286,8 @@
 	<string>Importuj wybrane rekordy</string>
 	<key>Import selected secrets</key>
 	<string>Importuj wybrane sekrety</string>
+	<key>Imported attachments stay on this device and inherit this folder's access grants.</key>
+	<string>Zaimportowane załączniki pozostają na tym urządzeniu i dziedziczą dostęp tego folderu.</string>
 	<key>Imported to this device. Cloud backup is a separate action.</key>
 	<string>Zaimportowano na to urządzenie. Kopię w chmurze tworzy się osobno.</string>
 	<key>In Trash</key>

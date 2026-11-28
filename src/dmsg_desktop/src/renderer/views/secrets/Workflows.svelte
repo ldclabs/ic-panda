@@ -13,7 +13,7 @@
   import type { NearbyVaultSelection } from '../nearby'
 
   /** What a stored secret is used for, one part at a time; the vault's filters name the parts. */
-  let { open, tab, go, route, account, standalone = false, onNearbyReceive, onNearbySend }: { open: (id: string) => void; tab: string; go: (path: string) => void; route: string; account: string; standalone?: boolean; onNearbyReceive?: () => void; onNearbySend?: (selection: NearbyVaultSelection, entryId: string) => void } = $props()
+  let { open, tab, go, route, account, standalone = false, onNearbyReceive, onNearbySend }: { open: (id: string) => void; tab: string; go: (path: string) => void; route: string; account: string; standalone?: boolean; onNearbyReceive?: () => void; onNearbySend?: (selection: NearbyVaultSelection) => void } = $props()
   const params = $derived(new URLSearchParams(route.split('?')[1]))
   const itemId = $derived(params.get('item') || '')
   const shareMode = $derived<'link' | 'channel' | 'nearby'>(standalone || params.get('mode') === 'nearby' ? 'nearby' : params.get('mode') === 'channel' ? 'channel' : 'link')
