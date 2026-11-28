@@ -517,6 +517,7 @@ class ClientController internal constructor(private val application: Application
         if (!state.value.unlocked) return
         synchronization.setAutomatic(syncPreferences[state.value.session?.account] ?: true)
         synchronization.start(); fileWork.start(); systemExports.start()
+        messages.browse(); safety.loadBlocks(); letters.refresh(network = false)
         incoming.checkPending()
         routePendingWorkspace()
     }

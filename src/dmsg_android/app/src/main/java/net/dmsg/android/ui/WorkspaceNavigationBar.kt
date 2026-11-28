@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import net.dmsg.android.R
+import net.dmsg.android.platform.localizedNumber
 import net.dmsg.android.platform.str
 
 internal data class WorkspaceDestination(val id: String, val label: Int, @param:DrawableRes val icon: Int)
@@ -20,24 +21,34 @@ internal val workspaceDestinations = listOf(
     WorkspaceDestination("account", R.string.text_account_4ab56e9, R.drawable.glyph_account),
 )
 
+@Composable private fun DestinationIcon(destination: WorkspaceDestination, badge: Int) {
+    BadgedBox(badge = {
+        if (badge > 0) {
+            Badge { Text(if (badge > 99) "99+" else localizedNumber(badge), style = MaterialTheme.typography.labelSmall.tabular()) }
+        }
+    }) {
+        Icon(painterResource(destination.icon), null)
+    }
+}
+
 /** Phones: the Material 3 short navigation bar, flat on the container colour. */
-@Composable internal fun WorkspaceNavigationBar(destinations: List<WorkspaceDestination>, current: String, select: (String) -> Unit) {
+@Composable internal fun WorkspaceNavigationBar(destinations: List<WorkspaceDestination>, current: String, select: (String) -> Unit, badges: Map<String, Int> = emptyMap()) {
     ShortNavigationBar(Modifier.testTag("workspace-navigation"), containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         destinations.forEach { destination ->
             ShortNavigationBarItem(selected = current == destination.id, onClick = { select(destination.id) },
-                icon = { Icon(painterResource(destination.icon), null) },
+                icon = { DestinationIcon(destination, badges[destination.id] ?: 0) },
                 label = { Text(str(destination.label), maxLines = 1, overflow = TextOverflow.Ellipsis) })
         }
     }
 }
 
 /** Wide windows: the collapsed Material 3 navigation rail beside the panes. */
-@Composable internal fun WorkspaceNavigationRail(destinations: List<WorkspaceDestination>, current: String, select: (String) -> Unit) {
+@Composable internal fun WorkspaceNavigationRail(destinations: List<WorkspaceDestination>, current: String, select: (String) -> Unit, badges: Map<String, Int> = emptyMap()) {
     WideNavigationRail(Modifier.fillMaxHeight().testTag("workspace-navigation"),
         colors = WideNavigationRailDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         destinations.forEach { destination ->
             WideNavigationRailItem(railExpanded = false, selected = current == destination.id, onClick = { select(destination.id) },
-                icon = { Icon(painterResource(destination.icon), null) }, label = { Text(str(destination.label)) })
+                icon = { DestinationIcon(destination, badges[destination.id] ?: 0) }, label = { Text(str(destination.label)) })
         }
     }
 }

@@ -61,13 +61,15 @@
   let writing = $state(false)
   let replyTo = $state('')
   let ruling = $state(false)
+  let pageVisible = $state(typeof document === 'undefined' || document.visibilityState === 'visible')
+  let autoMarked = new Set<string>()
 
   const unlocked = $derived(status?.state === 'unlocked')
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
   const valid = (at: number) => alive && at === generation && unlocked
   const inbox = $derived(letters.filter((l) => !l.archived).sort((a, b) => b.created_at - a.created_at))
   const archive = $derived(letters.filter((l) => l.archived).sort((a, b) => b.created_at - a.created_at))
-  const unread = $derived(inbox.filter((l) => !l.read).length)
+  const unread = $derived(inbox.filter((l) => l.state === 'visible' && !l.read && l.sender !== status?.account).length)
   const sent = $derived([...outgoing].sort((a, b) => (b.sent_at ?? 0) - (a.sent_at ?? 0)))
   const boxed = $derived(box === 'sent' ? sent : box === 'archive' ? archive : inbox)
   const asked = $derived(query.trim().toLowerCase())
@@ -195,6 +197,7 @@
     void sessionKey
     untrack(() => {
       generation += 1
+      autoMarked = new Set()
       letters = outgoing = []
       orders = escrows = orderFailed = {}
       policy = null
@@ -256,6 +259,17 @@
     if (target) untrack(() => void check(target))
   })
 
+  // Opening a visible unread letter marks it read once, keeping notifications and unread counts aligned.
+  $effect(() => {
+    const target = letter
+    if (!unlocked || !loaded || !pageVisible || !target || target.state !== 'visible' || target.read || target.sender === status?.account || autoMarked.has(target.order_id)) return
+    autoMarked.add(target.order_id)
+    const at = generation
+    void call('inbox/mark', { order: target.order_id, read: true, archived: target.archived }).catch(() => {
+      if (at === generation) autoMarked.delete(target.order_id)
+    })
+  })
+
   /** The daemon's `inbox/changed` reloads the letters. */
   const mark = (target: any, read: boolean, archived: boolean) => attempt(() => call('inbox/mark', { order: target.order_id, read, archived }))
 
@@ -289,6 +303,8 @@
     })
 
   onMount(() => {
+    const onVisibility = () => { pageVisible = document.visibilityState === 'visible' }
+    document.addEventListener('visibilitychange', onVisibility)
     const stopContent = watchContent('inbox', () => unlocked ? 'inbox' : null, () => refreshLetters())
     const stop = watchDisplays(['inbox-policy'], (mode) => loadPolicy(mode))
     const off = window.dmsg.onEvent((event) => {
@@ -297,7 +313,7 @@
       const detail = event.data as { method?: string; hint?: boolean } | null
       if (event.type === 'resync' || (event.type === 'inbox/changed' && (detail?.method === 'inbox/configure' || detail?.hint))) void loadPolicy()
     })
-    return () => { alive = false; generation += 1; off(); stop(); stopContent() }
+    return () => { alive = false; generation += 1; document.removeEventListener('visibilitychange', onVisibility); off(); stop(); stopContent() }
   })
 
   const tabClass =

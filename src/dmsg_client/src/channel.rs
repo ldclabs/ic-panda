@@ -2916,7 +2916,7 @@ impl Client {
         // Import the existing unread state once as a quiet summary. Subsequent
         // own messages/control events cannot advance the notification watermark.
         let version = if version == 0 && local.unread > 0 {
-            local.message
+            local.latest()
         } else {
             version
         };
@@ -2935,6 +2935,7 @@ impl Client {
         let preference = self.channel_notification_preference(channel, ring.muted)?;
         let inactive = ring.hidden
             || preference.hidden
+            || local.left
             || local.ledger.as_ref().is_some_and(|ledger| {
                 ledger.status != Status::Active || !ledger.members.contains_key(&account)
             });
@@ -2947,6 +2948,22 @@ impl Client {
     pub(crate) fn reconcile_channel_notifications(&self, now: u64) -> Result<()> {
         for channel in self.channel_list()? {
             self.project_channel_notification(&channel.id, &self.local(&channel.id)?, now)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn reconcile_channel_unread_and_notifications(&self, now: u64) -> Result<()> {
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
+        for channel in self.channel_list()? {
+            let mut local = self.local(&channel.id)?;
+            let unread = self.unread_after_with_blocked(&channel.id, local.read, &blocked)?;
+            if local.unread != unread {
+                local.unread = unread;
+                self.save_local_at(&channel.id, &local, now)?;
+            } else {
+                self.project_channel_notification(&channel.id, &local, now)?;
+            }
         }
         Ok(())
     }
@@ -3703,15 +3720,23 @@ impl Client {
         self.workspace.delete_private(&format!("{LOCAL}{id}"))
     }
 
-    /// Unread messages of the channels that are neither muted nor hidden.
+    /// Unread messages of the active channels that are neither muted nor hidden.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn channels_unread(&self) -> Result<u64> {
+        let me = self.me()?;
         Ok(self
             .channel_list()?
             .iter()
-            .filter(|c| !c.muted && !c.hidden)
+            .filter(|c| {
+                !c.muted
+                    && !c.hidden
+                    && !c.left
+                    && c.ledger.as_ref().is_none_or(|ledger| {
+                        ledger.status != Status::Archived && ledger.members.contains_key(&me)
+                    })
+            })
             .map(|c| c.unread)
             .sum())
     }
@@ -3756,7 +3781,7 @@ impl Client {
             muted_until: preference.until,
             notification_pending: preference.revision > preference.acknowledged,
             notification_conflict: preference.blocked == Some(preference.revision),
-            hidden: ring.hidden,
+            hidden: ring.hidden || preference.hidden,
             deletable_legacy_draft,
             read: local.read,
             unread: local.unread,
@@ -4719,6 +4744,8 @@ impl Client {
         }
         let reread = reading.range.is_some() && !reading.recent;
         let keys = self.keys()?;
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
         // The page's messages and the cursor past them in one write. Another
         // read of the channel may have kept the page first: only what is past
         // the cursor is news, and the cursor never goes back.
@@ -4734,6 +4761,7 @@ impl Client {
                 let counted_before = previous.as_ref().is_some_and(|m| {
                     m.seq > local.read
                         && m.account != me
+                        && !blocked.contains(&m.account)
                         && !m.amends()
                         && (!m.unreadable || m.seq <= count_cutover)
                         && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
@@ -4741,6 +4769,7 @@ impl Client {
                 let counted_now = !message.unreadable
                     && message.seq > local.read
                     && message.account != me
+                    && !blocked.contains(&message.account)
                     && !message.amends()
                     && !background_packet(
                         &message.text,
@@ -5190,8 +5219,19 @@ impl Client {
         self.channel_view(channel)
     }
 
-    /// Others' messages kept after `read`.
+    /// Others' unblocked messages kept after `read`.
     fn unread_after(&self, channel: &str, read: u64) -> Result<u64> {
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
+        self.unread_after_with_blocked(channel, read, &blocked)
+    }
+
+    fn unread_after_with_blocked(
+        &self,
+        channel: &str,
+        read: u64,
+        blocked: &std::collections::BTreeSet<String>,
+    ) -> Result<u64> {
         let me = self.me()?;
         let prefix = format!("{INBOX}{channel}:");
         let after: Vec<Message> = self.workspace.private_after(
@@ -5205,6 +5245,7 @@ impl Client {
             .filter(|m| {
                 !m.unreadable
                     && m.account != me
+                    && !blocked.contains(&m.account)
                     && !m.amends()
                     && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
             })

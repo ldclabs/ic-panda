@@ -40,7 +40,12 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun InboxScreen(client: ClientController, state: UiState, route: Route, showScopes: Boolean) {
     val blocked by client.safety.blocked.state.collectAsStateWithLifecycle()
+    val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
     val incoming by client.letters.incoming.state.collectAsStateWithLifecycle()
+    val unreadConversations = remember(channelListing) { unreadConversationCount(channelListing.valueOrNull().orEmpty()) }
+    val unreadLetters = remember(incoming, blocked, state.session?.account) {
+        unreadLetterCount(incoming.valueOrNull().orEmpty(), state.session?.account, blocked.valueOrNull().orEmpty())
+    }
     val history by client.letters.history.state.collectAsStateWithLifecycle()
     val saved by client.letters.saved.state.collectAsStateWithLifecycle()
     val drafts by client.letters.drafts.collectAsStateWithLifecycle()
@@ -78,6 +83,16 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     val owner = remember(state.epoch) { client.currentStamp() }
     val location by rememberUpdatedState(LetterLocation(folder.name, search, editing.takeUnless { draftRoute }))
     val active = LocalPageActive.current
+    var autoMarked by remember(selected, state.epoch) { mutableStateOf(false) }
+    LaunchedEffect(letter?.id, letter?.state, letter?.read, active, state.unlocked, state.concealed) {
+        val target = letter
+        if (active && state.unlocked && !state.concealed && !autoMarked &&
+            target != null && target.state == "visible" && !target.read &&
+            target.sender != state.session?.account) {
+            autoMarked = true
+            client.letters.mark(target, read = true, quiet = true, onError = { autoMarked = false })
+        }
+    }
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
     Column(Modifier.fillMaxSize()) {
@@ -113,8 +128,8 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                             }
                             if (!searching || !searchAll) {
                                 if (showScopes) {
-                                    BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
-                                    BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
+                                    BrowseChoice(str(R.string.text_conversations_23a085e), false, badge = unreadConversations, onClick = client.navigation::back)
+                                    BrowseChoice(str(R.string.text_letters_cfbff5c), true, badge = unreadLetters) {}
                                 } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
                             }
                         }

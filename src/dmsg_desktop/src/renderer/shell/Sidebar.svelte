@@ -77,6 +77,17 @@
             data-testid="channels-unread"><Count value={status.channels_unread} max={99} /></span
           >
         {/if}
+        {#if view === views.inbox && status?.inbox_unread}
+          <span
+            class={cn(
+              'min-w-4.5 rounded-full bg-forest px-1.5 text-center text-caption leading-[18px] font-semibold text-on-forest tabular-nums',
+              collapsed && 'absolute -end-1 -top-1 min-w-4 px-1 text-caption leading-4'
+            )}
+            in:pop
+            out:shrink
+            data-testid="inbox-unread"><Count value={status.inbox_unread} max={99} /></span
+          >
+        {/if}
         {#if view === views.approvals && status?.approvals_waiting}
           <span
             class={cn(

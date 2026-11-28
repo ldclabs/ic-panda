@@ -305,7 +305,7 @@
       () => window.removeEventListener('online', online),
       () => narrowWindow.removeEventListener('change', onNarrow),
       onChange(['notifications/changed', 'resync'], loadReminders),
-      onChange(['approval/changed', 'sync/changed', 'sync/finished', 'channel/changed', 'channel/read'], refresh),
+      onChange(['approval/changed', 'sync/changed', 'sync/finished', 'channel/changed', 'channel/read', 'inbox/changed'], refresh),
       onChange(['sync/progress'], onProgress),
       onChange(['sync/finished'], () => messageDeliveries.resume()),
       onChange(['legacy/changed'], loadOffers),

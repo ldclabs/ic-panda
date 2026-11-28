@@ -51,8 +51,16 @@ import kotlinx.coroutines.launch
     LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
     val context = LocalContext.current
     val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
+    val incomingLetters by client.letters.incoming.state.collectAsStateWithLifecycle()
+    val blockedListing by client.safety.blocked.state.collectAsStateWithLifecycle()
     val syncStatus by client.synchronization.status.collectAsStateWithLifecycle()
     val noticeStatus by client.notifications.status.state.collectAsStateWithLifecycle()
+    val navBadges = remember(channelListing, incomingLetters, blockedListing, state.session?.account) {
+        val conversations = unreadConversationCount(channelListing.valueOrNull().orEmpty())
+        val letters = unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blockedListing.valueOrNull().orEmpty())
+        val total = if (conversations > Int.MAX_VALUE - letters) Int.MAX_VALUE else conversations + letters
+        if (total > 0) mapOf("messages" to total) else emptyMap()
+    }
     LaunchedEffect(state.unlocked, state.concealed, state.epoch) { if (state.unlocked && !local && !state.concealed) while (true) { client.notifications.status(); kotlinx.coroutines.delay(30_000) } }
     val navigation by client.navigation.state.collectAsStateWithLifecycle()
     val fold = rememberWorkspaceFold()
@@ -247,12 +255,12 @@ import kotlinx.coroutines.launch
                     }
                     FoldSafeWorkspace(fold, wide && (route in setOf("vault", "messages", "files") || navigation.workspace == Workspace.ACCOUNT)) {
                     Row(Modifier.fillMaxSize().testTag("workspace-content")) {
-                        if (wide) WorkspaceNavigationRail(destinations, navigation.workspace.route, ::go)
+                        if (wide) WorkspaceNavigationRail(destinations, navigation.workspace.route, ::go, navBadges)
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
                             containerColor = MaterialTheme.colorScheme.page,
                             contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
-                            bottomBar = { if (navigationBar) WorkspaceNavigationBar(destinations, navigation.workspace.route, ::go) },
+                            bottomBar = { if (navigationBar) WorkspaceNavigationBar(destinations, navigation.workspace.route, ::go, navBadges) },
                             floatingActionButton = { screenChrome.fab?.invoke() },
                             snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->

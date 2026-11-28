@@ -22,6 +22,10 @@ fun parseSentLetters(value: JsonElement) = value.arrayRows().map { SentLetter(it
 
 data class LetterLocation(val folder: String = "INBOX", val query: String = "", val editing: String? = null)
 
+internal fun unreadLetterCount(letters: List<Letter>, account: String?, blocked: Set<String>): Int = letters.count {
+    it.state == "visible" && !it.archived && !it.read && it.sender != account && it.sender !in blocked
+}
+
 /** Draft identity survives Send, cancellation and retries. No form content enters Bundle. */
 class LetterCoordinator(private val client: ClientController) {
     val incoming = ReadStore<List<Letter>> { it.isEmpty() }
@@ -90,9 +94,9 @@ class LetterCoordinator(private val client: ClientController) {
         client.perform({ it.discardLetterDraft(id) }, key = "letter:discard:" + id,
             serial = turns.getOrPut(id) { Mutex() }, onError = { refresh(false) }) { mutable.value -= id; dirty -= id; revision++; refresh(false) }
     }
-    fun mark(letter: Letter, read: Boolean = letter.read, archived: Boolean = letter.archived, reopen: Boolean = false) =
+    fun mark(letter: Letter, read: Boolean = letter.read, archived: Boolean = letter.archived, reopen: Boolean = false, quiet: Boolean = false, onError: (String) -> Unit = {}) =
         client.perform({ core -> if (reopen) core.reopenLetterContact(letter.id, read, archived) else core.markLetter(letter.id, read, archived) },
-            key = "letter:mark:" + letter.id) { refresh(false); client.notifications.status(); client.notices.refresh() }
+            key = "letter:mark:" + letter.id, quiet = quiet, onError = onError) { refresh(false); client.notifications.status(); client.notices.refresh() }
     internal fun restore(input: LetterDraftInput) {
         if (input.id in dirty) return
         mutable.value += input.id to LetterDraft(input.id, input.recipient, input.text, input.invitation)

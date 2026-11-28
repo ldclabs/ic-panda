@@ -69,8 +69,13 @@ import net.dmsg.core.MessageItem
     val globalRead by client.search.global.state.collectAsStateWithLifecycle()
     val revision by client.messages.directoryRevision.collectAsStateWithLifecycle()
     val blocks by client.safety.blocked.state.collectAsStateWithLifecycle()
+    val incomingLetters by client.letters.incoming.state.collectAsStateWithLifecycle()
     var searchAll by remember { mutableStateOf(false) }
     val channels = listing.valueOrNull().orEmpty()
+    val unreadConversations = remember(channels) { unreadConversationCount(channels) }
+    val unreadLetters = remember(incomingLetters, blocks, state.session?.account) {
+        unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blocks.valueOrNull().orEmpty())
+    }
     val channelById = remember(channels) { channels.associateBy { it.id } }
     val ids = remember(channels) { channels.map { it.id } }
     val blocked = blocks.valueOrNull()?.takeIf { blocks is ReadState.Ready || blocks is ReadState.Empty }
@@ -88,7 +93,7 @@ import net.dmsg.core.MessageItem
             else -> channels.filter { it.name.contains(query, true) }
         }
     }
-    LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks() }
+    LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks(); client.letters.refresh(network = false) }
     LaunchedEffect(search, hasFile, ids, blocked, state.epoch, revision, searchAll) {
         if (searchAll && query.isNotEmpty()) client.search.searchAll(search)
         else if (!searchAll && blocked != null) client.messages.searchDirectory(search, ids, blocked, hasFile)
@@ -120,8 +125,8 @@ import net.dmsg.core.MessageItem
                             }
                         }
                     } else {
-                        BrowseChoice(str(R.string.text_conversations_23a085e), true) {}
-                        BrowseChoice(str(R.string.text_letters_cfbff5c), false, onClick = inbox)
+                        BrowseChoice(str(R.string.text_conversations_23a085e), true, badge = unreadConversations) {}
+                        BrowseChoice(str(R.string.text_letters_cfbff5c), false, badge = unreadLetters, onClick = inbox)
                     }
                 }
             }
@@ -346,9 +351,12 @@ import net.dmsg.core.MessageItem
         snapshotFlow { scroll.layoutInfo.visibleItemsInfo.mapNotNull { visible -> sequences[visible.key] }.maxOrNull() }
             .distinctUntilChanged().collect { through ->
                 if (through != null && pageActive && noticeFocused && state.unlocked && !state.concealed && timelineReadable) {
-                    if (through > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, through)
-                    visibleThrough = through
-                    client.notifications.observed(NoticeTarget("channel", channel), through, noticeOwner) { pageActive && noticeActive && noticeView.hasWindowFocus() && visibleThrough != null }
+                    val effectiveThrough = if (through == rows.lastOrNull()?.sequence) {
+                        currentTimeline?.items?.lastOrNull()?.sequence?.let { maxOf(through, it) } ?: through
+                    } else through
+                    if (effectiveThrough > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, effectiveThrough)
+                    visibleThrough = effectiveThrough
+                    client.notifications.observed(NoticeTarget("channel", channel), effectiveThrough, noticeOwner) { pageActive && noticeActive && noticeView.hasWindowFocus() && visibleThrough != null }
                 } else {
                     visibleThrough = null; client.notifications.hide(noticeOwner)
                 }

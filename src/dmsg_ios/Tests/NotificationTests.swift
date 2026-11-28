@@ -239,4 +239,34 @@ final class NotificationTests: XCTestCase {
         } catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
         try await engine.shutdown()
     }
+
+    @MainActor
+    func testUnreadCountsAlignWithCoreNotificationRules() throws {
+        let letters = [
+            InboxLetter(orderId: "1", sender: "peer", state: "visible", text: "Unread", createdAt: 1, read: false, archived: false, abortReason: nil),
+            InboxLetter(orderId: "2", sender: "me", state: "visible", text: "Self", createdAt: 2, read: false, archived: false, abortReason: nil),
+            InboxLetter(orderId: "3", sender: "peer", state: "quoted", text: "Pending", createdAt: 3, read: false, archived: false, abortReason: nil),
+            InboxLetter(orderId: "4", sender: "peer", state: "aborted", text: "Aborted", createdAt: 4, read: false, archived: false, abortReason: nil),
+            InboxLetter(orderId: "5", sender: "blocked", state: "visible", text: "Blocked", createdAt: 5, read: false, archived: false, abortReason: nil),
+            InboxLetter(orderId: "6", sender: "peer", state: "visible", text: "Read", createdAt: 6, read: true, archived: false, abortReason: nil),
+            InboxLetter(orderId: "7", sender: "peer", state: "visible", text: "Archived", createdAt: 7, read: false, archived: true, abortReason: nil),
+        ]
+        XCTAssertEqual(SessionModel.unreadLetterCount(letters, account: "me", blocked: ["blocked"]), 1)
+        XCTAssertEqual(SessionModel.unreadLetterCount(letters, account: "me", blocked: []), 2)
+
+        func makeChannel(_ id: String, unread: UInt64, muted: Bool = false, status: String = "active") -> ChannelItem {
+            ChannelItem(id: id, name: id, unread: unread, draft: "", preview: "", lastAt: 1,
+                        muted: muted, status: status, canPublish: true, canInvite: false, pendingSends: 0, readThrough: 0, news: false)
+        }
+        let channels = [
+            makeChannel("active", unread: 2),
+            makeChannel("muted", unread: 5, muted: true),
+            makeChannel("archived", unread: 3, status: "archived"),
+            makeChannel("left", unread: 4, status: "left"),
+        ]
+        XCTAssertEqual(SessionModel.unreadConversationCount(channels), 2)
+
+        let unverified = try decode(#"{"id":"u","account":"a","target":{"kind":"channel","id":"\#(String(repeating: "a", count: 64))"},"version":"3","open":true,"actionable":false,"unread":1,"unverified":true,"first_at":1,"updated_at":1,"observed":"0","stage":0}"#, as: ReminderItem.self)
+        XCTAssertTrue(unverified.isUnverified)
+    }
 }

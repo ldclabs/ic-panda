@@ -30,4 +30,29 @@ class LetterModelsTest {
         val malformed = """[{"id":"id","recipient":"account","state":"visible","pending":"false","editable":false}]"""
         assertThrows(IllegalStateException::class.java) { parseSentLetters(Json.parseToJsonElement(malformed)) }
     }
+
+    @Test fun unreadCountsAlignWithCoreNotificationRules() {
+        val letters = listOf(
+            Letter("1", "peer", "hi", read = false, archived = false, state = "visible", createdAt = 1u),
+            Letter("2", "me", "self", read = false, archived = false, state = "visible", createdAt = 2u),
+            Letter("3", "blocked", "spam", read = false, archived = false, state = "visible", createdAt = 3u),
+            Letter("4", "peer", "aborted", read = false, archived = false, state = "aborted", createdAt = 4u),
+            Letter("5", "peer", "read", read = true, archived = false, state = "visible", createdAt = 5u),
+            Letter("6", "peer", "archived", read = false, archived = true, state = "visible", createdAt = 6u),
+        )
+        assertEquals(1, unreadLetterCount(letters, account = "me", blocked = setOf("blocked")))
+        assertEquals(2, unreadLetterCount(letters, account = "me", blocked = emptySet()))
+
+        fun channel(id: String, unread: ULong, muted: Boolean = false, status: String = "active") = net.dmsg.core.ChannelItem(
+            id = id, name = id, unread = unread, draft = "", preview = "", lastAt = 1u,
+            muted = muted, status = status, canPublish = true, canInvite = false, pendingSends = 0u, readThrough = 0u, news = false,
+        )
+        val channels = listOf(
+            channel("active", 2u),
+            channel("muted", 5u, muted = true),
+            channel("archived", 3u, status = "archived"),
+            channel("left", 4u, status = "left"),
+        )
+        assertEquals(2, unreadConversationCount(channels))
+    }
 }

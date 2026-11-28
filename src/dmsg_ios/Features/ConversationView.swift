@@ -37,6 +37,8 @@ struct ConversationView: View {
     @State private var oldestLoaded: UInt64?
     @State private var preserveMessage: String?
     @State private var nearBottom = true
+    @State private var initialPositionSettled = false
+    @State private var settlePositionTask: Task<Void, Never>?
     @State private var messageRequest: UUID?
     @State private var actionTask: Task<Void, Never>?
     @State private var loadingEarlier = false
@@ -80,7 +82,7 @@ struct ConversationView: View {
         let references = Dictionary(merged.map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
         let last = shown.last
         let readWatermark = merged.last?.sequence
-        let readScope = "\(channel.id):\(model.epoch):\(scenePhase == .active):\(model.unlocked):\(model.concealed):\(messagesKnown):\(!hasAfter):\(nearBottom):\(readWatermark ?? 0)"
+        let readScope = "\(channel.id):\(model.epoch):\(scenePhase == .active):\(model.unlocked):\(model.concealed):\(messagesKnown):\(initialPositionSettled):\(!hasAfter):\(nearBottom):\(readWatermark ?? 0)"
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
@@ -140,7 +142,7 @@ struct ConversationView: View {
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
                         .reminderVisible(.channel(channel.id), watermark: !hasAfter ? readWatermark : nil,
-                                         ready: messagesKnown && !hasAfter && nearBottom && readWatermark != nil)
+                                         ready: messagesKnown && initialPositionSettled && !hasAfter && nearBottom && readWatermark != nil)
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
                 }.padding(16).motion(Motion.move, reduced: Motion.fade, value: pending.map(\.id))
             }.defaultScrollAnchor(.bottom)
@@ -148,10 +150,7 @@ struct ConversationView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .task(id: readScope) {
                     guard scenePhase == .active, model.unlocked, !model.concealed,
-                          messagesKnown, !hasAfter, nearBottom, let seq = readWatermark else { return }
-                    // Opening at the first unread message scrolls the end away
-                    // after this starts; that change cancels the read.
-                    do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+                          messagesKnown, initialPositionSettled, !hasAfter, nearBottom, let seq = readWatermark else { return }
                     if seq > currentChannel.readThrough {
                         await model.channelRead(channel.id, through: seq)
                     }
@@ -183,9 +182,17 @@ struct ConversationView: View {
                 .onChange(of: nearBottom) { _, value in if value && !hasAfter, let sequence = last?.sequence { lastSeen = sequence } }
                 // Opening with unread messages starts at the first of them, once.
                 .onChange(of: firstUnread) { _, sequence in
-                    guard let sequence, !hasAfter, let id = shown.first(where: { $0.sequence == sequence })?.id else { return }
+                    guard let sequence, !hasAfter, let id = shown.first(where: { $0.sequence == sequence })?.id else {
+                        initialPositionSettled = true
+                        return
+                    }
                     lastSeen = sequence - 1
                     proxy.scrollTo(id, anchor: .top)
+                    settlePositionTask?.cancel()
+                    settlePositionTask = Task {
+                        do { try await Task.sleep(for: .milliseconds(50)) } catch { return }
+                        if !Task.isCancelled { initialPositionSettled = true }
+                    }
                 }
                 .overlay(alignment: .bottomTrailing) {
                     let following = hasAfter || !nearBottom
@@ -282,6 +289,8 @@ struct ConversationView: View {
             }
             .onDisappear {
                 cancelReplyJump()
+                settlePositionTask?.cancel()
+                settlePositionTask = nil
                 refreshRequested = false
                 actionTask?.cancel()
                 if model.activeChannel == channel.id { model.activeChannel = nil }
@@ -799,6 +808,7 @@ struct ConversationView: View {
             if historyAnchor == nil && highlightedSequence == nil && firstUnread == nil && current.unread > 0 {
                 firstUnread = fresh.first { $0.sequence > current.readThrough && $0.account != model.session?.account }?.sequence
             }
+            if firstUnread == nil { initialPositionSettled = true }
             if !messagesKnown { messagesKnown = true }
             if loadFailed { loadFailed = false }
             MessageTiming.record(.localPage, since: started)

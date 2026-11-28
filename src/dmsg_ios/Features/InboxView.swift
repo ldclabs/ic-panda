@@ -49,6 +49,7 @@ struct InboxDetail: View {
     @State private var inviting = false
     @State private var reopening = false
     @State private var blocking = false
+    @State private var autoMarked = false
 
     init(letter: InboxLetter, changed: @escaping () async -> Void) {
         source = letter
@@ -96,6 +97,14 @@ struct InboxDetail: View {
                 }
             }
             .onChange(of: source) { _, value in letter = value }
+            .task(id: "\(letter.id):\(letter.state):\(model.epoch):\(model.unlocked):\(model.concealed)") {
+                guard !autoMarked, model.unlocked, !model.concealed,
+                      letter.state == "visible", !letter.read,
+                      letter.sender != model.session?.account,
+                      !model.blockedAccounts.contains(letter.sender) else { return }
+                autoMarked = true
+                await mark(read: true, archived: letter.archived, quiet: true)
+            }
             .sheet(isPresented: $reporting) { NavigationStack { ReportContentView(target: ReportTarget(kind: "inbox", account: letter.sender, resource: letter.id)) } }
             .sheet(isPresented: $composing) { NavigationStack { LetterComposerView(recipient: letter.sender) } }
             .sheet(isPresented: $inviting) { NavigationStack { InviteLetterSenderView(account: letter.sender) } }
@@ -116,7 +125,7 @@ struct InboxDetail: View {
             }
     }
 
-    private func mark(read: Bool, archived: Bool) async {
+    private func mark(read: Bool, archived: Bool, quiet: Bool = false) async {
         guard !working else { return }
         let epoch = model.epoch
         working = true; model.activity(); defer { working = false }
@@ -135,6 +144,10 @@ struct InboxDetail: View {
             letter.read = read; letter.archived = archived
             await changed()
             await model.notifications.refresh(model)
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch {
+            if epoch == model.epoch {
+                if quiet { autoMarked = false } else { model.report(error) }
+            }
+        }
     }
 }

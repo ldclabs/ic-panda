@@ -449,3 +449,57 @@ fn a_sent_letter_keeps_its_text_for_its_sender() {
     assert_eq!(sent[1]["text"], "");
     assert_eq!(sent[1]["sent_at"], 0);
 }
+
+#[test]
+fn inbox_unread_and_notifications_exclude_self_non_visible_and_blocked_senders() {
+    let dir = crate::testing::TempDir::new();
+    let c = crate::testing::unlocked(&dir.0, false, None);
+    let me = c.account().unwrap().id.to_string();
+    let peer = AccountId([5; 12]).to_string();
+    let blocked = AccountId([6; 12]).to_string();
+    let keys = c.keys().unwrap();
+    let put = |id: &str, sender: &str, state: &str, read: bool, archived: bool| {
+        let letter = Letter {
+            order_id: id.into(),
+            sender: sender.into(),
+            state: state.into(),
+            text: "hello".into(),
+            created_at: 100,
+            read,
+            archived,
+            signed: None,
+            abort_reason: None,
+        };
+        c.workspace
+            .put_private(keys, &format!("{LETTER}{id}"), &letter)
+            .unwrap();
+        c.project_inbox_notification(&letter, 1, 100, false)
+            .unwrap();
+    };
+    put("peer-unread", &peer, "visible", false, false);
+    put("blocked-unread", &blocked, "visible", false, false);
+    put("self-unread", &me, "visible", false, false);
+    put("aborted-unread", &peer, "aborted", false, false);
+    put("peer-read", &peer, "visible", true, false);
+    put("peer-archived", &peer, "visible", false, true);
+
+    assert_eq!(c.inbox_unread().unwrap(), 2);
+    assert_eq!(c.status().unwrap().inbox_unread, 2);
+
+    c.set_blocked_account(&blocked, true).unwrap();
+    assert_eq!(c.inbox_unread().unwrap(), 1);
+    assert_eq!(c.status().unwrap().inbox_unread, 1);
+    let blocked_item = c
+        .workspace
+        .store
+        .notification_item(&crate::notifications::item_id(
+            &me,
+            &crate::notifications::Target::Inbox(Some("blocked-unread".into())),
+        ))
+        .unwrap()
+        .unwrap();
+    assert!(!blocked_item.open);
+
+    c.set_blocked_account(&blocked, false).unwrap();
+    assert_eq!(c.inbox_unread().unwrap(), 2);
+}

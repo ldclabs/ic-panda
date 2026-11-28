@@ -94,6 +94,8 @@ struct ReminderItem: Decodable, Identifiable, Hashable {
     let firstAt: UInt64; let updatedAt: UInt64; let deadline: UInt64?
     let observed: String; let stage: UInt8; let snoozedUntil: UInt64?
     var readVersion: String?
+    var unverified: Bool? = nil
+    var isUnverified: Bool { unverified == true }
     var isUnread: Bool { (UInt64(readVersion ?? "0") ?? 0) < (UInt64(version) ?? .max) }
     var title: String {
         switch target {

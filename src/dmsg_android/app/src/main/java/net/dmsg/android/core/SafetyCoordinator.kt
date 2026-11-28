@@ -55,8 +55,8 @@ class SafetyCoordinator(private val client: ClientController) {
             blocked.accept(request, it); if (refresh) syncBlocks()
         }
     }
-    fun syncBlocks() = client.perform({ it.syncBlockedAccounts() }, key = "safety:block-sync", quiet = true, onError = { blockErrorValue.value = it; loadBlocks() }) { blockErrorValue.value = null; loadBlocks() }
-    fun block(account: String, value: Boolean) = client.perform({ it.setBlockedAccountLocal(account, value) }, key = "safety:block:$account", onError = { loadBlocks() }) { loadBlocks(); syncBlocks() }
+    fun syncBlocks() = client.perform({ it.syncBlockedAccounts() }, key = "safety:block-sync", quiet = true, onError = { blockErrorValue.value = it; loadBlocks() }) { blockErrorValue.value = null; loadBlocks(); client.messages.browse(); client.notifications.status(); client.notices.refresh() }
+    fun block(account: String, value: Boolean) = client.perform({ it.setBlockedAccountLocal(account, value) }, key = "safety:block:$account", onError = { loadBlocks() }) { loadBlocks(); client.messages.browse(); client.notifications.status(); client.notices.refresh(); syncBlocks() }
     fun openBlock(account: String) { client.navigation.push(Route("blocked-accounts", id = account)) }
 
     fun editReceiving(value: ReceivingDraft) { client.activity(); dirty = true; draftValue.value = value }

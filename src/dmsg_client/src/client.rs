@@ -408,6 +408,8 @@ pub struct Status {
     /// Unread channel messages, muted and hidden channels aside; while
     /// unlocked.
     pub channels_unread: u64,
+    /// Unread visible inbox letters from unblocked peers; while unlocked.
+    pub inbox_unread: u64,
 }
 
 /// The session fields of [`Status`], read without touching storage.
@@ -1367,6 +1369,10 @@ impl Client {
             sealed_requests: self.sealed_requests()?,
             channels_unread: match session.state {
                 "unlocked" => self.channels_unread().unwrap_or(0),
+                _ => 0,
+            },
+            inbox_unread: match session.state {
+                "unlocked" => self.inbox_unread().unwrap_or(0),
                 _ => 0,
             },
         })

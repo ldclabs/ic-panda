@@ -64,6 +64,7 @@ struct BrowseScopes<Value: Hashable>: View {
         let title: LocalizedStringKey
         let icon: Image
         let identifier: String
+        var badge: Int = 0
     }
 
     let title: LocalizedStringKey
@@ -88,7 +89,16 @@ struct BrowseScopes<Value: Hashable>: View {
                 BrowseTab(selected: selection == option.value, sliding: true) { selection = option.value } label: {
                     if icons { option.icon.accessibilityHidden(true) }
                     Text(option.title)
-                }.accessibilityIdentifier(option.identifier)
+                    if option.badge > 0 {
+                        let count = option.badge > 99 ? "99+" : option.badge.formatted()
+                        Text(verbatim: count).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
+                            .padding(.horizontal, 5).frame(minWidth: 18, minHeight: 18)
+                            .background(Theme.forest, in: Capsule())
+                            .accessibilityHidden(true)
+                    }
+                }
+                .accessibilityValue(option.badge > 0 ? option.badge.formatted() : "")
+                .accessibilityIdentifier(option.identifier)
             }
         }.slidingTabCapsule().motion(Motion.move, value: selection)
             .padding(.leading, 16).fixedSize(horizontal: true, vertical: false)
@@ -96,13 +106,27 @@ struct BrowseScopes<Value: Hashable>: View {
 
     private var menu: some View {
         let current = options.first { $0.value == selection } ?? options[0]
+        let otherUnread = options.filter { $0.value != selection }.reduce(0) { $0 + $1.badge }
         return Menu {
             Picker(title, selection: $selection) {
-                ForEach(options, id: \.value) { Text($0.title).tag($0.value) }
+                ForEach(options, id: \.value) { option in
+                    if option.badge > 0 {
+                        (Text(option.title) + Text(verbatim: " (\(option.badge.formatted()))")).tag(option.value)
+                    } else {
+                        Text(option.title).tag(option.value)
+                    }
+                }
             }
         } label: {
             HStack(spacing: 8) {
                 Text(current.title).fixedSize(horizontal: false, vertical: true)
+                if otherUnread > 0 {
+                    let count = otherUnread > 99 ? "99+" : otherUnread.formatted()
+                    Text(verbatim: count).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
+                        .padding(.horizontal, 5).frame(minWidth: 18, minHeight: 18)
+                        .background(Theme.forest, in: Capsule())
+                        .accessibilityHidden(true)
+                }
                 Image(systemName: "chevron.down").font(.callout).accessibilityHidden(true)
             }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).padding(.horizontal, 16).padding(.vertical, 8)
         }.accessibilityIdentifier(current.identifier)

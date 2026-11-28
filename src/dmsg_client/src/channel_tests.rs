@@ -2227,3 +2227,171 @@ async fn a_send_is_durable_before_its_first_network_read() {
     reopened.channel_discard(&channel, &file_id).unwrap();
     assert!(reopened.channel_outbox(&channel).unwrap().is_empty());
 }
+
+#[test]
+fn channels_unread_and_projection_align_for_hidden_inactive_and_recent_tail() {
+    use crate::testing::{TempDir, unlocked, warm};
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    warm(&mut client);
+    let me = client.me().unwrap();
+    let mut make_channel =
+        |seed: u8, status: Status, left: bool, recent: Option<(u64, u64)>, unread: u64| {
+            let channel = format!("{seed:02x}").repeat(32);
+            let head = format!("{:02x}", seed + 1).repeat(32);
+            let genesis = Genesis {
+                channel_id: channel.clone(),
+                nonce: format!("{:02x}", seed + 2).repeat(32),
+                kind: ChannelType::Collaboration,
+            };
+            let mut ledger = start(&genesis, &me, &head).unwrap();
+            ledger.status = status;
+            client
+                .save_keyring(
+                    None,
+                    &Keyring {
+                        format: FORMAT.into(),
+                        id: channel.clone(),
+                        name: format!("channel-{seed}"),
+                        genesis: head,
+                        keys: BTreeMap::new(),
+                        muted: false,
+                        hidden: false,
+                    },
+                )
+                .unwrap();
+            let local = Local {
+                left,
+                ledger: Some(ledger),
+                recent,
+                unread,
+                ..Local::default()
+            };
+            client.save_local(&channel, &local).unwrap();
+            channel
+        };
+
+    let active_recent = make_channel(0x10, Status::Active, false, Some((10, 15)), 2);
+    let _archived = make_channel(0x20, Status::Archived, false, Some((1, 4)), 3);
+    let _left = make_channel(0x30, Status::Active, true, Some((1, 4)), 4);
+    let hidden_by_pref = make_channel(0x40, Status::Active, false, Some((1, 4)), 5);
+
+    assert_eq!(client.channels_unread().unwrap(), 7);
+    let projected = client
+        .workspace
+        .store
+        .notification_item(&crate::notifications::item_id(
+            &me,
+            &crate::notifications::Target::Channel(active_recent.clone()),
+        ))
+        .unwrap()
+        .expect("recent-tail unread channel must project a notification");
+    assert_eq!(projected.version, 15);
+    assert!(projected.open);
+
+    client
+        .edit_notification_hidden(&hidden_by_pref, true)
+        .unwrap();
+    assert!(client.channel_view(&hidden_by_pref).unwrap().hidden);
+    assert_eq!(client.channels_unread().unwrap(), 2);
+}
+
+#[test]
+fn blocking_an_account_recomputes_channel_unread_and_notifications() {
+    use crate::testing::{TempDir, unlocked, warm};
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    warm(&mut client);
+    let me = client.me().unwrap();
+    let peer = AccountId([9; 12]).to_string();
+    let channel = "77".repeat(32);
+    let head = "88".repeat(32);
+    let genesis = Genesis {
+        channel_id: channel.clone(),
+        nonce: "99".repeat(32),
+        kind: ChannelType::Collaboration,
+    };
+    let ledger = start(&genesis, &me, &head).unwrap();
+    client
+        .save_keyring(
+            None,
+            &Keyring {
+                format: FORMAT.into(),
+                id: channel.clone(),
+                name: "group".into(),
+                genesis: head,
+                keys: BTreeMap::new(),
+                muted: false,
+                hidden: false,
+            },
+        )
+        .unwrap();
+    let message = Message {
+        seq: 1,
+        epoch: 1,
+        message_id: "m1".into(),
+        account: peer.clone(),
+        device: "d1".into(),
+        text: "hi".into(),
+        ..Message::default()
+    };
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("{INBOX}{channel}:{:020}", 1),
+            &message,
+        )
+        .unwrap();
+    client
+        .save_local(
+            &channel,
+            &Local {
+                ledger: Some(ledger),
+                message: 1,
+                unread: 1,
+                notification_seq: 1,
+                ..Local::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(client.channels_unread().unwrap(), 1);
+    let item_id =
+        crate::notifications::item_id(&me, &crate::notifications::Target::Channel(channel.clone()));
+    assert!(
+        client
+            .workspace
+            .store
+            .notification_item(&item_id)
+            .unwrap()
+            .unwrap()
+            .open
+    );
+
+    client.set_blocked_account(&peer, true).unwrap();
+    assert_eq!(client.channels_unread().unwrap(), 0);
+    assert!(
+        !client
+            .workspace
+            .store
+            .notification_item(&item_id)
+            .unwrap()
+            .unwrap()
+            .open
+    );
+
+    client.set_blocked_account(&peer, false).unwrap();
+    assert_eq!(client.channels_unread().unwrap(), 1);
+    assert!(
+        client
+            .workspace
+            .store
+            .notification_item(&item_id)
+            .unwrap()
+            .unwrap()
+            .open
+    );
+}

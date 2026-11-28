@@ -155,8 +155,8 @@ struct MessagesView: View {
         @Bindable var model = model
         VStack(spacing: 0) {
             BrowseScopes(title: "Messages", selection: $model.route.messagesMode, options: [
-                .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations"),
-                .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters"),
+                .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations", badge: model.unreadConversations),
+                .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters", badge: model.unreadLetters),
             ]).font(.subheadline).padding(.bottom, 8)
             if mode == 0 && (!trimmedQuery.isEmpty || hasFileOnly) {
                 HStack(spacing: 6) {

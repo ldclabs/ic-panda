@@ -48,6 +48,13 @@ internal fun remainingComposer(queued: MessageComposer, current: MessageComposer
     reply = current.reply.takeUnless { it?.sequence == queued.reply?.sequence && it?.digest == queued.reply?.digest },
 )
 
+internal fun unreadConversationCount(channels: List<ChannelItem>): Int = channels
+    .filter { !it.muted && it.status != "left" && it.status != "archived" }
+    .fold(0) { acc, item ->
+        val count = item.unread.coerceAtMost(Int.MAX_VALUE.toULong()).toInt()
+        if (acc > Int.MAX_VALUE - count) Int.MAX_VALUE else acc + count
+    }
+
 /** Account-owned message reads, paging and authored drafts. Native outbox owns delivery. */
 class MessageCoordinator(private val client: ClientController, private val scope: CoroutineScope) {
     val channels = ReadStore<List<ChannelItem>> { it.isEmpty() }
@@ -315,11 +322,21 @@ class MessageCoordinator(private val client: ClientController, private val scope
                 syncError.value = null
                 if (timeline.value()?.hasAfter != true) load(channel, false, preserveLoaded = true)
             }
-            invalidateDirectory(); browse(); finished()
+            invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh(); finished()
         }
     }
 
-    fun hint(channel: String?) { invalidateDirectory(); browse(); if (channel == selected) refresh(channel) }
+    fun hint(channel: String?) {
+        if (channel != null && channel == selected) {
+            refresh(channel)
+        } else if (channel != null && channel != "*") {
+            client.perform({ core -> client.operation { core.readChannelControls(channel, it) } }, key = "message:hint:$channel", replace = true, quiet = true) {
+                invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh(receive = true)
+            }
+        } else {
+            invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh(receive = true)
+        }
+    }
     fun hintRead(channel: String?) {
         if (channel != null && channel != "*") {
             client.perform({ core -> client.operation { core.readChannelControls(channel, it) } }, key = "message:read-hint:$channel", replace = true, quiet = true) {

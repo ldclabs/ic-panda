@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import net.dmsg.android.platform.localizedNumber
+import net.dmsg.android.ui.tabular
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -65,9 +67,9 @@ import net.dmsg.android.ui.card
  * A Material filter chip: a tick and the secondary container when selected. Exclusive scopes
  * behave as tabs; independent filters such as Favorites are check boxes.
  */
-@Composable internal fun BrowseChoice(label: String, selected: Boolean, toggle: Boolean = false, onClick: () -> Unit) {
+@Composable internal fun BrowseChoice(label: String, selected: Boolean, toggle: Boolean = false, badge: Int = 0, onClick: () -> Unit) {
     ChoiceChip(label, selected, if (toggle) Modifier.toggleable(selected, role = Role.Checkbox) { onClick() }
-        else Modifier.selectable(selected, role = Role.Tab, onClick = onClick))
+        else Modifier.selectable(selected, role = Role.Tab, onClick = onClick), badge = badge)
 }
 
 /** A filter chip that opens a menu of exclusive choices; it is selected while one of them applies. */
@@ -79,7 +81,7 @@ import net.dmsg.android.ui.card
     }
 }
 
-@Composable private fun ChoiceChip(label: String, selected: Boolean, interaction: Modifier, outerModifier: Modifier = Modifier, trailing: ImageVector? = null) {
+@Composable private fun ChoiceChip(label: String, selected: Boolean, interaction: Modifier, outerModifier: Modifier = Modifier, trailing: ImageVector? = null, badge: Int = 0) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
     // Selecting hands the colours over while the tick grows in and moves the label along.
@@ -90,13 +92,19 @@ import net.dmsg.android.ui.card
     // The visual chip is 32 dp; minimumInteractiveComponentSize on the same Surface extends the touch target to 48 dp.
     Surface(outerModifier.minimumInteractiveComponentSize().clip(shape).then(interaction), shape = shape, color = container,
         contentColor = content, border = BorderStroke(1.dp, border)) {
-        Row(Modifier.heightIn(min = 32.dp).padding(start = start, end = if (trailing == null) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
+        Row(Modifier.heightIn(min = 32.dp).padding(start = start, end = if (trailing == null && badge <= 0) 16.dp else 8.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
             AnimatedVisibility(selected, enter = expandHorizontally(Motion.spatialFast()) + fadeIn(Motion.effects()),
                 exit = shrinkHorizontally(Motion.spatialFast()) + fadeOut(Motion.effectsFast())) {
                 Row { Icon(Icons.Outlined.Check, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
             }
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            if (badge > 0) {
+                Spacer(Modifier.width(6.dp))
+                Badge(containerColor = colors.primary, contentColor = colors.onPrimary) {
+                    Text(if (badge > 99) "99+" else localizedNumber(badge), style = MaterialTheme.typography.labelSmall.tabular())
+                }
+            }
             trailing?.let { Spacer(Modifier.width(8.dp)); Icon(it, null, Modifier.size(18.dp)) }
         }
     }

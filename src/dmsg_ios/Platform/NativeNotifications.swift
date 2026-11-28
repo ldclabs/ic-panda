@@ -109,13 +109,18 @@ final class NativeNotifications {
         let epoch = model.epoch
         do {
             let item: ReminderItem? = try model.decode(try await engine.notificationReference(selected: account, targetJson: NoticeEncoding.json(target)))
-            guard let item, active(), model.epoch == epoch, model.unlocked, !model.concealed, UIApplication.shared.applicationState == .active else { return }
+            guard let item, !item.isUnverified, active(), model.epoch == epoch, model.unlocked, !model.concealed, UIApplication.shared.applicationState == .active else { return }
             if let watermark, UInt64(item.version).map({ $0 > watermark }) ?? true { return }
             if case .channel = target, watermark == nil { return }
-            try await engine.notificationObserved(selected: account, id: item.id, expectedVersion: item.version)
+            let changed = (UInt64(item.observed) ?? 0) < (UInt64(item.version) ?? 0)
+            if changed {
+                try await engine.notificationObserved(selected: account, id: item.id, expectedVersion: item.version)
+            }
             guard active(), model.epoch == epoch, UIApplication.shared.applicationState == .active, !model.concealed else { return }
             visible[owner] = Viewport(value: VisibleReminder(id: item.id, version: item.version), active: active)
-            await refresh(model, receive: true)
+            if changed {
+                await refresh(model, receive: true)
+            }
         } catch { }
     }
     func hide(_ owner: UUID) { visible.removeValue(forKey: owner) }

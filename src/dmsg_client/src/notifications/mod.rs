@@ -643,9 +643,7 @@ impl crate::Client {
         for row in self.workspace.store.approvals(&[])? {
             self.project_approval_notification(&self.approval_record(&row.id)?)?;
         }
-        for letter in self.inbox_cached()? {
-            self.project_inbox_notification(&letter, letter.created_at.max(1), now, true)?;
-        }
+        self.reconcile_inbox_notifications(now)?;
         // Unlocked reads now own these states; a later locked hint opens a new
         // placeholder rather than finding this one still open or covered.
         for mut item in self.workspace.store.notification_items()? {

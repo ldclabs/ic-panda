@@ -41,15 +41,21 @@ impl Client {
             value.accounts.len() < 1000 || value.accounts.contains(&account) || !blocked,
             Error::QuotaExceeded,
         )?;
-        if blocked {
-            value.accounts.insert(account.clone());
+        let changed = if blocked {
+            value.accounts.insert(account.clone())
         } else {
-            value.accounts.remove(&account);
-        }
+            value.accounts.remove(&account)
+        };
         value
             .pending
             .insert(account, (blocked, Hash::new(crate::crypto::random_id())));
-        self.workspace.put_private(self.keys()?, BLOCKS, &value)
+        self.workspace.put_private(self.keys()?, BLOCKS, &value)?;
+        if changed {
+            let now = crate::now_ms();
+            self.reconcile_channel_unread_and_notifications(now)?;
+            self.reconcile_inbox_notifications(now)?;
+        }
+        Ok(())
     }
 
     /// Store the exact user-selected report before networking starts.
@@ -178,6 +184,7 @@ pub async fn sync_blocks<H: Hold>(h: &H) -> Result<Vec<String>> {
     bound
         .with(|c| {
             let mut blocks: Blocks = c.workspace.private(c.keys()?, BLOCKS)?.unwrap_or_default();
+            let previous = blocks.accounts.clone();
             blocks.accounts = accounts.into_iter().collect();
             for (target, (on, _)) in &blocks.pending {
                 if *on {
@@ -186,7 +193,13 @@ pub async fn sync_blocks<H: Hold>(h: &H) -> Result<Vec<String>> {
                     blocks.accounts.remove(target);
                 }
             }
+            let changed = blocks.accounts != previous;
             c.workspace.put_private(c.keys()?, BLOCKS, &blocks)?;
+            if changed {
+                let now = crate::now_ms();
+                c.reconcile_channel_unread_and_notifications(now)?;
+                c.reconcile_inbox_notifications(now)?;
+            }
             c.blocked_accounts()
         })
         .await

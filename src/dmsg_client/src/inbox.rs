@@ -880,20 +880,18 @@ impl Client {
         }
         // Only what changed is written, in one go.
         let keys = self.keys()?;
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
         self.workspace.store.atomic(|_| {
-            for (letter, cursor) in &changed {
+            let baseline = !self
+                .workspace
+                .store
+                .meta::<bool>("notification:inbox_initialized")?
+                .unwrap_or(false);
+            for (letter, _cursor) in &changed {
                 let name = format!("{LETTER}{}", letter.order_id);
                 self.workspace.put_private(keys, &name, letter)?;
-                self.project_inbox_notification(
-                    letter,
-                    *cursor,
-                    now,
-                    !self
-                        .workspace
-                        .store
-                        .meta::<bool>("notification:inbox_initialized")?
-                        .unwrap_or(false),
-                )?;
+                self.project_inbox_notification_with_blocked(letter, now, baseline, &blocked)?;
             }
             self.workspace.store.set_meta(CURSOR, &next)
         })?;
@@ -909,6 +907,27 @@ impl Client {
         _cursor: u64,
         now: u64,
         baseline: bool,
+    ) -> Result<()> {
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
+        self.project_inbox_notification_with_blocked(letter, now, baseline, &blocked)
+    }
+
+    pub(crate) fn reconcile_inbox_notifications(&self, now: u64) -> Result<()> {
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
+        for letter in self.inbox_cached()? {
+            self.project_inbox_notification_with_blocked(&letter, now, true, &blocked)?;
+        }
+        Ok(())
+    }
+
+    fn project_inbox_notification_with_blocked(
+        &self,
+        letter: &Letter,
+        now: u64,
+        baseline: bool,
+        blocked: &std::collections::BTreeSet<String>,
     ) -> Result<()> {
         use crate::notifications::{self, Item, Target};
         let account = self.account()?.id.to_string();
@@ -930,11 +949,33 @@ impl Client {
         item.open = letter.state == "visible"
             && !letter.read
             && !letter.archived
-            && letter.sender != account;
+            && letter.sender != account
+            && !blocked.contains(&letter.sender);
         item.unread = Some(u64::from(item.open));
         item.quiet = baseline && old.is_none();
         notifications::upsert(&self.workspace.store, item)?;
         Ok(())
+    }
+
+    /// Unread visible letters from unblocked accounts other than this account.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn inbox_unread(&self) -> Result<u64> {
+        let account = self.account()?.id.to_string();
+        let blocked: std::collections::BTreeSet<String> =
+            self.blocked_accounts()?.into_iter().collect();
+        Ok(self
+            .inbox_cached()?
+            .iter()
+            .filter(|letter| {
+                letter.state == "visible"
+                    && !letter.read
+                    && !letter.archived
+                    && letter.sender != account
+                    && !blocked.contains(&letter.sender)
+            })
+            .count() as u64)
     }
 
     /// Previously verified letters on this device, available offline.

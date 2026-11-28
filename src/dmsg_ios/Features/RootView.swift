@@ -6,7 +6,7 @@ struct RootView: View {
     @State private var showApprovals = false
     @State private var showIncoming = false
     @State private var showGlobalSearch = false
-    private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } + model.unreadLetters }
+    private var unreadMessages: Int { model.unreadMessagesCount }
 
     var body: some View {
         @Bindable var model = model
@@ -253,7 +253,8 @@ struct ReminderButton: View {
         Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
             Label(NoticeCopy.text("noticeTitle"), systemImage: "clock")
                 .overlay(alignment: .topTrailing) {
-                    if (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
+                    let counts = model.notifications.status?.counts
+                    if (counts?.actionable ?? 0) > 0 || (counts?.unread ?? 0) > 0 || counts?.unverified == true {
                         Circle().fill(.orange).frame(width: 7, height: 7)
                     }
                 }
