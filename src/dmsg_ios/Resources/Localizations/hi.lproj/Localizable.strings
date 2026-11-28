@@ -2792,6 +2792,8 @@
 	<string>इस डिवाइस के हस्ताक्षर अन्य सह-हस्ताक्षरकर्ताओं के साथ साझा करें, या उनके हस्ताक्षर आयात करें। आयात केवल हस्ताक्षर एकत्र करता है; निष्पादन एक अलग चरण है।</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>इस अनुरोध को किसी अधिकृत व्यवस्थापक के साथ साझा करें. यह कुंजी को स्वयं पंजीकृत या अनुमोदित नहीं करता है।</string>
+	<key>Share to another app</key>
+	<string>किसी अन्य ऐप में साझा करें</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>साझा की गई प्रतियां dMsg की सुरक्षा छोड़ देती हैं और उन्हें वापस नहीं लिया जा सकता है।</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>वॉलेट अपनी वर्तमान नीति और स्वीकृतियों की जाँच करता है। इस सटीक योजना के लिए एक आवश्यक हार्डवेयर हस्ताक्षर का अनुरोध किया गया है।</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>ये स्थानीय टिप्पणियाँ हैं, उल्लंघन स्कैन या सबूत नहीं कि किसी प्रदाता ने क्रेडेंशियल रद्द कर दिया है। अन्य डिवाइस के अलग-अलग रिकॉर्ड हो सकते हैं.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>ये इस डिवाइस पर बनाए गए स्नैपशॉट कार्य हैं। डेस्कटॉप-स्थानीय अनुमोदन अनुरोध यहां सिंक्रनाइज़ नहीं हैं।</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>ये आपके खाते के उपकरणों से सत्यापित बैकअप हैं। इस डिवाइस पर एक प्रति रखने के लिए स्पष्ट रूप से पुनर्स्थापित करें।</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

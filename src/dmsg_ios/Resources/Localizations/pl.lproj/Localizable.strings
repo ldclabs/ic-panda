@@ -2792,6 +2792,8 @@
 	<string>Udostępnij podpisy tego urządzenia pozostałym współpodpisującym lub zaimportuj ich podpisy. Import tylko zbiera podpisy; wykonanie to osobny krok.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Udostępnij tę prośbę autoryzowanemu administratorowi. Sam nie rejestruje ani nie zatwierdza klucza.</string>
+	<key>Share to another app</key>
+	<string>Udostępnij w innej aplikacji</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Udostępnione kopie opuszczają ochronę dMsg i nie można ich wycofać.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Portfel sprawdza swoją aktualną politykę i zatwierdzenia. Dla tego konkretnego planu wymagana jest wymagana sygnatura sprzętowa.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Są to lokalne obserwacje, a nie skan włamań lub dowód na to, że dostawca unieważnił dane uwierzytelniające. Inne urządzenia mogą mieć inne zapisy.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Są to zadania migawki utworzone na tym urządzeniu. Żądania zatwierdzenia lokalnego komputera stacjonarnego nie są tutaj synchronizowane.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Są to zweryfikowane kopie zapasowe z urządzeń Twojego konta. Przywróć jawnie, aby zachować kopię na tym urządzeniu.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

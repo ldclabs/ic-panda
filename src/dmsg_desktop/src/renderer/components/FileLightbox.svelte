@@ -42,7 +42,9 @@
     onActiveChange,
     onDownload,
     onSave,
-    onOpen
+    onOpen,
+    onNearbyShare,
+    onShareLink
   }: {
     open?: boolean
     items: PreviewItem[]
@@ -52,6 +54,8 @@
     onDownload?: (item: PreviewItem) => void
     onSave?: (item: PreviewItem) => void
     onOpen?: (item: PreviewItem) => void
+    onNearbyShare?: (item: PreviewItem) => void
+    onShareLink?: (item: PreviewItem) => void
   } = $props()
 
   type LoadedState =
@@ -402,6 +406,13 @@
     && !(loaded.kind === 'fallback' && (loaded.reason === 'cloud_only' || loaded.reason === 'unavailable')))
   const canDownload = $derived(!!onDownload && available)
   const canOpenExternally = $derived(!!onOpen && available)
+  const canNearbyShare = $derived(!!onNearbyShare && available)
+  const canShareLink = $derived(
+    !!onShareLink &&
+      !!activeItem &&
+      (activeItem.size ?? 0) <= 100 * 1024 * 1024 &&
+      (available || activeItem.status === 'cloud_only')
+  )
   const canCopy = $derived(loaded.kind === 'image' || loaded.kind === 'markdown' || loaded.kind === 'text')
   const showFilterBar = $derived(showFilter && items.length > 1)
 </script>
@@ -559,6 +570,26 @@
               {#snippet children(props)}
                 <button {...props} type="button" class={circleBtn} aria-label={t('saveToLibrary')} onclick={() => activeItem && onSave(activeItem)} data-testid="lightbox-save">
                   <Icon name="folder-add" />
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
+
+          {#if canNearbyShare}
+            <Tooltip content={t('nearbyShare')}>
+              {#snippet children(props)}
+                <button {...props} type="button" class={circleBtn} aria-label={t('nearbyShare')} onclick={() => activeItem && onNearbyShare?.(activeItem)} data-testid="lightbox-nearby-share">
+                  <Icon name="transfer" />
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
+
+          {#if canShareLink}
+            <Tooltip content={t('shareByLink')}>
+              {#snippet children(props)}
+                <button {...props} type="button" class={circleBtn} aria-label={t('shareByLink')} onclick={() => activeItem && onShareLink?.(activeItem)} data-testid="lightbox-share-link">
+                  <Icon name="link" />
                 </button>
               {/snippet}
             </Tooltip>
@@ -797,6 +828,16 @@
                 {#if onSave}
                   <button type="button" class={buttonClass('secondary', 'md')} onclick={() => onSave(activeItem)}>
                     <Icon name="folder-add" />{t('saveToLibrary')}
+                  </button>
+                {/if}
+                {#if canNearbyShare}
+                  <button type="button" class={buttonClass('secondary', 'md')} onclick={() => onNearbyShare?.(activeItem)}>
+                    <Icon name="transfer" />{t('nearbyShare')}
+                  </button>
+                {/if}
+                {#if canShareLink}
+                  <button type="button" class={buttonClass('secondary', 'md')} onclick={() => onShareLink?.(activeItem)}>
+                    <Icon name="link" />{t('shareByLink')}
                   </button>
                 {/if}
                 {#if canOpenExternally}

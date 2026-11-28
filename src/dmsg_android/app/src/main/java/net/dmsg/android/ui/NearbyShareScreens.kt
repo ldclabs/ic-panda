@@ -19,9 +19,6 @@ import net.dmsg.android.core.*
 import net.dmsg.android.platform.NearbyDiscoveredPeer
 import net.dmsg.android.platform.str
 import net.dmsg.android.ui.kit.*
-import net.dmsg.core.SecretAttachmentSelection
-import net.dmsg.core.SecretSnapshotInput
-import net.dmsg.core.VaultItem
 
 @Composable fun NearbyReceiveScreen(client: ClientController) {
     val state by client.state.collectAsStateWithLifecycle()
@@ -324,181 +321,7 @@ import net.dmsg.core.VaultItem
     }
 }
 
-@Composable fun NearbySendVaultScreen(client: ClientController, itemId: String) {
-    val state by client.state.collectAsStateWithLifecycle()
-    val status by client.nearby.status.collectAsStateWithLifecycle()
-    val peers by client.nearby.peers.collectAsStateWithLifecycle()
-    val browsing by client.nearby.browsing.collectAsStateWithLifecycle()
-    val error by client.nearby.error.collectAsStateWithLifecycle()
-    val localDenied by client.nearby.localNetworkDenied.collectAsStateWithLifecycle()
-    val qr by client.qr.state.collectAsStateWithLifecycle()
-
-    var previousSend by remember { mutableStateOf(status?.send?.takeUnless { it.active }?.id) }
-    val send = status?.send?.takeUnless { it.id == previousSend }
-    val active = send?.active == true
-    val busy = state.working("nearby:send:start") || state.working("nearby:send:sas")
-
-    var source by remember(itemId) { mutableStateOf<Pair<VaultItem, SecretAttachments>?>(null) }
-    var loadError by remember(itemId) { mutableStateOf<String?>(null) }
-    var selectedFields by remember(itemId) { mutableStateOf<Set<String>>(emptySet()) }
-    var includeNotes by remember(itemId) { mutableStateOf(false) }
-    var selectedAttachments by remember(itemId) { mutableStateOf<Set<String>>(emptySet()) }
-    var offerText by remember { mutableStateOf("") }
-    var shareIdentity by remember { mutableStateOf(false) }
-
-    val view = LocalView.current
-    DisposableEffect(view, active) { view.keepScreenOn = active; onDispose { view.keepScreenOn = false } }
-    LaunchedEffect(itemId, state.epoch) {
-        loadError = null
-        client.perform({ core ->
-            val item = core.vaultItem(itemId, null).item
-            val attachments = parseSecretAttachments(core.secretItemAttachments(itemId).decode())
-            check(item.revision == attachments.revision) { "VERSION_CONFLICT" }
-            check(!item.reserved && !item.deleted && !item.conflict) { "FORBIDDEN" }
-            item to attachments
-        }, key = "nearby:vault:source:" + itemId, replace = true, quiet = true, onError = { loadError = it }) {
-            val (item, attachments) = it
-            val firstLoad = source == null
-            source = it
-            if (firstLoad) {
-                selectedFields = item.fields.filter { f -> f.value.isNotEmpty() }.mapTo(linkedSetOf()) { f -> f.id }
-                includeNotes = item.notes.isNotEmpty()
-                selectedAttachments = attachments.files.filter { a -> a.selectable }.mapTo(linkedSetOf()) { a -> a.id }
-            }
-        }
-    }
-    DisposableEffect(Unit) {
-        client.nearby.startBrowse()
-        onDispose { client.nearby.stopBrowse() }
-    }
-
-    fun buildInput(): SecretSnapshotInput? {
-        val (item, attachments) = source ?: return null
-        if (selectedFields.isEmpty() && !includeNotes && selectedAttachments.isEmpty()) return null
-        val chosen = selectedAttachments.mapNotNull { id ->
-            val entry = attachments.files.singleOrNull { it.id == id } ?: return@mapNotNull null
-            if (!entry.selectable) return@mapNotNull null
-            SecretAttachmentSelection(id, entry.details!!.file.version)
-        }
-        return SecretSnapshotInput(
-            itemId = item.id,
-            revision = item.revision,
-            fieldIds = item.fields.map { it.id }.filter(selectedFields::contains),
-            includeNotes = includeNotes,
-            attachments = chosen,
-            expiresInMs = null,
-            maxDownloadSessions = null,
-        )
-    }
-
-    LaunchedEffect(qr.result) {
-        client.qr.consume("nearby-send-vault")?.let { scanned ->
-            offerText = scanned
-            buildInput()?.let { input -> client.nearby.sendVault(scanned, null, input, shareIdentity) }
-        }
-    }
-
-    val hasSelection = selectedFields.isNotEmpty() || includeNotes || selectedAttachments.isNotEmpty()
-
-    Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val banner = when {
-                loadError != null -> errorText(loadError!!) to true
-                error != null -> errorText(error!!) to true
-                localDenied -> str(R.string.nearby_local_network_denied) to true
-                else -> null
-            }
-            banner?.let { (message, warning) -> Notice(message, warning) }
-
-            if (send != null && (send.active || send.state in setOf("done", "failed"))) {
-                NearbySendProgressPanel(client, send)
-                if (send.state == "failed") {
-                    Button(onClick = { previousSend = send.id }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.nearby_start_again)) }
-                }
-            } else {
-                val loaded = source
-                if (loaded == null) {
-                    if (loadError == null) LinearProgressIndicator(Modifier.fillMaxWidth())
-                } else {
-                    val (item, attachments) = loaded
-                    DetailCard {
-                        Text(item.title, style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            str(R.string.text_choose_the_exact_content_of_this_independent_snapshot_editing_the_a26f334),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    val selectableFields = item.fields.filter { it.value.isNotEmpty() }
-                    if (selectableFields.isNotEmpty() || item.notes.isNotEmpty()) {
-                        val sharesOtp = selectableFields.any { it.kind == "otp" && it.id in selectedFields }
-                        Section(
-                            title = str(R.string.text_select_fields_to_share_290fe99),
-                            footer = if (sharesOtp) str(R.string.text_selected_otp_fields_include_the_reusable_seed_not_just_a_current_4a6ddda) else null,
-                        ) {
-                            selectableFields.forEach { field ->
-                                SelectionRow(
-                                    title = vaultFieldTitle(field.id, field.kind, field.label),
-                                    checked = field.id in selectedFields,
-                                    enabled = !busy,
-                                    subtitle = field.section.takeIf(String::isNotEmpty),
-                                ) { checked ->
-                                    selectedFields = if (checked) selectedFields + field.id else selectedFields - field.id
-                                }
-                            }
-                            if (item.notes.isNotEmpty()) {
-                                SelectionRow(str(R.string.text_include_notes_bab8a75), includeNotes, !busy) { includeNotes = it }
-                            }
-                        }
-                    }
-                    if (attachments.files.isNotEmpty()) {
-                        Section(title = str(R.string.text_select_attachments_to_share_2dbaa0d)) {
-                            attachments.files.forEach { entry ->
-                                SelectionRow(
-                                    title = entry.details?.file?.name ?: str(R.string.text_attachment_unavailable_on_this_device_ede9476),
-                                    checked = entry.id in selectedAttachments,
-                                    enabled = !busy && entry.selectable,
-                                    subtitle = entry.details?.file?.let { fileSize(it.size) } ?: entry.id,
-                                ) { checked ->
-                                    selectedAttachments = if (checked) selectedAttachments + entry.id else selectedAttachments - entry.id
-                                }
-                            }
-                        }
-                    }
-                    if (hasSelection) {
-                        NearbyTargetPicker(
-                            peers = peers,
-                            browsing = browsing,
-                            busy = busy,
-                            offerText = offerText,
-                            onOfferChange = { offerText = it.take(4096) },
-                            shareIdentity = shareIdentity,
-                            onShareIdentityChange = { shareIdentity = it },
-                            onScanQr = { client.qr.open("nearby-send-vault") },
-                            onSendOffer = { buildInput()?.let { input -> client.nearby.sendVault(offerText.trim(), null, input, shareIdentity) } },
-                            onSendPeer = { peer -> buildInput()?.let { input -> client.nearby.sendVault(null, peer, input, shareIdentity) } },
-                        )
-                    } else {
-                        Text(
-                            str(R.string.nearby_select_vault_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-        if (active) {
-            BottomActionBar {
-                OutlinedButton(onClick = client.nearby::cancelSend, modifier = Modifier.fillMaxWidth()) {
-                    Text(str(R.string.text_cancel_998b9c4))
-                }
-            }
-        }
-    }
-}
-
-@Composable private fun NearbyTargetPicker(
+@Composable internal fun NearbyTargetPicker(
     peers: List<NearbyDiscoveredPeer>,
     browsing: Boolean,
     busy: Boolean,
@@ -562,7 +385,7 @@ import net.dmsg.core.VaultItem
     }
 }
 
-@Composable private fun NearbySendProgressPanel(client: ClientController, send: NearbySendStatus) {
+@Composable internal fun NearbySendProgressPanel(client: ClientController, send: NearbySendStatus) {
     DetailCard {
         Text(str(R.string.nearby_transfer_status), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         send.sas?.let { sas ->

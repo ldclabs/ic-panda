@@ -2792,6 +2792,8 @@
 	<string>এই ডিভাইসের স্বাক্ষর অন্য সহ-স্বাক্ষরকারীদের সঙ্গে শেয়ার করুন, অথবা তাদের স্বাক্ষর ইমপোর্ট করুন। ইমপোর্ট শুধু স্বাক্ষর সংগ্রহ করে; কার্যকর করা আলাদা ধাপ।</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>এই অনুরোধটি একজন অনুমোদিত প্রশাসকের সাথে শেয়ার করুন। এটি নিজেই কী নিবন্ধন বা অনুমোদন করে না।</string>
+	<key>Share to another app</key>
+	<string>অন্য অ্যাপে শেয়ার করুন</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>শেয়ার করা কপি dMsg এর সুরক্ষা ছেড়ে যায় এবং প্রত্যাহার করা যায় না।</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>ওয়ালেট তার বর্তমান নীতি এবং অনুমোদন পরীক্ষা করে। এই সঠিক পরিকল্পনার জন্য একটি প্রয়োজনীয় হার্ডওয়্যার স্বাক্ষর অনুরোধ করা হয়েছে।</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>এগুলি স্থানীয় পর্যবেক্ষণ, কোনও লঙ্ঘন স্ক্যান বা প্রমাণ নয় যে কোনও প্রদানকারী একটি শংসাপত্র প্রত্যাহার করেছে৷ অন্যান্য ডিভাইসের বিভিন্ন রেকর্ড থাকতে পারে।</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>এগুলি এই ডিভাইসে তৈরি করা স্ন্যাপশট কাজ৷ ডেস্কটপ-স্থানীয় অনুমোদনের অনুরোধ এখানে সিঙ্ক্রোনাইজ করা হয় না।</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>এগুলি আপনার অ্যাকাউন্টের ডিভাইসগুলি থেকে যাচাইকৃত ব্যাকআপ৷ এই ডিভাইসে একটি অনুলিপি রাখতে স্পষ্টভাবে পুনরুদ্ধার করুন।</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

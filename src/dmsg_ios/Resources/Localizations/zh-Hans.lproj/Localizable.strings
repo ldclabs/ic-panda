@@ -2792,6 +2792,8 @@
 	<string>将本机的签名分享给其他联合签名者，或导入他们的签名。导入只收集签名，执行是单独的一步。</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>将此请求分享给已授权的管理员。请求本身不会注册或批准钥匙。</string>
+	<key>Share to another app</key>
+	<string>分享到其他应用</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>分享的副本会离开 dMsg 的保护范围，无法撤回。</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>钱包会检查当前策略和批准状态。需要硬件签名时，会为此具体方案请求签名。</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>这些是本地观察结果，并非泄露扫描，也不能证明服务提供方已撤销凭据。其他设备的记录可能不同。</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>这里只列出此设备创建的快照任务。桌面本地的审批请求不会同步到这里。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>这些是账号内设备的已验证备份。请明确选择恢复，将副本保存到本机。</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

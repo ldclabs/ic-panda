@@ -258,15 +258,32 @@
               </button>
             {/snippet}
           </Tooltip>
-          {#if onNearbyShare}
-            <Tooltip content={t('nearbyShare')}>
-              {#snippet children(props)}
-                <button {...props} class={buttonClass('ghost', 'md')} disabled={busy || !canRead} onclick={() => onNearbyShare(null)} data-testid="files-nearby-share">
-                  <Icon name="transfer" />{t('nearbyShare')}
-                </button>
-              {/snippet}
-            </Tooltip>
-          {/if}
+          <DropdownMenu.Root dir={localeDir(locale())}>
+            <DropdownMenu.Trigger class={buttonClass('ghost', 'md')} disabled={busy} data-testid="files-share-menu">
+              <Icon name="send" class="rtl:-scale-x-100" />{t('share')}<Icon name="chevron-down" class="size-3.5 text-faint" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-52')} data-testid="files-share-dropdown">
+                {#if onNearbyShare}
+                  <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={() => onNearbyShare(null)} data-testid="files-nearby-share">
+                    <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
+                  </DropdownMenu.Item>
+                {/if}
+                {#if !standalone}
+                  <DropdownMenu.Item class={menuItemClass} disabled={!canLink} onSelect={() => onLink(null, status === 'cloud_only')} data-testid="files-link">
+                    <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)} data-testid="files-share-channel">
+                    <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
+                  </DropdownMenu.Item>
+                {/if}
+                <DropdownMenu.Separator class="my-1 h-px bg-line" />
+                <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={() => onExport(null)} data-testid="files-export">
+                  <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
           {#if !standalone}<button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'ghost', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
             <Icon name="cloud-up" />{t('backUp')}
           </button>{/if}
@@ -280,15 +297,6 @@
             </Tooltip>
             <DropdownMenu.Portal>
               <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-56')} data-testid="files-more-menu">
-                <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={() => onExport(null)}>
-                  <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
-                </DropdownMenu.Item>
-                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)}>
-                  <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
-                </DropdownMenu.Item>{/if}
-                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!canLink} onSelect={() => onLink(null, status === 'cloud_only')} data-testid="files-link">
-                  <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
-                </DropdownMenu.Item>{/if}
                 {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">
                   <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>
                 </DropdownMenu.Item>{/if}

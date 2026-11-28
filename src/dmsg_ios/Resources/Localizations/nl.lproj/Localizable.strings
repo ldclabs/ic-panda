@@ -2792,6 +2792,8 @@
 	<string>Deel de handtekeningen van dit apparaat met de andere medeondertekenaars, of importeer die van hen. Importeren verzamelt alleen handtekeningen; uitvoeren is een aparte stap.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Deel dit verzoek met een geautoriseerde beheerder. Het registreert of keurt de sleutel niet zelf goed.</string>
+	<key>Share to another app</key>
+	<string>Delen met andere app</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Gedeelde kopieën verlaten de bescherming van dMsg en kunnen niet worden ingetrokken.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>De portemonnee controleert het huidige beleid en goedkeuringen. Voor dit exacte plan wordt een vereiste hardwarehandtekening gevraagd.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Dit zijn lokale observaties, geen inbreukscan of bewijs dat een provider een inloggegevens heeft ingetrokken. Andere apparaten kunnen andere records hebben.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Dit zijn momentopnametaken die op dit apparaat zijn gemaakt. Desktop-lokale goedkeuringsverzoeken worden hier niet gesynchroniseerd.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een kopie op dit apparaat te bewaren.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

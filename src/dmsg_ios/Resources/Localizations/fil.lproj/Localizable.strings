@@ -2792,6 +2792,8 @@
 	<string>Ibahagi ang mga lagda ng device na ito sa ibang mga cosigner, o i-import ang sa kanila. Kinokolekta lang ng pag-import ang mga lagda; hiwalay na hakbang ang pagsasagawa.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Ibahagi ang kahilingang ito sa isang awtorisadong administrator. Hindi nito nirerehistro o inaprubahan ang susi nang mag-isa.</string>
+	<key>Share to another app</key>
+	<string>Ibahagi sa ibang app</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Umaalis sa proteksyon ng dMsg ang mga ibinahaging kopya at hindi na mababawi.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Sinusuri ng wallet ang kasalukuyang patakaran at mga pag-apruba nito. Ang isang kinakailangang lagda ng hardware ay hinihiling para sa eksaktong planong ito.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Ito ay mga lokal na obserbasyon, hindi isang pag-scan ng paglabag o patunay na binawi ng provider ang isang kredensyal. Ang iba pang mga device ay maaaring magkaroon ng iba't ibang mga tala.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Ito ay mga snapshot na trabaho na ginawa sa device na ito. Ang mga kahilingan sa pag-apruba sa desktop-lokal ay hindi naka-synchronize dito.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ito ay mga na-verify na backup mula sa mga device ng iyong account. I-restore nang tahasan upang mapanatili ang isang kopya sa device na ito.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

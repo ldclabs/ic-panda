@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Nhận thêm"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"Mã QR hoặc mã kết nối thiết bị nhận"</string>
     <string name="nearby_receiving" formatted="false">"Đang nhận"</string>
-    <string name="nearby_review_approval" formatted="false">"Xem xét phê duyệt"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Xem lại và nhập bản chụp"</string>
     <string name="nearby_scan_qr" formatted="false">"Quét mã QR thiết bị nhận"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Chọn ít nhất một trường, ghi chú hoặc tệp đính kèm trước khi chọn thiết bị nhận ở gần."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Quản lý danh tính"</string>
     <string name="security_unlock" formatted="false">"Mở khóa dMsg"</string>
     <string name="security_workspace" formatted="false">"Mở không gian làm việc đã mã hóa của thiết bị này"</string>
+    <string name="share_section" formatted="false">"Chia sẻ"</string>
+    <string name="share_to_another_app" formatted="false">"Chia sẻ sang ứng dụng khác"</string>
     <string name="shortcut_approvals" formatted="false">"Phê duyệt"</string>
     <string name="shortcut_files" formatted="false">"Tệp"</string>
     <string name="shortcut_imports" formatted="false">"Mục được chia sẻ"</string>

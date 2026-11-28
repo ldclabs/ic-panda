@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"استقبال المزيد"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"رمز QR أو رمز اتصال المستلم"</string>
     <string name="nearby_receiving" formatted="false">"استلام"</string>
-    <string name="nearby_review_approval" formatted="false">"مراجعة الموافقة"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"مراجعة اللقطة واستيرادها"</string>
     <string name="nearby_scan_qr" formatted="false">"مسح رمز QR للمستلم"</string>
     <string name="nearby_select_vault_hint" formatted="false">"اختر حقلاً واحداً أو ملاحظة أو مرفقاً على الأقل قبل تحديد جهاز الاستقبال القريب."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"إدارة هوية"</string>
     <string name="security_unlock" formatted="false">"فتح قفل dMsg"</string>
     <string name="security_workspace" formatted="false">"فتح مساحة العمل المشفّرة على هذا الجهاز"</string>
+    <string name="share_section" formatted="false">"مشاركة"</string>
+    <string name="share_to_another_app" formatted="false">"مشاركة إلى تطبيق آخر"</string>
     <string name="shortcut_approvals" formatted="false">"الموافقات"</string>
     <string name="shortcut_files" formatted="false">"الملفات"</string>
     <string name="shortcut_imports" formatted="false">"العناصر المشتركة"</string>

@@ -75,14 +75,15 @@ try {
   assert.equal(item.save_state, 'local_only'); assert.equal(item.synced, false)
   await page.locator(`[data-id="${item.id}"]`).first().click()
   await page.getByTestId('vault-inspector').waitFor()
-  assert.equal(await page.getByTestId('vault-share').count(), 0)
+  assert.equal(await page.getByTestId('vault-share').count(), 1)
   await page.getByTestId('vault-more').click()
   await page.getByTestId('vault-more-menu').waitFor()
   assert.equal(await page.getByTestId('vault-share-links').count(), 0)
   await page.keyboard.press('Escape')
   await page.evaluate(() => { location.hash = '/vault/sharing' })
-  await page.getByTestId('vault-inspector').waitFor()
-  assert.equal(await page.getByTestId('snapshot-review').count(), 0)
+  await page.getByTestId('snapshot-review').waitFor()
+  assert.equal(await page.getByTestId('snapshot-mode').count(), 0)
+  assert.equal(await page.getByTestId('snapshot-links').count(), 0)
   await assert.rejects(rpc('secrets/shares/prepare', { input: {
     item_id: item.id, revision: item.revision, field_ids: [], include_notes: true, attachments: []
   } }), /LOCAL_ACCOUNT_ONLY/)

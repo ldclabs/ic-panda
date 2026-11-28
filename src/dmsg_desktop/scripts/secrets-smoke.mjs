@@ -749,7 +749,7 @@ try {
   assert.equal(calls.filter((c) => c.method === 'vault/reveal').length, 0)
   await workflow(main, 'activity')
   await workflows
-    .getByText('Import selected snapshot content', { exact: true })
+    .getByText('Authorize a file read', { exact: true })
     .first()
     .waitFor()
   await main.screenshot({

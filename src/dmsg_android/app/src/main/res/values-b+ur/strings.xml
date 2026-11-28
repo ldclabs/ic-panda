@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"مزید وصول کریں"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"وصول کنندہ کا QR یا کنکشن کوڈ"</string>
     <string name="nearby_receiving" formatted="false">"وصولی"</string>
-    <string name="nearby_review_approval" formatted="false">"منظوری کا جائزہ لیں"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"سنیپ شاٹ کا جائزہ لیں اور درآمد کریں"</string>
     <string name="nearby_scan_qr" formatted="false">"وصول کنندہ کا QR کوڈ اسکین کریں"</string>
     <string name="nearby_select_vault_hint" formatted="false">"قریبی وصول کنندہ منتخب کرنے سے پہلے کم از کم ایک فیلڈ، نوٹ یا منسلکہ منتخب کریں۔"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"شناخت کا انتظام کریں"</string>
     <string name="security_unlock" formatted="false">"dMsg کا تالا کھولیں"</string>
     <string name="security_workspace" formatted="false">"اس آلے کا رمز شدہ کام کا ماحول کھولیں"</string>
+    <string name="share_section" formatted="false">"شیئر کریں"</string>
+    <string name="share_to_another_app" formatted="false">"دوسری ایپ میں شیئر کریں"</string>
     <string name="shortcut_approvals" formatted="false">"منظوری"</string>
     <string name="shortcut_files" formatted="false">"فائلیں"</string>
     <string name="shortcut_imports" formatted="false">"اشتراک کردہ اشیا"</string>

@@ -2792,6 +2792,8 @@
 	<string>Поделитесь подписями этого устройства с другими соподписантами или импортируйте их подписи. Импорт только собирает подписи; выполнение — отдельный шаг.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Передайте запрос авторизованному администратору. Сам запрос не регистрирует и не подтверждает ключ.</string>
+	<key>Share to another app</key>
+	<string>Поделиться в другом приложении</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Переданные копии выходят из-под защиты dMsg и не могут быть отозваны.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Кошелёк проверяет текущую политику и одобрения. При необходимости аппаратная подпись запрашивается именно для этого плана.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Это локальные наблюдения, а не поиск утечек или доказательство отзыва учётных данных поставщиком. На других устройствах записи могут отличаться.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Здесь показаны задачи создания снимков на этом устройстве. Локальные запросы подтверждения с компьютера сюда не синхронизируются.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Это проверенные копии с устройств вашего аккаунта. Выберите восстановление, чтобы сохранить копию здесь.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

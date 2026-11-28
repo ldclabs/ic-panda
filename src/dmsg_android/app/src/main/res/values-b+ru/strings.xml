@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Принять ещё"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"QR-код или код подключения получателя"</string>
     <string name="nearby_receiving" formatted="false">"Приём"</string>
-    <string name="nearby_review_approval" formatted="false">"Проверить одобрение"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Проверить и импортировать снимок"</string>
     <string name="nearby_scan_qr" formatted="false">"Сканировать QR-код получателя"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Выберите хотя бы одно поле, заметку или вложение перед выбором получателя поблизости."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Управление идентичностью"</string>
     <string name="security_unlock" formatted="false">"Разблокировать dMsg"</string>
     <string name="security_workspace" formatted="false">"Открыть зашифрованное рабочее пространство этого устройства"</string>
+    <string name="share_section" formatted="false">"Отправить"</string>
+    <string name="share_to_another_app" formatted="false">"Поделиться в другом приложении"</string>
     <string name="shortcut_approvals" formatted="false">"Подтверждения"</string>
     <string name="shortcut_files" formatted="false">"Файлы"</string>
     <string name="shortcut_imports" formatted="false">"Полученные общие элементы"</string>

@@ -2792,6 +2792,8 @@
 	<string>Partagez les signatures de cet appareil avec les autres cosignataires, ou importez les leurs. L’importation ne fait que recueillir les signatures ; l’exécution est une étape distincte.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Partagez cette demande avec un administrateur autorisé. Elle n’enregistre ni n’approuve la clé à elle seule.</string>
+	<key>Share to another app</key>
+	<string>Partager vers une autre app</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Les copies partagées quittent la protection de dMsg et ne peuvent pas être rappelées.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Le portefeuille vérifie sa politique et ses approbations actuelles. Si nécessaire, la signature matérielle porte sur ce plan précis.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Il s’agit d’observations locales, pas d’une recherche de fuites ni d’une preuve de révocation par un fournisseur. Les autres appareils peuvent avoir des données différentes.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Cette liste contient les tâches d’instantané créées sur cet appareil. Les demandes d’approbation locales à un ordinateur ne sont pas synchronisées ici.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ces sauvegardes vérifiées proviennent des appareils de votre compte. Restaurez-les explicitement pour conserver une copie sur cet appareil.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

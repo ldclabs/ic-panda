@@ -2792,6 +2792,8 @@
 	<string>Comparte las firmas de este dispositivo con los demás cofirmantes o importa las suyas. Importar solo reúne firmas; ejecutar es un paso aparte.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Comparte esta solicitud con un administrador autorizado. Por sí sola no registra ni aprueba la clave.</string>
+	<key>Share to another app</key>
+	<string>Compartir en otra app</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Las copias compartidas quedan fuera de la protección de dMsg y no pueden retirarse.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>La cartera verifica su política y aprobaciones actuales. Si se requiere firma de hardware, se solicita para este plan exacto.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Son observaciones locales, no un análisis de filtraciones ni una prueba de que el proveedor haya revocado una credencial. Otros dispositivos pueden tener registros distintos.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Aquí aparecen las tareas de instantáneas creadas en este dispositivo. Las solicitudes de aprobación locales del escritorio no se sincronizan aquí.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Estas son copias verificadas de los dispositivos de tu cuenta. Restáuralas explícitamente para conservar una copia en este dispositivo.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

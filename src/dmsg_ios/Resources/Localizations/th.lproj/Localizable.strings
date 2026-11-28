@@ -2792,6 +2792,8 @@
 	<string>แชร์ลายเซ็นของอุปกรณ์นี้กับผู้ลงนามร่วมคนอื่น หรือนำเข้าลายเซ็นของพวกเขา การนำเข้าเป็นเพียงการรวบรวมลายเซ็น ส่วนการดำเนินการเป็นอีกขั้นตอนหนึ่ง</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>แบ่งปันคำขอนี้กับผู้ดูแลระบบที่ได้รับอนุญาต มันไม่ได้ลงทะเบียนหรืออนุมัติคีย์ด้วยตัวเอง</string>
+	<key>Share to another app</key>
+	<string>แชร์ไปยังแอปอื่น</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>สำเนาที่แชร์จะออกจากการคุ้มครองของ dMsg และไม่สามารถเรียกคืนได้</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>กระเป๋าเงินจะตรวจสอบนโยบายและการอนุมัติในปัจจุบัน มีการร้องขอลายเซ็นฮาร์ดแวร์ที่จำเป็นสำหรับแผนที่แน่นอนนี้</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>สิ่งเหล่านี้เป็นข้อสังเกตในท้องถิ่น ไม่ใช่การสแกนการละเมิดหรือการพิสูจน์ว่าผู้ให้บริการเพิกถอนข้อมูลรับรอง อุปกรณ์อื่นๆ อาจมีบันทึกที่แตกต่างกันได้</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>งานเหล่านี้เป็นงานสแนปชอตที่สร้างขึ้นบนอุปกรณ์นี้ คำขออนุมัติภายในเดสก์ท็อปจะไม่ซิงโครไนซ์ที่นี่</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>สิ่งเหล่านี้เป็นข้อมูลสำรองที่ได้รับการยืนยันจากอุปกรณ์ของบัญชีของคุณ กู้คืนอย่างชัดเจนเพื่อเก็บสำเนาไว้ในอุปกรณ์นี้</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

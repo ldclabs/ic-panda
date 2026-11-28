@@ -97,10 +97,10 @@ struct FileScreen: View {
             }.privateScreen().navigationTitle(file.name).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
-                        Button("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }
+                        Button("Share to another app", systemImage: "square.and.arrow.up") { confirmShare = true }
                             .disabled(opened == nil).accessibilityIdentifier("file.share")
-                            .confirmationDialog("Share a copy", isPresented: $confirmShare, titleVisibility: .visible) {
-                                Button("Share a copy") { sharing = true }
+                            .confirmationDialog("Share to another app", isPresented: $confirmShare, titleVisibility: .visible) {
+                                Button("Share to another app") { sharing = true }
                             } message: { Text("Shared copies leave dMsg's protection and cannot be recalled.") }
                         Button("File details", systemImage: "info.circle") { showingDetails = true }.accessibilityIdentifier("file.details")
                     }
@@ -173,17 +173,25 @@ struct FileDetailView: View {
         List {
             FileSummaryRow(name: file.name, mime: file.mime, subtitle: fileSize(file.size) + " · " + (available ? file.statusLabel : String(localized: "Only in cloud")), expanded: true)
                 .compactObjectRow().listRowBackground(Color.clear).accessibilityIdentifier("file.detail.title")
-            Section {
-                if !previewed {
-                    SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) {
-                        if PreviewFilterLogic.classify(mime: file.mime, name: file.name) != .unsupported {
-                            openFullscreenPreview()
-                        } else {
-                            actionTask = Task { await open(share: false) }
+            if !previewed || (!model.localAccount && !available) {
+                Section {
+                    if !previewed {
+                        SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) {
+                            if PreviewFilterLogic.classify(mime: file.mime, name: file.name) != .unsupported {
+                                openFullscreenPreview()
+                            } else {
+                                actionTask = Task { await open(share: false) }
+                            }
                         }
+                            .disabled(!available)
                     }
-                        .disabled(!available)
-                }
+                    if !model.localAccount && !available {
+                        SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { actionTask = Task { await restore() } }
+                            .disabled(download != nil).accessibilityIdentifier("file.restore")
+                    }
+                }.disabled(working)
+            }
+            Section("Share") {
                 SettingsAction("Share nearby", systemImage: "wave.3.right") { nearbySending = true }.disabled(!available)
                 if !model.localAccount { SettingsAction("Share by link", systemImage: "link") { linking = true }
                     .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
@@ -193,11 +201,9 @@ struct FileDetailView: View {
                         .accessibilityIdentifier("file.links")
                 }
                 }
-                SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
-                if !model.localAccount && !available {
-                    SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { actionTask = Task { await restore() } }
-                        .disabled(download != nil).accessibilityIdentifier("file.restore")
-                }
+                SettingsAction("Share to another app", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
+            }.disabled(working)
+            Section {
                 if !historical {
                     if file.backup?.verified == true {
                         Label("Backed up", systemImage: "checkmark.circle").foregroundStyle(.secondary)
@@ -239,8 +245,8 @@ struct FileDetailView: View {
             .sheet(isPresented: $linking) { NavigationStack { FileLinkComposer(target: FileLinkTarget(file: file, remote: !available)) } }
             .sheet(isPresented: $nearbySending) { NavigationStack { NearbySendFilesSheet(files: [file]) } }
             .task(id: linking) { if !linking { await loadLinks() } }
-            .confirmationDialog("Share a copy", isPresented: $confirmShare, titleVisibility: .visible) {
-                Button("Share a copy") { actionTask = Task { await open(share: true) } }
+            .confirmationDialog("Share to another app", isPresented: $confirmShare, titleVisibility: .visible) {
+                Button("Share to another app") { actionTask = Task { await open(share: true) } }
             } message: { Text("Shared copies leave dMsg's protection and cannot be recalled.") }
             .confirmationDialog("Remove local copy?", isPresented: $confirmEvict, titleVisibility: .visible) {
                 Button("Remove local copy", role: .destructive) { actionTask = Task { await evict() } }

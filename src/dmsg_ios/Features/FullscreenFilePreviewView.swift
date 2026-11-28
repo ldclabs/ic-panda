@@ -151,8 +151,8 @@ struct FullscreenFilePreviewView: View {
             .sheet(item: $linkingFile) { target in
                 NavigationStack { FileLinkComposer(target: FileLinkTarget(file: target.file, remote: !target.file.canOpen)) }
             }
-            .confirmationDialog(String(localized: "Share a copy"), isPresented: $confirmShare, titleVisibility: .visible) {
-                Button(String(localized: "Share a copy")) {
+            .confirmationDialog(String(localized: "Share to another app"), isPresented: $confirmShare, titleVisibility: .visible) {
+                Button(String(localized: "Share to another app")) {
                     shareTask?.cancel()
                     shareTask = Task { await prepareShareCopy() }
                 }
@@ -358,7 +358,7 @@ struct FullscreenFilePreviewView: View {
                 }
 
                 if canShareCurrent {
-                    Button(String(localized: "Share a copy"), systemImage: "square.and.arrow.up") {
+                    Button(String(localized: "Share to another app"), systemImage: "square.and.arrow.up") {
                         confirmShare = true
                     }
                 }
@@ -513,7 +513,7 @@ struct FullscreenFilePreviewView: View {
                         Button {
                             confirmShare = true
                         } label: {
-                            Label(String(localized: "Share a copy"), systemImage: "square.and.arrow.up")
+                            Label(String(localized: "Share to another app"), systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)

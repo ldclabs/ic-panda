@@ -18,85 +18,142 @@ struct SecretSnapshotComposer: View {
     @State private var working = false
     @State private var job: SecretShareJob?
     @State private var work: Task<Void, Never>?
+    @State private var offerText = ""
+    @State private var shareIdentity = false
+    @State private var scanning = false
+    @State private var cameraDenied = false
+    @State private var previousSend: UInt64?
     private var hasSelection: Bool { !fields.isEmpty || notes || !attachmentIDs.isEmpty }
+    private var nearby: NearbyShareModel { model.nearbyShare }
+    private var nearbySend: NearbyShareModel.SendStatus? {
+        guard let send = nearby.status?.send, send.id != previousSend else { return nil }
+        return send
+    }
+    private var showingNearbyProgress: Bool {
+        guard destination == "nearby", let send = nearbySend else { return false }
+        return send.active || send.state == "done" || send.state == "failed"
+    }
 
     var body: some View {
         Form {
-            Section {
-                Text(item.title).font(.title3.bold())
-                Text("Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Picker("Destination", selection: $destination) {
-                    Text("Share link").tag("link")
-                    ForEach(model.channels.filter(\.canPublish), id: \.id) { channel in Text(channel.name).tag(channel.id) }
-                }.accessibilityIdentifier("secret.snapshot.destination")
-                if destination == "link" {
-                    LabeledContent("Recipient", value: String(localized: password.isEmpty ? "Anyone with the link" : "Anyone with the link and password"))
-                    LabeledContent("Expires after", value: String(localized: duration == 3_600_000 ? "1 hour" : duration == 86_400_000 ? "1 day" : "7 days"))
-                    LabeledContent("Download sessions", value: sessions.formatted())
-                    Text("Revoking stops future downloads. Saved copies remain.").font(.footnote).foregroundStyle(.secondary)
-                } else {
-                    Text("A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.")
+            if destination == "nearby", let err = nearby.error {
+                NoticeBar(text: err)
+            }
+            if showingNearbyProgress, let send = nearbySend {
+                NearbySendProgressSection(send: send)
+                if send.state == "failed" {
+                    SettingsAction("Start again", prominent: true) { previousSend = send.id }
+                }
+            } else {
+                Section {
+                    Text(item.title).font(.title3.bold())
+                    Text("Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.")
                         .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-            Section("Select fields to share") {
-                ForEach(item.fields.filter { !$0.value.isEmpty }, id: \.id) { field in
-                    Toggle(vaultFieldTitle(field),
-                           isOn: Binding(get: { fields.contains(field.id) }, set: { if $0 { fields.insert(field.id) } else { fields.remove(field.id) } }))
-                        .accessibilityIdentifier("secret.snapshot.field.\(field.id)")
-                }
-                if !item.fields.contains(where: { !$0.value.isEmpty }) && item.notes.isEmpty {
-                    Text("No fields or notes").foregroundStyle(.secondary)
-                }
-                if !item.notes.isEmpty { Toggle("Include notes", isOn: $notes).accessibilityIdentifier("secret.snapshot.notes") }
-                if item.fields.contains(where: { fields.contains($0.id) && $0.kind == "otp" }) {
-                    NoticeBar(text: String(localized: "Selected OTP fields include the reusable seed, not just a current code."))
-                }
-            }
-            if let attachments, !attachments.files.isEmpty {
-                Section("Select attachments to share") {
-                    ForEach(attachments.files) { entry in
-                        if let file = entry.details?.file {
-                            Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { attachmentsTouched = true; if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(file.name).lineLimit(2)
-                                    Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
-                                }
-                            }.disabled(!entry.canShare)
-                        } else { Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis").foregroundStyle(.secondary) }
+                    if model.localAccount {
+                        LabeledContent("Destination", value: String(localized: "Share nearby"))
+                    } else {
+                        Picker("Destination", selection: $destination) {
+                            Text("Share link").tag("link")
+                            Text("Share nearby").tag("nearby")
+                            ForEach(model.channels.filter(\.canPublish), id: \.id) { channel in Text(channel.name).tag(channel.id) }
+                        }.accessibilityIdentifier("secret.snapshot.destination")
+                    }
+                    if destination == "link" {
+                        LabeledContent("Recipient", value: String(localized: password.isEmpty ? "Anyone with the link" : "Anyone with the link and password"))
+                        LabeledContent("Expires after", value: String(localized: duration == 3_600_000 ? "1 hour" : duration == 86_400_000 ? "1 day" : "7 days"))
+                        LabeledContent("Download sessions", value: sessions.formatted())
+                        Text("Revoking stops future downloads. Saved copies remain.").font(.footnote).foregroundStyle(.secondary)
+                    } else if destination != "nearby" {
+                        Text("A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.")
+                            .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-            }
-            if destination == "link" {
-                DisclosureGroup("Link limits") {
-                    Picker("Expires after", selection: $duration) {
-                        Text("1 hour").tag(UInt64(3_600_000)); Text("1 day").tag(UInt64(86_400_000)); Text("7 days").tag(UInt64(604_800_000))
+                Section("Select fields to share") {
+                    ForEach(item.fields.filter { !$0.value.isEmpty }, id: \.id) { field in
+                        Toggle(vaultFieldTitle(field),
+                               isOn: Binding(get: { fields.contains(field.id) }, set: { if $0 { fields.insert(field.id) } else { fields.remove(field.id) } }))
+                            .accessibilityIdentifier("secret.snapshot.field.\(field.id)")
                     }
-                    Stepper("\(sessions) download sessions", value: $sessions, in: 1...100)
-                    SecureField("Optional password", text: $password).textInputAutocapitalization(.never)
-                    Text("A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    if !item.fields.contains(where: { !$0.value.isEmpty }) && item.notes.isEmpty {
+                        Text("No fields or notes").foregroundStyle(.secondary)
+                    }
+                    if !item.notes.isEmpty { Toggle("Include notes", isOn: $notes).accessibilityIdentifier("secret.snapshot.notes") }
+                    if item.fields.contains(where: { fields.contains($0.id) && $0.kind == "otp" }) {
+                        NoticeBar(text: String(localized: "Selected OTP fields include the reusable seed, not just a current code."))
+                    }
+                }
+                if let attachments, !attachments.files.isEmpty {
+                    Section("Select attachments to share") {
+                        ForEach(attachments.files) { entry in
+                            if let file = entry.details?.file {
+                                Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { attachmentsTouched = true; if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(file.name).lineLimit(2)
+                                        Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                }.disabled(!entry.canShare)
+                            } else { Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis").foregroundStyle(.secondary) }
+                        }
+                    }
+                }
+                if destination == "nearby" {
+                    if hasSelection {
+                        NearbyTargetPickerSection(
+                            offerText: $offerText,
+                            shareIdentity: $shareIdentity,
+                            scanning: $scanning,
+                            cameraDenied: $cameraDenied,
+                            onSendOffer: { text in
+                                guard let input = makeNearbyInput() else { return }
+                                Task { await nearby.sendVault(model, offer: text, peer: nil, input: input, shareIdentity: shareIdentity) }
+                            },
+                            onSendPeer: { peer in
+                                guard let input = makeNearbyInput() else { return }
+                                Task { await nearby.sendVault(model, offer: nil, peer: peer, input: input, shareIdentity: shareIdentity) }
+                            }
+                        )
+                    } else {
+                        Section {
+                            Text("Choose at least one field, note or attachment before selecting a nearby receiver.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } else if destination == "link" {
+                    DisclosureGroup("Link limits") {
+                        Picker("Expires after", selection: $duration) {
+                            Text("1 hour").tag(UInt64(3_600_000)); Text("1 day").tag(UInt64(86_400_000)); Text("7 days").tag(UInt64(604_800_000))
+                        }
+                        Stepper("\(sessions) download sessions", value: $sessions, in: 1...100)
+                        SecureField("Optional password", text: $password).textInputAutocapitalization(.never)
+                        Text("A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
             }
         }.toggleStyle(SelectionRowToggleStyle()).disabled(working).privateScreen().navigationTitle("Share secret snapshot").navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(destination == "nearby" && (nearbySend?.active == true || nearby.working))
             .safeAreaInset(edge: .bottom) {
-                Button { work = Task { await prepare() } } label: {
-                    HStack { if working { ProgressView() }; Text(destination == "link" ? "Create link" : "Send") }.frame(maxWidth: .infinity)
+                if destination != "nearby" {
+                    Button { work = Task { await prepare() } } label: {
+                        HStack { if working { ProgressView() }; Text(destination == "link" ? "Create link" : "Send") }.frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(working || !hasSelection || item.reserved || item.deleted || item.conflict)
+                    .accessibilityIdentifier("secret.snapshot.prepare")
+                    .padding(.horizontal).padding(.vertical, 8).background(.bar)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(working || !hasSelection || item.reserved || item.deleted || item.conflict)
-                .accessibilityIdentifier("secret.snapshot.prepare")
-                .padding(.horizontal).padding(.vertical, 8).background(.bar)
             }
             .task {
+                if previousSend == nil { previousSend = nearbySend.flatMap { $0.active ? nil : $0.id } ?? 0 }
                 if !initialized {
-                    destination = initialChannel ?? "link"
+                    destination = initialChannel ?? (model.localAccount ? "nearby" : "link")
                     fields = Set(item.fields.filter { !$0.value.isEmpty }.map(\.id))
                     notes = !item.notes.isEmpty
                     initialized = true
                 }
-                await model.loadChannels()
+                if destination == "nearby" { nearby.startBrowse() }
+                if !model.localAccount { await model.loadChannels() }
                 let epoch = model.epoch
                 do {
                     guard let snapshot = try await model.engine?.secretItemAttachments(itemId: item.id), epoch == model.epoch else { return }
@@ -107,11 +164,45 @@ struct SecretSnapshotComposer: View {
                     }
                 } catch { if epoch == model.epoch { model.report(error) } }
             }
-            .onChange(of: destination) { _, destination in if destination != "link" { password = "" } }
-            .onDisappear { work?.cancel() }
+            .onChange(of: destination) { _, next in
+                if next != "link" { password = "" }
+                if next == "nearby" { nearby.startBrowse() } else { nearby.stopBrowse() }
+            }
+            .onDisappear {
+                work?.cancel()
+                if nearbySend?.active == true { nearby.cancelSend(model) }
+                nearby.stopBrowse()
+            }
+            .sheet(isPresented: $scanning) {
+                QRCodeScanner { text in
+                    offerText = text
+                    scanning = false
+                    if hasSelection, let input = makeNearbyInput() {
+                        Task { await nearby.sendVault(model, offer: text, peer: nil, input: input, shareIdentity: shareIdentity) }
+                    }
+                }
+            }
             .navigationDestination(isPresented: Binding(get: { job != nil }, set: { if !$0 { job = nil } })) {
                 if let job { SecretShareDetailView(id: job.id) }
             }
+    }
+
+    private func makeNearbyInput() -> SecretSnapshotInput? {
+        guard hasSelection, !item.reserved, !item.deleted, !item.conflict else { return nil }
+        let selected = (attachments?.files ?? []).filter { attachmentIDs.contains($0.id) }.compactMap { entry -> SecretAttachmentSelection? in
+            guard entry.canShare, let file = entry.details?.file else { return nil }
+            return SecretAttachmentSelection(fileId: file.id, versionId: file.current)
+        }
+        guard selected.count == attachmentIDs.count else { return nil }
+        return SecretSnapshotInput(
+            itemId: item.id,
+            revision: item.revision,
+            fieldIds: item.fields.map(\.id).filter(fields.contains),
+            includeNotes: notes,
+            attachments: selected,
+            expiresInMs: nil,
+            maxDownloadSessions: nil
+        )
     }
 
     private func prepare() async {

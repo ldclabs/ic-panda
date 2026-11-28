@@ -2792,6 +2792,8 @@
 	<string>Chia sẻ chữ ký của thiết bị này với những người đồng ký khác, hoặc nhập chữ ký của họ. Việc nhập chỉ thu thập chữ ký; thực hiện là một bước riêng.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Chia sẻ yêu cầu này với quản trị viên được ủy quyền. Nó không tự đăng ký hoặc phê duyệt khóa.</string>
+	<key>Share to another app</key>
+	<string>Chia sẻ sang ứng dụng khác</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Các bản sao được chia sẻ để lại sự bảo vệ của dMsg và không thể thu hồi được.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Ví kiểm tra chính sách và phê duyệt hiện tại của nó. Một chữ ký phần cứng bắt buộc được yêu cầu cho kế hoạch chính xác này.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Đây là những quan sát cục bộ, không phải là bản quét vi phạm hay bằng chứng cho thấy nhà cung cấp đã thu hồi thông tin xác thực. Các thiết bị khác có thể có các bản ghi khác nhau.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Đây là những công việc chụp nhanh được tạo trên thiết bị này. Yêu cầu phê duyệt cục bộ trên máy tính để bàn không được đồng bộ hóa ở đây.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Đây là những bản sao lưu đã được xác minh từ thiết bị trong tài khoản của bạn. Khôi phục rõ ràng để giữ một bản sao trên thiết bị này.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

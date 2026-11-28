@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Terima lagi"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"Kod QR atau sambungan penerima"</string>
     <string name="nearby_receiving" formatted="false">"Menerima"</string>
-    <string name="nearby_review_approval" formatted="false">"Semak kelulusan"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Semak dan import syot kilat"</string>
     <string name="nearby_scan_qr" formatted="false">"Imbas kod QR penerima"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Pilih sekurang-kurangnya satu medan, nota atau lampiran sebelum memilih penerima berdekatan."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Urus identiti"</string>
     <string name="security_unlock" formatted="false">"Nyahkunci dMsg"</string>
     <string name="security_workspace" formatted="false">"Buka ruang kerja disulitkan di peranti ini"</string>
+    <string name="share_section" formatted="false">"Kongsi"</string>
+    <string name="share_to_another_app" formatted="false">"Kongsi ke apl lain"</string>
     <string name="shortcut_approvals" formatted="false">"Kelulusan"</string>
     <string name="shortcut_files" formatted="false">"Fail"</string>
     <string name="shortcut_imports" formatted="false">"Item yang dikongsi"</string>

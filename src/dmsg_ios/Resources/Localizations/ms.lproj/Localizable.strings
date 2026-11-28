@@ -2792,6 +2792,8 @@
 	<string>Kongsi tandatangan peranti ini dengan cosigner lain, atau import tandatangan mereka. Import hanya mengumpul tandatangan; pelaksanaan ialah langkah berasingan.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Kongsi permintaan ini dengan pentadbir yang diberi kuasa. Ia tidak mendaftar atau meluluskan kunci dengan sendirinya.</string>
+	<key>Share to another app</key>
+	<string>Kongsi ke apl lain</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Salinan yang dikongsi meninggalkan perlindungan dMsg dan tidak boleh ditarik balik.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Dompet menyemak dasar dan kelulusan semasanya. Tandatangan perkakasan yang diperlukan diminta untuk pelan yang tepat ini.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Ini adalah pemerhatian tempatan, bukan imbasan pelanggaran atau bukti bahawa pembekal telah membatalkan kelayakan. Peranti lain boleh mempunyai rekod yang berbeza.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Ini ialah kerja syot kilat yang dibuat pada peranti ini. Permintaan kelulusan tempatan desktop tidak disegerakkan di sini.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ini ialah sandaran yang disahkan daripada peranti akaun anda. Pulihkan secara eksplisit untuk menyimpan salinan pada peranti ini.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

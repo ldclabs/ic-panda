@@ -73,10 +73,18 @@ final class VisualBaselineTests: XCTestCase {
             XCTAssertTrue(item.waitForExistence(timeout: 10), look.name)
             item.tap()
             app.buttons["vault.detail.more"].tap()
-            app.buttons["vault.share.nearby"].tap()
-            let credential = app.switches["nearby.field.credential"]
+            app.buttons["vault.share"].tap()
+            let destination = app.buttons["secret.snapshot.destination"]
+            XCTAssertTrue(destination.waitForExistence(timeout: 5), look.name)
+            destination.tap()
+            let nearbyLabel = ["zh-Hans": "近场分享", "ar": "مشاركة قريبة"][look.language] ?? "Share nearby"
+            let nearbyChoice = app.buttons[nearbyLabel].firstMatch
+            XCTAssertTrue(nearbyChoice.waitForExistence(timeout: 5), look.name)
+            nearbyChoice.tap()
+            let credential = app.switches["secret.snapshot.field.credential"]
+            for _ in 0..<4 where !credential.exists { app.swipeUp() }
             XCTAssertTrue(credential.waitForExistence(timeout: 5), look.name)
-            XCTAssertEqual(credential.value as? String, "0")
+            XCTAssertEqual(credential.value as? String, "1")
             shot(app, look, "nearby-vault")
             app.terminate()
         }

@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Terima lagi"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"QR atau kode koneksi penerima"</string>
     <string name="nearby_receiving" formatted="false">"Menerima"</string>
-    <string name="nearby_review_approval" formatted="false">"Tinjau persetujuan"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Tinjau dan impor cuplikan"</string>
     <string name="nearby_scan_qr" formatted="false">"Pindai kode QR penerima"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Pilih setidaknya satu bidang, catatan, atau lampiran sebelum memilih penerima terdekat."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Kelola identitas"</string>
     <string name="security_unlock" formatted="false">"Buka kunci dMsg"</string>
     <string name="security_workspace" formatted="false">"Buka ruang kerja terenkripsi di perangkat ini"</string>
+    <string name="share_section" formatted="false">"Bagikan"</string>
+    <string name="share_to_another_app" formatted="false">"Bagikan ke aplikasi lain"</string>
     <string name="shortcut_approvals" formatted="false">"Persetujuan"</string>
     <string name="shortcut_files" formatted="false">"Berkas"</string>
     <string name="shortcut_imports" formatted="false">"Item yang dibagikan"</string>

@@ -336,7 +336,7 @@ import kotlinx.coroutines.flow.first
                                 }
                                 if (session.canShareCurrent) {
                                     DropdownMenuItem(
-                                        text = { Text(str(R.string.text_share_a_verified_copy_fc77423)) },
+                                        text = { Text(str(R.string.share_to_another_app)) },
                                         leadingIcon = { Icon(Icons.Outlined.Share, null) },
                                         onClick = {
                                             actionsMenu = false
@@ -358,14 +358,14 @@ import kotlinx.coroutines.flow.first
     if (confirmShare) {
         AlertDialog(
             onDismissRequest = { confirmShare = false },
-            title = { Text(str(R.string.text_share_a_copy_4b1b25d)) },
+            title = { Text(str(R.string.share_to_another_app)) },
             text = { Text(str(R.string.text_shared_copies_leave_dmsg_s_protection_and_cannot_be_recalled_84ddf5e)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmShare = false
                     client.fullscreenPreview.shareCurrent(share)
                 }) {
-                    Text(str(R.string.text_share_a_verified_copy_fc77423))
+                    Text(str(R.string.share_to_another_app))
                 }
             },
             dismissButton = {
@@ -644,7 +644,7 @@ import kotlinx.coroutines.flow.first
                         Button(onClick = onShare, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Share, null)
                             Spacer(Modifier.width(8.dp))
-                            Text(str(R.string.text_share_a_verified_copy_fc77423))
+                            Text(str(R.string.share_to_another_app))
                         }
                     }
                     if (item.libraryFile != null) {

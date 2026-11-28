@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"さらに受信"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"受信側のQRまたは接続コード"</string>
     <string name="nearby_receiving" formatted="false">"受信"</string>
-    <string name="nearby_review_approval" formatted="false">"レビュー承認"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"スナップショットを確認してインポート"</string>
     <string name="nearby_scan_qr" formatted="false">"受信側のQRコードをスキャン"</string>
     <string name="nearby_select_vault_hint" formatted="false">"近くの受信端末を選ぶ前に、フィールド、メモ、または添付ファイルを1つ以上選択してください。"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"ログイン ID を管理"</string>
     <string name="security_unlock" formatted="false">"dMsg のロックを解除"</string>
     <string name="security_workspace" formatted="false">"このデバイスの暗号化ワークスペースを開く"</string>
+    <string name="share_section" formatted="false">"シェアする"</string>
+    <string name="share_to_another_app" formatted="false">"他のアプリで共有"</string>
     <string name="shortcut_approvals" formatted="false">"承認"</string>
     <string name="shortcut_files" formatted="false">"ファイル"</string>
     <string name="shortcut_imports" formatted="false">"共有された項目"</string>

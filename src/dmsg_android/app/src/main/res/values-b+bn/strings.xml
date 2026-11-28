@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"আরও গ্রহণ করুন"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"প্রাপকের QR বা সংযোগ কোড"</string>
     <string name="nearby_receiving" formatted="false">"গ্রহণ"</string>
-    <string name="nearby_review_approval" formatted="false">"অনুমোদন পর্যালোচনা"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"স্ন্যাপশট পর্যালোচনা ও আমদানি করুন"</string>
     <string name="nearby_scan_qr" formatted="false">"প্রাপকের QR কোড স্ক্যান করুন"</string>
     <string name="nearby_select_vault_hint" formatted="false">"নিকটবর্তী প্রাপক বেছে নেওয়ার আগে অন্তত একটি ক্ষেত্র, নোট বা সংযুক্তি বেছে নিন।"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"পরিচয় পরিচালনা করুন"</string>
     <string name="security_unlock" formatted="false">"dMsg আনলক করুন"</string>
     <string name="security_workspace" formatted="false">"এই ডিভাইসের এনক্রিপ্ট করা কর্মক্ষেত্র খুলুন"</string>
+    <string name="share_section" formatted="false">"শেয়ার করুন"</string>
+    <string name="share_to_another_app" formatted="false">"অন্য অ্যাপে শেয়ার করুন"</string>
     <string name="shortcut_approvals" formatted="false">"অনুমোদন"</string>
     <string name="shortcut_files" formatted="false">"ফাইল"</string>
     <string name="shortcut_imports" formatted="false">"শেয়ার করা আইটেম"</string>

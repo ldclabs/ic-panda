@@ -2792,6 +2792,8 @@
 	<string>Bagikan tanda tangan perangkat ini kepada cosigner lain, atau impor tanda tangan mereka. Impor hanya mengumpulkan tanda tangan; menjalankan adalah langkah terpisah.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Bagikan permintaan ini dengan administrator resmi. Itu tidak mendaftarkan atau menyetujui kunci itu sendiri.</string>
+	<key>Share to another app</key>
+	<string>Bagikan ke aplikasi lain</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Salinan yang dibagikan meninggalkan perlindungan dMsg dan tidak dapat ditarik kembali.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Dompet memeriksa kebijakan dan persetujuannya saat ini. Tanda tangan perangkat keras yang diperlukan diminta untuk paket persis ini.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Ini adalah pengamatan lokal, bukan pemindaian pelanggaran atau bukti bahwa penyedia telah mencabut kredensialnya. Perangkat lain mungkin memiliki catatan berbeda.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Ini adalah pekerjaan snapshot yang dibuat pada perangkat ini. Permintaan persetujuan lokal desktop tidak disinkronkan di sini.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ini adalah cadangan terverifikasi dari perangkat akun Anda. Pulihkan secara eksplisit untuk menyimpan salinan di perangkat ini.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

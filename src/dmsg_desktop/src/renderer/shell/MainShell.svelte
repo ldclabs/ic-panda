@@ -22,6 +22,7 @@
   import Shortcuts from './Shortcuts.svelte'
   import Sidebar from './Sidebar.svelte'
   import JoinAccount from '../views/JoinAccount.svelte'
+  import NearbyShare from '../views/NearbyShare.svelte'
   import Welcome from './Welcome.svelte'
   import WindowNav from './WindowNav.svelte'
 
@@ -89,6 +90,7 @@
   const messageDeliveries = new MessageDeliveries((rows) => { deliveries = rows }, () => verified && status?.state === 'unlocked')
   let palette = $state(false)
   let helping = $state(false)
+  let nearbyReceiveOpen = $state(false)
   /** Content has scrolled under the title bar, which then draws its rule. */
   let scrolled = $state(false)
   let mainArea = $state<HTMLElement>()
@@ -121,6 +123,9 @@
     scrolled = area.scrollTop > 0
   }
   const unlocked = $derived(status?.state === 'unlocked')
+  $effect(() => {
+    if (!unlocked) nearbyReceiveOpen = false
+  })
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
   const setup = $derived(!!status && setupStates.includes(status.state))
   const fresh = $derived(status?.state === 'logged_out' && accounts === 0)
@@ -349,6 +354,7 @@
       {legacyNotice}
       {reminderAccounts}
       onDismissLegacy={dismissLegacy}
+      onNearbyReceive={unlocked ? () => (nearbyReceiveOpen = true) : undefined}
       {go}
       {enter}
       {windowNav}
@@ -372,7 +378,8 @@
       </main>
     </div>
     {#key viewSession}
-      <CommandPalette bind:open={palette} {status} {mod} {collapsed} {go} onToggleSidebar={toggleSidebar} onShortcuts={() => (helping = true)} />
+      <CommandPalette bind:open={palette} {status} {mod} {collapsed} {go} onToggleSidebar={toggleSidebar} onShortcuts={() => (helping = true)} onNearbyReceive={unlocked ? () => (nearbyReceiveOpen = true) : undefined} />
+      <NearbyShare bind:open={nearbyReceiveOpen} mode="receive" />
     {/key}
     <Shortcuts bind:open={helping} {mod} keys={travelKeys} />
   {/if}

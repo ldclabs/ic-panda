@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Daha fazla al"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"Alıcı QR veya bağlantı kodu"</string>
     <string name="nearby_receiving" formatted="false">"Alma"</string>
-    <string name="nearby_review_approval" formatted="false">"Onayı inceleyin"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Anlık görüntüyü incele ve içe aktar"</string>
     <string name="nearby_scan_qr" formatted="false">"Alıcı QR kodunu tara"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Yakındaki bir alıcı seçmeden önce en az bir alan, not veya ek seçin."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Kimlik yönet"</string>
     <string name="security_unlock" formatted="false">"dMsg kilidini aç"</string>
     <string name="security_workspace" formatted="false">"Bu cihazın şifreli çalışma alanını aç"</string>
+    <string name="share_section" formatted="false">"Paylaş"</string>
+    <string name="share_to_another_app" formatted="false">"Başka uygulamada paylaş"</string>
     <string name="shortcut_approvals" formatted="false">"Onaylar"</string>
     <string name="shortcut_files" formatted="false">"Dosyalar"</string>
     <string name="shortcut_imports" formatted="false">"Paylaşılan öğeler"</string>

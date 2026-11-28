@@ -20,7 +20,11 @@ final class VaultUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.expires").firstMatch.exists)
         let review = app.buttons["secret.snapshot.prepare"]
         XCTAssertTrue(review.isEnabled)
+        let url = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.url").firstMatch
+        let region = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.region").firstMatch
         credential.tap()
+        url.tap()
+        region.tap()
         XCTAssertFalse(review.isEnabled)
         credential.tap()
         XCTAssertTrue(review.isEnabled)

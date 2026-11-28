@@ -2792,6 +2792,8 @@
 	<string>このデバイスの署名をほかの共同署名者と共有するか、相手の署名を読み込みます。読み込みは署名を集めるだけで、実行は別の操作です。</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>このリクエストを権限のある管理者と共有してください。単独でキーを登録または承認することはありません。</string>
+	<key>Share to another app</key>
+	<string>他のアプリで共有</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>共有されたコピーは dMsg の保護対象外となり、取り消すことはできません。</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>ウォレットは現在のポリシーと承認をチェックします。この正確なプランには、必要なハードウェア署名が要求されます。</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>これらはローカルな観察であり、侵害スキャンやプロバイダーが資格情報を取り消したことの証明ではありません。他のデバイスには異なるレコードが存在する可能性があります。</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>これらは、このデバイス上で作成されたスナップショット ジョブです。デスクトップとローカルの承認リクエストはここでは同期されません。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>これらは、アカウントのデバイスからの検証済みのバックアップです。このデバイスにコピーを保存するには、明示的に復元します。</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

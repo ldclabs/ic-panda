@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"और प्राप्त करें"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"रिसीवर का QR या कनेक्शन कोड"</string>
     <string name="nearby_receiving" formatted="false">"प्राप्ति"</string>
-    <string name="nearby_review_approval" formatted="false">"अनुमोदन की समीक्षा करें"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"स्नैपशॉट की समीक्षा करें और आयात करें"</string>
     <string name="nearby_scan_qr" formatted="false">"रिसीवर का QR कोड स्कैन करें"</string>
     <string name="nearby_select_vault_hint" formatted="false">"निकटवर्ती रिसीवर चुनने से पहले कम से कम एक फ़ील्ड, नोट या अटैचमेंट चुनें।"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"पहचान प्रबंधित करें"</string>
     <string name="security_unlock" formatted="false">"dMsg अनलॉक करें"</string>
     <string name="security_workspace" formatted="false">"इस डिवाइस का एन्क्रिप्टेड कार्यक्षेत्र खोलें"</string>
+    <string name="share_section" formatted="false">"साझा करें"</string>
+    <string name="share_to_another_app" formatted="false">"किसी अन्य ऐप में साझा करें"</string>
     <string name="shortcut_approvals" formatted="false">"स्वीकृतियाँ"</string>
     <string name="shortcut_files" formatted="false">"फ़ाइलें"</string>
     <string name="shortcut_imports" formatted="false">"साझा किए गए आइटम"</string>

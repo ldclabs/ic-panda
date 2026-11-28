@@ -1470,6 +1470,18 @@
   onOpen={(item) => {
     if (item.source.source === 'library') open(item.source.id, item.source.version ?? null)
   }}
+  onNearbyShare={(item) => {
+    if (item.source.source === 'library') {
+      lightboxOpen = false
+      openNearbySend([{ file_id: item.source.id, version_id: item.source.version ?? null, name: item.name, size: item.size }])
+    }
+  }}
+  onShareLink={standalone ? undefined : (item) => {
+    if (item.source.source === 'library') {
+      lightboxOpen = false
+      askLink(item.source.id, item.source.version ?? null, item.name, item.status === 'cloud_only')
+    }
+  }}
 />
 
 <NearbyShare

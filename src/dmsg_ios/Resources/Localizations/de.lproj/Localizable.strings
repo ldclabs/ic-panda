@@ -2792,6 +2792,8 @@
 	<string>Teilen Sie die Signaturen dieses Geräts mit den anderen Mitunterzeichnern oder importieren Sie deren Signaturen. Der Import sammelt nur Signaturen; das Ausführen ist ein eigener Schritt.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Teilen Sie diese Anfrage mit einem autorisierten Administrator. Es registriert oder genehmigt den Schlüssel nicht selbst.</string>
+	<key>Share to another app</key>
+	<string>Mit anderer App teilen</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Freigegebene Kopien verlassen den Schutz von dMsg und können nicht zurückgerufen werden.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>Das Wallet überprüft seine aktuellen Richtlinien und Genehmigungen. Für genau diesen Plan ist eine erforderliche Hardware-Signatur erforderlich.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Hierbei handelt es sich um lokale Beobachtungen, nicht um einen Sicherheitsscan oder um den Nachweis, dass ein Anbieter eine Zugangsberechtigung widerrufen hat. Andere Geräte können andere Datensätze haben.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Dabei handelt es sich um Snapshot-Jobs, die auf diesem Gerät erstellt wurden. Desktop-lokale Genehmigungsanfragen werden hier nicht synchronisiert.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Hierbei handelt es sich um verifizierte Backups von den Geräten Ihres Kontos. Explizit wiederherstellen, um eine Kopie auf diesem Gerät zu behalten.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

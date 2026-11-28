@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"รับเพิ่มเติม"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"คิวอาร์โค้ดหรือรหัสเชื่อมต่อของผู้รับ"</string>
     <string name="nearby_receiving" formatted="false">"กำลังรับ"</string>
-    <string name="nearby_review_approval" formatted="false">"ตรวจสอบการอนุมัติ"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"ตรวจสอบและนำเข้าสแนปช็อต"</string>
     <string name="nearby_scan_qr" formatted="false">"สแกนคิวอาร์โค้ดผู้รับ"</string>
     <string name="nearby_select_vault_hint" formatted="false">"เลือกอย่างน้อยหนึ่งฟิลด์ บันทึก หรือไฟล์แนบก่อนเลือกผู้รับใกล้เคียง"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"จัดการตัวตน"</string>
     <string name="security_unlock" formatted="false">"ปลดล็อก dMsg"</string>
     <string name="security_workspace" formatted="false">"เปิดพื้นที่ทำงานที่เข้ารหัสของอุปกรณ์นี้"</string>
+    <string name="share_section" formatted="false">"แชร์"</string>
+    <string name="share_to_another_app" formatted="false">"แชร์ไปยังแอปอื่น"</string>
     <string name="shortcut_approvals" formatted="false">"การอนุมัติ"</string>
     <string name="shortcut_files" formatted="false">"ไฟล์"</string>
     <string name="shortcut_imports" formatted="false">"รายการที่แชร์"</string>

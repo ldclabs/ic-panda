@@ -38,7 +38,8 @@
     collapsed,
     go,
     onToggleSidebar,
-    onShortcuts
+    onShortcuts,
+    onNearbyReceive
   }: {
     open?: boolean
     status: any
@@ -47,6 +48,7 @@
     go: (path: string) => void
     onToggleSidebar: () => void
     onShortcuts: () => void
+    onNearbyReceive?: () => void
   } = $props()
 
   interface Entry {
@@ -278,6 +280,7 @@
     const pages: Entry[] = settingsGroupsFor(status?.account_kind === 'local').flatMap(group => group.pages).map((page) => ({ label: `${t('settings')} › ${t(page.label)}`, value: `settings:${page.value}`, icon: page.icon, run: () => go(`/settings/${page.value}`) }))
     const step = nextStep(status)
     const offered: (Entry | null)[] = [
+      unlocked && onNearbyReceive ? { label: t('nearbyReceive'), icon: 'pair', run: onNearbyReceive } : null,
       unlocked ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock } : step ? { label: t(step.label), icon: step.icon, run: step.run } : null,
       status?.account ? { label: t('sync'), icon: 'sync-now', run: sync } : null,
       { label: t('checkUpdates'), icon: 'sync-now', run: checkUpdates },

@@ -33,6 +33,7 @@
   import NewItem from './vault/NewItem.svelte'
   import Row from './vault/Row.svelte'
   import NearbyShare from './NearbyShare.svelte'
+  import type { NearbyVaultSelection } from './nearby'
   import {
     facets as count,
     findingsByItem,
@@ -101,7 +102,7 @@
   let importing = $state(false)
   let backingUp = $state(false)
   let comparing = $state(false)
-  let nearby = $state<{ mode: 'receive' } | { mode: 'send-vault'; entryId: string; snapshot: any } | null>(null)
+  let nearby = $state<{ mode: 'receive' } | { mode: 'send-vault'; entryId: string; snapshot: any; presetSelection?: NearbyVaultSelection } | null>(null)
   let compareFrom = $state(0)
   let chosen = $state<Set<string>>(new Set())
   let limit = $state(PAGE)
@@ -712,7 +713,7 @@
     <ContextMenu.Item class={menuItemClass} onSelect={() => duplicate(entry)}>
       <span class="flex items-center gap-2"><Icon name="duplicate" class="text-faint" />{t('duplicate')}</span>
     </ContextMenu.Item>
-    <ContextMenu.Item class={menuItemClass} disabled={conflicted.has(entry.id)} onSelect={() => finishEditing(() => { nearby = { mode: 'send-vault', entryId: entry.id, snapshot: entry } })} data-testid="vault-row-nearby-share">
+    <ContextMenu.Item class={menuItemClass} disabled={conflicted.has(entry.id)} onSelect={() => finishEditing(() => go(`/vault/sharing?item=${entry.id}&mode=nearby`))} data-testid="vault-row-nearby-share">
       <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
     </ContextMenu.Item>
     {#if status?.account_kind !== 'local'}
@@ -745,7 +746,7 @@
         </div>
         <div class="min-h-0 flex-1">
           {#if unlocked}
-            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} onNearbyReceive={() => finishEditing(() => { nearby = { mode: 'receive' } })} /></Page>{/key}
+            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} standalone={status?.account_kind === 'local'} onNearbyReceive={() => finishEditing(() => { nearby = { mode: 'receive' } })} onNearbySend={(presetSelection, entryId) => { const snap = entries.find((e) => e.id === entryId); if (snap) nearby = { mode: 'send-vault', entryId, snapshot: snap, presetSelection } }} /></Page>{/key}
           {:else}<Locked {status} testid="vault-locked" />{/if}
         </div>
       </div>
@@ -911,7 +912,7 @@
         {#key current.id}
           <Inspector
             entry={current}
-            canShare={workflows.includes('sharing')}
+            canShare={status?.account_kind !== 'local'}
             conflict={conflicted.has(current.id)}
             {trash}
             {unlocked}
@@ -926,7 +927,6 @@
             onTrash={() => discard(current)}
             onCompare={() => compare(current.id)}
             onDuplicated={saved}
-            onNearbyShare={() => finishEditing(() => { nearby = { mode: 'send-vault', entryId: current.id, snapshot: current } })}
           />
         {/key}
       {:else if loaded}
@@ -948,6 +948,7 @@
   mode={nearby?.mode ?? 'receive'}
   vaultEntry={nearbyVaultEntry}
   vaultConflict={nearbyVaultConflict}
+  presetVaultSelection={nearby?.mode === 'send-vault' ? (nearby.presetSelection ?? null) : null}
 />
 
 <Dialog bind:open={() => leaving !== null, (next) => { if (!next) keepEditing() }} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"

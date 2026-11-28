@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Meer ontvangen"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"QR- of verbindingscode ontvanger"</string>
     <string name="nearby_receiving" formatted="false">"Ontvangen"</string>
-    <string name="nearby_review_approval" formatted="false">"Goedkeuring beoordelen"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Momentopname bekijken en importeren"</string>
     <string name="nearby_scan_qr" formatted="false">"QR-code ontvanger scannen"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Kies ten minste één veld, notitie of bijlage voordat je een ontvanger in de buurt kiest."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Een identiteit beheren"</string>
     <string name="security_unlock" formatted="false">"dMsg ontgrendelen"</string>
     <string name="security_workspace" formatted="false">"De versleutelde werkruimte van dit apparaat openen"</string>
+    <string name="share_section" formatted="false">"Delen"</string>
+    <string name="share_to_another_app" formatted="false">"Delen met andere app"</string>
     <string name="shortcut_approvals" formatted="false">"Goedkeuringen"</string>
     <string name="shortcut_files" formatted="false">"Bestanden"</string>
     <string name="shortcut_imports" formatted="false">"Gedeelde items"</string>

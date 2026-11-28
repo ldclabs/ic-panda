@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,117 +36,220 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     val current by client.secretSharing.draft.collectAsStateWithLifecycle()
     val channels by client.messages.channels.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
+    val nearbyStatus by client.nearby.status.collectAsStateWithLifecycle()
+    val peers by client.nearby.peers.collectAsStateWithLifecycle()
+    val browsing by client.nearby.browsing.collectAsStateWithLifecycle()
+    val nearbyError by client.nearby.error.collectAsStateWithLifecycle()
+    val localDenied by client.nearby.localNetworkDenied.collectAsStateWithLifecycle()
+    val qr by client.qr.state.collectAsStateWithLifecycle()
+
     val draft = current?.takeIf { it.source.item.id == id }
     var destination by remember { mutableStateOf(false) }
     var discard by remember { mutableStateOf(false) }
     var limitsOpen by remember(id) { mutableStateOf(false) }
+    var previousSend by remember(id) { mutableStateOf(nearbyStatus?.send?.takeUnless { it.active }?.id) }
+    val send = nearbyStatus?.send?.takeUnless { it.id == previousSend }
+    val nearbyMode = draft?.nearby == true
+    val nearbyActive = nearbyMode && send?.active == true
+    val nearbyBusy = state.working("nearby:send:start") || state.working("nearby:send:sas")
+    var offerText by remember(id) { mutableStateOf("") }
+    var shareIdentity by remember(id) { mutableStateOf(false) }
+
+    val view = LocalView.current
+    DisposableEffect(view, nearbyActive) { view.keepScreenOn = nearbyActive; onDispose { view.keepScreenOn = false } }
+    DisposableEffect(nearbyMode) {
+        if (nearbyMode) client.nearby.startBrowse()
+        onDispose {
+            if (nearbyMode) {
+                client.nearby.stopBrowse()
+                if (client.nearby.status.value?.send?.active == true) client.nearby.cancelSend()
+            }
+        }
+    }
     LaunchedEffect(id) { client.secretSharing.composer(id, initialChannel) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (draft == null) ReadFeedback(source) { client.secretSharing.composer(id, initialChannel) }
-        draft?.let { value ->
-            val item = value.source.item
-            val working = state.working("secret:prepare:" + value.id)
-            val enabled = !working && value.prepared == null && !value.uncertain
-            if (value.uncertain) Notice(str(R.string.text_preparation_did_not_return_a_confirmed_result_check_the_saved_sna_01a2b53), true)
-            DetailCard {
-                Text(item.title, style = MaterialTheme.typography.titleLarge)
-                Text(str(R.string.text_choose_the_exact_content_of_this_independent_snapshot_editing_the_a26f334),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box(Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { destination = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-                        Icon(if (value.channel == null) Icons.Outlined.Link else Icons.Outlined.Forum, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(value.channel?.let { channelId -> channels.valueOrNull()?.find { it.id == channelId }?.name ?: channelId } ?: str(R.string.text_share_link_b335ffa))
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Outlined.ArrowDropDown, null)
-                    }
-                    DropdownMenu(destination, { destination = false }) {
-                        DropdownMenuItem(
-                            text = { Text(str(R.string.text_share_link_b335ffa)) },
-                            leadingIcon = { Icon(Icons.Outlined.Link, null) },
-                            onClick = { destination = false; client.secretSharing.edit { it.copy(channel = null) } },
-                        )
-                        channels.valueOrNull().orEmpty().filter { it.canPublish }.forEach { channel ->
-                            DropdownMenuItem(
-                                text = { Text(channel.name) },
-                                leadingIcon = { Icon(Icons.Outlined.Forum, null) },
-                                onClick = { destination = false; client.secretSharing.edit { it.copy(channel = channel.id) } },
-                            )
-                        }
-                    }
-                }
-                if (value.channel != null) Text(str(R.string.text_members_with_access_to_this_channel_epoch_including_later_history_a29d046),
-                    style = MaterialTheme.typography.bodyMedium)
-            }
-            val selectableFields = item.fields.filter { it.value.isNotEmpty() }
-            if (selectableFields.isNotEmpty() || item.notes.isNotEmpty()) {
-                val sharesOtp = selectableFields.any { it.kind == "otp" && it.id in value.fields }
-                Section(
-                    title = str(R.string.text_select_fields_to_share_290fe99),
-                    footer = if (sharesOtp) str(R.string.text_selected_otp_fields_include_the_reusable_seed_not_just_a_current_4a6ddda) else null,
-                ) {
-                    selectableFields.forEach { field ->
-                        SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in value.fields, enabled, field.section.takeIf(String::isNotEmpty)) { checked ->
-                            client.secretSharing.edit { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) }
-                        }
-                    }
-                    if (item.notes.isNotEmpty()) SelectionRow(str(R.string.text_include_notes_bab8a75), value.notes, enabled) { checked ->
-                        client.secretSharing.edit { it.copy(notes = checked) }
-                    }
+    LaunchedEffect(qr.result) {
+        client.qr.consume("nearby-send-vault")?.let { scanned ->
+            offerText = scanned
+            val activeDraft = client.secretSharing.draft.value?.takeIf { it.source.item.id == id && it.nearby && it.selected }
+            if (activeDraft != null) {
+                runCatching { activeDraft.input() }.getOrNull()?.let { input ->
+                    client.nearby.sendVault(scanned, null, input, shareIdentity)
                 }
             }
-            if (value.source.attachments.files.isNotEmpty()) {
-                Section(title = str(R.string.text_select_attachments_to_share_2dbaa0d)) {
-                    value.source.attachments.files.forEach { entry ->
-                        SelectionRow(entry.details?.file?.name ?: str(R.string.text_attachment_unavailable_on_this_device_ede9476), entry.id in value.attachments, enabled && entry.selectable,
-                            entry.details?.file?.let { fileSize(it.size) + " · " + it.version } ?: entry.id) { checked ->
-                            client.secretSharing.edit { it.copy(attachments = if (checked) it.attachments + entry.id else it.attachments - entry.id) }
-                        }
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (draft == null) ReadFeedback(source) { client.secretSharing.composer(id, initialChannel) }
+            draft?.let { value ->
+                val item = value.source.item
+                val working = state.working("secret:prepare:" + value.id)
+                val enabled = !working && !nearbyActive && !nearbyBusy && value.prepared == null && !value.uncertain
+                val canCloudShare = state.session?.accountKind != "local" && item.saveState != "local_only"
+                if (value.uncertain) Notice(str(R.string.text_preparation_did_not_return_a_confirmed_result_check_the_saved_sna_01a2b53), true)
+                if (value.nearby) {
+                    val banner = when {
+                        nearbyError != null -> errorText(nearbyError!!)
+                        localDenied -> str(R.string.nearby_local_network_denied)
+                        else -> null
                     }
+                    banner?.let { Notice(it, true) }
                 }
-            }
-            if (value.channel == null) {
-                val durations = listOf(3_600_000uL to str(R.string.text_1_hour_0ac0bd6), 86_400_000uL to str(R.string.text_1_day_2c85bc8), 604_800_000uL to str(R.string.text_7_days_bd55de3))
-                Section {
-                    ListRow(
-                        headline = str(R.string.text_link_limits_653a1af),
-                        supporting = durations.first { it.first == value.lifetime }.second + " · " + str(R.string.text_downloads_35a65b7) + " " + value.sessions,
-                        icon = Icons.Outlined.Tune,
-                        trailing = { Icon(if (limitsOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) },
-                    ) { limitsOpen = !limitsOpen }
-                }
-                if (limitsOpen) {
+                if (value.nearby && send != null && (send.active || send.state in setOf("done", "failed"))) {
+                    NearbySendProgressPanel(client, send)
+                    if (send.state == "failed") {
+                        Button(onClick = { previousSend = send.id }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.nearby_start_again)) }
+                    }
+                } else {
                     DetailCard {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            durations.forEach { (duration, title) ->
-                                FilterChip(value.lifetime == duration, { client.secretSharing.edit { it.copy(lifetime = duration) } }, { Text(title) }, enabled = enabled)
+                        Text(item.title, style = MaterialTheme.typography.titleLarge)
+                        Text(str(R.string.text_choose_the_exact_content_of_this_independent_snapshot_editing_the_a26f334),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (canCloudShare) {
+                            Box(Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { destination = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                                    Icon(when {
+                                        value.nearby -> Icons.Outlined.WifiTethering
+                                        value.channel != null -> Icons.Outlined.Forum
+                                        else -> Icons.Outlined.Link
+                                    }, null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(when {
+                                        value.nearby -> str(R.string.nearby_share)
+                                        value.channel != null -> channels.valueOrNull()?.find { it.id == value.channel }?.name ?: value.channel
+                                        else -> str(R.string.text_share_link_b335ffa)
+                                    })
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(Icons.Outlined.ArrowDropDown, null)
+                                }
+                                DropdownMenu(destination, { destination = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text(str(R.string.text_share_link_b335ffa)) },
+                                        leadingIcon = { Icon(Icons.Outlined.Link, null) },
+                                        onClick = { destination = false; client.secretSharing.edit { it.copy(channel = null, nearby = false) } },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(str(R.string.nearby_share)) },
+                                        leadingIcon = { Icon(Icons.Outlined.WifiTethering, null) },
+                                        onClick = { destination = false; client.secretSharing.edit { it.copy(channel = null, nearby = true) } },
+                                    )
+                                    channels.valueOrNull().orEmpty().filter { it.canPublish }.forEach { channel ->
+                                        DropdownMenuItem(
+                                            text = { Text(channel.name) },
+                                            leadingIcon = { Icon(Icons.Outlined.Forum, null) },
+                                            onClick = { destination = false; client.secretSharing.edit { it.copy(channel = channel.id, nearby = false) } },
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            LabelValue(str(R.string.text_destination_843a557).trimEnd(' ', '·', ':'), str(R.string.nearby_share))
+                        }
+                        if (value.channel != null) Text(str(R.string.text_members_with_access_to_this_channel_epoch_including_later_history_a29d046),
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    val selectableFields = item.fields.filter { it.value.isNotEmpty() }
+                    if (selectableFields.isNotEmpty() || item.notes.isNotEmpty()) {
+                        val sharesOtp = selectableFields.any { it.kind == "otp" && it.id in value.fields }
+                        Section(
+                            title = str(R.string.text_select_fields_to_share_290fe99),
+                            footer = if (sharesOtp) str(R.string.text_selected_otp_fields_include_the_reusable_seed_not_just_a_current_4a6ddda) else null,
+                        ) {
+                            selectableFields.forEach { field ->
+                                SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in value.fields, enabled, field.section.takeIf(String::isNotEmpty)) { checked ->
+                                    client.secretSharing.edit { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) }
+                                }
+                            }
+                            if (item.notes.isNotEmpty()) SelectionRow(str(R.string.text_include_notes_bab8a75), value.notes, enabled) { checked ->
+                                client.secretSharing.edit { it.copy(notes = checked) }
                             }
                         }
-                        OutlinedTextField(value.sessions, { input -> client.secretSharing.edit { it.copy(sessions = input.take(3)) } }, Modifier.fillMaxWidth(), enabled = enabled,
-                            label = { Text(str(R.string.text_download_sessions_1_100_1169f0a)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
-                            isError = value.sessions.toIntOrNull() !in 1..100)
-                        SecretTextField(value.password, { password -> client.secretSharing.edit { it.copy(password = password) } }, str(R.string.text_optional_password_cc1611b), enabled = enabled)
-                        Text(str(R.string.text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376),
+                    }
+                    if (value.source.attachments.files.isNotEmpty()) {
+                        Section(title = str(R.string.text_select_attachments_to_share_2dbaa0d)) {
+                            value.source.attachments.files.forEach { entry ->
+                                SelectionRow(entry.details?.file?.name ?: str(R.string.text_attachment_unavailable_on_this_device_ede9476), entry.id in value.attachments, enabled && entry.selectable,
+                                    entry.details?.file?.let { fileSize(it.size) + " · " + it.version } ?: entry.id) { checked ->
+                                    client.secretSharing.edit { it.copy(attachments = if (checked) it.attachments + entry.id else it.attachments - entry.id) }
+                                }
+                            }
+                        }
+                    }
+                    if (value.nearby) {
+                        if (value.selected) {
+                            NearbyTargetPicker(
+                                peers = peers,
+                                browsing = browsing,
+                                busy = nearbyBusy,
+                                offerText = offerText,
+                                onOfferChange = { offerText = it.take(4096) },
+                                shareIdentity = shareIdentity,
+                                onShareIdentityChange = { shareIdentity = it },
+                                onScanQr = { client.qr.open("nearby-send-vault") },
+                                onSendOffer = { runCatching { value.input() }.getOrNull()?.let { input -> client.nearby.sendVault(offerText.trim(), null, input, shareIdentity) } },
+                                onSendPeer = { peer -> runCatching { value.input() }.getOrNull()?.let { input -> client.nearby.sendVault(null, peer, input, shareIdentity) } },
+                            )
+                        } else {
+                            Text(
+                                str(R.string.nearby_select_vault_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        if (value.channel == null) {
+                            val durations = listOf(3_600_000uL to str(R.string.text_1_hour_0ac0bd6), 86_400_000uL to str(R.string.text_1_day_2c85bc8), 604_800_000uL to str(R.string.text_7_days_bd55de3))
+                            Section {
+                                ListRow(
+                                    headline = str(R.string.text_link_limits_653a1af),
+                                    supporting = durations.first { it.first == value.lifetime }.second + " · " + str(R.string.text_downloads_35a65b7) + " " + value.sessions,
+                                    icon = Icons.Outlined.Tune,
+                                    trailing = { Icon(if (limitsOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) },
+                                ) { limitsOpen = !limitsOpen }
+                            }
+                            if (limitsOpen) {
+                                DetailCard {
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        durations.forEach { (duration, title) ->
+                                            FilterChip(value.lifetime == duration, { client.secretSharing.edit { it.copy(lifetime = duration) } }, { Text(title) }, enabled = enabled)
+                                        }
+                                    }
+                                    OutlinedTextField(value.sessions, { input -> client.secretSharing.edit { it.copy(sessions = input.take(3)) } }, Modifier.fillMaxWidth(), enabled = enabled,
+                                        label = { Text(str(R.string.text_download_sessions_1_100_1169f0a)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                                        isError = value.sessions.toIntOrNull() !in 1..100)
+                                    SecretTextField(value.password, { password -> client.secretSharing.edit { it.copy(password = password) } }, str(R.string.text_optional_password_cc1611b), enabled = enabled)
+                                    Text(str(R.string.text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        Text(str(R.string.text_deliver_an_independent_snapshot_of_this_exact_selection_9c08d03),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(onClick = client.secretSharing::prepare, enabled = !working && (value.prepared != null || value.uncertain || value.selected && (value.channel != null || value.sessions.toIntOrNull() in 1..100)), modifier = Modifier.fillMaxWidth()) {
+                            Text(when {
+                                value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc)
+                                value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78)
+                                value.channel != null -> str(R.string.text_send_06acd73)
+                                else -> str(R.string.text_create_link_2ae3b5b)
+                            })
+                        }
+                        if (working) {
+                            LinearProgressIndicator(Modifier.fillMaxWidth())
+                            TextButton(onClick = { client.cancelOperation("secret:prepare:" + value.id) }) { Text(str(R.string.text_cancel_preparation_d0c1253)) }
+                        }
+                        TextButton(onClick = { discard = true }, enabled = !working) {
+                            Text(str(R.string.text_discard_form_9141552), color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }
-            Text(str(R.string.text_deliver_an_independent_snapshot_of_this_exact_selection_9c08d03),
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = client.secretSharing::prepare, enabled = !working && (value.prepared != null || value.uncertain || value.selected && (value.channel != null || value.sessions.toIntOrNull() in 1..100)), modifier = Modifier.fillMaxWidth()) {
-                Text(when {
-                    value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc)
-                    value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78)
-                    value.channel != null -> str(R.string.text_send_06acd73)
-                    else -> str(R.string.text_create_link_2ae3b5b)
-                })
-            }
-            if (working) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-                TextButton(onClick = { client.cancelOperation("secret:prepare:" + value.id) }) { Text(str(R.string.text_cancel_preparation_d0c1253)) }
-            }
-            TextButton(onClick = { discard = true }, enabled = !working) {
-                Text(str(R.string.text_discard_form_9141552), color = MaterialTheme.colorScheme.error)
+        }
+        if (nearbyActive) {
+            BottomActionBar {
+                OutlinedButton(onClick = client.nearby::cancelSend, modifier = Modifier.fillMaxWidth()) {
+                    Text(str(R.string.text_cancel_998b9c4))
+                }
             }
         }
     }

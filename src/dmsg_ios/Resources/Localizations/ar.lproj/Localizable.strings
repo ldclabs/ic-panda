@@ -2792,6 +2792,8 @@
 	<string>شارك توقيعات هذا الجهاز مع المشاركين الآخرين في التوقيع، أو استورد توقيعاتهم. الاستيراد يجمع التوقيعات فقط؛ والتنفيذ خطوة منفصلة.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>شارك هذا الطلب مع مسؤول مخوّل. الطلب وحده لا يسجّل المفتاح ولا يوافق عليه.</string>
+	<key>Share to another app</key>
+	<string>مشاركة إلى تطبيق آخر</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>تخرج النسخ المشتركة من نطاق حماية dMsg ولا يمكن سحبها.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>تتحقق المحفظة من سياستها وموافقاتها الحالية. ويُطلب التوقيع العتادي اللازم لهذه الخطة المحددة.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>هذه ملاحظات محلية، وليست فحصًا للتسريبات أو دليلًا على إبطال المزود لبيانات الاعتماد. قد تختلف السجلات على الأجهزة الأخرى.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>هذه مهام اللقطات المنشأة على هذا الجهاز. لا تتم مزامنة طلبات الموافقة المحلية على الحاسوب هنا.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>هذه نسخ احتياطية تم التحقق منها من أجهزة حسابك. اختر الاستعادة صراحةً للاحتفاظ بنسخة على هذا الجهاز.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

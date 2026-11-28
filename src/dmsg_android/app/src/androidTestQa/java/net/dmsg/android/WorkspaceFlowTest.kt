@@ -1341,7 +1341,7 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("files", id = local.id, revision = "missing-version")) }
         compose.waitUntil(10_000) { client.library.detail.state.value is ReadState.Ready }
         compose.onNodeWithText("The requested version is unavailable on this device. Choose another version explicitly.").assertExists()
-        compose.onNodeWithText("Share a verified copy").assertDoesNotExist()
+        compose.onNodeWithText("Share to another app").assertDoesNotExist()
         capture("qa-file-version-missing")
         compose.onNodeWithText("View the current version").performClick()
         compose.onNodeWithText(local.name).assertExists()

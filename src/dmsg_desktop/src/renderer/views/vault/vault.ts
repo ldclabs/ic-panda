@@ -27,7 +27,7 @@ export type Templates = Record<string, { fields: { id: string; type: FieldType }
 /** The types in the order the filters and the new-item dialog offer them. */
 /** The parts of what stored secrets are used for, each a route under /vault. */
 export function vaultWorkflows(local: boolean): string[] {
-  return local ? ['mounts', 'health'] : ['policies', 'mounts', 'ssh', 'sharing', 'receive', 'health', 'activity']
+  return local ? ['mounts', 'sharing', 'health'] : ['policies', 'mounts', 'ssh', 'sharing', 'receive', 'health', 'activity']
 }
 export const workflowIcon: Record<string, Glyph> = {
   policies: 'security',

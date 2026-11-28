@@ -10010,10 +10010,6 @@
     "en": "Review and import snapshot",
     "ios": "Review and import snapshot"
   },
-  "nearby_review_approval": {
-    "en": "Review approval",
-    "ios": "Review approval"
-  },
   "nearby_scan_qr": {
     "en": "Scan receiver QR code",
     "ios": "Scan receiver QR code"
@@ -10077,5 +10073,13 @@
   "nearby_waiting_sender": {
     "en": "Waiting for sender…",
     "ios": "Waiting for sender…"
+  },
+  "share_section": {
+    "en": "Share",
+    "ios": "Share"
+  },
+  "share_to_another_app": {
+    "en": "Share to another app",
+    "ios": "Share to another app"
   }
 }

@@ -12,7 +12,7 @@ data class SecretShareJob(val id: String, val state: String, val title: String, 
     val uploaded: ULong, val chunks: ULong, val cancelRequested: Boolean, val nearby: SnapshotNearby? = null)
 data class SnapshotSource(val item: VaultItem, val attachments: SecretAttachments)
 data class SnapshotDraft(val id: String = UUID.randomUUID().toString(), val source: SnapshotSource, val fields: Set<String> = emptySet(), val notes: Boolean = false,
-    val attachments: Set<String> = emptySet(), val channel: String? = null, val lifetime: ULong = 86_400_000u, val sessions: String = "1", val password: String = "",
+    val attachments: Set<String> = emptySet(), val channel: String? = null, val nearby: Boolean = false, val lifetime: ULong = 86_400_000u, val sessions: String = "1", val password: String = "",
     val prepared: String? = null, val uncertain: Boolean = false) {
     val selected: Boolean get() = fields.isNotEmpty() || notes || attachments.isNotEmpty()
     fun input(): SecretSnapshotInput {
@@ -22,8 +22,9 @@ data class SnapshotDraft(val id: String = UUID.randomUUID().toString(), val sour
             check(entry.selectable) { "RECOVERY_INCOMPLETE" }
             SecretAttachmentSelection(id, entry.details!!.file.version)
         }
-        val count = if (channel == null) sessions.toULongOrNull()?.takeIf { it in 1uL..100uL } ?: error("INVALID_SESSIONS") else null
-        return SecretSnapshotInput(source.item.id, source.item.revision, source.item.fields.map { it.id }.filter(fields::contains), notes, chosen, if (channel == null) lifetime else null, count)
+        val linkOnly = !nearby && channel == null
+        val count = if (linkOnly) sessions.toULongOrNull()?.takeIf { it in 1uL..100uL } ?: error("INVALID_SESSIONS") else null
+        return SecretSnapshotInput(source.item.id, source.item.revision, source.item.fields.map { it.id }.filter(fields::contains), notes, chosen, if (linkOnly) lifetime else null, count)
     }
 }
 data class PackageField(val id: String, val kind: String, val label: String, val section: String?, val role: String? = null)
@@ -83,6 +84,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
         if (mutableDraft.value?.source?.item?.id == item) return
         val request = source.begin(false)
         mutableDraft.value = null
+        val localAccount = client.state.value.session?.accountKind == "local"
         client.perform({ core ->
             val value = core.vaultItem(item, null).item
             val attachments = parseSecretAttachments(core.secretItemAttachments(item).decode())
@@ -91,15 +93,17 @@ class SecretSharingCoordinator(private val client: ClientController) {
             SnapshotSource(value, attachments)
         }, key = "secret:compose", replace = true, onError = { source.fail(request, it) }) {
             source.accept(request, it)
+            val nearbyOnly = localAccount || it.item.saveState == "local_only"
             mutableDraft.value = SnapshotDraft(
                 source = it,
                 fields = it.item.fields.filter { f -> f.value.isNotEmpty() }.mapTo(linkedSetOf()) { f -> f.id },
                 notes = it.item.notes.isNotEmpty(),
                 attachments = it.attachments.files.filter { a -> a.selectable }.mapTo(linkedSetOf()) { a -> a.id },
-                channel = channel,
+                channel = if (nearbyOnly) null else channel,
+                nearby = nearbyOnly,
             )
         }
-        client.messages.browse()
+        if (!localAccount) client.messages.browse()
     }
 
     fun edit(change: (SnapshotDraft) -> SnapshotDraft) {
@@ -107,11 +111,16 @@ class SecretSharingCoordinator(private val client: ClientController) {
         val current = mutableDraft.value ?: return
         if (client.state.value.working("secret:prepare:" + current.id) || current.prepared != null || current.uncertain) return
         val next = change(current)
-        mutableDraft.value = if (next.channel != null) next.copy(password = "") else next
+        mutableDraft.value = when {
+            next.nearby -> next.copy(channel = null, password = "")
+            next.channel != null -> next.copy(password = "")
+            else -> next
+        }
     }
 
     fun prepare() {
         val current = mutableDraft.value ?: return
+        if (current.nearby) return
         current.prepared?.let { client.navigation.push(Route("secret-share", it)); return }
         if (current.uncertain) { client.navigation.open("secret-shares"); return }
         if (client.state.value.working("secret:prepare:" + current.id)) return

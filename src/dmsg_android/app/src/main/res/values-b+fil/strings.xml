@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Tumanggap pa"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"QR o code ng koneksyon ng tatanggap"</string>
     <string name="nearby_receiving" formatted="false">"Tumatanggap"</string>
-    <string name="nearby_review_approval" formatted="false">"Suriin ang pag-apruba"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Suriin at i-import ang snapshot"</string>
     <string name="nearby_scan_qr" formatted="false">"I-scan ang QR code ng tatanggap"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Pumili ng kahit isang field, tala o attachment bago pumili ng tatanggap sa malapit."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Pamahalaan ang isang identidad"</string>
     <string name="security_unlock" formatted="false">"I-unlock ang dMsg"</string>
     <string name="security_workspace" formatted="false">"Buksan ang naka-encrypt na workspace ng device na ito"</string>
+    <string name="share_section" formatted="false">"Ibahagi"</string>
+    <string name="share_to_another_app" formatted="false">"Ibahagi sa ibang app"</string>
     <string name="shortcut_approvals" formatted="false">"Mga pag-apruba"</string>
     <string name="shortcut_files" formatted="false">"Mga file"</string>
     <string name="shortcut_imports" formatted="false">"Mga ibinahaging item"</string>

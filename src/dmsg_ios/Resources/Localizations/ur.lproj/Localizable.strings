@@ -2792,6 +2792,8 @@
 	<string>اس آلے کے دستخط دوسرے مشترکہ دستخط کنندگان کے ساتھ شیئر کریں، یا ان کے دستخط درآمد کریں۔ درآمد صرف دستخط جمع کرتی ہے؛ عمل درآمد ایک الگ مرحلہ ہے۔</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>اس درخواست کو کسی مجاز منتظم کے ساتھ شیئر کریں۔ یہ خود سے کلید کو رجسٹر یا منظور نہیں کرتا ہے۔</string>
+	<key>Share to another app</key>
+	<string>دوسری ایپ میں شیئر کریں</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>مشترکہ کاپیاں dMsg کا تحفظ چھوڑ دیتی ہیں اور انہیں واپس نہیں بلایا جا سکتا۔</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>پرس اپنی موجودہ پالیسی اور منظوریوں کو چیک کرتا ہے۔ اس قطعی منصوبے کے لیے مطلوبہ ہارڈویئر دستخط کی درخواست کی گئی ہے۔</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>یہ مقامی مشاہدات ہیں، خلاف ورزی کا اسکین یا ثبوت نہیں کہ فراہم کنندہ نے سند کو منسوخ کر دیا ہے۔ دوسرے آلات میں مختلف ریکارڈ ہو سکتے ہیں۔</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>یہ اسنیپ شاٹ جابز ہیں جو اس ڈیوائس پر بنائی گئی ہیں۔ ڈیسک ٹاپ-مقامی منظوری کی درخواستیں یہاں مطابقت پذیر نہیں ہیں۔</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>یہ آپ کے اکاؤنٹ کے آلات سے تصدیق شدہ بیک اپس ہیں۔ اس آلہ پر ایک کاپی رکھنے کے لیے واضح طور پر بحال کریں۔</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

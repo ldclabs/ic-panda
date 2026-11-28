@@ -2792,6 +2792,8 @@
 	<string>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Share this request with an authorized administrator. It does not register or approve the key by itself.</string>
+	<key>Share to another app</key>
+	<string>Share to another app</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Shared copies leave dMsg's protection and cannot be recalled.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

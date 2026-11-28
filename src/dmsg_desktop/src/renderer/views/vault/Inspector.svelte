@@ -44,8 +44,7 @@
     onTrash,
     go,
     onCompare,
-    onDuplicated,
-    onNearbyShare
+    onDuplicated
   }: {
     entry: any
     canShare: boolean
@@ -63,7 +62,6 @@
     go: (path: string) => void
     onCompare: () => void
     onDuplicated: (id: string) => void
-    onNearbyShare?: () => void
   } = $props()
 
   let editError = $state('')
@@ -240,12 +238,9 @@
             <Icon name="restore" />{t('restore')}
           </button>
         {:else if !managed}
-          {#if onNearbyShare}<button class={buttonClass('ghost', 'md')} disabled={busy || conflict} onclick={onNearbyShare} data-testid="vault-nearby-share">
-            <Icon name="transfer" />{t('nearbyShare')}
-          </button>{/if}
-          {#if canShare}<button class={buttonClass('ghost', 'md')} disabled={busy || conflict} onclick={() => go(`/vault/sharing?item=${entry.id}`)} data-testid="vault-share">
+          <button class={buttonClass('ghost', 'md')} disabled={busy || conflict} onclick={() => go(canShare ? `/vault/sharing?item=${entry.id}` : `/vault/sharing?item=${entry.id}&mode=nearby`)} data-testid="vault-share">
             <Icon name="send" />{t('share')}
-          </button>{/if}
+          </button>
           <button class={buttonClass('ghost', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
             <Icon name="edit" />{t('edit')}
           </button>

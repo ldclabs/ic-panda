@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"Recibir más"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"Código QR o de conexión del receptor"</string>
     <string name="nearby_receiving" formatted="false">"Recepción"</string>
-    <string name="nearby_review_approval" formatted="false">"Revisar aprobación"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"Revisar e importar instantánea"</string>
     <string name="nearby_scan_qr" formatted="false">"Escanear código QR del receptor"</string>
     <string name="nearby_select_vault_hint" formatted="false">"Elige al menos un campo, nota o adjunto antes de seleccionar un receptor cercano."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"Gestionar una identidad"</string>
     <string name="security_unlock" formatted="false">"Desbloquear dMsg"</string>
     <string name="security_workspace" formatted="false">"Abrir el espacio de trabajo cifrado de este dispositivo"</string>
+    <string name="share_section" formatted="false">"Compartir"</string>
+    <string name="share_to_another_app" formatted="false">"Compartir en otra app"</string>
     <string name="shortcut_approvals" formatted="false">"Aprobaciones"</string>
     <string name="shortcut_files" formatted="false">"Archivos"</string>
     <string name="shortcut_imports" formatted="false">"Elementos compartidos"</string>

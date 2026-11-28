@@ -46,7 +46,8 @@
     type NearbyPeerIdentity,
     type NearbyReceiveView,
     type NearbySendView,
-    type NearbyStatus
+    type NearbyStatus,
+    type NearbyVaultSelection
   } from './nearby'
 
   /**
@@ -60,6 +61,7 @@
     files = [],
     vaultEntry = null,
     vaultConflict = false,
+    presetVaultSelection = null,
     initialFolder = ROOT
   }: {
     open?: boolean
@@ -67,6 +69,7 @@
     files?: NearbyFileRef[]
     vaultEntry?: any | null
     vaultConflict?: boolean
+    presetVaultSelection?: NearbyVaultSelection | null
     initialFolder?: string
   } = $props()
 
@@ -125,14 +128,15 @@
   const vaultHasNotes = $derived(mode === 'send-vault' && Boolean(vaultEntry?.item?.notes))
   const vaultSelection = $derived(
     mode === 'send-vault'
-      ? buildVaultSendSelection(
-          vaultEntry,
-          vaultConflict,
-          selectedFields,
-          includeNotes,
-          selectedAttachments,
-          attachmentDetails
-        )
+      ? (presetVaultSelection ??
+          buildVaultSendSelection(
+            vaultEntry,
+            vaultConflict,
+            selectedFields,
+            includeNotes,
+            selectedAttachments,
+            attachmentDetails
+          ))
       : null
   )
   const offerError = $derived(
@@ -886,6 +890,17 @@
         {:else if mode === 'send-vault'}
           {#if vaultBlocked}
             <Notice tone="warn" testid="nearby-vault-blocked">{ux('blockedSource')}</Notice>
+          {:else if presetVaultSelection && vaultEntry}
+            <div class="grid gap-1 rounded-xl border border-line bg-surface-2 p-3 text-callout" data-testid="nearby-vault-preset">
+              <span class="font-medium text-ink">{vaultEntry.item?.title}</span>
+              <span class="text-muted">
+                {[
+                  presetVaultSelection.field_ids.length ? `${presetVaultSelection.field_ids.length} ${t('content')}` : '',
+                  presetVaultSelection.include_notes ? w('notes') : '',
+                  presetVaultSelection.attachments.length ? `${presetVaultSelection.attachments.length} ${t('files')}` : ''
+                ].filter(Boolean).join(' · ')}
+              </span>
+            </div>
           {:else if vaultEntry}
             <fieldset class="grid gap-2 rounded-xl border border-line bg-surface-2 p-3" disabled={busy} data-testid="nearby-vault-selection">
               <legend class="px-1 text-callout font-medium text-muted">{t('content')}</legend>

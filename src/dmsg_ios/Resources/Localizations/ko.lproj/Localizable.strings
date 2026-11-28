@@ -2792,6 +2792,8 @@
 	<string>이 기기의 서명을 다른 공동 서명자와 공유하거나 그들의 서명을 가져옵니다. 가져오기는 서명만 수집하며 실행은 별도의 단계입니다.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>이 요청을 승인된 관리자와 공유하세요. 자체적으로 키를 등록하거나 승인하지 않습니다.</string>
+	<key>Share to another app</key>
+	<string>다른 앱으로 공유</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>공유 사본은 dMsg의 보호를 벗어나며 회수할 수 없습니다.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>지갑은 현재 정책과 승인을 확인합니다. 이 정확한 계획을 위해서는 필수 하드웨어 서명이 요청됩니다.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>이는 위반 스캔이나 공급자가 자격 증명을 취소했다는 증거가 아닌 로컬 관찰입니다. 다른 장치에는 다른 기록이 있을 수 있습니다.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>이 장치에서 생성된 스냅샷 작업입니다. 데스크톱-로컬 승인 요청은 여기에서 동기화되지 않습니다.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>이는 계정 기기에서 확인된 백업입니다. 이 장치에 복사본을 보관하려면 명시적으로 복원하세요.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

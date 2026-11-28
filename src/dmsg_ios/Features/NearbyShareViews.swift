@@ -331,151 +331,8 @@ struct NearbySendFilesSheet: View {
     }
 }
 
-/// Foreground send sheet for sharing a Vault snapshot (`dmsg-secret-package/1`) nearby.
-struct NearbySendVaultSheet: View {
-    let item: VaultItem
-    @Environment(SessionModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedFields: Set<String> = []
-    @State private var includeNotes = false
-    @State private var selectedAttachments: Set<String> = []
-    @State private var attachmentsTouched = false
-    @State private var initializedSelection = false
-    @State private var attachmentDetails: [String: LibraryDetails] = [:]
-    @State private var offerText = ""
-    @State private var shareIdentity = false
-    @State private var scanning = false
-    @State private var cameraDenied = false
-
-    private var nearby: NearbyShareModel { model.nearbyShare }
-    @State private var previousSend: UInt64?
-    private var send: NearbyShareModel.SendStatus? {
-        guard let send = nearby.status?.send, send.id != previousSend else { return nil }
-        return send
-    }
-    private var populatedFields: [VaultField] { item.fields.filter { !$0.value.isEmpty } }
-    private var hasSelection: Bool { !selectedFields.isEmpty || includeNotes || !selectedAttachments.isEmpty }
-
-    var body: some View {
-        Form {
-            if let err = nearby.error {
-                NoticeBar(text: err)
-            }
-            if let send, send.active || send.state == "done" || send.state == "failed" {
-                NearbySendProgressSection(send: send)
-                if send.state == "failed" { SettingsAction("Start again", prominent: true) { previousSend = send.id } }
-            } else {
-                Section("Select fields to share") {
-                    ForEach(populatedFields, id: \.id) { field in
-                        Toggle(field.label.isEmpty ? vaultFieldName(field.id) : field.label, isOn: Binding(
-                            get: { selectedFields.contains(field.id) },
-                            set: { if $0 { selectedFields.insert(field.id) } else { selectedFields.remove(field.id) } }
-                        )).accessibilityIdentifier("nearby.field.\(field.id)")
-                    }
-                    if !item.notes.isEmpty {
-                        Toggle("Notes", isOn: $includeNotes)
-                    }
-                }
-                if !item.files.isEmpty {
-                    Section("Select attachments to share") {
-                        ForEach(item.files, id: \.self) { fileId in
-                            if let details = attachmentDetails[fileId] {
-                                Toggle(isOn: Binding(
-                                    get: { selectedAttachments.contains(fileId) },
-                                    set: { attachmentsTouched = true; if $0 { selectedAttachments.insert(fileId) } else { selectedAttachments.remove(fileId) } }
-                                )) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(details.file.name).lineLimit(2)
-                                        Text(fileSize(details.file.size)).font(.footnote).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if hasSelection {
-                    NearbyTargetPickerSection(
-                        offerText: $offerText,
-                        shareIdentity: $shareIdentity,
-                        scanning: $scanning,
-                        cameraDenied: $cameraDenied,
-                        onSendOffer: { text in
-                            Task { await nearby.sendVault(model, offer: text, peer: nil, input: makeInput(), shareIdentity: shareIdentity) }
-                        },
-                        onSendPeer: { peer in
-                            Task { await nearby.sendVault(model, offer: nil, peer: peer, input: makeInput(), shareIdentity: shareIdentity) }
-                        }
-                    )
-                } else {
-                    Section {
-                        Text("Choose at least one field, note or attachment before selecting a nearby receiver.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-        .privateScreen()
-        .interactiveDismissDisabled(send?.active == true || nearby.working)
-        .navigationTitle("Share nearby")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Close") {
-                    if send?.active == true { nearby.cancelSend(model) }
-                    nearby.stopBrowse()
-                    dismiss()
-                }
-                .disabled(nearby.working)
-            }
-        }
-        .task {
-            if previousSend == nil { previousSend = send.flatMap { $0.active ? nil : $0.id } ?? 0 }
-            if !initializedSelection {
-                selectedFields = Set(populatedFields.map(\.id))
-                includeNotes = !item.notes.isEmpty
-                initializedSelection = true
-            }
-            nearby.startBrowse()
-            for fileId in item.files {
-                if let details = try? await model.fileDetails(fileId) {
-                    attachmentDetails[fileId] = details
-                    if !attachmentsTouched && details.file.trashedAt == nil && details.versions.first(where: { $0.id == details.file.current })?.local == true {
-                        selectedAttachments.insert(fileId)
-                    }
-                }
-            }
-        }
-        .onDisappear { nearby.stopBrowse() }
-        .sheet(isPresented: $scanning) {
-            QRCodeScanner { text in
-                offerText = text
-                scanning = false
-                if hasSelection {
-                    Task { await nearby.sendVault(model, offer: text, peer: nil, input: makeInput(), shareIdentity: shareIdentity) }
-                }
-            }
-        }
-    }
-
-    private func makeInput() -> SecretSnapshotInput {
-        let attachments = selectedAttachments.compactMap { id -> SecretAttachmentSelection? in
-            guard let version = attachmentDetails[id]?.file.current else { return nil }
-            return SecretAttachmentSelection(fileId: id, versionId: version)
-        }
-        return SecretSnapshotInput(
-            itemId: item.id,
-            revision: item.revision,
-            fieldIds: Array(selectedFields),
-            includeNotes: includeNotes,
-            attachments: attachments,
-            expiresInMs: nil,
-            maxDownloadSessions: nil
-        )
-    }
-}
-
-private struct NearbyTargetPickerSection: View {
+/// Target receiver picker (QR scan, paste offer, or nearby discovered devices) shared by Files and Vault nearby sharing.
+struct NearbyTargetPickerSection: View {
     @Environment(SessionModel.self) private var model
     @Binding var offerText: String
     @Binding var shareIdentity: Bool
@@ -505,6 +362,7 @@ private struct NearbyTargetPickerSection: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             Toggle("Share my dMsg identity", isOn: $shareIdentity)
+                .toggleStyle(.automatic)
             SettingsAction("Send via code") {
                 onSendOffer(offerText.trimmingCharacters(in: .whitespacesAndNewlines))
             }
@@ -538,7 +396,7 @@ private struct NearbyTargetPickerSection: View {
     }
 }
 
-private struct NearbySendProgressSection: View {
+struct NearbySendProgressSection: View {
     @Environment(SessionModel.self) private var model
     let send: NearbyShareModel.SendStatus
 

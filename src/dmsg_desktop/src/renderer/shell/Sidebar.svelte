@@ -29,6 +29,7 @@
     legacyNotice,
     reminderAccounts,
     onDismissLegacy,
+    onNearbyReceive,
     go,
     enter,
     windowNav
@@ -41,6 +42,7 @@
     reminderAccounts: NoticeStatus['accounts']
     legacyNotice: boolean
     onDismissLegacy: () => void
+    onNearbyReceive?: () => void
     go: (path: string) => void
     enter: (path: string) => void
     windowNav: Snippet
@@ -152,6 +154,25 @@
     {/each}
     {/if}
     <div class="h-3"></div>
+    {#if onNearbyReceive}
+      <Tooltip content={t('nearbyReceive')} side="right">
+        {#snippet children(props)}
+          <button
+            {...props}
+            class={cn(
+              'flex items-center gap-2.5 rounded-lg text-start text-body leading-snug text-ink-2 outline-none transition-colors duration-150 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35',
+              collapsed ? 'relative size-9 justify-center' : 'min-h-8 px-2.5 py-1.5'
+            )}
+            aria-label={collapsed ? t('nearbyReceive') : undefined}
+            onclick={onNearbyReceive}
+            data-testid="sidebar-nearby-receive"
+          >
+            <Icon name="pair" class="size-4.5 text-forest" />
+            {#if !collapsed}<span class="min-w-0 flex-1" in:follow>{t('nearbyReceive')}</span>{/if}
+          </button>
+        {/snippet}
+      </Tooltip>
+    {/if}
     {@render item(views.settings)}
   </nav>
   <div class={cn('mt-auto shrink-0 pt-3', collapsed ? 'w-full' : '')}>

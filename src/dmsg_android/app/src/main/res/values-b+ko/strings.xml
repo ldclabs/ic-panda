@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"더 받기"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"수신 기기 QR 또는 연결 코드"</string>
     <string name="nearby_receiving" formatted="false">"받는 중"</string>
-    <string name="nearby_review_approval" formatted="false">"승인 검토"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"스냅샷 검토 및 가져오기"</string>
     <string name="nearby_scan_qr" formatted="false">"수신 기기 QR 코드 스캔"</string>
     <string name="nearby_select_vault_hint" formatted="false">"주변 수신 기기를 선택하기 전에 필드, 메모 또는 첨부 파일을 하나 이상 선택하세요."</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"ID 관리"</string>
     <string name="security_unlock" formatted="false">"dMsg 잠금 해제"</string>
     <string name="security_workspace" formatted="false">"이 기기의 암호화된 작업 공간 열기"</string>
+    <string name="share_section" formatted="false">"공유"</string>
+    <string name="share_to_another_app" formatted="false">"다른 앱으로 공유"</string>
     <string name="shortcut_approvals" formatted="false">"승인"</string>
     <string name="shortcut_files" formatted="false">"파일"</string>
     <string name="shortcut_imports" formatted="false">"공유된 항목"</string>

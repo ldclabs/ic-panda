@@ -2792,6 +2792,8 @@
 	<string>Bu cihazın imzalarını diğer ortak imzacılarla paylaşın veya onlarınkini içe aktarın. İçe aktarma yalnızca imzaları toplar; yürütme ayrı bir adımdır.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Bu isteği yetkili bir yöneticiyle paylaşın. Anahtarı tek başına kaydetmez veya onaylamaz.</string>
+	<key>Share to another app</key>
+	<string>Başka uygulamada paylaş</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>Paylaşılan kopyalar dMsg korumasından çıkar ve geri çağırılamaz.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
@@ -3104,8 +3106,6 @@
 	<string>M-cüzdan mevcut politikasını ve onaylarını kontrol eder. Tam olarak bu plan için gerekli donanım imzası isteniyor.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>Bunlar yerel gözlemlerdir; bir ihlal taraması veya bir sağlayıcının kimlik bilgisini iptal ettiğinin kanıtı değildir. Diğer cihazların farklı kayıtları olabilir.</string>
-	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>Bunlar, bu cihazda oluşturulan anlık görüntü işleridir. Masaüstü-yerel onay istekleri burada senkronize edilmez.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Bunlar, hesabınızın cihazlarından alınan doğrulanmış yedeklemelerdir. Bir kopyasını bu cihazda tutmak için açıkça geri yükleyin.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>

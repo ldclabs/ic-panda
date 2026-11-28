@@ -96,7 +96,6 @@
     <string name="nearby_receive_more" formatted="false">"继续接收"</string>
     <string name="nearby_receiver_qr_or_code" formatted="false">"接收方二维码或连接码"</string>
     <string name="nearby_receiving" formatted="false">"接收"</string>
-    <string name="nearby_review_approval" formatted="false">"审查批准"</string>
     <string name="nearby_review_import_snapshot" formatted="false">"预览并导入快照"</string>
     <string name="nearby_scan_qr" formatted="false">"扫描接收方二维码"</string>
     <string name="nearby_select_vault_hint" formatted="false">"请先至少选择一项字段、备注或附件，再选择附近接收设备。"</string>
@@ -208,6 +207,8 @@
     <string name="security_manage_identity" formatted="false">"管理身份"</string>
     <string name="security_unlock" formatted="false">"解锁 dMsg"</string>
     <string name="security_workspace" formatted="false">"打开本机加密工作区"</string>
+    <string name="share_section" formatted="false">"分享"</string>
+    <string name="share_to_another_app" formatted="false">"分享到其他应用"</string>
     <string name="shortcut_approvals" formatted="false">"审批"</string>
     <string name="shortcut_files" formatted="false">"文件"</string>
     <string name="shortcut_imports" formatted="false">"待导入分享"</string>

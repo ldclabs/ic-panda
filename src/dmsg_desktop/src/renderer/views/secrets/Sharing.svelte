@@ -30,7 +30,8 @@
   import { locale, t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
-  let { sourceId, showLinks, account }: { account: string; sourceId: string; showLinks: (id: string) => void } = $props()
+  import type { NearbyVaultSelection } from '../nearby'
+  let { sourceId, showLinks, account, standalone = false, initialMode = 'link', onNearbySend }: { account: string; sourceId: string; showLinks: (id: string) => void; standalone?: boolean; initialMode?: 'link' | 'channel' | 'nearby'; onNearbySend?: (selection: NearbyVaultSelection, entryId: string) => void } = $props()
   let shares = $state<any[]>([]),
     items = $state<SourceItem[]>([]),
     channels = $state<any[]>([]),
@@ -38,13 +39,22 @@
     fields = $state<string[]>([]),
     attachments = $state<string[]>([]),
     notes = $state(false),
-    mode = $state('link'),
+    mode = $state<'link' | 'channel' | 'nearby'>('link'),
+    modeInitialized = false,
     channelId = $state(''),
     hours = $state(24),
     sessions = $state('1'),
     password = $state(''),
     details = $state<Record<string, any>>({}),
     revokeTarget = $state<any>(null)
+  $effect(() => {
+    if (!modeInitialized) {
+      mode = standalone ? 'nearby' : initialMode
+      modeInitialized = true
+    } else if (standalone && mode !== 'nearby') {
+      mode = 'nearby'
+    }
+  })
   let prepared: { id: string; shape: string; at: number } | null = null
   let selectedRevision: string | undefined
   let attachmentsTouched = false
@@ -53,16 +63,17 @@
     draft = new DraftVersion()
   const hourLabel = $derived(new Intl.NumberFormat(locale(), { style: 'unit', unit: 'hour', unitDisplay: 'long' }).format(1))
   const canReview = $derived(chosen && !chosen.blocked && (fields.length || notes || attachments.length) &&
-    (mode === 'channel' ? !!channelId : /^(?:[1-9]\d?|100)$/.test(sessions)))
+    (mode === 'nearby' ? Boolean(onNearbySend) : mode === 'channel' ? !!channelId : /^(?:[1-9]\d?|100)$/.test(sessions)))
   const model = panel(
     async () =>
       Promise.all([
-        model.request(
-          'shares',
-          'secrets/shares/list',
-          {},
-          (r: any) => (shares = r.shares.filter((s: any) => !sourceId || s.plan.item_id === sourceId))
-        ),
+        !standalone &&
+          model.request(
+            'shares',
+            'secrets/shares/list',
+            {},
+            (r: any) => (shares = r.shares.filter((s: any) => !sourceId || s.plan.item_id === sourceId))
+          ),
         model.request(
           'vault',
           'vault/list',
@@ -73,7 +84,7 @@
             if (selectedRevision !== chosen?.revision) void select()
           }
         ),
-        mode === 'channel' && loadChannels()
+        !standalone && mode === 'channel' && loadChannels()
       ]),
     () =>
       shares.some((s) =>
@@ -141,6 +152,19 @@
     event.preventDefault()
     const source = chosen
     if (!source || !canReview) return
+    if (mode === 'nearby') {
+      onNearbySend?.(
+        {
+          item_id: source.id,
+          revision: source.revision,
+          field_ids: shareFields.filter((f) => fields.includes(f.id)).map((f) => f.id),
+          include_notes: notes,
+          attachments: attachments.map((id) => ({ file_id: id, version_id: details[id].file.current }))
+        },
+        source.id
+      )
+      return
+    }
     const at = draft.capture(), saved = shape()
     const current = () => model.state.alive && draft.current(at) && shape() === saved && !chosen?.blocked
     await model.act(async () => {
@@ -179,28 +203,31 @@
 <Panel {model} title={sourceId && chosen ? chosen.title : w('sharing')}>
   {#snippet actions()}
     {#if sourceId}<button class={buttonClass('ghost')} onclick={() => openVault(sourceId)}>{t('back')}</button>{/if}
-    <button class={buttonClass('secondary')} onclick={() => showLinks(itemId)} data-testid="snapshot-links">{t('shareLinks')}</button>
+    {#if !standalone}<button class={buttonClass('secondary')} onclick={() => showLinks(itemId)} data-testid="snapshot-links">{t('shareLinks')}</button>{/if}
   {/snippet}
-  <Segmented
-    bind:value={
-      () => mode,
-      (next) => {
-        mode = next
-        if (next === 'channel') void loadChannels()
-        changed()
-        password = ''
+  {#if !standalone}
+    <Segmented
+      bind:value={
+        () => mode,
+        (next) => {
+          mode = next as 'link' | 'channel' | 'nearby'
+          if (next === 'channel') void loadChannels()
+          changed()
+          password = ''
+        }
       }
-    }
-    options={[
-      { value: 'link', label: ux('linkMode') },
-      { value: 'channel', label: ux('channelMode') }
-    ]}
-    label={ux('destination')}
-    disabled={model.state.busy}
-    testid="snapshot-mode"
-  />
-  <Notice tone="warn"
-    >{mode === 'channel' ? w('channelWarning') : w('shareWarning')}</Notice
+      options={[
+        { value: 'link', label: ux('linkMode') },
+        { value: 'channel', label: ux('channelMode') },
+        { value: 'nearby', label: t('nearbyShare') }
+      ]}
+      label={ux('destination')}
+      disabled={model.state.busy}
+      testid="snapshot-mode"
+    />
+  {/if}
+  <Notice tone={mode === 'nearby' ? 'info' : 'warn'}
+    >{mode === 'nearby' ? t('nearbySendVaultHint') : mode === 'channel' ? w('channelWarning') : w('shareWarning')}</Notice
   >
   <form class={card} onsubmit={prepare} oninput={changed} onchange={changed}>
     {#if !sourceId}<SourcePicker
@@ -260,7 +287,7 @@
           testid="snapshot-channel"
         /></Field
       >
-    {:else}<Collapsible testid="snapshot-limits">
+    {:else if mode === 'link'}<Collapsible testid="snapshot-limits">
         {#snippet title()}{t('linkDays')} · {hours === 24 ? t('days1') : hours === 168 ? t('days7') : hourLabel} · {w('sessions')} {sessions}{/snippet}
         <div class="grid gap-3 py-2 sm:grid-cols-2">
           <Field label={t('linkDays')}><Select
@@ -282,7 +309,7 @@
     <button
       class={buttonClass('primary')}
       disabled={model.state.busy || !canReview}
-      data-testid="snapshot-review">{mode === 'channel' ? w('channelDelivery') : t('createLink')}</button>
+      data-testid="snapshot-review">{mode === 'nearby' ? t('nearbyShare') : mode === 'channel' ? w('channelDelivery') : t('createLink')}</button>
     {#if !chosen}<button
         type="button"
         class={buttonClass('ghost')}

@@ -97,25 +97,29 @@ import java.io.File
                     }
                 }
                 val isCloud = state.session?.accountKind != "local"
+                if (file.local || (isCloud && file.backup != null)) {
+                    Section(title = str(R.string.share_section)) {
+                        if (file.local) {
+                            ListRow(str(R.string.nearby_share), icon = Icons.Outlined.WifiTethering) {
+                                client.nearby.prepareSendFiles(listOf(NearbySelectedFile(file.id, file.version, file.name, file.size)))
+                                client.navigation.push(Route("nearby-send-files"))
+                            }
+                        }
+                        if (isCloud && (file.local || file.backup != null)) {
+                            ListRow(str(R.string.text_share_by_link_05aafef), glyph = R.drawable.glyph_link,
+                                enabled = file.size <= 100uL * 1024u * 1024u) {
+                                client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version))
+                            }
+                        }
+                        if (file.local) {
+                            ListRow(str(R.string.share_to_another_app), icon = Icons.Outlined.Share,
+                                enabled = !state.working("file:open:" + file.id)) {
+                                confirmation = "share"
+                            }
+                        }
+                    }
+                }
                 Section {
-                    if (file.local) {
-                        ListRow(str(R.string.nearby_share), icon = Icons.Outlined.WifiTethering) {
-                            client.nearby.prepareSendFiles(listOf(NearbySelectedFile(file.id, file.version, file.name, file.size)))
-                            client.navigation.push(Route("nearby-send-files"))
-                        }
-                    }
-                    if (isCloud && (file.local || file.backup != null)) {
-                        ListRow(str(R.string.text_share_by_link_05aafef), glyph = R.drawable.glyph_link,
-                            enabled = file.size <= 100uL * 1024u * 1024u) {
-                            client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version))
-                        }
-                    }
-                    if (file.local) {
-                        ListRow(str(R.string.text_share_a_verified_copy_fc77423), icon = Icons.Outlined.Share,
-                            enabled = !state.working("file:open:" + file.id)) {
-                            confirmation = "share"
-                        }
-                    }
                     if (isCloud && file.local && file.backup == null && file.version == current.file.version) {
                         ListRow(str(R.string.text_back_up_this_version_f74abb5), glyph = R.drawable.glyph_cloud_up,
                             enabled = !state.working("file:backup:" + file.id)) {
@@ -188,7 +192,7 @@ import java.io.File
         moveError = null
         client.library.move(file.id, path.folderId, { moveError = path.folderId to it }) { move = false; client.notice("FILE_MOVED") }
     }
-    if (confirmation != null && file != null) AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(when (confirmation) { "share" -> str(R.string.text_share_a_copy_4b1b25d); "backup" -> str(R.string.text_back_up_this_version_179ee9c); "evict" -> str(R.string.text_free_local_space_e8ccb7a); else -> str(R.string.text_move_to_trash_79243d8) }) }, text = {
+    if (confirmation != null && file != null) AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(when (confirmation) { "share" -> str(R.string.share_to_another_app); "backup" -> str(R.string.text_back_up_this_version_179ee9c); "evict" -> str(R.string.text_free_local_space_e8ccb7a); else -> str(R.string.text_move_to_trash_79243d8) }) }, text = {
         Text(when (confirmation) {
             "share" -> str(R.string.text_shared_copies_leave_dmsg_s_protection_and_cannot_be_recalled_84ddf5e)
             "backup" -> str(R.string.text_save_an_encrypted_cloud_copy_of_this_immutable_version_your_local_3f2e4a7)
@@ -202,7 +206,7 @@ import java.io.File
             "evict" -> client.perform({ core -> client.operation { core.evictFile(file.id, file.version, it) } }, key = "file:evict:" + file.id) { client.library.select(file.id); client.library.browse() }
             else -> client.library.remove(file.id) { select("") }
         }; confirmation = null
-    }) { Text(str(when (confirmation) { "share" -> R.string.text_share_a_verified_copy_fc77423; "evict" -> R.string.text_free_local_space_89b2267; "backup" -> R.string.text_back_up_this_version_f74abb5; else -> R.string.text_move_to_trash_c4056f9 })) } }, dismissButton = { TextButton(onClick = { confirmation = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }) { Text(str(when (confirmation) { "share" -> R.string.share_to_another_app; "evict" -> R.string.text_free_local_space_89b2267; "backup" -> R.string.text_back_up_this_version_f74abb5; else -> R.string.text_move_to_trash_c4056f9 })) } }, dismissButton = { TextButton(onClick = { confirmation = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
 internal fun fileSize(value: ULong): String {
