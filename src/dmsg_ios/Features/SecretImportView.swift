@@ -17,7 +17,6 @@ struct SecretPackageImportView: View {
     @State private var folderName = String(localized: "Files")
     @State private var choosingFolder = false
     @State private var working = false
-    @State private var request: ApprovalView?
     @State private var completed: [String]?
     @State private var previewTask: Task<Void, Never>?
     /// Failed previews, such as a wrong password, each answer with an error haptic.
@@ -33,7 +32,7 @@ struct SecretPackageImportView: View {
                     SecureField("Password, if required", text: $password).textInputAutocapitalization(.never)
                     Text("Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.")
                         .font(.footnote).foregroundStyle(.secondary)
-                    Button("Preview package") { previewTask?.cancel(); previewTask = Task { await inspect() } }
+                    SettingsAction("Preview package", prominent: true, working: working) { previewTask?.cancel(); previewTask = Task { await inspect() } }
                         .disabled(link.isEmpty || working)
                 }
             }
@@ -75,12 +74,14 @@ struct SecretPackageImportView: View {
                         Button { choosingFolder = true } label: { LabeledContent("Destination folder", value: folderName) }
                     }
                 }
-                NoticeBar(text: String(localized: "Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically."))
-                Button("Review selected import") { Task { await importRequest() } }.disabled(!hasSelection || working)
+                if completed == nil {
+                    SettingsAction("Import", prominent: true, working: working) { previewTask = Task { await importPackage() } }
+                        .disabled(!hasSelection || working)
+                }
                 DisclosureGroup("Verified package fingerprint") { FingerprintRow(title: "SHA-256", value: preview.digest) }
             }
             if let completed {
-                Section("Already imported") {
+                Section("Import completed") {
                     ForEach(completed, id: \.self) { Text($0).font(.footnote.monospaced()).textSelection(.enabled) }
                 }
             }
@@ -92,7 +93,7 @@ struct SecretPackageImportView: View {
                 if source != nil || stagedPreview != nil { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             }
             .task {
-                if let stagedPreview { preview = stagedPreview }
+                if let stagedPreview { applyPreview(stagedPreview) }
                 else if source != nil { await inspect() }
             }
             .onChange(of: link) { _, _ in clearPreview() }
@@ -101,9 +102,14 @@ struct SecretPackageImportView: View {
             .sheet(isPresented: $choosingFolder) {
                 NavigationStack { SecretFolderPicker { id, name in folder = id; folderName = name } }
             }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
+    }
+
+    private func applyPreview(_ next: SecretPackagePreview) {
+        preview = next
+        fields = Set(next.preview.fields.map(\.id))
+        notes = next.preview.notes
+        attachments = Set(next.preview.attachments.indices)
+        completed = (next.alreadyImported?.isEmpty == false) ? next.alreadyImported : nil
     }
 
     private func clearPreview() { previewTask?.cancel(); preview = nil; fields = []; notes = false; attachments = []; completed = nil }
@@ -121,7 +127,7 @@ struct SecretPackageImportView: View {
             }
             guard epoch == model.epoch, !Task.isCancelled, source != nil || (link == selectedLink && password == selectedPassword) else { return }
             let next: SecretPackagePreview = try model.decode(result)
-            preview = next; fields = []; notes = false; attachments = []; completed = nil
+            applyPreview(next)
         } catch {
             guard epoch == model.epoch, !Task.isCancelled, !model.concealed,
                   source != nil || (link == selectedLink && password == selectedPassword) else { return }
@@ -130,19 +136,22 @@ struct SecretPackageImportView: View {
         }
     }
 
-    private func importRequest() async {
+    private func importPackage() async {
         struct Completion: Decodable { let state: String; let ids: [String]? }
         guard let preview, let engine = model.engine, !working, hasSelection else { return }
         let epoch = model.epoch; working = true; model.activity(); defer { working = false }
         do {
             let selection = SecretPackageSelection(packageId: preview.packageId, digest: preview.digest,
                 fields: fields.sorted(), includeNotes: notes, attachments: attachments.sorted().map(UInt32.init), folder: folder)
-            let result = try await engine.secretPackageImportRequest(selection: selection)
-            guard epoch == model.epoch else { return }
-            let done: Completion? = try? model.decode(result)
-            if let done, done.state == "done" {
-                completed = done.ids ?? []; await model.updateSession()
-            } else { request = try model.decode(result) }
+            let result = try await coreOperation { try await engine.secretPackageImport(selection: selection, operation: $0) }
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            let done: Completion = try model.decode(result)
+            if done.state == "done" {
+                completed = done.ids ?? []
+                await model.loadVault()
+                await model.loadFiles()
+                await model.updateSession()
+            }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }

@@ -11,14 +11,14 @@
     "ios_reused": 53,
     "android_translations": 0,
     "missing": [],
-    "ios_sha256": "6d353d0f896aa7db7ba9cfc25a5bd3937ba4aff6a02732c073d0611f08363700"
+    "ios_sha256": "c256e78a8026e5273f5200dd7a3c399c54ebf0e2fbed3018810a556adfc59cdb"
   },
   "zh-Hant": {
     "strings": 2262,
     "ios_reused": 1018,
     "android_translations": 1240,
     "missing": [],
-    "ios_sha256": "66db3f88f2137d1b394f9973efef9e16c5b3d237b95bd53ef8666fdb745805df"
+    "ios_sha256": "5c8fde64ba4e4d1b836fe69fd04b72e03a55324b318ef053037fd2226cf035a0"
   },
   "ar": {
     "strings": 2262,

@@ -47,10 +47,6 @@ impl MobileNearby {
             .clear();
     }
 
-    pub(crate) fn notify_approval_ready(&self, job_id: String) {
-        let _ = self.core.send_approval_ready(job_id);
-    }
-
     fn allocate_bridge(&self) -> (u64, BridgeTransport) {
         let (transport, handle) = BridgeTransport::pair(16);
         let id = self.next_bridge.fetch_add(1, Ordering::Relaxed) + 1;
@@ -220,7 +216,7 @@ impl MobileEngine {
         .await
     }
 
-    /// Start sending a Vault snapshot (`dmsg-secret-package/1`), requiring high-risk SecretShare approval.
+    /// Start sending a Vault snapshot (`dmsg-secret-package/1`) directly after receiver acceptance.
     #[allow(clippy::too_many_arguments)]
     pub async fn nearby_send_vault(
         &self,
@@ -407,15 +403,7 @@ impl MobileEngine {
                     let noop: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {});
                     nearby
                         .core
-                        .send_start(
-                            h.clone(),
-                            target,
-                            payload,
-                            alias,
-                            share_identity,
-                            "gui".into(),
-                            noop,
-                        )
+                        .send_start(h.clone(), target, payload, alias, share_identity, noop)
                         .await
                 })
             })
@@ -548,7 +536,6 @@ mod tests {
                 }]),
                 Some("Alice iPhone".into()),
                 false,
-                "gui".into(),
                 noop,
             )
             .await

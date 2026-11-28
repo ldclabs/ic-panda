@@ -115,7 +115,9 @@ pub enum ShareCommand {
         #[arg(long)]
         password_stdin: bool,
     },
-    Request {
+    /// Publish a prepared snapshot directly.
+    #[command(visible_alias = "request")]
+    Publish {
         id: String,
     },
     List,
@@ -352,9 +354,7 @@ pub async fn secrets(
                     json!({"input":read_json(&path)?,"password":password.as_ref().map(|s|s.trim_end_matches(['\r','\n']))}),
                 )
             }
-            ShareCommand::Request { id } => {
-                ("secrets/shares/request", json!({"source":"cli","id":id}))
-            }
+            ShareCommand::Publish { id } => ("secrets/shares/publish", json!({"id":id})),
             ShareCommand::List => ("secrets/shares/list", json!({})),
             ShareCommand::Show { id } => ("secrets/shares/get", json!({"id":id})),
             ShareCommand::Link { id } => {
@@ -402,8 +402,8 @@ pub async fn secrets(
                 )
             }
             PackageCommand::Import { path } => (
-                "secrets/packages/import_request",
-                json!({"source":"cli","selection":read_json(&path)?}),
+                "secrets/packages/import",
+                json!({"selection":read_json(&path)?}),
             ),
         },
         SecretCommand::References { reference } => (

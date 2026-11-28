@@ -22,12 +22,11 @@ import {
   type NearbySendView
 } from '../src/renderer/views/nearby.ts'
 
-test('the nearby window can reach its daemon methods and the main process sets the approval source', () => {
+test('the nearby window can reach its daemon methods without passing human', () => {
   for (const action of ['status', 'browse', 'scan', 'receive_start', 'receive_accept', 'receive_reject',
-    'receive_cancel', 'send_confirm_sas', 'send_cancel']) {
+    'receive_cancel', 'send_start', 'send_confirm_sas', 'send_cancel']) {
     assert.deepEqual(windowParams(`nearby/${action}`, { human: true }), {})
   }
-  assert.deepEqual(windowParams('nearby/send_start', { source: 'cli', human: true }), { source: 'gui' })
   assert.throws(() => windowParams('nearby/unknown', {}))
 })
 
@@ -58,7 +57,7 @@ test('receive and send active state checks and state badges cover every daemon s
   assert.equal(isReceiveActive(null), false)
 
   const send = (state: NearbySendView['state']) => ({ state }) as NearbySendView
-  for (const s of ['connecting', 'awaiting_sas', 'awaiting_approval', 'awaiting_accept', 'running'] as const) {
+  for (const s of ['connecting', 'awaiting_sas', 'awaiting_accept', 'running'] as const) {
     assert.equal(isSendActive(send(s)), true)
     assert.ok(sendStateBadge(s).label)
   }
@@ -69,7 +68,6 @@ test('receive and send active state checks and state badges cover every daemon s
   assert.equal(receiveStateBadge('done').tone, 'ok')
   assert.equal(receiveStateBadge('failed').tone, 'danger')
   assert.equal(sendStateBadge('awaiting_sas').tone, 'warn')
-  assert.equal(sendStateBadge('awaiting_approval').tone, 'gem')
   assert.equal(transportLabelKey('lan'), 'nearbyTransportLan')
   assert.equal(transportLabelKey('awdl'), 'nearbyTransportAwdl')
   assert.equal(transportLabelKey('relay'), 'nearbyTransportRelay')
@@ -196,7 +194,6 @@ test('buildSendStartParams builds exact RPC payloads for QR offers and discovere
     }),
     {
       share_identity: true,
-      source: 'gui',
       offer,
       files: [{ file_id: 'f1', version_id: 'v1' }]
     }
@@ -220,7 +217,6 @@ test('buildSendStartParams builds exact RPC payloads for QR offers and discovere
     }),
     {
       share_identity: false,
-      source: 'gui',
       host: '192.168.1.20',
       port: 54321,
       peer_alias: 'Bob Mac',

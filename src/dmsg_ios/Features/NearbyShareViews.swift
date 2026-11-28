@@ -37,11 +37,11 @@ struct NearbyReceiveSheet: View {
                 case "failed":
                     Section {
                         NoticeBar(text: receive.error?.message ?? String(localized: "Nearby transfer failed."))
-                        Button("Start again") { Task { await nearby.startReceive(model, discoverable: discoverable) } }
+                        SettingsAction("Start again", prominent: true) { Task { await nearby.startReceive(model, discoverable: discoverable) } }
                     }
                 default:
                     Section {
-                        Button("Start receiving") { Task { await nearby.startReceive(model, discoverable: discoverable) } }
+                        SettingsAction("Start receiving", prominent: true) { Task { await nearby.startReceive(model, discoverable: discoverable) } }
                     }
                 }
             } else {
@@ -178,20 +178,30 @@ struct NearbyReceiveSheet: View {
                 get: { shareIdentity[peer.peerId] ?? false },
                 set: { shareIdentity[peer.peerId] = $0 }
             ))
-            Button("Accept") {
-                let picks: [UInt32]
-                if peer.kind == "files" {
-                    let chosen = selectedFiles[peer.peerId] ?? Set(peer.files.map(\.index))
-                    picks = peer.files.map(\.index).filter { chosen.contains($0) }
-                } else {
-                    picks = []
+            HStack(spacing: 12) {
+                Button(role: .destructive) {
+                    nearby.reject(model, peerId: peer.peerId)
+                } label: {
+                    Text("Reject").frame(maxWidth: .infinity)
                 }
-                nearby.accept(model, peerId: peer.peerId, folder: folder, selected: picks, shareIdentity: shareIdentity[peer.peerId] ?? false)
+                .buttonStyle(.bordered)
+                Button {
+                    let picks: [UInt32]
+                    if peer.kind == "files" {
+                        let chosen = selectedFiles[peer.peerId] ?? Set(peer.files.map(\.index))
+                        picks = peer.files.map(\.index).filter { chosen.contains($0) }
+                    } else {
+                        picks = []
+                    }
+                    nearby.accept(model, peerId: peer.peerId, folder: folder, selected: picks, shareIdentity: shareIdentity[peer.peerId] ?? false)
+                } label: {
+                    Text("Accept").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(peer.kind == "files" && (selectedFiles[peer.peerId]?.isEmpty ?? false))
             }
-            .disabled(peer.kind == "files" && (selectedFiles[peer.peerId]?.isEmpty ?? false))
-            Button("Reject", role: .destructive) {
-                nearby.reject(model, peerId: peer.peerId)
-            }
+            .controlSize(.large)
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
         } header: {
             Text("Incoming transfer")
         }
@@ -209,7 +219,7 @@ struct NearbyReceiveSheet: View {
             Text("\(fileSize(receive.progress.bytes)) / \(fileSize(receive.progress.totalBytes))")
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(.secondary)
-            Button("Cancel", role: .destructive) {
+            SettingsAction("Cancel", role: .destructive) {
                 Task { await nearby.cancelReceive(model) }
             }
         }
@@ -222,7 +232,7 @@ struct NearbyReceiveSheet: View {
                     Text("Vault snapshot verified on this device. Review and choose which fields to import.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Button("Review and import snapshot") {
+                    SettingsAction("Review and import snapshot", prominent: true) {
                         importingPackage = preview
                     }
                 } else {
@@ -234,7 +244,7 @@ struct NearbyReceiveSheet: View {
                     }
                 }
             }
-            Button("Receive more") {
+            SettingsAction("Receive more") {
                 Task { await nearby.startReceive(model, discoverable: discoverable) }
             }
         }
@@ -265,7 +275,7 @@ struct NearbySendFilesSheet: View {
             }
             if let send, send.active || send.state == "done" || send.state == "failed" {
                 NearbySendProgressSection(send: send)
-                if send.state == "failed" { Button("Start again") { previousSend = send.id } }
+                if send.state == "failed" { SettingsAction("Start again", prominent: true) { previousSend = send.id } }
             } else {
                 Section("Files to send") {
                     ForEach(files, id: \.id) { file in
@@ -329,12 +339,13 @@ struct NearbySendVaultSheet: View {
     @State private var selectedFields: Set<String> = []
     @State private var includeNotes = false
     @State private var selectedAttachments: Set<String> = []
+    @State private var attachmentsTouched = false
+    @State private var initializedSelection = false
     @State private var attachmentDetails: [String: LibraryDetails] = [:]
     @State private var offerText = ""
     @State private var shareIdentity = false
     @State private var scanning = false
     @State private var cameraDenied = false
-    @State private var approvalRequest: ApprovalView?
 
     private var nearby: NearbyShareModel { model.nearbyShare }
     @State private var previousSend: UInt64?
@@ -351,10 +362,8 @@ struct NearbySendVaultSheet: View {
                 NoticeBar(text: err)
             }
             if let send, send.active || send.state == "done" || send.state == "failed" {
-                NearbySendProgressSection(send: send, onOpenApproval: { id in
-                    Task { await openApproval(id) }
-                })
-                if send.state == "failed" { Button("Start again") { previousSend = send.id } }
+                NearbySendProgressSection(send: send)
+                if send.state == "failed" { SettingsAction("Start again", prominent: true) { previousSend = send.id } }
             } else {
                 Section("Select fields to share") {
                     ForEach(populatedFields, id: \.id) { field in
@@ -373,7 +382,7 @@ struct NearbySendVaultSheet: View {
                             if let details = attachmentDetails[fileId] {
                                 Toggle(isOn: Binding(
                                     get: { selectedAttachments.contains(fileId) },
-                                    set: { if $0 { selectedAttachments.insert(fileId) } else { selectedAttachments.remove(fileId) } }
+                                    set: { attachmentsTouched = true; if $0 { selectedAttachments.insert(fileId) } else { selectedAttachments.remove(fileId) } }
                                 )) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(details.file.name).lineLimit(2)
@@ -422,27 +431,22 @@ struct NearbySendVaultSheet: View {
         }
         .task {
             if previousSend == nil { previousSend = send.flatMap { $0.active ? nil : $0.id } ?? 0 }
+            if !initializedSelection {
+                selectedFields = Set(populatedFields.map(\.id))
+                includeNotes = !item.notes.isEmpty
+                initializedSelection = true
+            }
             nearby.startBrowse()
             for fileId in item.files {
                 if let details = try? await model.fileDetails(fileId) {
                     attachmentDetails[fileId] = details
+                    if !attachmentsTouched && details.file.trashedAt == nil && details.versions.first(where: { $0.id == details.file.current })?.local == true {
+                        selectedAttachments.insert(fileId)
+                    }
                 }
             }
         }
         .onDisappear { nearby.stopBrowse() }
-        .onChange(of: send?.approvalId) { _, next in
-            if let next, send?.state == "awaiting_approval" {
-                Task { await openApproval(next) }
-            }
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { approvalRequest != nil },
-            set: { if !$0 { approvalRequest = nil } }
-        )) {
-            if let request = approvalRequest {
-                ApprovalDetailView(request: request)
-            }
-        }
         .sheet(isPresented: $scanning) {
             QRCodeScanner { text in
                 offerText = text
@@ -469,14 +473,6 @@ struct NearbySendVaultSheet: View {
             maxDownloadSessions: nil
         )
     }
-
-    private func openApproval(_ id: String) async {
-        guard let engine = model.engine else { return }
-        if let snap = try? await engine.approval(id: id),
-           let view: ApprovalView = try? model.decode(snap) {
-            approvalRequest = view
-        }
-    }
 }
 
 private struct NearbyTargetPickerSection: View {
@@ -493,7 +489,7 @@ private struct NearbyTargetPickerSection: View {
     var body: some View {
         Section("Receiver QR or connection code") {
             if DataScannerViewController.isSupported {
-                Button("Scan receiver QR code", systemImage: "qrcode.viewfinder") {
+                SettingsAction("Scan receiver QR code", systemImage: "qrcode.viewfinder", prominent: true) {
                     Task {
                         let allowed = await AVCaptureDevice.requestAccess(for: .video)
                         cameraDenied = !allowed || !DataScannerViewController.isAvailable
@@ -509,7 +505,7 @@ private struct NearbyTargetPickerSection: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             Toggle("Share my dMsg identity", isOn: $shareIdentity)
-            Button("Send via code") {
+            SettingsAction("Send via code") {
                 onSendOffer(offerText.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             .disabled(offerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || nearby.working)
@@ -545,7 +541,6 @@ private struct NearbyTargetPickerSection: View {
 private struct NearbySendProgressSection: View {
     @Environment(SessionModel.self) private var model
     let send: NearbyShareModel.SendStatus
-    var onOpenApproval: ((String) -> Void)? = nil
 
     var body: some View {
         Section("Transfer status") {
@@ -564,13 +559,8 @@ private struct NearbySendProgressSection: View {
                 HStack(spacing: 10) { ProgressView(); Text("Connecting…") }
             case "awaiting_sas":
                 NoticeBar(text: String(localized: "Confirm that the receiver shows this exact 6-digit code before sending any details."))
-                Button("Codes match — continue") {
+                SettingsAction("Codes match — continue", prominent: true) {
                     model.nearbyShare.confirmSas(model)
-                }
-            case "awaiting_approval":
-                NoticeBar(text: String(localized: "Review and approve this Vault snapshot before it leaves this device."))
-                if let id = send.approvalId, let onOpenApproval {
-                    Button("Review approval") { onOpenApproval(id) }
                 }
             case "awaiting_accept":
                 HStack(spacing: 10) { ProgressView(); Text("Waiting for receiver to accept…") }
@@ -591,7 +581,7 @@ private struct NearbySendProgressSection: View {
                 Text(send.state).foregroundStyle(.secondary)
             }
             if send.active {
-                Button("Cancel", role: .destructive) {
+                SettingsAction("Cancel", role: .destructive) {
                     model.nearbyShare.cancelSend(model)
                 }
             }

@@ -236,20 +236,27 @@ test('P1 windows cannot claim CLI values, scan arbitrary paths, or save unreview
     assert.equal(WINDOW_METHODS.has(method),false,method)
     assert.throws(()=>windowParams(method,{path:'/private',claim:'fake',human:true}),{code:'FORBIDDEN'})
   }
-  for(const method of ['secrets/ssh/binding_request','secrets/discovery/import_request','secrets/shares/request','secrets/packages/import_request']){
+  for(const method of ['secrets/ssh/binding_request','secrets/discovery/import_request']){
     assert.equal(windowParams(method,{source:'cli',human:true}).source,'gui')
     assert.equal(windowParams(method,{human:true}).human,undefined)
+  }
+  for(const method of ['secrets/shares/publish','secrets/packages/import']){
+    assert.equal(WINDOW_METHODS.has(method),true,method)
+    assert.equal(windowParams(method,{human:true}).human,undefined)
+  }
+  for(const method of ['secrets/shares/request','secrets/packages/import_request']){
+    assert.equal(WINDOW_METHODS.has(method),false,method)
   }
 })
 
 test('snapshot channels and dependency inspection remain owner metadata controls', () => {
   for (const method of ['secrets/references','secrets/rotation/dependencies','secrets/shares/channel_prepare','secrets/packages/channel_preview']) assert.equal(WINDOW_METHODS.has(method),true)
-  assert.deepEqual(windowParams('secrets/packages/import_request',{source:'cli',human:true,selection:{package_id:'fixture'}}),{source:'gui',selection:{package_id:'fixture'}})
+  assert.deepEqual(windowParams('secrets/packages/import',{human:true,selection:{package_id:'fixture'}}),{selection:{package_id:'fixture'}})
   assert.equal(WINDOW_METHODS.has('secrets/run/claim'),false)
 })
 
 test('snapshot preparation and delivery are never transparently retried', () => {
-  for (const method of ['secrets/shares/channel_prepare','secrets/shares/request','secrets/packages/channel_preview','secrets/packages/import_request','secrets/rotation/update']) assert.equal(isRead(method),false)
+  for (const method of ['secrets/shares/channel_prepare','secrets/shares/publish','secrets/packages/channel_preview','secrets/packages/import','secrets/rotation/update']) assert.equal(isRead(method),false)
   for (const method of ['secrets/references','secrets/rotation/dependencies']) assert.equal(isRead(method),true)
 })
 

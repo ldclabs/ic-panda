@@ -22,7 +22,8 @@
     onDropMove,
     onDropFiles,
     onNewFolder,
-    onFolderAction
+    onFolderAction,
+    onNearbyReceive
   }: {
     standalone?: boolean
     folders: any[]
@@ -34,6 +35,7 @@
     onDropFiles: (files: File[], folder: string) => void
     onNewFolder: (parent: string) => void
     onFolderAction: (action: 'rename' | 'backup' | 'grant' | 'move' | 'trash', folder: any) => void
+    onNearbyReceive?: () => void
   } = $props()
 
   let collapsed = $state<Record<string, boolean>>({})
@@ -190,6 +192,16 @@
     {/each}
   {/if}
   <div class="mt-auto grid gap-px pt-3">
+    {#if unlocked && onNearbyReceive}
+      <button
+        class="flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-body text-ink-2 outline-none transition-colors duration-100 hover:bg-wash hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35"
+        onclick={onNearbyReceive}
+        data-testid="files-sidebar-nearby-receive"
+      >
+        <Icon name="pair" class="shrink-0 text-faint" />
+        <span class="min-w-0 flex-1 truncate">{t('nearbyReceive')}</span>
+      </button>
+    {/if}
     {#if !standalone}{@render place('requests', 'inbox', t('fileRequests'), 'files-scope-requests')}
     {@render place('links', 'link', t('shareLinks'), 'files-scope-links')}
     {@render place('cloud', 'cloud-down', t('cloudBackups'), 'files-scope-cloud')}{/if}

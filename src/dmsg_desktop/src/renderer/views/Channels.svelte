@@ -1609,7 +1609,7 @@
 
 <Dialog bind:open={snapshotOpen} title={workflowText('channelSnapshot')} description={workflowText('channelWarning')}>
   {#if snapshotError}<p class="text-danger">{snapshotError}</p>{/if}
-  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} open={id=>{snapshotOpen=false;void bridge(()=>window.dmsg.openApproval(id)).catch(fail)}} />{/key}{/if}
+  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} />{/key}{/if}
 </Dialog>
 
 <FileLightbox

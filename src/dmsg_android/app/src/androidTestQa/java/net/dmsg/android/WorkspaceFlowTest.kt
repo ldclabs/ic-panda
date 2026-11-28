@@ -2184,43 +2184,23 @@ class WorkspaceFlowTest {
         compose.onNodeWithContentDescription("More").performClick()
         compose.onNodeWithText("Share secret snapshot").performClick()
         compose.waitUntil(10_000) { client.secretSharing.draft.value != null }
-        assertFalse(client.secretSharing.draft.value!!.selected)
+        assertTrue(client.secretSharing.draft.value!!.selected)
         val label = item.fields.first { it.id == "password" }.label.ifBlank { net.dmsg.android.platform.str(R.string.text_password_347d7fc) }
         compose.onNodeWithText(label, substring = false).performClick()
-        assertEquals(setOf("password"), client.secretSharing.draft.value!!.fields)
-        assertFalse(client.secretSharing.draft.value!!.notes)
+        assertFalse("password" in client.secretSharing.draft.value!!.fields)
+        compose.onNodeWithText(label, substring = false).performClick()
+        assertTrue("password" in client.secretSharing.draft.value!!.fields)
         capture("qa-secret-compose")
-        compose.onNodeWithText("Review request").performScrollTo().performClick()
-        compose.waitUntil(15_000) { client.approvals.detail.state.value is ReadState.Ready }
-        val approval = client.approvals.detail.value()!!
+        compose.onNodeWithText("Create link").performScrollTo().performClick()
+        compose.waitUntil(15_000) { client.secretSharing.draft.value?.prepared != null }
         val jobId = requireNotNull(client.secretSharing.draft.value?.prepared)
         val job = net.dmsg.android.core.parseSecretShare(kotlinx.serialization.json.Json.parseToJsonElement(runBlocking { native.secretShare(jobId, false).json }))
-        assertEquals("awaiting_user", job.state)
-        assertEquals(approval.id, job.request)
+        assertNull(job.request)
         assertNull(client.secretSharing.link.value)
-        assertEquals("awaiting_user", approval.state)
-        assertEquals(listOf("password"), approval.secret!!.fields.map { it.id })
-        assertFalse(approval.secret!!.notes)
-        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
-        capture("qa-secret-approval")
-        compose.waitUntil(10_000) { runCatching { compose.onNodeWithText("Approve").assertIsEnabled(); true }.getOrDefault(false) }
-        compose.onNodeWithText("Approve").performClick()
-        compose.onNodeWithText("Approve the reviewed request?").assertExists()
-        compose.onNodeWithText("Anyone with the link").assertExists()
-        compose.onNodeWithText(approval.digest).assertExists()
-        val idBounds = compose.onNodeWithText(approval.id).fetchSemanticsNode().boundsInRoot
-        val digestBounds = compose.onNodeWithText(approval.digest).fetchSemanticsNode().boundsInRoot
-        assertTrue("Reviewed request and digest must not overlap", idBounds.bottom <= digestBounds.top)
-        capture("qa-approval-final-review")
-        compose.onNodeWithText("Cancel").performClick()
-        assertEquals("awaiting_user", net.dmsg.android.core.parseApproval(kotlinx.serialization.json.Json.parseToJsonElement(runBlocking { native.approval(approval.id).json })).state)
-        val original = runBlocking { native.secretShareRequest(job.id).json }
-        assertTrue(original.contains(approval.id))
-        val unchanged = runBlocking { native.secretShare(job.id, false).json }
-        assertTrue(unchanged.contains("awaiting_user"))
-        assertFalse(unchanged.contains("Sample-only password"))
-        // Approval has not been accepted: no cloud upload/publication is attempted.
-        compose.runOnIdle { client.navigation.back(); client.navigation.back() }
+        assertTrue(runBlocking { native.approvals().json }.let { it == "[]" })
+        val saved = runBlocking { native.secretShare(job.id, false).json }
+        assertFalse(saved.contains("Sample-only password"))
+        compose.runOnIdle { client.navigation.back() }
         compose.onNodeWithText("Open prepared snapshot").performScrollTo().performClick()
         compose.waitUntil(10_000) { client.secretSharing.job.value()?.id == job.id }
         assertEquals(job.id, client.secretSharing.draft.value!!.prepared)

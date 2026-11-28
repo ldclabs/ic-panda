@@ -10,7 +10,7 @@ const TOKEN: &str = "dmsg-test-credential-never-publish-93ae";
 #[tokio::test]
 async fn owner_activity_pages_include_terminal_configuration_delivery_and_use() {
     let (_dir, mut c, actor, policy) = setup();
-    let reference = policy.credential.clone();
+    let policy_input = policy.clone();
     let policy = configure(&mut c, &actor, policy).await;
     let requested = c.secret_use_request(&actor, input(&policy)).unwrap();
     let use_id = requested["request_id"].as_str().unwrap().to_owned();
@@ -21,23 +21,10 @@ async fn owner_activity_pages_include_terminal_configuration_delivery_and_use() 
         })
         .await
         .unwrap();
-    let entry = c.vault_show(&reference.item_id).unwrap();
-    let prepared = c
-        .secret_share_prepare(shares::ShareInput {
-            item_id: entry.id,
-            revision: entry.revision,
-            field_ids: vec!["credential".into()],
-            include_notes: false,
-            attachments: vec![],
-            expires_in_ms: None,
-            max_download_sessions: None,
-        })
+    let second_policy = c
+        .secret_policy_request("gui", None, None, Some(policy_input), None)
         .unwrap();
-    let job = c.secret_share_save_preparation(prepared).unwrap();
-    let share = c
-        .secret_share_request("gui", job["id"].as_str().unwrap())
-        .unwrap();
-    c.secret_activity_cancel(share["id"].as_str().unwrap())
+    c.secret_activity_cancel(second_policy["id"].as_str().unwrap())
         .unwrap();
     let reviewed = c.secret_activity_reviewed(&use_id).unwrap();
     assert_eq!(reviewed["state"], "lost");
@@ -58,7 +45,7 @@ async fn owner_activity_pages_include_terminal_configuration_delivery_and_use() 
     assert_eq!(records.len(), 3);
     for (kind, state) in [
         ("secret_policy", "done"),
-        ("secret_share", "cancelled"),
+        ("secret_policy", "cancelled"),
         ("secret_use", "lost"),
     ] {
         assert!(

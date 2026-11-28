@@ -112,7 +112,7 @@ HTTP 固定 origin/path、正常 TLS、无环境代理、无跳转、关闭 reqw
 
 ## 本机开发工作流
 
-以下接口为 owner 控制面，未加入 MCP 工具目录。审批动作新增 `secret_process`、`secret_ssh_binding`、`secret_ssh`、`secret_mount_config`、`secret_mount_read`、`secret_share`、`secret_package_import`、`secret_discovery_import`，全部使用高风险在场审批。
+以下接口为 owner 控制面，未加入 MCP 工具目录。审批动作新增 `secret_process`、`secret_ssh_binding`、`secret_ssh`、`secret_mount_config`、`secret_mount_read`、`secret_discovery_import`，全部使用高风险在场审批；快照发送与接收直接由 owner 发起并执行（历史 `secret_share`、`secret_package_import` 审批记录保留只读查看）。
 
 ### 进程交付
 
@@ -159,13 +159,13 @@ macOS 不会自动启用文件系统扩展：首次使用前，用户须在“�
 
 `secrets/shares/prepare {input, password?}` 的 `input` 固定 `item_id`、`revision`、`field_ids`、`include_notes`、附件的 `file_id/version_id`、`expires_in_ms` 与 `max_download_sessions`。默认有效期一天、一个下载会话；有效期接受 6 分钟至 7 天，会话数 1–100。准备产生独立密钥及固定身份，不发布。密码派生在核心锁外运行，密码不持久化。
 
-`request {id}` 产生审批。`list/get` 默认只有元数据；仅显式 `get {id, include_link:true}` 可在确认发布且未取消时取得链接。`reconcile` 查询原 share ID；`revoke` 撤销原身份。发布提交点之后不能再次创建，通用恢复器不能重做。未发布的上传中断，需要新的批准，保留原 upload/share 身份和密钥。
+`publish {id}` 直接执行加密、上传与发布（无需审批）。`list/get` 默认只有元数据；仅显式 `get {id, include_link:true}` 可在确认发布且未取消时取得链接。`reconcile` 查询原 share ID；`revoke` 撤销原身份。发布提交点之后不能再次创建，通用恢复器不能重做。未发布的上传中断可直接重试 `publish {id}`，保留原 upload/share 身份和密钥。
 
 包的外层仍为现有加密分享文件；内层 MIME 为 `application/vnd.dmsg.secret-package`，格式为 4 字节大端 JSON 长度、严格 JSON manifest、按序附件字节。manifest 上限 256 KiB，整个包最多 100 MiB、64 字段、20 附件；拒绝未知字段、重复字段、坏长度/摘要和尾随字节。包只包含所选字段/备注/附件，不带源账户、源 item/field ID、标签、权限或历史。`snapshot_id` 独立随机；字段使用包内编号，标准模板语义可由经验证的角色后缀保留。
 
 准备快照时跳过选中的空字段和空备注，只有空内容的请求会失败。已验证包的预览也跳过空值，并为已识别的标准字段返回可选的 `role`。客户端按自定义名称、模板角色、字段类型显示，始终用原包内 ID 提交选择。
 
-`secrets/packages/import_preview {link, password?}` 只接受当前配置的登录站点链接。先持久化随机下载会话 ID，再发起领取；重试沿用原会话。完整验证后返回元数据 `package_id/digest/preview`。`import_request {selection}` 绑定字段、备注、附件序号及目标 folder；审批后在同一事务提交新 Vault ID、Files、outbox 和收据。附件默认仅本地。包下载缓存只含密文，key 由本机 LDK 封存。
+`secrets/packages/import_preview {link, password?}` 只接受当前配置的登录站点链接。先持久化随机下载会话 ID，再发起领取；重试沿用原会话。完整验证后返回元数据 `package_id/digest/preview`。`import {selection}` 绑定字段、备注、附件序号及目标 folder，在同一事务直接提交新 Vault ID、Files、outbox 和收据（无需审批）。附件默认仅本地。包下载缓存只含密文，key 由本机 LDK 封存。
 
 浏览器安全按纯文本展示；用户主动 reveal/copy 字段或单独保存附件，不提供整包明文下载。复制是独立副本；源条目后续修改和链接撤销均不会删除副本。浏览器领取后再导入客户端会使用另一个下载会话，默认仅一个会话时必须在领取前选择接收方式。
 
@@ -193,13 +193,13 @@ CLI：`dmsg secrets references <dmsg-secret://…>`、`dmsg secrets rotation dep
 ## 频道秘密快照
 
 - `secrets/shares/channel_prepare {channel_id,input}`：`input` 沿用明确字段、备注与固定附件选择，不能带链接期限或会话次数。先读取并验证频道控制状态，计划固定 channel ID、名称、epoch、control head、ACL version 和原 snapshot/upload/file-version IDs。准备不上传。
-- `secrets/shares/request/get/list/reconcile` 复用高风险 owner 审批和任务状态。批准前、每段加密/上传及提交前重新验证账户会话、来源和频道范围；控制版本变化时重新准备并审批，不自动向新成员范围发送。
+- `secrets/shares/publish/get/list/reconcile` 复用任务状态直接发布，不创建审批。开始发布、每段加密/上传及提交前重新验证账户会话、来源和频道范围；控制版本变化时须重新准备，不自动向新成员范围发送。
 - 快照采用独立 key 的普通频道文件，加密块和 manifest 上传后，key 仅随该纪元的加密消息交付。专用操作日志不进入普通频道 outbox，存储恢复器拒绝 `secret_channel`；发布提交点后只查询原 operation ID，不能重签/重发或生成第二条消息。回执的 digest 必须匹配原签名，之后才标为 published。
 - 频道交付没有分享链接、下载会话次数或内容到期时间；`publish_before` 仅限制开始交付。可读取该纪元的成员（包括以后加入或获得历史授权者）及其明确授权的内容读取者可能保留副本。任务撤销只适用于发布提交点之前；提交后不能以“撤销任务”声称收回内容。既有频道撤回/附件回收仍遵循原合同，也不能抹除副本。
 - `secrets/packages/channel_preview {channel_id,seq}`：只从本机验证过的频道消息取附件，不接受调用方注入 file key、URL 或 manifest。读取并验证频道消息、上传声明、密文摘要、AEAD、完整文件摘要及内层包后返回无值预览。不会导出整份明文包到磁盘或 Files。
-- `secrets/packages/import_request` 使用原包摘要、明确选择和可信审批，生成新 Vault/Files IDs。相同频道消息的重复领取收敛到同一包记录；重复导入返回原事务收据，改变选择不能复用旧收据。附件仍继承目的 Files 文件夹授权。
+- `secrets/packages/import` 使用原包摘要与明确选择直接原子导入，生成新 Vault/Files IDs。相同频道消息的重复领取收敛到同一包记录；重复导入返回原事务收据，改变选择不能复用旧收据。附件仍继承目的 Files 文件夹授权。
 
-CLI：`dmsg secrets shares channel-prepare <channel_id> <selection.json>`；`dmsg secrets packages channel-preview <channel_id> <seq>`。桌面使用中心提供目的频道选择；频道快照消息提供“导入秘密快照”，所有字段/备注/附件默认不选。上述方法均为 owner 控制面，无新增 MCP 取密或发起秘密交付工具。
+CLI：`dmsg secrets shares channel-prepare <channel_id> <selection.json>`；`dmsg secrets packages channel-preview <channel_id> <seq>`。桌面使用中心提供目的频道选择；频道快照消息提供“导入秘密快照”，预览默认预选可用字段/备注/附件并允许取消勾选。上述方法均为 owner 控制面，无新增 MCP 取密或发起秘密交付工具。
 
 ## 验证入口与边界
 

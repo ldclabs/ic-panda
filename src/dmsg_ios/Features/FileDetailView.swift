@@ -183,7 +183,6 @@ struct FileDetailView: View {
                         }
                     }
                         .disabled(!available)
-                    SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
                 }
                 SettingsAction("Share nearby", systemImage: "wave.3.right") { nearbySending = true }.disabled(!available)
                 if !model.localAccount { SettingsAction("Share by link", systemImage: "link") { linking = true }
@@ -194,6 +193,7 @@ struct FileDetailView: View {
                         .accessibilityIdentifier("file.links")
                 }
                 }
+                SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
                 if !model.localAccount && !available {
                     SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { actionTask = Task { await restore() } }
                         .disabled(download != nil).accessibilityIdentifier("file.restore")

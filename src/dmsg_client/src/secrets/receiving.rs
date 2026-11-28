@@ -112,12 +112,9 @@ pub struct Selection {
     pub folder: String,
 }
 
-/// Import work, with no private value in the approval record.
-pub struct ImportRun {
-    request: String,
-    selection: Selection,
-    boot_id: String,
-    session_generation: u64,
+enum ImportPrep {
+    Done(Value),
+    Run(Box<Received>),
 }
 
 impl Client {
@@ -133,17 +130,20 @@ impl Client {
             .put_private(self.keys()?, &format!("{PREFIX}{}", received.id), received)
     }
 
-    /// Confirm a selection; the old import's receipt is returned on duplicate submission.
-    pub fn secret_package_request(&mut self, source: &str, selection: Selection) -> Result<Value> {
-        ensure(matches!(source, "gui" | "cli"), Error::Forbidden)?;
+    fn secret_package_prepare_import(
+        &mut self,
+        selection: &Selection,
+        max_plain_bytes: u64,
+    ) -> Result<ImportPrep> {
         let mut received = self.received(&selection.package_id)?;
+        let limit = received.max_plain_bytes.min(max_plain_bytes);
         check_package_size(
             received
                 .file
                 .as_ref()
                 .ok_or(Error::RecoveryIncomplete)?
                 .size,
-            received.max_plain_bytes,
+            limit,
         )?;
         ensure(
             received.digest.as_ref() == Some(&selection.digest),
@@ -151,12 +151,12 @@ impl Client {
         )?;
         if let Some(ids) = &received.imported {
             ensure(
-                received.selection.as_ref() == Some(&selection),
+                received.selection.as_ref() == Some(selection),
                 Error::IdempotencyConflict,
             )?;
-            return Ok(
+            return Ok(ImportPrep::Done(
                 json!({"state":"done","ids":ids,"files_local_only":true,"files_inherit_folder_grants":true}),
-            );
+            ));
         }
         let now = now_ms();
         ensure(now < received.expires_at, Error::Expired)?;
@@ -182,52 +182,25 @@ impl Client {
                     || !selection.attachments.is_empty()),
             "package selection",
         )?;
-        if let Some(request) = &received.request {
-            let r = self.approval_record(request)?;
-            if !r.state.terminal() {
-                let Action::SecretPackageImport { selection: old } = &r.action else {
-                    return Err(Error::IntegrityFailed);
-                };
-                ensure(**old == selection, Error::IdempotencyConflict)?;
-                return self.approval_view(&r);
-            }
+        let mut changed = false;
+        if received.max_plain_bytes != limit {
+            received.max_plain_bytes = limit;
+            changed = true;
         }
-        let r = self.approval_create_at(
-            source,
-            Action::SecretPackageImport {
-                selection: Box::new(selection.clone()),
-            },
-            now,
-            now + crate::approval::HIGH_RISK_TTL_MS,
-        )?;
-        received.request = Some(r.id.clone());
-        received.selection = Some(selection);
-        received.request_boot = Some(self.secret_boot.clone());
-        received.request_session = Some(self.session_generation);
-        self.save_received(&received)?;
-        self.approval_view(&r)
-    }
-
-    /// Apply a host's smaller payload budget before accepting an import request.
-    pub fn secret_package_request_limited(
-        &mut self,
-        source: &str,
-        selection: Selection,
-        max_plain_bytes: u64,
-    ) -> Result<Value> {
-        ensure(matches!(source, "gui" | "cli"), Error::Forbidden)?;
-        let mut received = self.received(&selection.package_id)?;
-        check_package_size(
-            received
-                .file
-                .as_ref()
-                .ok_or(Error::RecoveryIncomplete)?
-                .size,
-            max_plain_bytes,
-        )?;
-        received.max_plain_bytes = received.max_plain_bytes.min(max_plain_bytes);
-        self.save_received(&received)?;
-        self.secret_package_request(source, selection)
+        if let Some(old_request) = received.request.take() {
+            if let Ok(mut r) = self.approval_record(&old_request)
+                && r.state == State::AwaitingUser
+            {
+                r.state = State::Cancelled;
+                r.updated_at = now;
+                self.save_approval(&r)?;
+            }
+            changed = true;
+        }
+        if changed {
+            self.save_received(&received)?;
+        }
+        Ok(ImportPrep::Run(Box::new(received)))
     }
 
     pub(crate) fn secret_package_detail(&self, selection: &Selection) -> Result<Value> {
@@ -239,30 +212,6 @@ impl Client {
         Ok(
             json!({"selection":selection,"preview":r.preview,"channel_source":r.channel_source,"files_local_only":true,"files_inherit_folder_grants":true}),
         )
-    }
-
-    pub(crate) fn secret_package_run(&mut self, r: &mut Request, now: u64) -> Result<ImportRun> {
-        let Action::SecretPackageImport { selection } = &r.action else {
-            return Err(Error::Forbidden);
-        };
-        let received = self.received(&selection.package_id)?;
-        ensure(
-            received.request_boot.as_deref() == Some(&self.secret_boot)
-                && received.request_session == Some(self.session_generation)
-                && received.request.as_deref() == Some(&r.id)
-                && received.selection.as_ref() == Some(selection.as_ref())
-                && received.imported.is_none()
-                && received.digest.as_ref() == Some(&selection.digest)
-                && now < received.expires_at,
-            Error::Expired,
-        )?;
-        self.running.insert(r.id.clone(), now);
-        Ok(ImportRun {
-            request: r.id.clone(),
-            selection: (**selection).clone(),
-            boot_id: self.secret_boot.clone(),
-            session_generation: self.session_generation,
-        })
     }
 }
 
@@ -558,8 +507,8 @@ pub async fn preview_limited<H: Hold>(
 
 /// Validate and stage a complete `dmsg-secret-package/1` received over
 /// `dmsg-nearby-share/1`, returning the same value-free preview shape used by
-/// link and channel secret packages so the receiver enters the existing
-/// `SecretPackageImport` selection and approval flow.
+/// link and channel secret packages so the receiver enters the direct import
+/// selection flow.
 pub(crate) async fn stage_nearby_package<H: Hold>(
     h: &H,
     raw_bytes: Zeroizing<Vec<u8>>,
@@ -656,107 +605,107 @@ async fn received_bytes<H: Hold>(h: &H, received: &Received) -> Result<Zeroizing
     Ok(bytes)
 }
 
-impl ImportRun {
-    /// Import only after complete validation, with the durable receipt and content in one transaction.
-    pub async fn run<H: Hold>(self, h: &H) -> Result<Value> {
-        let bound = Session::new(h).await?;
-        let result = self.execute(&bound).await;
-        match result {
-            Ok(view) => Ok(view),
-            Err(error) => {
-                bound
-                    .with(|c| c.secret_fail_before_send(&self.request, error))
-                    .await
-            }
-        }
-    }
+/// Import a validated received snapshot directly into Vault/Files in one atomic transaction.
+/// Duplicate submission of the same selection returns the original receipt; a different
+/// selection after import fails with `Error::IdempotencyConflict`.
+pub async fn import<H: Hold>(h: &H, selection: Selection) -> Result<Value> {
+    import_limited(h, selection, crate::files::MAX_FILE).await
+}
 
-    async fn execute<H: Hold>(&self, h: &H) -> Result<Value> {
-        let received = h
-            .with(|c| {
-                ensure(
-                    c.secret_boot == self.boot_id
-                        && c.session_generation == self.session_generation,
-                    failure("SECRET_SESSION_ENDED"),
-                )?;
-                c.received(&self.selection.package_id)
-            })
+/// Direct import with a host-specific whole-package plaintext buffer limit.
+pub async fn import_limited<H: Hold>(
+    h: &H,
+    selection: Selection,
+    max_plain_bytes: u64,
+) -> Result<Value> {
+    let bound = Session::new(h).await?;
+    let received = match bound
+        .with(|c| c.secret_package_prepare_import(&selection, max_plain_bytes))
+        .await?
+    {
+        ImportPrep::Done(receipt) => return Ok(receipt),
+        ImportPrep::Run(received) => received,
+    };
+    let bytes = received_bytes(&bound, &received).await?;
+    let parsed = package::parse(&bytes)?;
+    let mut item = parsed
+        .manifest
+        .new_item(&selection.fields, selection.include_notes)?;
+    let picks: BTreeSet<_> = selection.attachments.iter().copied().collect();
+    ensure_valid(
+        picks.len() == selection.attachments.len()
+            && picks.iter().all(|i| *i < parsed.attachments.len()),
+        "package attachments",
+    )?;
+    let mut files = Vec::new();
+    for index in picks {
+        let metadata = &parsed.manifest.attachments[index];
+        let data = parsed.attachments[index];
+        let name = metadata
+            .name
+            .rsplit(['/', '\\'])
+            .next()
+            .filter(|n| !n.is_empty() && *n != "." && *n != "..")
+            .unwrap_or("attachment.bin");
+        let name = name
+            .chars()
+            .filter(|c| !c.is_control())
+            .take(200)
+            .collect::<String>();
+        let name = if name.is_empty() {
+            "attachment.bin"
+        } else {
+            &name
+        };
+        let mut file = bound
+            .with(|c| c.secret_stage_start(name, &metadata.mime, metadata.size))
             .await?;
-        let bytes = received_bytes(h, &received).await?;
-        let parsed = package::parse(&bytes)?;
-        let mut item = parsed
-            .manifest
-            .new_item(&self.selection.fields, self.selection.include_notes)?;
-        let picks: BTreeSet<_> = self.selection.attachments.iter().copied().collect();
-        ensure_valid(
-            picks.len() == self.selection.attachments.len()
-                && picks.iter().all(|i| *i < parsed.attachments.len()),
-            "package attachments",
-        )?;
-        let mut files = Vec::new();
-        for index in picks {
-            let metadata = &parsed.manifest.attachments[index];
-            let data = parsed.attachments[index];
-            let name = metadata
-                .name
-                .rsplit(['/', '\\'])
-                .next()
-                .filter(|n| !n.is_empty() && *n != "." && *n != "..")
-                .unwrap_or("attachment.bin");
-            let name = name
-                .chars()
-                .filter(|c| !c.is_control())
-                .take(200)
-                .collect::<String>();
-            let name = if name.is_empty() {
-                "attachment.bin"
-            } else {
-                &name
-            };
-            let mut file = h
-                .with(|c| c.secret_stage_start(name, &metadata.mime, metadata.size))
+        for block in data.chunks(CHUNK) {
+            bound
+                .with(|c| c.secret_stage_part(&mut file, block))
                 .await?;
-            for block in data.chunks(CHUNK) {
-                h.with(|c| c.secret_stage_part(&mut file, block)).await?;
-            }
-            h.with(|c| c.secret_stage_finish(&mut file, Some(&metadata.sha256)))
-                .await?;
-            item.files.push(file.id().into());
-            files.push(file);
         }
-        h.with(|c| {
+        bound
+            .with(|c| c.secret_stage_finish(&mut file, Some(&metadata.sha256)))
+            .await?;
+        item.files.push(file.id().into());
+        files.push(file);
+    }
+    bound
+        .with(|c| {
             let now = now_ms();
             let mut current = c.received(&received.id)?;
+            if let Some(ids) = &current.imported {
+                ensure(
+                    current.selection.as_ref() == Some(&selection),
+                    Error::IdempotencyConflict,
+                )?;
+                return Ok(
+                    json!({"state":"done","ids":ids,"files_local_only":true,"files_inherit_folder_grants":true}),
+                );
+            }
             ensure(
-                current.request.as_deref() == Some(&self.request)
-                    && current.selection.as_ref() == Some(&self.selection)
-                    && current.imported.is_none()
-                    && current.digest == Some(self.selection.digest.clone())
+                current.digest.as_deref() == Some(selection.digest.as_str())
                     && now < current.expires_at,
                 Error::Expired,
             )?;
-            let mut request = c.approval_record(&self.request)?;
-            ensure(
-                request.state == State::Executing && !request.started && request.expires_at > now,
-                Error::Expired,
-            )?;
-            c.secret_import_commit_with(vec![item], files, &self.selection.folder, |c, ids| {
+            c.catalog()?.live_folder(&selection.folder)?;
+            let mut imported_ids = Vec::new();
+            c.secret_import_commit_with(vec![item], files, &selection.folder, |c, ids| {
+                imported_ids = ids.to_vec();
                 current.imported = Some(ids.to_vec());
-                request.started = true;
-                request.state = State::Done;
-                request.updated_at = now;
-                request.delivery_report = Some(
-                    json!({"ids":ids,"files_local_only":true,"files_inherit_folder_grants":true}),
-                );
-                c.save_received(&current)?;
-                c.write_approval(&request)
+                current.selection = Some(selection.clone());
+                current.request = None;
+                current.request_boot = None;
+                current.request_session = None;
+                c.save_received(&current)
             })?;
-            c.running.remove(&self.request);
             c.release_chunks(&received.id)?;
-            c.approval_view(&request)
+            Ok(
+                json!({"state":"done","ids":imported_ids,"files_local_only":true,"files_inherit_folder_grants":true}),
+            )
         })
         .await
-    }
 }
 
 /// Receive a verified channel attachment without exporting a plaintext package to Files or disk.
@@ -894,7 +843,6 @@ async fn channel_received<H: Hold>(
 mod tests {
     use super::*;
     use crate::{
-        approval::Decision,
         testing::{TempDir, unlocked},
         vault::Field,
     };
@@ -1002,33 +950,23 @@ mod tests {
         assert_eq!(preview["files_inherit_folder_grants"], true);
         assert!(!preview.to_string().contains("SECRET_RECEIVER_FIXTURE"));
         assert!(matches!(
-            c.secret_package_request_limited("gui", selection.clone(), size - 1),
+            import_limited(&c.hold(), selection.clone(), size - 1).await,
             Err(Error::QuotaExceeded)
         ));
         assert!(c.approvals(true).unwrap().is_empty());
 
-        let request = c
-            .secret_package_request_limited("gui", selection.clone(), size)
+        let result = import_limited(&c.hold(), selection.clone(), size)
+            .await
             .unwrap();
         let stored = c.received(&selection.package_id).unwrap();
         assert_eq!(stored.max_plain_bytes, size);
-        let result = c
-            .approval_respond(
-                request["id"].as_str().unwrap(),
-                request["digest"].as_str().unwrap(),
-                true,
-                "gui",
-                false,
-            )
-            .await
-            .unwrap();
         assert_eq!(result["state"], "done");
-        assert_eq!(result["delivery_report"]["files_local_only"], true);
+        assert_eq!(result["files_local_only"], true);
         assert_eq!(
-            c.secret_package_request_limited("gui", selection, size)
-                .unwrap()["state"],
+            import_limited(&c.hold(), selection, size).await.unwrap()["state"],
             "done"
         );
+        assert!(c.approvals(true).unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -1049,19 +987,10 @@ mod tests {
     #[tokio::test]
     async fn imported_selection_receipt_is_atomic_and_cannot_be_reused_for_other_content() {
         let (_dir, mut c, selection) = fixture();
-        let r = c.secret_package_request("gui", selection.clone()).unwrap();
-        let result = c
-            .approval_respond(
-                r["id"].as_str().unwrap(),
-                r["digest"].as_str().unwrap(),
-                true,
-                "gui",
-                false,
-            )
-            .await
-            .unwrap();
+        let result = import(&c.hold(), selection.clone()).await.unwrap();
         assert_eq!(result["state"], "done");
-        let duplicate = c.secret_package_request("gui", selection.clone()).unwrap();
+        let duplicate = import(&c.hold(), selection.clone()).await.unwrap();
+        assert_eq!(duplicate, result);
         let id = duplicate["ids"][0].as_str().unwrap();
         let entry = c.vault_show(id).unwrap();
         assert_eq!(entry.item.value("credential"), "SECRET_RECEIVER_FIXTURE");
@@ -1074,7 +1003,7 @@ mod tests {
         let mut changed = selection.clone();
         changed.fields = vec!["f1".into()];
         assert_eq!(
-            c.secret_package_request("gui", changed),
+            import(&c.hold(), changed).await,
             Err(Error::IdempotencyConflict)
         );
         assert_eq!(
@@ -1083,37 +1012,19 @@ mod tests {
                 .len(),
             1
         );
-        assert!(
-            !c.approval(r["id"].as_str().unwrap())
-                .unwrap()
-                .to_string()
-                .contains("SECRET_RECEIVER_FIXTURE")
-        );
+        assert!(c.approvals(true).unwrap().is_empty());
     }
 
     #[tokio::test]
-    async fn orphan_approval_and_invalid_selection_never_import() {
+    async fn invalid_or_expired_selection_never_imports() {
         let (_dir, mut c, selection) = fixture();
         let mut bad = selection.clone();
         bad.fields.push(bad.fields[0].clone());
-        assert!(c.secret_package_request("gui", bad).is_err());
-        let r = c.secret_package_request("gui", selection.clone()).unwrap();
-        let mut record = c.received(&selection.package_id).unwrap();
-        record.request = None;
-        c.save_received(&record).unwrap();
-        let _ = c
-            .approval_decide(
-                r["id"].as_str().unwrap(),
-                r["digest"].as_str().unwrap(),
-                true,
-                "gui",
-                false,
-            )
-            .await;
-        assert_eq!(
-            c.approval(r["id"].as_str().unwrap()).unwrap()["state"],
-            "failed"
-        );
+        assert!(import(&c.hold(), bad).await.is_err());
+        let mut expired = c.received(&selection.package_id).unwrap();
+        expired.expires_at = 1;
+        c.save_received(&expired).unwrap();
+        assert_eq!(import(&c.hold(), selection).await, Err(Error::Expired));
         assert!(
             c.vault_list(&crate::vault::Filter::default())
                 .unwrap()
@@ -1122,32 +1033,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn lock_after_approval_never_commits_plaintext_or_a_receipt() {
+    async fn locked_client_never_commits_plaintext_or_a_receipt() {
         let (_dir, mut c, selection) = fixture();
-        let r = c.secret_package_request("gui", selection.clone()).unwrap();
-        let run = match c
-            .approval_decide(
-                r["id"].as_str().unwrap(),
-                r["digest"].as_str().unwrap(),
-                true,
-                "gui",
-                false,
-            )
-            .await
-            .unwrap()
-        {
-            Decision::SecretPackageImport(run) => run,
-            _ => panic!("import"),
-        };
-        c.session_generation = c.session_generation.wrapping_add(1);
-        let result = run.run(&c.hold()).await.unwrap();
-        assert_eq!(result["state"], "failed");
-        assert!(
-            c.vault_list(&crate::vault::Filter::default())
-                .unwrap()
-                .is_empty()
-        );
         c.lock();
+        assert_eq!(import(&c.hold(), selection).await, Err(Error::Locked));
     }
     #[tokio::test]
     async fn channel_ciphertext_is_verified_before_preview_and_reuses_the_import_receipt() {
@@ -1215,19 +1104,10 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(preview["package_id"], duplicate["package_id"]);
+        assert_eq!(preview["channel_source"], source);
         selection.package_id = preview["package_id"].as_str().unwrap().into();
-        let request = c.secret_package_request("gui", selection.clone()).unwrap();
-        assert_eq!(request["detail"]["channel_source"], source);
-        c.approval_respond(
-            request["id"].as_str().unwrap(),
-            request["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await
-        .unwrap();
-        let receipt = c.secret_package_request("gui", selection.clone()).unwrap();
+        let receipt = import(&c.hold(), selection.clone()).await.unwrap();
+        assert_eq!(receipt["state"], "done");
         assert_eq!(
             c.vault_show(receipt["ids"][0].as_str().unwrap())
                 .unwrap()
@@ -1235,7 +1115,8 @@ mod tests {
                 .value("credential"),
             "SECRET_RECEIVER_FIXTURE"
         );
-        assert_eq!(c.secret_package_request("gui", selection).unwrap(), receipt);
+        assert_eq!(import(&c.hold(), selection).await.unwrap(), receipt);
+        assert!(c.approvals(true).unwrap().is_empty());
         let mut broken = SensitiveManifest(file.0.clone());
         broken.sha256 = "00".repeat(32);
         assert!(

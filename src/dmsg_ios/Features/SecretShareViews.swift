@@ -8,6 +8,7 @@ struct SecretSnapshotComposer: View {
     @State private var fields: Set<String> = []
     @State private var notes = false
     @State private var attachmentIDs: Set<String> = []
+    @State private var attachmentsTouched = false
     @State private var attachments: SecretAttachmentListing?
     @State private var destination = "link"
     @State private var initialized = false
@@ -57,7 +58,7 @@ struct SecretSnapshotComposer: View {
                 Section("Select attachments to share") {
                     ForEach(attachments.files) { entry in
                         if let file = entry.details?.file {
-                            Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
+                            Toggle(isOn: Binding(get: { attachmentIDs.contains(entry.id) }, set: { attachmentsTouched = true; if $0 { attachmentIDs.insert(entry.id) } else { attachmentIDs.remove(entry.id) } })) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(file.name).lineLimit(2)
                                     Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: file.size), countStyle: .file)).font(.footnote).foregroundStyle(.secondary)
@@ -78,14 +79,10 @@ struct SecretSnapshotComposer: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            DisclosureGroup("Technical details") {
-                Text("Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
         }.toggleStyle(SelectionRowToggleStyle()).disabled(working).privateScreen().navigationTitle("Share secret snapshot").navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 Button { work = Task { await prepare() } } label: {
-                    HStack { if working { ProgressView() }; Text("Review request") }.frame(maxWidth: .infinity)
+                    HStack { if working { ProgressView() }; Text(destination == "link" ? "Create link" : "Send") }.frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(working || !hasSelection || item.reserved || item.deleted || item.conflict)
@@ -93,18 +90,27 @@ struct SecretSnapshotComposer: View {
                 .padding(.horizontal).padding(.vertical, 8).background(.bar)
             }
             .task {
-                if !initialized { destination = initialChannel ?? "link"; initialized = true }
+                if !initialized {
+                    destination = initialChannel ?? "link"
+                    fields = Set(item.fields.filter { !$0.value.isEmpty }.map(\.id))
+                    notes = !item.notes.isEmpty
+                    initialized = true
+                }
                 await model.loadChannels()
                 let epoch = model.epoch
                 do {
                     guard let snapshot = try await model.engine?.secretItemAttachments(itemId: item.id), epoch == model.epoch else { return }
-                    attachments = try model.decode(snapshot)
+                    let listing: SecretAttachmentListing = try model.decode(snapshot)
+                    attachments = listing
+                    if !attachmentsTouched {
+                        attachmentIDs = Set(listing.files.filter(\.canShare).map(\.id))
+                    }
                 } catch { if epoch == model.epoch { model.report(error) } }
             }
             .onChange(of: destination) { _, destination in if destination != "link" { password = "" } }
             .onDisappear { work?.cancel() }
             .navigationDestination(isPresented: Binding(get: { job != nil }, set: { if !$0 { job = nil } })) {
-                if let job { SecretShareDetailView(id: job.id, reviewOnOpen: true) }
+                if let job { SecretShareDetailView(id: job.id) }
             }
     }
 
@@ -127,7 +133,18 @@ struct SecretSnapshotComposer: View {
                 result = try await coreOperation { try await engine.secretChannelSharePrepare(channel: destination, input: input, operation: $0) }
             }
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            job = try model.decode(result); password = ""
+            let prepared: SecretShareJob = try model.decode(result)
+            password = ""
+            do {
+                let published = try await coreOperation { try await engine.secretSharePublish(id: prepared.id, operation: $0) }
+                guard epoch == model.epoch, !Task.isCancelled else { return }
+                job = (try? model.decode(published)) ?? prepared
+            } catch {
+                if epoch == model.epoch {
+                    model.report(error)
+                    job = prepared
+                }
+            }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }
@@ -139,7 +156,6 @@ struct SecretSharesView: View {
     var body: some View {
         List {
             NavigationLink { FileLinksView(scope: .snapshots(item: nil)) } label: { Label("Share links", systemImage: "link") }
-            NoticeBar(text: String(localized: "These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here."))
             if let shares {
                 ForEach(shares) { share in
                     NavigationLink { SecretShareDetailView(id: share.id) } label: {
@@ -169,11 +185,8 @@ struct SecretSharesView: View {
 
 struct SecretShareDetailView: View {
     let id: String
-    var reviewOnOpen = false
-    @State private var openedReview = false
     @Environment(SessionModel.self) private var model
     @State private var share: SecretShareJob?
-    @State private var request: ApprovalView?
     @State private var working = false
     @State private var confirmRevoke = false
     @State private var link: String?
@@ -202,21 +215,18 @@ struct SecretShareDetailView: View {
                     DisclosureGroup("Error details") { Text(error).font(.footnote.monospaced()).textSelection(.enabled) }
                 }
                 Section {
-                    if let requestID = share.requestId {
-                        Button("Open approval record") { Task { await approval(id: requestID) } }.disabled(working)
-                    }
-                    if ["prepared", "needs_approval", "awaiting_user", "interrupted", "failed", "cancelled"].contains(share.state) && !share.cancelRequested {
-                        Button("Review publication or resume") { Task { await requestApproval() } }.disabled(working)
+                    if ["prepared", "needs_approval", "awaiting_user", "interrupted", "failed"].contains(share.state) && !share.cancelRequested {
+                        SettingsAction(share.state == "failed" ? "Retry" : "Publish", prominent: true, working: working) { actionTask = Task { await publish() } }.disabled(working)
                     }
                     if ["unknown", "publishing", "uploading", "encrypting", "revoke_pending"].contains(share.state) {
                         NoticeBar(text: String(localized: "The outcome is uncertain. Check the original job before attempting anything again."))
-                        Button("Reconcile original snapshot") { actionTask = Task { await reconcile() } }.disabled(working)
+                        SettingsAction("Reconcile original snapshot", prominent: true, working: working) { actionTask = Task { await reconcile() } }.disabled(working)
                     }
-                    if share.plan.channel == nil && share.state == "published" && !share.cancelRequested {
-                        Button("Show share link", systemImage: "link") { actionTask?.cancel(); actionTask = Task { await load(includeLink: true) } }.disabled(working)
+                    if share.plan.channel == nil && share.plan.nearby == nil && share.state == "published" && !share.cancelRequested {
+                        SettingsAction("Show share link", systemImage: "link", working: working) { actionTask?.cancel(); actionTask = Task { await load(includeLink: true) } }.disabled(working)
                     }
-                    if share.plan.channel == nil && !["revoked", "cancelled"].contains(share.state) {
-                        Button("Revoke or cancel this link", role: .destructive) { confirmRevoke = true }.disabled(working)
+                    if share.plan.channel == nil && share.plan.nearby == nil && !["revoked", "cancelled"].contains(share.state) {
+                        SettingsAction("Revoke or cancel this link", role: .destructive) { confirmRevoke = true }.disabled(working)
                     }
                 }
                 if let link {
@@ -231,19 +241,12 @@ struct SecretShareDetailView: View {
             else { Button("Retry") { Task { await load() } } }
         }.privateScreen().navigationTitle("Snapshot").navigationBarTitleDisplayMode(.inline).task(id: id) {
             await load()
-            if reviewOnOpen && !openedReview && share?.state == "prepared" && !Task.isCancelled {
-                openedReview = true
-                await requestApproval()
-            }
         }.refreshable { await load() }
             .onDisappear { link = nil; actionTask?.cancel() }
             .onChange(of: model.concealed) { _, concealed in if concealed { actionTask?.cancel(); link = nil } }
             .confirmationDialog("Revoke this snapshot link?", isPresented: $confirmRevoke) {
                 Button("Revoke or cancel", role: .destructive) { actionTask = Task { await revoke() } }
             } message: { Text("This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.") }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
     }
     private func load(includeLink: Bool = false) async {
         loading = true; defer { loading = false }
@@ -255,18 +258,18 @@ struct SecretShareDetailView: View {
             if includeLink && link == nil { model.notice = String(localized: "The full link is not available on this device.") }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
-    private func approval(id: String) async {
-        let epoch = model.epoch
-        do { if let result = try await model.engine?.approval(id: id), epoch == model.epoch { request = try model.decode(result) } }
-        catch { if epoch == model.epoch { model.report(error) } }
-    }
-    private func requestApproval() async {
+    private func publish() async {
         guard let engine = model.engine, !working else { return }
         let epoch = model.epoch; working = true; model.activity(); defer { working = false }
         do {
-            let result = try await engine.secretShareRequest(id: id)
-            guard epoch == model.epoch, !Task.isCancelled else { return }; request = try model.decode(result)
-        } catch { if epoch == model.epoch { model.report(error) } }
+            _ = try await coreOperation { try await engine.secretSharePublish(id: id, operation: $0) }
+            if epoch == model.epoch { await load() }
+        } catch {
+            if epoch == model.epoch {
+                model.report(error)
+                await load()
+            }
+        }
     }
     private func reconcile() async {
         guard let engine = model.engine, !working else { return }

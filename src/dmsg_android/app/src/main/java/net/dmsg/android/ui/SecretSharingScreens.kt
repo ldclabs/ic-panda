@@ -130,10 +130,15 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     }
                 }
             }
-            Text(str(R.string.text_a_mobile_package_is_limited_to_8_mib_including_attachments_prepar_74b5ba7),
+            Text(str(R.string.text_deliver_an_independent_snapshot_of_this_exact_selection_9c08d03),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = client.secretSharing::prepare, enabled = !working && (value.prepared != null || value.uncertain || value.selected && (value.channel != null || value.sessions.toIntOrNull() in 1..100)), modifier = Modifier.fillMaxWidth()) {
-                Text(when { value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc); value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78); else -> str(R.string.text_review_request_cb6fb73) })
+                Text(when {
+                    value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc)
+                    value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78)
+                    value.channel != null -> str(R.string.text_send_06acd73)
+                    else -> str(R.string.text_create_link_2ae3b5b)
+                })
             }
             if (working) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -188,7 +193,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     var revoke by remember(id) { mutableStateOf(false) }
     LaunchedEffect(id) { client.secretSharing.select(id) }
     DisposableEffect(id) { onDispose { client.secretSharing.hideLink(id) } }
-    val working = state.working("secret:reconcile:" + id) || state.working("secret:revoke:" + id) || state.working("approval:request:secret-share:" + id)
+    val working = state.working("secret:reconcile:" + id) || state.working("secret:revoke:" + id) || state.working("secret:publish:" + id)
     ScreenBar(null) {
         IconButton(onClick = { client.secretSharing.select(id) }, enabled = !working) {
             Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_original_snapshot_e83960f))
@@ -212,9 +217,9 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (value.state in setOf("prepared", "needs_approval", "awaiting_user", "interrupted", "failed", "cancelled") && !value.cancelRequested) {
-                    Button(onClick = { client.secretSharing.request(id) }, enabled = !working && read is ReadState.Ready, modifier = Modifier.fillMaxWidth()) {
-                        Text(str(R.string.text_review_publication_or_resume_c40fa98))
+                if (value.state in setOf("prepared", "needs_approval", "awaiting_user", "interrupted", "failed") && !value.cancelRequested) {
+                    Button(onClick = { client.secretSharing.publish(id) }, enabled = !working && read is ReadState.Ready, modifier = Modifier.fillMaxWidth()) {
+                        Text(str(if (value.state == "failed") R.string.text_retry_563171c else R.string.text_publish_88bb01f))
                     }
                 }
                 if (value.state in setOf("unknown", "publishing", "uploading", "encrypting", "revoke_pending")) {
@@ -225,11 +230,6 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 if (value.channel == null && value.nearby == null && value.state == "published" && !value.cancelRequested) {
                     OutlinedButton(onClick = { client.secretSharing.select(id, reveal = true) }, enabled = !working, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_show_share_link_fb39fbb))
-                    }
-                }
-                value.request?.let { request ->
-                    OutlinedButton(onClick = { client.approvals.open(request) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(str(R.string.text_open_original_approval_2607721))
                     }
                 }
             }
@@ -286,7 +286,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     val preview = read.valueOrNull()?.takeIf { current != null }
     var choosingFolder by remember { mutableStateOf(false) }
     val working = state.working("secret:preview") || state.working("secret:import")
-    LaunchedEffect(source) { client.secretSharing.receiver(source); client.secretSharing.refreshIncoming() }
+    LaunchedEffect(source) { client.secretSharing.receiver(source) }
     // A package the device refuses to open (wrong password, altered or expired) answers with the Reject haptic.
     val haptics = LocalHapticFeedback.current
     val refused = read is ReadState.Failed<*>
@@ -295,8 +295,8 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
     LaunchedEffect(qr.result) { client.qr.consume("secret-package")?.let { link -> client.secretSharing.editIncoming { it.copy(link = link) } } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(pagePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (current == null) return@Column
-        val editable = !working && current.request == null && current.completed == null && current.pending == null
-        if (current.pending != null && current.request == null) Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
+        val editable = !working && current.completed == null && current.pending == null
+        if (current.pending != null) Notice(str(R.string.text_the_original_selection_is_fixed_continue_that_request_to_learn_it_480f539))
         if (source.nearby == null) DetailCard {
             if (source.channel == null) {
                 OutlinedTextField(current.link, { link -> client.secretSharing.editIncoming { it.copy(link = link.take(8192)) } }, Modifier.fillMaxWidth(), enabled = editable,
@@ -311,7 +311,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                 Text(str(R.string.text_preview_verifies_the_sender_channel_epoch_and_original_message_be_3e32cf2),
                     style = MaterialTheme.typography.bodyMedium)
             }
-            if (current.pending == null && current.request == null && current.completed == null) {
+            if (current.pending == null && current.completed == null) {
                 Button(onClick = client.secretSharing::inspect, enabled = !working && (channel != null && sequence != null || current.link.isNotBlank()), modifier = Modifier.fillMaxWidth()) {
                     Text(if (preview == null) str(R.string.text_preview_package_7f98c9f) else str(R.string.text_refresh_verified_preview_5d8e380))
                 }
@@ -356,7 +356,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             if (value.attachments.isNotEmpty()) {
                 Section(
                     title = str(R.string.text_select_attachments_to_import_de0f7db),
-                    footer = str(R.string.text_import_creates_independent_items_attachments_stay_on_this_device_fe5265b),
+                    footer = str(R.string.text_imported_attachments_stay_on_this_device_and_inherit_this_folder_d1a4fc8),
                 ) {
                     value.attachments.forEachIndexed { index, file ->
                         SelectionRow(file.name, index.toUInt() in current.attachments, editable, fileSize(file.size)) { checked ->
@@ -371,7 +371,7 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
                     ) { choosingFolder = true }
                 }
             } else {
-                Text(str(R.string.text_import_creates_independent_items_attachments_stay_on_this_device_fe5265b),
+                Text(str(R.string.text_create_an_independent_copy_of_this_exact_selection_a20b10b),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Section {
@@ -379,14 +379,11 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
             }
         }
         if (current.completed == null) {
-            Button(onClick = client.secretSharing::importRequest,
-                enabled = !working && (current.request != null || current.pending != null || preview != null && current.selected),
+            Button(onClick = client.secretSharing::importPackage,
+                enabled = !working && (current.pending != null || preview != null && current.selected),
                 modifier = Modifier.fillMaxWidth()) {
-                Text(when { current.request != null -> str(R.string.text_open_original_approval_2607721); current.pending != null -> str(R.string.text_retry_original_import_request_8c64bea); else -> str(R.string.text_review_selected_import_1457454) })
+                Text(if (current.pending != null) str(R.string.text_retry_original_import_c3a9967) else str(R.string.text_import_1a200b3))
             }
-        }
-        if (current.request != null && current.completed == null) {
-            OutlinedButton(onClick = client.secretSharing::refreshIncoming, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_check_original_import_result_23a1ea7)) }
         }
         current.completed?.let { ids ->
             Section(title = str(R.string.text_imported_copies_3c1c692)) {

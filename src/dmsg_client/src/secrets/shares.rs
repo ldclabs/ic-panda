@@ -1,4 +1,4 @@
-//! Approved secret snapshots. Publication is attempted once; uncertain outcomes only query the original ID.
+//! Direct secret snapshots. Publication is attempted once; uncertain outcomes only query the original ID.
 use super::*;
 use crate::{
     files::{CHUNK, Source as BlobSource},
@@ -219,10 +219,9 @@ impl Preparation {
     }
 }
 
-/// Approved work to run without holding the client during network IO.
-pub struct ShareRun {
+/// Snapshot work run without holding the client during network IO.
+struct ShareRun {
     id: String,
-    request: String,
 }
 
 impl Client {
@@ -537,12 +536,15 @@ impl Client {
         Ok(())
     }
 
-    /// Release a stopped send, preserving a decision already recorded by the user.
+    /// Release a stopped nearby send and its temporary staged chunks.
     pub(crate) fn secret_nearby_stop(&mut self, id: &str, error: String) -> Result<()> {
         let mut job = self.share_job(id)?;
         ensure(job.plan.nearby.is_some(), Error::Forbidden)?;
         if matches!(job.phase.as_str(), "delivered" | "failed" | "cancelled") {
             return Ok(());
+        }
+        if job.publish_attempted {
+            return self.secret_nearby_finish(id, false, None, Some(error));
         }
         if let Some(request) = &job.request
             && self.approval_record(request)?.state.terminal()
@@ -629,16 +631,9 @@ impl Client {
                 !current.cancel_requested && current.plan.digest() == job.plan.digest(),
                 Error::Expired,
             )?;
-            if matches!(job.phase.as_str(), "encrypting" | "uploading") {
+            if session && matches!(job.phase.as_str(), "encrypting" | "uploading") {
                 ensure(
-                    current.request == job.request
-                        && matches!(current.phase.as_str(), "encrypting" | "uploading"),
-                    Error::Expired,
-                )?;
-                let request =
-                    self.approval_record(job.request.as_deref().ok_or(Error::IntegrityFailed)?)?;
-                ensure(
-                    request.state == State::Executing && request.started,
+                    matches!(current.phase.as_str(), "encrypting" | "uploading"),
                     Error::Expired,
                 )?;
             }
@@ -663,14 +658,9 @@ impl Client {
         Ok(())
     }
 
-    /// Recheck a running step and keep its live approval away from the abandoned-run
-    /// reconciler; an upload may take longer than the reconciler's idle window.
+    /// Recheck a running step against the live session, source revision and cancellation state.
     fn share_step(&mut self, job: &Job, now: u64) -> Result<()> {
-        self.share_check(job, true, now)?;
-        if let Some(request) = &job.request {
-            self.running.insert(request.clone(), now);
-        }
-        Ok(())
+        self.share_check(job, true, now)
     }
 
     fn share_job_view(&self, job: &Job, include_link: bool) -> Result<Value> {
@@ -720,9 +710,8 @@ impl Client {
         Ok(json!({"shares":jobs,"device_local":true}))
     }
 
-    /// A fresh approval is required to resume an unpublished interrupted upload.
-    pub fn secret_share_request(&mut self, source: &str, id: &str) -> Result<Value> {
-        ensure(matches!(source, "gui" | "cli"), Error::Forbidden)?;
+    /// Validate a prepared or unpublished interrupted job and start direct publication.
+    fn secret_share_start(&mut self, id: &str) -> Result<ShareRun> {
         let mut job = self.share_job(id)?;
         ensure(
             !job.publish_attempted
@@ -737,12 +726,6 @@ impl Client {
                 ),
             Error::ExecutionUnknown,
         )?;
-        if let Some(request) = &job.request {
-            let r = self.approval_record(request)?;
-            if matches!(r.state, State::AwaitingUser | State::Executing) {
-                return self.approval_view(&r);
-            }
-        }
         // A standalone workspace shares a snapshot only face to face.
         ensure(
             !self.is_local() || job.plan.nearby.is_some(),
@@ -750,58 +733,31 @@ impl Client {
         )?;
         let now = now_ms();
         self.share_check(&job, false, now)?;
+        if let Some(old_request) = job.request.take()
+            && let Ok(mut r) = self.approval_record(&old_request)
+            && r.state == State::AwaitingUser
+        {
+            r.state = State::Cancelled;
+            r.updated_at = now;
+            self.save_approval(&r)?;
+        }
         job.boot = self.secret_boot.clone();
         job.session = self.session_generation;
-        let request = self.approval_create_at(
-            source,
-            Action::SecretShare {
-                id: id.into(),
-                digest: job.plan.digest(),
-            },
-            now,
-            now + crate::approval::HIGH_RISK_TTL_MS,
-        )?;
-        job.phase = "awaiting_user".into();
-        job.request = Some(request.id.clone());
         job.error = None;
-        self.save_share_job(&job)?;
-        self.approval_view(&request)
-    }
-
-    pub(crate) fn secret_share_detail(&self, id: &str, digest: &str) -> Result<Value> {
-        let job = self.share_job(id)?;
-        ensure(job.plan.digest() == digest, Error::IntegrityFailed)?;
-        Ok(job.plan.view())
-    }
-
-    pub(crate) fn secret_share_run(&mut self, r: &mut Request, now: u64) -> Result<ShareRun> {
-        let Action::SecretShare { id, digest } = &r.action else {
-            return Err(Error::Forbidden);
-        };
-        let mut job = self.share_job(id)?;
-        ensure(
-            job.plan.digest() == *digest
-                && job.request.as_deref() == Some(&r.id)
-                && !job.publish_attempted,
-            Error::Forbidden,
-        )?;
-        self.share_check(&job, true, now)?;
         job.phase = if job.upload.is_some() {
             "uploading"
         } else {
             "encrypting"
         }
         .into();
-        r.started = true;
-        self.workspace.store.atomic(|_| {
-            self.write_approval(r)?;
-            self.save_share_job(&job)
-        })?;
-        self.running.insert(r.id.clone(), now);
-        Ok(ShareRun {
-            id: id.clone(),
-            request: r.id.clone(),
-        })
+        self.save_share_job(&job)?;
+        Ok(ShareRun { id: id.into() })
+    }
+
+    pub(crate) fn secret_share_detail(&self, id: &str, digest: &str) -> Result<Value> {
+        let job = self.share_job(id)?;
+        ensure(job.plan.digest() == digest, Error::IntegrityFailed)?;
+        Ok(job.plan.view())
     }
 
     fn share_settle(
@@ -936,11 +892,18 @@ async fn append<H: Hold>(
     Ok(())
 }
 
+/// Encrypt and publish a prepared snapshot directly without approval-center gating.
+/// Publication is attempted at most once; uncertain outcomes settle as `unknown` for reconciliation.
+pub async fn publish<H: Hold>(h: &H, id: &str) -> Result<Value> {
+    let bound = Session::new(h).await?;
+    let run = bound.with(|c| c.secret_share_start(id)).await?;
+    run.run(&bound).await
+}
+
 impl ShareRun {
     /// Encrypt a snapshot in bounded chunks, upload immutable ciphertext, then publish at most once.
-    pub async fn run<H: Hold>(self, h: &H) -> Result<Value> {
-        let bound = Session::new(h).await?;
-        let outcome = self.execute(&bound).await;
+    async fn run<H: Hold>(self, bound: &H) -> Result<Value> {
+        let outcome = self.execute(bound).await;
         match outcome {
             Ok(()) => {
                 let (cancel, is_nearby) = bound
@@ -966,7 +929,7 @@ impl ShareRun {
                             .await
                     }
                 } else if cancel {
-                    revoke(&bound, &self.id).await
+                    revoke(bound, &self.id).await
                 } else {
                     bound
                         .with(|c| c.share_settle(&self.id, "published", None, State::Done))
@@ -974,26 +937,33 @@ impl ShareRun {
                 }
             }
             Err(error) => {
-                bound
+                let (publish_attempted, cancel_requested, view) = bound
                     .with(|c| {
                         let job = c.share_job(&self.id)?;
                         if job.publish_attempted {
-                            c.share_settle(
+                            let view = c.share_settle(
                                 &self.id,
                                 "unknown",
                                 Some("EXECUTION_UNKNOWN".into()),
                                 State::Lost,
-                            )
+                            )?;
+                            Ok((true, job.cancel_requested, view))
                         } else {
-                            c.share_settle(
+                            let view = c.share_settle(
                                 &self.id,
-                                "needs_approval",
+                                "failed",
                                 Some(crate::error_code(&error)),
                                 State::Failed,
-                            )
+                            )?;
+                            Ok((false, job.cancel_requested, view))
                         }
                     })
-                    .await
+                    .await?;
+                if publish_attempted || cancel_requested {
+                    Ok(view)
+                } else {
+                    Err(error)
+                }
             }
         }
     }
@@ -1003,10 +973,7 @@ impl ShareRun {
             .with(|c| {
                 let job = c.share_job(&self.id)?;
                 c.share_step(&job, now_ms())?;
-                ensure(
-                    job.request.as_deref() == Some(&self.request) && !job.publish_attempted,
-                    Error::Forbidden,
-                )?;
+                ensure(!job.publish_attempted, Error::Forbidden)?;
                 Ok(job)
             })
             .await?;
@@ -1158,10 +1125,7 @@ impl ShareRun {
             let now = now_ms();
             c.share_step(&job, now)?;
             let mut current = c.share_job(&job.id)?;
-            ensure(
-                !current.publish_attempted && current.request.as_deref() == Some(&self.request),
-                Error::Forbidden,
-            )?;
+            ensure(!current.publish_attempted, Error::Forbidden)?;
             current.publish_attempted = true;
             current.phase = "publishing".into();
             c.save_share_job(&current)

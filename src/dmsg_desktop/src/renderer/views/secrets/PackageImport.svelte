@@ -5,45 +5,38 @@
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
   import { call, size } from '../../rpc'
-  import { stateLabel, t } from '../../i18n/index.svelte'
+  import { t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux } from './experience-text'
   import { panel } from './workflow-state.svelte'
   import { toggle, card } from './model'
   import { openVault, openFile } from './navigation.svelte'
-  let { received, open }: { received: any; open: (id: string) => void } =
-    $props()
+  let { received }: { received: any } = $props()
   let fields = $state<string[]>([]),
     attachments = $state<number[]>([]),
     notes = $state(false),
     folder = $state('root'),
     folders = $state<any[]>([]),
     picker = $state(false),
-    request = $state<any>(null),
     ids = $state<string[]>([])
+  let initializedPackage = ''
   $effect(() => {
-    if (received.already_imported) ids = received.already_imported
+    const id = received?.package_id ?? ''
+    if (id && id !== initializedPackage) {
+      initializedPackage = id
+      fields = (received.preview?.fields ?? []).map((f: any) => f.id)
+      attachments = (received.preview?.attachments ?? []).map((_: any, i: number) => i)
+      notes = Boolean(received.preview?.notes)
+      ids = received.already_imported ?? []
+    } else if (received?.already_imported?.length) {
+      ids = received.already_imported
+    }
   })
-  const model = panel(
-    async () => {
-      if (request?.id)
-        await model.request(
-          'import',
-          'approval/show',
-          { id: request.id },
-          (r: any) => {
-            request = r
-            if (r.state === 'done')
-              ids = r.delivery_report?.ids ?? r.result?.ids ?? ids
-          }
-        )
-    },
-    () => request?.id && ['executing', 'unknown'].includes(request.state)
-  )
+  const model = panel(async () => {})
   async function submit() {
     await model.act(
       () =>
-        call('secrets/packages/import_request', {
+        call('secrets/packages/import', {
           selection: {
             package_id: received.package_id,
             digest: received.digest,
@@ -54,10 +47,7 @@
           }
         }),
       (r: any) => {
-        if (r.id) {
-          request = r
-          open(r.id)
-        } else if (r.state === 'done') ids = r.ids
+        if (r?.state === 'done') ids = r.ids ?? []
       },
       false
     )
@@ -70,7 +60,7 @@
       >{error}</Notice
     >{/each}
   <h3 class="font-semibold">{received.preview.title}</h3>
-  {#if ids.length || request?.state === 'done'}<Notice tone="ok"
+  {#if ids.length}<Notice tone="ok"
       >{ux('importDone')}</Notice
     >
     <div class="flex flex-wrap gap-2">
@@ -84,9 +74,7 @@
     </div>
   {:else}<fieldset
       class="space-y-2"
-      disabled={model.state.busy ||
-        (!!request &&
-          ['awaiting_user', 'executing', 'unknown'].includes(request.state))}
+      disabled={model.state.busy}
     >
       <legend class="mb-2 text-callout text-muted">{ux('selected')}</legend
       >{#each received.preview.fields as field}<div>
@@ -126,18 +114,13 @@
           )}>{w('choose')}</button
       >
     </div>
-    {#if request}<Notice>{stateLabel(request.state ?? 'awaiting_user')}</Notice
-      ><button class={buttonClass('secondary')} onclick={() => open(request.id)}
-        >{w('review')}</button
-      >{#if ['rejected', 'cancelled', 'failed', 'expired'].includes(request.state)}<button
-          class={buttonClass('primary')}
-          onclick={() => (request = null)}>{ux('retry')}</button
-        >{/if}{:else}<button
-        class={buttonClass('primary')}
-        disabled={model.state.busy ||
-          (!fields.length && !notes && !attachments.length)}
-        onclick={submit}>{w('import')}</button
-      >{/if}
+    <button
+      class={buttonClass('primary')}
+      disabled={model.state.busy ||
+        (!fields.length && !notes && !attachments.length)}
+      onclick={submit}
+      data-testid="package-import-submit">{w('secret_package_import')}</button
+    >
   {/if}
 </div>
 <FolderPicker

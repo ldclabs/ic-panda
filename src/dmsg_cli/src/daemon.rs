@@ -448,7 +448,7 @@ fn local_method(method: &str) -> bool {
                 | "secrets/health/dismiss"
                 | "secrets/ref"
                 | "secrets/references"
-                | "secrets/packages/import_request"
+                | "secrets/packages/import"
                 | "secrets/shares/get"
                 | "secrets/shares/list"
                 | "cache/status"
@@ -1140,24 +1140,6 @@ impl Daemon {
                 let result = self.import_discovered(*work).await;
                 self.emit("vault/changed", Value::Null);
                 result
-            }
-            Decision::SecretPackageImport(run) => {
-                self.emit("approval/changed", Value::Null);
-                let result = run.run(&self.hold()).await;
-                self.emit("vault/changed", Value::Null);
-                self.emit("files/changed", Value::Null);
-                result
-            }
-            Decision::SecretShare(run) => {
-                let _turn = self.turn("secret-share-upload").await;
-                self.emit("approval/changed", Value::Null);
-                let result = run.run(&self.hold()).await?;
-                if result["state"] == "ready_for_nearby"
-                    && let Some(job_id) = result["id"].as_str()
-                {
-                    self.nearby.notify_approval_ready(job_id.to_string());
-                }
-                Ok(result)
             }
             Decision::SecretUse(run) => {
                 self.emit("approval/changed", Value::Null);
@@ -2397,11 +2379,11 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Wallet => crate::wallet_methods::events_of(method),
         Module::Vault => crate::vault_methods::events_of(method),
         Module::Secrets => match method {
+            "secrets/packages/import" => &["vault/changed", "files/changed"],
+            "secrets/shares/publish" | "secrets/shares/revoke" | "secrets/shares/reconcile" => {
+                &["files/changed"]
+            }
             "secrets/discovery/import_request"
-            | "secrets/packages/import_request"
-            | "secrets/shares/request"
-            | "secrets/shares/revoke"
-            | "secrets/shares/reconcile"
             | "secrets/mounts/save_request"
             | "secrets/mounts/start"
             | "secrets/mounts/stop"

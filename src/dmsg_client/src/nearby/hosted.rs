@@ -299,10 +299,8 @@ struct SendState {
     peer_label: String,
     /// Waiting for user to confirm 6-digit SAS in browse mode.
     sas_tx: Option<oneshot::Sender<()>>,
-    /// Pending `SecretShare` approval ID for vault items.
+    /// Prepared local share job ID for vault items.
     share_job_id: Option<String>,
-    approval_id: Option<String>,
-    approval_tx: Option<oneshot::Sender<()>>,
     state: &'static str,
     progress: Progress,
     outcome: Option<SendOutcome>,
@@ -366,7 +364,6 @@ impl NearbyHost {
                 "peer_label": s.peer_label,
                 "awaiting_sas_confirm": s.sas_tx.is_some(),
                 "share_job_id": s.share_job_id,
-                "approval_id": s.approval_id,
                 "progress": s.progress,
                 "outcome": s.outcome,
                 "error": s.error,
@@ -709,7 +706,6 @@ impl NearbyHost {
         payload: SendPayload,
         alias: Option<String>,
         share_identity: bool,
-        approval_source: String,
         on_change: Arc<dyn Fn() + Send + Sync>,
     ) -> Result<Json> {
         let id = self.stop_send();
@@ -800,8 +796,6 @@ impl NearbyHost {
                 peer_label: peer_label.clone(),
                 sas_tx: None,
                 share_job_id: None,
-                approval_id: None,
-                approval_tx: None,
                 state: "connecting",
                 progress: Progress::default(),
                 outcome: None,
@@ -824,7 +818,6 @@ impl NearbyHost {
                 payload,
                 alias,
                 share_identity,
-                approval_source,
                 relay_origin,
                 online,
                 env == "local",
@@ -862,7 +855,6 @@ impl NearbyHost {
                     }
                 }
                 st.sas_tx = None;
-                st.approval_tx = None;
                 st.ended_at = Some(now_ms());
                 st.cancel_tx = None;
             }
@@ -885,20 +877,6 @@ impl NearbyHost {
         Ok(self.view())
     }
 
-    /// Notify the sender task that the pending `SecretShare` approval finished.
-    pub fn send_approval_ready(&self, share_job_id: String) -> Result<Json> {
-        let mut guard = lock(&self.send);
-        let st = guard.as_mut().ok_or(Error::NotFound)?;
-        ensure(
-            st.share_job_id.as_ref() == Some(&share_job_id),
-            Error::NotFound,
-        )?;
-        let tx = st.approval_tx.take().ok_or(Error::Forbidden)?;
-        let _ = tx.send(());
-        drop(guard);
-        Ok(self.view())
-    }
-
     /// Cancel the active send session.
     pub fn send_cancel(&self) -> Json {
         self.stop_send();
@@ -913,10 +891,9 @@ impl NearbyHost {
                 let _ = tx.send(());
             }
             st.sas_tx = None;
-            st.approval_tx = None;
             if matches!(
                 st.state,
-                "connecting" | "awaiting_sas" | "awaiting_accept" | "awaiting_approval" | "running"
+                "connecting" | "awaiting_sas" | "awaiting_accept" | "running"
             ) {
                 st.state = "cancelled";
                 st.ended_at = Some(now_ms());
@@ -1306,7 +1283,6 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
     payload: SendPayload,
     alias: Option<String>,
     share_identity: bool,
-    approval_source: String,
     relay_origin: String,
     online: bool,
     allow_loopback: bool,
@@ -1403,8 +1379,8 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                 sas: secrets.sas.clone(),
                 peer_label,
             };
-            let send_for_approval = send_arc.clone();
-            let cb_approval = on_change.clone();
+            let send_for_job = send_arc.clone();
+            let cb_job = on_change.clone();
             let bound = &bound;
 
             send_secret_package_after_handshake(
@@ -1416,8 +1392,8 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                 share_identity,
                 confirm_sas,
                 move |_s: &HandshakeSecrets| async move {
-                    // The receiver accepted: only now ask for the high-risk approval.
-                    let (job_id, approval_id) = bound
+                    // The receiver accepted: stage the snapshot directly for this transcript.
+                    let job_id = bound
                         .with(|c| {
                             let prepared = c.secret_nearby_preparation(input, target_info)?;
                             let job = c.secret_share_save_preparation(prepared)?;
@@ -1426,23 +1402,19 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
                                 .ok_or(Error::IntegrityFailed)?
                                 .to_string();
                             *created_job = Some(job_id.clone());
-                            let approval = c.secret_share_request(&approval_source, &job_id)?;
-                            let approval_id = approval["id"]
-                                .as_str()
-                                .ok_or(Error::IntegrityFailed)?
-                                .to_string();
-                            Ok((job_id, approval_id))
+                            Ok(job_id)
                         })
                         .await?;
-                    wait_for_approval(
-                        bound,
-                        &send_for_approval,
-                        id,
-                        &job_id,
-                        approval_id,
-                        &cb_approval,
-                    )
-                    .await?;
+                    if let Some(st) = lock(&send_for_job).as_mut().filter(|s| s.id == id) {
+                        st.share_job_id = Some(job_id.clone());
+                        st.state = "running";
+                    }
+                    cb_job();
+                    let settled = crate::secrets::shares::publish(bound, &job_id).await?;
+                    ensure(
+                        settled["state"] == "ready_for_nearby",
+                        Error::Unavailable("nearby: snapshot staging cancelled".into()),
+                    )?;
                     Ok(job_id)
                 },
                 on_progress,
@@ -1450,53 +1422,4 @@ async fn run_sender<H: Hold + Clone + Send + 'static>(
             .await
         }
     }
-}
-
-/// Wait until the `SecretShare` approval of `job_id` staged the package for
-/// this session, the person declined it or [`super::CONFIRM_TIMEOUT`] passed.
-async fn wait_for_approval<H: Hold>(
-    h: &H,
-    send: &Arc<Mutex<Option<SendState>>>,
-    id: u64,
-    job_id: &str,
-    approval_id: String,
-    on_change: &Arc<dyn Fn() + Send + Sync>,
-) -> Result<()> {
-    let (tx, mut rx) = oneshot::channel();
-    if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
-        st.share_job_id = Some(job_id.to_string());
-        st.approval_id = Some(approval_id.clone());
-        st.approval_tx = Some(tx);
-        st.state = "awaiting_approval";
-    }
-    on_change();
-    let waited: Result<()> = async {
-        // Poll as well, in case the host approved without calling `send_approval_ready`.
-        let mut tick = tokio::time::interval(Duration::from_millis(400));
-        let deadline = tokio::time::Instant::now() + super::CONFIRM_TIMEOUT;
-        loop {
-            tokio::select! {
-                res = &mut rx => {
-                    return res.map_err(|_| Error::Unavailable("nearby: cancelled".into()));
-                }
-                _ = tick.tick() => {
-                    if tokio::time::Instant::now() >= deadline {
-                        return Err(Error::Expired);
-                    }
-                    use crate::approval::State;
-                    match h.with(|c| Ok(c.approval_record(&approval_id)?.state)).await? {
-                        State::AwaitingUser | State::Executing => {}
-                        State::Done => return Ok(()),
-                        State::Expired => return Err(Error::Expired),
-                        _ => return Err(Error::Forbidden),
-                    }
-                }
-            }
-        }
-    }
-    .await;
-    if let Some(st) = lock(send).as_mut().filter(|s| s.id == id) {
-        st.approval_tx = None;
-    }
-    waited
 }

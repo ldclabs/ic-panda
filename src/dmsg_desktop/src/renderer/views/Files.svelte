@@ -914,7 +914,7 @@
 {/snippet}
 
 {#snippet places()}
-      <Tree {standalone} {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
+      <Tree {standalone} {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} onNearbyReceive={() => { placesOpen = false; openNearbyReceive() }} />
       {#if usage}
         <div class="border-t border-line px-3.5 py-2 text-caption text-faint">
           <p>{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
@@ -1046,7 +1046,7 @@
               <Tooltip content={t('nearbyReceive')}>
                 {#snippet children(props)}
                   <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('nearbyReceive')} onclick={openNearbyReceive} data-testid="files-nearby-receive">
-                    <Icon name="transfer" />
+                    <Icon name="pair" />
                   </button>
                 {/snippet}
               </Tooltip>
@@ -1072,6 +1072,10 @@
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => newFolderIn(scope)} data-testid="files-new-folder-menu">
                       <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('newFolder')}</span>
                       <kbd class="font-sans text-caption text-faint">{mod}N</kbd>
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Separator class="my-1 h-px bg-line" />
+                    <DropdownMenu.Item class={menuItemClass} onSelect={openNearbyReceive} data-testid="files-add-nearby-receive">
+                      <span class="flex items-center gap-2"><Icon name="pair" class="text-faint" />{t('nearbyReceive')}</span>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
@@ -1156,6 +1160,7 @@
               onExport={() => exportFile(row.id, null, row.name)}
               onBackup={() => askBackup(chosen.has(row.id) && selected.length > 1 ? selected : [row.id], false)}
               onShare={() => askShare(row.id, null, row.name)}
+              onLink={() => askLink(row.id, null, row.name, statusOf(row.status) === 'cloud_only')}
               onNearbyShare={() => {
                 const items = chosen.has(row.id) && selected.length > 1 ? exportable : [row]
                 openNearbySend(items.filter((f) => statusOf(f.status) !== 'cloud_only').map((f) => ({ file_id: f.id, version_id: null, name: f.name, size: f.size })))

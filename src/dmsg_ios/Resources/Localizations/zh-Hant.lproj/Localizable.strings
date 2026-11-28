@@ -2125,7 +2125,7 @@
 	<key>QR verified · Compare this 6-digit code with the sender before accepting.</key>
 	<string>已通過 QR 碼校驗 · 接收前請與傳送方核對這 6 位數字。</string>
 	<key>QR-only mode does not broadcast on the local network. Enable discovery to appear in nearby device lists and accept direct peer-to-peer transfers.</key>
-	<string>預設「僅 QR 碼」模式不會在區域網路廣播。開啟發現後將出現在附近裝置列表中，並支援蘋果裝置直連傳輸。</string>
+	<string>預設「僅 QR 碼」模式不會在區域網路廣播。開啟發現後將出現在附近裝置列表中，並支援點對點直連傳輸。</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>快速解鎖用於開啟工作區；裝置綁定限制可解鎖的裝置；硬體審批保護敏感帳號操作。</string>
 	<key>Quick unlock with %@</key>

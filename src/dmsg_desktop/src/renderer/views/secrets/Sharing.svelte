@@ -30,7 +30,7 @@
   import { locale, t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
-  let { open, sourceId, showLinks, account }: { account: string; open: (id: string) => void; sourceId: string; showLinks: (id: string) => void } = $props()
+  let { sourceId, showLinks, account }: { account: string; sourceId: string; showLinks: (id: string) => void } = $props()
   let shares = $state<any[]>([]),
     items = $state<SourceItem[]>([]),
     channels = $state<any[]>([]),
@@ -47,6 +47,7 @@
     revokeTarget = $state<any>(null)
   let prepared: { id: string; shape: string; at: number } | null = null
   let selectedRevision: string | undefined
+  let attachmentsTouched = false
   const chosen = $derived(items.find((i) => i.id === itemId)),
     shareFields = $derived(chosen?.fields.filter((f) => f.populated) ?? []),
     draft = new DraftVersion()
@@ -104,12 +105,13 @@
   }
   async function select() {
     changed()
-    fields = []
     attachments = []
-    notes = false
+    attachmentsTouched = false
     details = {}
     const selected = chosen
     selectedRevision = selected?.revision
+    fields = selected ? selected.fields.filter((f) => f.populated).map((f) => f.id) : []
+    notes = Boolean(selected?.hasNotes)
     if (!selected) return
     await Promise.all(
       selected.files.map((id) =>
@@ -117,7 +119,19 @@
           `attachment-${id}`,
           () => call('files/show', { id }),
           (r: any) => {
-            if (chosen?.id === selected.id && chosen.revision === selected.revision) details = { ...details, [id]: r }
+            if (chosen?.id === selected.id && chosen.revision === selected.revision) {
+              details = { ...details, [id]: r }
+              const file = r?.file
+              if (
+                !attachmentsTouched &&
+                file?.current &&
+                file.local &&
+                file.trashed_at == null &&
+                !attachments.includes(id)
+              ) {
+                attachments = [...attachments, id]
+              }
+            }
           }
         )
       )
@@ -148,11 +162,10 @@
         if (!current()) return
         prepared = { id: result.id, at, shape: saved }
       }
-      const request = await call<{ id: string }>('secrets/shares/request', { id: prepared.id })
+      await call<{ id: string; state: string }>('secrets/shares/publish', { id: prepared.id })
       if (current()) {
-        fields = []; notes = false; attachments = []; password = ''
+        password = ''
         changed()
-        open(request.id)
       }
     })
   }
@@ -163,7 +176,7 @@
   })
 </script>
 
-<Panel {model} title={sourceId && chosen ? chosen.title : w('sharing')} description={ux('reviewSelection')}>
+<Panel {model} title={sourceId && chosen ? chosen.title : w('sharing')}>
   {#snippet actions()}
     {#if sourceId}<button class={buttonClass('ghost')} onclick={() => openVault(sourceId)}>{t('back')}</button>{/if}
     <button class={buttonClass('secondary')} onclick={() => showLinks(itemId)} data-testid="snapshot-links">{t('shareLinks')}</button>
@@ -221,6 +234,7 @@
             <Checkbox
               checked={attachments.includes(id)}
               onCheckedChange={(checked) => {
+                attachmentsTouched = true
                 changed()
                 attachments = toggle(attachments, id, checked)
               }}
@@ -268,7 +282,7 @@
     <button
       class={buttonClass('primary')}
       disabled={model.state.busy || !canReview}
-      data-testid="snapshot-review">{w('review')}</button>
+      data-testid="snapshot-review">{mode === 'channel' ? w('channelDelivery') : t('createLink')}</button>
     {#if !chosen}<button
         type="button"
         class={buttonClass('ghost')}
@@ -289,14 +303,16 @@
           >{ux('unknown')}</Notice
         >{/if}
       <div class="flex flex-wrap gap-2">
-        {#if ['prepared', 'needs_approval', 'awaiting_user'].includes(share.state)}<button
+        {#if ['prepared', 'failed', 'needs_approval', 'awaiting_user'].includes(share.state)}<button
             class={buttonClass('secondary')}
             disabled={model.state.busy}
             onclick={() =>
-              model.act(
-                () => call('secrets/shares/request', { id: share.id }),
-                (r: any) => open(r.id)
-              )}>{w('review')}</button
+              model.act(() => call('secrets/shares/publish', { id: share.id }))}
+            >{share.state === 'failed'
+              ? t('retry')
+              : share.plan.channel
+                ? w('channelDelivery')
+                : t('createLink')}</button
           >{/if}{#if share.state === 'published' && !share.plan.channel}<button
             class={buttonClass('primary')}
             disabled={model.state.busy || share.cancel_requested}

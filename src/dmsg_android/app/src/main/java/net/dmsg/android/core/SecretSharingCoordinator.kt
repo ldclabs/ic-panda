@@ -33,7 +33,7 @@ data class SecretPackage(val id: String, val digest: String, val snapshot: Strin
     val fields: List<PackageField>, val notes: Boolean, val attachments: List<PackageAttachment>, val imported: List<String>, val channel: PackageChannel?)
 data class PackageInput(val channel: String? = null, val sequence: ULong? = null, val nearby: String? = null)
 data class PackageDraft(val source: PackageInput = PackageInput(), val link: String = "", val password: String = "", val fields: Set<String> = emptySet(), val notes: Boolean = false,
-    val attachments: Set<UInt> = emptySet(), val folder: String = "root", val folderName: String = "", val request: String? = null, val completed: List<String>? = null,
+    val attachments: Set<UInt> = emptySet(), val folder: String = "root", val folderName: String = "", val completed: List<String>? = null,
     val pending: SecretPackageSelection? = null) {
     val selected: Boolean get() = fields.isNotEmpty() || notes || attachments.isNotEmpty()
 }
@@ -64,7 +64,7 @@ fun parseSecretPackage(value: JsonElement): SecretPackage {
         if (row["already_imported"] == null || row["already_imported"] == JsonNull) emptyList() else row.strings("already_imported"), channel)
 }
 
-/** Preparation stays local; publication and import always open their original approval. */
+/** Preparation stays local; publication and import execute directly without approval. */
 class SecretSharingCoordinator(private val client: ClientController) {
     val picker = VaultBrowser(client, "secret:picker")
     val source = ReadStore<SnapshotSource>()
@@ -90,7 +90,14 @@ class SecretSharingCoordinator(private val client: ClientController) {
             check(!value.reserved && !value.deleted && !value.conflict) { "FORBIDDEN" }
             SnapshotSource(value, attachments)
         }, key = "secret:compose", replace = true, onError = { source.fail(request, it) }) {
-            source.accept(request, it); mutableDraft.value = SnapshotDraft(source = it, channel = channel)
+            source.accept(request, it)
+            mutableDraft.value = SnapshotDraft(
+                source = it,
+                fields = it.item.fields.filter { f -> f.value.isNotEmpty() }.mapTo(linkedSetOf()) { f -> f.id },
+                notes = it.item.notes.isNotEmpty(),
+                attachments = it.attachments.files.filter { a -> a.selectable }.mapTo(linkedSetOf()) { a -> a.id },
+                channel = channel,
+            )
         }
         client.messages.browse()
     }
@@ -123,7 +130,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             if (mutableDraft.value?.id == current.id) mutableDraft.value = current.copy(password = "", prepared = value.id)
             if (client.navigation.state.value.current.let { it.page == "secret-compose" && it.id == current.source.item.id }) {
                 client.navigation.push(Route("secret-share", value.id))
-                request(value.id)
+                publish(value.id)
             }
             list()
         }
@@ -155,7 +162,8 @@ class SecretSharingCoordinator(private val client: ClientController) {
     }
 
     fun hideLink(id: String) { if (selectedJob == id) client.cancelOperation("secret:share"); if (mutableLink.value?.first == id) mutableLink.value = null }
-    fun request(id: String) = client.approvals.request("secret-share:" + id) { it.secretShareRequest(id) }
+    fun publish(id: String) = client.perform({ core -> parseSecretShare(client.operation { core.secretSharePublish(id, it) }.decode()) },
+        key = "secret:publish:" + id, onError = { select(id); list() }) { select(id); list() }
     fun reconcile(id: String) = client.perform({ core -> client.operation { core.secretShareReconcile(id, it) } }, key = "secret:reconcile:" + id,
         onError = { select(id) }) { select(id); list() }
     fun revoke(id: String) {
@@ -176,6 +184,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             fields = staged.fields.mapTo(linkedSetOf()) { it.id },
             notes = staged.notes,
             attachments = staged.attachments.indices.mapTo(linkedSetOf()) { it.toUInt() },
+            completed = staged.imported.takeIf { it.isNotEmpty() },
         )
         client.navigation.push(Route("secret-import", field = staged.digest))
     }
@@ -185,55 +194,45 @@ class SecretSharingCoordinator(private val client: ClientController) {
         val next = change(current)
         if (next.link != current.link || next.password != current.password) {
             client.cancelOperation("secret:preview"); preview.reset()
-            mutableIncoming.value = next.copy(fields = emptySet(), notes = false, attachments = emptySet(), request = null, completed = null)
-        } else if (current.request == null && current.completed == null) mutableIncoming.value = next
+            mutableIncoming.value = next.copy(fields = emptySet(), notes = false, attachments = emptySet(), completed = null)
+        } else if (current.completed == null) mutableIncoming.value = next
     }
     fun inspect() {
         val current = mutableIncoming.value
         if (current.pending != null) return
         val request = preview.begin(false)
-        mutableIncoming.value = current.copy(fields = emptySet(), notes = false, attachments = emptySet(), request = null, completed = null)
+        mutableIncoming.value = current.copy(fields = emptySet(), notes = false, attachments = emptySet(), completed = null)
         client.perform({ core ->
             parseSecretPackage(client.operation { operation ->
                 if (current.source.channel != null) core.secretChannelPackagePreview(current.source.channel, current.source.sequence ?: error("INVALID_SEQUENCE"), operation)
                 else core.secretPackagePreview(current.link.trim(), current.password.takeIf(String::isNotEmpty), operation)
             }.decode())
         }, key = "secret:preview", replace = true, onError = { preview.fail(request, it) }) {
-            preview.accept(request, it); mutableIncoming.value = mutableIncoming.value.copy(password = "")
+            preview.accept(request, it)
+            mutableIncoming.value = mutableIncoming.value.copy(
+                password = "",
+                fields = it.fields.mapTo(linkedSetOf()) { f -> f.id },
+                notes = it.notes,
+                attachments = it.attachments.indices.mapTo(linkedSetOf()) { i -> i.toUInt() },
+                completed = it.imported.takeIf { ids -> ids.isNotEmpty() },
+            )
         }
     }
-    fun importRequest() {
+    fun importPackage() {
         val current = mutableIncoming.value
-        current.request?.let { client.approvals.open(it); return }
         val selection = current.pending ?: run {
             val packageValue = preview.value() ?: return
             if (!current.selected) return
             SecretPackageSelection(packageValue.id, packageValue.digest, current.fields.sorted(), current.notes, current.attachments.sorted(), current.folder)
         }
         mutableIncoming.value = current.copy(pending = selection)
-        client.perform({ it.secretPackageImportRequest(selection).decode().objectValue() }, key = "secret:import", onError = { code ->
+        client.perform({ core -> client.operation { core.secretPackageImport(selection, it) }.decode().objectValue() }, key = "secret:import", onError = { code ->
             if (code !in setOf("EXECUTION_UNKNOWN", "CANCELLED", "PLATFORM_UNAVAILABLE", "UNAVAILABLE")) mutableIncoming.value = current.copy(pending = null)
         }) { value ->
             if (value.required("state") == "done") {
-                mutableIncoming.value = current.copy(password = "", completed = value.strings("ids")); client.vault.changed(); client.library.browse()
-            } else {
-                val id = value.required("id")
-                mutableIncoming.value = current.copy(password = "", request = id, pending = selection); client.approvals.open(id)
-            }
-        }
-    }
-
-    fun refreshIncoming() {
-        val current = mutableIncoming.value
-        val id = current.request ?: return
-        val selection = current.pending ?: return
-        client.perform({ core ->
-            val state = core.approval(id).decode().objectValue().required("state")
-            state to if (state == "done") core.secretPackageImportRequest(selection).decode().objectValue().strings("ids") else null
-        }, key = "secret:import:receipt", replace = true) { (state, ids) ->
-            if (mutableIncoming.value.request == id) {
-                if (ids != null) { mutableIncoming.value = current.copy(completed = ids, pending = null); client.vault.changed(); client.library.browse() }
-                else if (state in setOf("rejected", "cancelled", "expired", "failed")) mutableIncoming.value = current.copy(pending = null, request = null)
+                mutableIncoming.value = current.copy(password = "", completed = value.strings("ids"), pending = null)
+                client.vault.changed()
+                client.library.browse()
             }
         }
     }

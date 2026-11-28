@@ -430,7 +430,7 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
     };
 
     // Prepare & compute exact size bound to transcript.
-    let (job_id, plain_bytes, approval_id, approval_digest) = sender_hold
+    let (job_id, plain_bytes) = sender_hold
         .with(|c| {
             let prepared = c.secret_nearby_preparation(
                 share_input,
@@ -443,19 +443,12 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
             let view = c.secret_share_save_preparation(prepared)?;
             let job_id = view["id"].as_str().unwrap().to_string();
             let plain_bytes = view["plan"]["plain_bytes"].as_u64().unwrap();
-            let approval = c.secret_share_request("gui", &job_id)?;
-            assert_eq!(approval["risk"], "high");
-            Ok((
-                job_id,
-                plain_bytes,
-                approval["id"].as_str().unwrap().to_string(),
-                approval["digest"].as_str().unwrap().to_string(),
-            ))
+            Ok((job_id, plain_bytes))
         })
         .await
         .unwrap();
 
-    let sender_hold_approve = sender_hold.clone();
+    let sender_hold_stage = sender_hold.clone();
     let (send_res, recv_res) = tokio::join!(
         send_secret_package_after_handshake(
             &sender_hold,
@@ -466,19 +459,9 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
             false,
             |_| async { Ok(()) },
             |_| async move {
-                // Approve via high-risk SecretShare flow (no cloud upload!).
-                let run = {
-                    let mut c = sender_hold_approve.0.lock().await;
-                    c.approval_decide(&approval_id, &approval_digest, true, "gui", false)
-                        .await?
-                };
-                match run {
-                    crate::approval::Decision::SecretShare(share_run) => {
-                        let settled = share_run.run(&sender_hold_approve).await?;
-                        assert_eq!(settled["state"], "ready_for_nearby");
-                    }
-                    _ => panic!("expected SecretShare decision"),
-                }
+                // Stage directly without approval or cloud upload.
+                let settled = crate::secrets::shares::publish(&sender_hold_stage, &job_id).await?;
+                assert_eq!(settled["state"], "ready_for_nearby");
                 Ok(job_id)
             },
             |_| {},
@@ -511,7 +494,7 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
     assert!(!preview.to_string().contains("private notes not shared"));
     assert!(!preview.to_string().contains("internal-tag"));
 
-    // Receiver imports through existing SecretPackageImport high-risk approval!
+    // Receiver imports directly without creating an approval!
     let package_id = preview["package_id"].as_str().unwrap().to_string();
     let digest = preview["digest"].as_str().unwrap().to_string();
     let field_id = preview["preview"]["fields"][0]["id"]
@@ -526,28 +509,24 @@ async fn vault_secret_package_flows_through_secret_share_and_secret_package_impo
         attachments: vec![0],
         folder: ROOT.into(),
     };
-    let import_req = receiver_hold
-        .with(|c| c.secret_package_request("gui", selection))
+    let done = crate::secrets::receiving::import(&receiver_hold, selection)
         .await
         .unwrap();
-    assert_eq!(import_req["risk"], "high");
-    let import_dec = {
-        let mut c = receiver_hold.0.lock().await;
-        c.approval_decide(
-            import_req["id"].as_str().unwrap(),
-            import_req["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await
-        .unwrap()
-    };
-    let crate::approval::Decision::SecretPackageImport(import_run) = import_dec else {
-        panic!("expected SecretPackageImport decision");
-    };
-    let done = import_run.run(&receiver_hold).await.unwrap();
     assert_eq!(done["state"], "done");
+    assert!(
+        sender_hold
+            .with(|c| c.approvals(true))
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        receiver_hold
+            .with(|c| c.approvals(true))
+            .await
+            .unwrap()
+            .is_empty()
+    );
 
     let imported_items = receiver_hold
         .with(|c| c.vault_list(&crate::vault::Filter::default()))
@@ -633,7 +612,6 @@ async fn hosted_discovery_shows_matching_codes_before_offering_files() {
             }]),
             Some("Alice".into()),
             false,
-            "gui".into(),
             noop.clone(),
         )
         .await
@@ -983,9 +961,8 @@ async fn until(what: &str, hosts: [&NearbyHost; 2], mut ready: impl FnMut() -> b
     );
 }
 
-/// Two Standalone workspaces whose Vault send the receiver accepted; the
-/// sender waits on its `SecretShare` approval.
-async fn standalone_vault_send(
+/// Two Standalone workspaces with a Vault send waiting for receiver acceptance.
+async fn standalone_vault_pending(
     dir: &std::path::Path,
 ) -> (TestHold, TestHold, NearbyHost, NearbyHost, String) {
     let (mut sender, receiver) = {
@@ -1058,7 +1035,6 @@ async fn standalone_vault_send(
             }),
             Some("Alice".into()),
             false,
-            "gui".into(),
             noop.clone(),
         )
         .await
@@ -1071,59 +1047,24 @@ async fn standalone_vault_send(
     })
     .await;
     // No share job or approval exists before the receiver accepts.
-    assert!(send_host.view()["send"]["approval_id"].is_null());
+    assert!(send_host.view()["send"]["share_job_id"].is_null());
     let listed = sender_hold.with(|c| c.secret_shares()).await.unwrap();
     assert_eq!(listed["shares"], json!([]));
     let peer_id = recv_host.view()["receive"]["pending_peers"][0]["peer_id"]
         .as_str()
         .unwrap()
         .to_string();
-    recv_host
-        .receive_accept(&peer_id, ROOT.into(), vec![], false)
-        .unwrap();
-
-    until("the share approval", [&recv_host, &send_host], || {
-        send_host.view()["send"]["approval_id"].is_string()
-    })
-    .await;
-    let approval_id = send_host.view()["send"]["approval_id"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    (
-        sender_hold,
-        receiver_hold,
-        recv_host,
-        send_host,
-        approval_id,
-    )
+    (sender_hold, receiver_hold, recv_host, send_host, peer_id)
 }
 
 #[tokio::test]
-async fn standalone_workspaces_share_a_vault_snapshot_and_approve_only_after_acceptance() {
+async fn standalone_workspaces_share_and_import_a_vault_snapshot_directly() {
     let dir = TempDir::new();
-    let (sender_hold, receiver_hold, recv_host, send_host, approval_id) =
-        standalone_vault_send(&dir.0).await;
-    let decision = {
-        let mut c = sender_hold.0.lock().await;
-        let shown = c
-            .approval_view(&c.approval_record(&approval_id).unwrap())
-            .unwrap();
-        c.approval_decide(
-            &approval_id,
-            shown["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await
-        .unwrap()
-    };
-    let crate::approval::Decision::SecretShare(run) = decision else {
-        panic!("expected a SecretShare decision");
-    };
-    let settled = run.run(&sender_hold).await.unwrap();
-    assert_eq!(settled["state"], "ready_for_nearby");
+    let (sender_hold, receiver_hold, recv_host, send_host, peer_id) =
+        standalone_vault_pending(&dir.0).await;
+    recv_host
+        .receive_accept(&peer_id, ROOT.into(), vec![], false)
+        .unwrap();
 
     until("both sides to finish", [&recv_host, &send_host], || {
         let (rv, sv) = (recv_host.view(), send_host.view());
@@ -1134,6 +1075,13 @@ async fn standalone_workspaces_share_a_vault_snapshot_and_approve_only_after_acc
     let (rv, sv) = (recv_host.view(), send_host.view());
     assert_eq!(rv["receive"]["state"], "done", "{rv}");
     assert_eq!(sv["send"]["state"], "done", "{sv}");
+    assert!(
+        sender_hold
+            .with(|c| c.approvals(true))
+            .await
+            .unwrap()
+            .is_empty()
+    );
 
     let preview = rv["receive"]["outcome"]["package_preview"].clone();
     let selection = Selection {
@@ -1149,26 +1097,19 @@ async fn standalone_workspaces_share_a_vault_snapshot_and_approve_only_after_acc
         attachments: vec![],
         folder: ROOT.into(),
     };
-    let request = receiver_hold
-        .with(|c| c.secret_package_request("gui", selection))
-        .await
-        .unwrap();
-    let decision = {
-        let mut c = receiver_hold.0.lock().await;
-        c.approval_decide(
-            request["id"].as_str().unwrap(),
-            request["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await
-        .unwrap()
-    };
-    let crate::approval::Decision::SecretPackageImport(run) = decision else {
-        panic!("expected a SecretPackageImport decision");
-    };
-    assert_eq!(run.run(&receiver_hold).await.unwrap()["state"], "done");
+    assert_eq!(
+        crate::secrets::receiving::import(&receiver_hold, selection)
+            .await
+            .unwrap()["state"],
+        "done"
+    );
+    assert!(
+        receiver_hold
+            .with(|c| c.approvals(true))
+            .await
+            .unwrap()
+            .is_empty()
+    );
     let items = receiver_hold
         .with(|c| c.vault_list(&crate::vault::Filter::default()))
         .await
@@ -1182,63 +1123,39 @@ async fn standalone_workspaces_share_a_vault_snapshot_and_approve_only_after_acc
 }
 
 #[tokio::test]
-async fn cancelling_a_vault_send_cancels_its_share_job_and_approval() {
+async fn cancelling_a_pending_vault_send_leaves_no_share_job_or_approval() {
     let dir = TempDir::new();
-    let (sender_hold, _receiver_hold, _recv_host, send_host, approval_id) =
-        standalone_vault_send(&dir.0).await;
-    let job_id = send_host.view()["send"]["share_job_id"]
-        .as_str()
-        .unwrap()
-        .to_string();
+    let (sender_hold, _receiver_hold, _recv_host, send_host, _peer_id) =
+        standalone_vault_pending(&dir.0).await;
     send_host.send_cancel();
-
-    let mut job = Json::Null;
-    for _ in 0..250 {
-        job = sender_hold
-            .with(|c| c.secret_share_get(&job_id, false))
-            .await
-            .unwrap();
-        if job["state"] == "cancelled" {
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    }
-    assert_eq!(job["state"], "cancelled", "{job}");
-    let c = sender_hold.0.lock().await;
-    let approval = c
-        .approval_view(&c.approval_record(&approval_id).unwrap())
-        .unwrap();
-    assert_eq!(approval["state"], "cancelled");
     assert_eq!(send_host.view()["send"]["state"], "cancelled");
+    assert_eq!(
+        sender_hold.with(|c| c.secret_shares()).await.unwrap()["shares"],
+        json!([])
+    );
+    assert!(
+        sender_hold
+            .with(|c| c.approvals(true))
+            .await
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[tokio::test]
-async fn rejecting_a_nearby_share_ends_the_send_and_preserves_the_decision() {
+async fn rejecting_a_nearby_vault_offer_ends_the_send_without_staging_a_job() {
     let dir = TempDir::new();
-    let (sender, _receiver, recv_host, send_host, approval_id) =
-        standalone_vault_send(&dir.0).await;
-    let mut c = sender.0.lock().await;
-    let request = c.approval_record(&approval_id).unwrap();
-    c.approval_decide(
-        &approval_id,
-        &hex::encode(*request.digest()),
-        false,
-        "gui",
-        false,
-    )
-    .await
-    .unwrap();
-    drop(c);
+    let (sender, _receiver, recv_host, send_host, peer_id) = standalone_vault_pending(&dir.0).await;
+    recv_host.receive_reject(&peer_id).unwrap();
     until("rejection", [&recv_host, &send_host], || {
         send_host.view()["send"]["state"] == "failed"
     })
     .await;
-    let c = sender.0.lock().await;
     assert_eq!(
-        c.approval_record(&approval_id).unwrap().state,
-        crate::approval::State::Rejected
+        sender.with(|c| c.secret_shares()).await.unwrap()["shares"],
+        json!([])
     );
-    assert_eq!(c.secret_shares().unwrap()["shares"][0]["state"], "failed");
+    assert!(sender.with(|c| c.approvals(true)).await.unwrap().is_empty());
 }
 
 #[tokio::test(start_paused = true)]

@@ -90,7 +90,7 @@
     <string name="nearby_paste_code" formatted="false">"粘贴 dmsg-nearby/1: 连接码"</string>
     <string name="nearby_preparing_receive" formatted="false">"正在准备近场接收…"</string>
     <string name="nearby_qr_code" formatted="false">"近场接收二维码"</string>
-    <string name="nearby_qr_only_hint" formatted="false">"默认“仅二维码”模式不会在局域网广播。开启发现后将出现在附近设备列表中，并支持苹果设备直连传输。"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"默认“仅二维码”模式不会在局域网广播。开启发现后将出现在附近设备列表中，并支持点对点直连传输。"</string>
     <string name="nearby_qr_verified_hint" formatted="false">"已通过二维码校验 · 接收前请与发送方核对这 6 位数字。"</string>
     <string name="nearby_receive" formatted="false">"近场接收"</string>
     <string name="nearby_receive_more" formatted="false">"继续接收"</string>

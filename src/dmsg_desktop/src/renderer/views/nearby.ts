@@ -87,7 +87,7 @@ export interface NearbyReceiveView {
 
 export interface NearbySendView {
   id: number
-  state: 'connecting' | 'awaiting_sas' | 'awaiting_approval' | 'awaiting_accept' | 'running' | 'done' | 'failed' | 'cancelled'
+  state: 'connecting' | 'awaiting_sas' | 'awaiting_accept' | 'running' | 'done' | 'failed' | 'cancelled'
   kind: 'files' | 'secret_package'
   transport?: string | null
   sas?: string | null
@@ -96,7 +96,6 @@ export interface NearbySendView {
   peer_label: string
   awaiting_sas_confirm?: boolean
   share_job_id?: string | null
-  approval_id?: string | null
   progress: NearbyProgress
   outcome?: {
     kind: 'files' | 'secret_package'
@@ -156,7 +155,6 @@ export function isSendActive(view: NearbySendView | null | undefined): boolean {
   return (
     view?.state === 'connecting' ||
     view?.state === 'awaiting_sas' ||
-    view?.state === 'awaiting_approval' ||
     view?.state === 'awaiting_accept' ||
     view?.state === 'running'
   )
@@ -200,8 +198,6 @@ export function sendStateBadge(state: string | null | undefined): { label: Label
       return { label: 'nearbyStateConnecting', tone: 'neutral' }
     case 'awaiting_sas':
       return { label: 'nearbyStateAwaitingSas', tone: 'warn' }
-    case 'awaiting_approval':
-      return { label: 'nearbyStateAwaitingApproval', tone: 'gem' }
     case 'awaiting_accept':
       return { label: 'nearbyStateAwaitingAccept', tone: 'neutral' }
     case 'running':
@@ -293,8 +289,7 @@ export function buildSendStartParams(options: {
   if (!hasOffer && !options.selectedPeer) return null
 
   const params: Record<string, unknown> = {
-    share_identity: options.shareIdentity,
-    source: 'gui'
+    share_identity: options.shareIdentity
   }
 
   if (hasOffer) {

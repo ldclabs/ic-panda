@@ -255,7 +255,12 @@ import kotlinx.coroutines.flow.first
                             }
                         }
 
-                        if (session.canShareCurrent || session.activeItem?.source is PreviewSource.Channel) Box {
+                        val isCloud = client.state.value.session?.accountKind != "local"
+                        val activeLibraryFile = session.activeItem?.libraryFile
+                        val canLinkCurrent = isCloud && activeLibraryFile != null &&
+                            activeLibraryFile.size <= 100uL * 1024u * 1024u &&
+                            (activeLibraryFile.local || activeLibraryFile.backup != null)
+                        if (session.canShareCurrent || canLinkCurrent || session.activeItem?.source is PreviewSource.Channel) Box {
                             IconButton(
                                 onClick = { actionsMenu = true },
                                 modifier = Modifier.testTag("preview-actions"),
@@ -292,6 +297,42 @@ import kotlinx.coroutines.flow.first
                                             client.fullscreenPreview.saveChannelAttachment(item)
                                         },
                                     )
+                                }
+                                if (activeLibraryFile != null) {
+                                    if (activeLibraryFile.local) {
+                                        DropdownMenuItem(
+                                            text = { Text(str(R.string.nearby_share)) },
+                                            leadingIcon = { Icon(Icons.Outlined.WifiTethering, null) },
+                                            onClick = {
+                                                actionsMenu = false
+                                                client.fullscreenPreview.close()
+                                                client.nearby.prepareSendFiles(
+                                                    listOf(
+                                                        NearbySelectedFile(
+                                                            activeLibraryFile.id,
+                                                            activeLibraryFile.version,
+                                                            activeLibraryFile.name,
+                                                            activeLibraryFile.size,
+                                                        )
+                                                    )
+                                                )
+                                                client.navigation.push(Route("nearby-send-files"))
+                                            },
+                                        )
+                                    }
+                                    if (canLinkCurrent) {
+                                        DropdownMenuItem(
+                                            text = { Text(str(R.string.text_share_by_link_05aafef)) },
+                                            leadingIcon = { Icon(painterResource(R.drawable.glyph_link), null) },
+                                            onClick = {
+                                                actionsMenu = false
+                                                client.fullscreenPreview.close()
+                                                client.navigation.push(
+                                                    Route("file-link-compose", id = activeLibraryFile.id, revision = activeLibraryFile.version)
+                                                )
+                                            },
+                                        )
+                                    }
                                 }
                                 if (session.canShareCurrent) {
                                     DropdownMenuItem(

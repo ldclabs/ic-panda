@@ -35,7 +35,7 @@ Two physically nearby dMsg devices (different accounts, same account, or offline
 - Post-handshake frames use AES-256-GCM with `nonce = direction || 0x000000 || seq_be` and `aad = CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`, max plaintext `1 MiB + 64 KiB`.
 - Receivers grant initial chunk credits (`W = 4`) in `Accept` and replenish every 2 chunks via `Credit`.
 - **Files**: No high-risk approval; received through `library::import` (`free_name`, fresh `FileKey`, bounded by `files_max_bytes`, default 4 GiB, max 10 GiB / 64 files per session), committed and acknowledged per file (`FileAck`).
-- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, <= 64 fields, <= 20 attachments, `dmsg-` reserved entries forbidden), with `Action::SecretShare` on the sender, requested only after the receiver accepts. A timeout, rejection or cancellation stops the share and releases its staged data. The approval history preserves an explicit rejection. The receiver previews the verified package and approves `Action::SecretPackageImport` to import it.
+- **Vault items**: Reuses `dmsg-secret-package/1` (max 100 MiB, 8 MiB on mobile, <= 64 fields, <= 20 attachments, populated fields/notes and locally available attachments pre-selected with opt-out, `dmsg-` reserved entries forbidden). Only after the receiver confirms the 6-digit SAS and accepts does the sender create and publish the nearby snapshot job and stream it directly without approval; a timeout or cancellation stops the share and releases its staged data. The receiver previews the verified package and imports the confirmed selection atomically without approval.
 
 ## 4. Ephemeral Blind Relay (`dmsg-nearby-relay/1`)
 

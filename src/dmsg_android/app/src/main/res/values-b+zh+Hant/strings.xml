@@ -90,7 +90,7 @@
     <string name="nearby_paste_code" formatted="false">"貼上 dmsg-nearby/1: 連線碼"</string>
     <string name="nearby_preparing_receive" formatted="false">"正在準備近場接收…"</string>
     <string name="nearby_qr_code" formatted="false">"近場接收 QR 碼"</string>
-    <string name="nearby_qr_only_hint" formatted="false">"預設「僅 QR 碼」模式不會在區域網路廣播。開啟發現後將出現在附近裝置列表中，並支援蘋果裝置直連傳輸。"</string>
+    <string name="nearby_qr_only_hint" formatted="false">"預設「僅 QR 碼」模式不會在區域網路廣播。開啟發現後將出現在附近裝置列表中，並支援點對點直連傳輸。"</string>
     <string name="nearby_qr_verified_hint" formatted="false">"已通過 QR 碼校驗 · 接收前請與傳送方核對這 6 位數字。"</string>
     <string name="nearby_receive" formatted="false">"近場接收"</string>
     <string name="nearby_receive_more" formatted="false">"繼續接收"</string>

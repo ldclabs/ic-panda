@@ -288,7 +288,7 @@ import net.dmsg.core.VaultItem
             if (send != null && (send.active || send.state in setOf("done", "failed"))) {
                 NearbySendProgressPanel(client, send)
                 if (send.state == "failed") {
-                    Button(onClick = { previousSend = send.id }) { Text(str(R.string.nearby_start_again)) }
+                    Button(onClick = { previousSend = send.id }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.nearby_start_again)) }
                 }
             } else {
                 if (files.isEmpty()) {
@@ -345,7 +345,6 @@ import net.dmsg.core.VaultItem
     var selectedAttachments by remember(itemId) { mutableStateOf<Set<String>>(emptySet()) }
     var offerText by remember { mutableStateOf("") }
     var shareIdentity by remember { mutableStateOf(false) }
-    var openedApproval by remember(itemId) { mutableStateOf<String?>(null) }
 
     val view = LocalView.current
     DisposableEffect(view, active) { view.keepScreenOn = active; onDispose { view.keepScreenOn = false } }
@@ -358,19 +357,19 @@ import net.dmsg.core.VaultItem
             check(!item.reserved && !item.deleted && !item.conflict) { "FORBIDDEN" }
             item to attachments
         }, key = "nearby:vault:source:" + itemId, replace = true, quiet = true, onError = { loadError = it }) {
+            val (item, attachments) = it
+            val firstLoad = source == null
             source = it
+            if (firstLoad) {
+                selectedFields = item.fields.filter { f -> f.value.isNotEmpty() }.mapTo(linkedSetOf()) { f -> f.id }
+                includeNotes = item.notes.isNotEmpty()
+                selectedAttachments = attachments.files.filter { a -> a.selectable }.mapTo(linkedSetOf()) { a -> a.id }
+            }
         }
     }
     DisposableEffect(Unit) {
         client.nearby.startBrowse()
         onDispose { client.nearby.stopBrowse() }
-    }
-    LaunchedEffect(send?.approvalId, send?.state) {
-        val approvalId = send?.approvalId
-        if (approvalId != null && send.state == "awaiting_approval" && openedApproval != approvalId) {
-            openedApproval = approvalId
-            client.approvals.open(approvalId)
-        }
     }
 
     fun buildInput(): SecretSnapshotInput? {
@@ -414,7 +413,7 @@ import net.dmsg.core.VaultItem
             if (send != null && (send.active || send.state in setOf("done", "failed"))) {
                 NearbySendProgressPanel(client, send)
                 if (send.state == "failed") {
-                    Button(onClick = { previousSend = send.id }) { Text(str(R.string.nearby_start_again)) }
+                    Button(onClick = { previousSend = send.id }, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.nearby_start_again)) }
                 }
             } else {
                 val loaded = source
@@ -580,14 +579,6 @@ import net.dmsg.core.VaultItem
                 Text(str(R.string.nearby_confirm_sas_hint), style = MaterialTheme.typography.bodyMedium)
                 Button(onClick = client.nearby::confirmSas, modifier = Modifier.fillMaxWidth()) {
                     Text(str(R.string.nearby_codes_match))
-                }
-            }
-            "awaiting_approval" -> {
-                Text(str(R.string.nearby_vault_approval_hint), style = MaterialTheme.typography.bodyMedium)
-                send.approvalId?.let { approvalId ->
-                    Button(onClick = { client.approvals.open(approvalId) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(str(R.string.nearby_review_approval))
-                    }
                 }
             }
             "awaiting_accept" -> {

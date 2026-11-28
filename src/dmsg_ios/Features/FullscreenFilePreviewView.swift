@@ -47,12 +47,19 @@ struct FullscreenFilePreviewView: View {
 
     @State private var detailFile: LibraryFile?
     @State private var showingDetails = false
+    @State private var nearbyFile: FileSheetTarget?
+    @State private var linkingFile: FileSheetTarget?
     @State private var confirmShare = false
     @State private var shareTask: Task<Void, Never>?
     @State private var shareFile: ShareCopy?
     /// The copy to remove once the share sheet closes; SwiftUI clears `shareFile` before `onDismiss`.
     @State private var sharedCopy: ShareCopy?
     @State private var savingToLibrary = false
+
+    struct FileSheetTarget: Identifiable {
+        let file: LibraryFile
+        var id: String { file.id + ":" + file.current }
+    }
 
     struct ShareCopy: Identifiable {
         let id = UUID()
@@ -137,6 +144,12 @@ struct FullscreenFilePreviewView: View {
             }
             .sheet(item: $shareFile, onDismiss: cleanupShareCopy) { copy in
                 ShareSheet(items: [copy.url])
+            }
+            .sheet(item: $nearbyFile) { target in
+                NavigationStack { NearbySendFilesSheet(files: [target.file]) }
+            }
+            .sheet(item: $linkingFile) { target in
+                NavigationStack { FileLinkComposer(target: FileLinkTarget(file: target.file, remote: !target.file.canOpen)) }
             }
             .confirmationDialog(String(localized: "Share a copy"), isPresented: $confirmShare, titleVisibility: .visible) {
                 Button(String(localized: "Share a copy")) {
@@ -304,7 +317,10 @@ struct FullscreenFilePreviewView: View {
 
     @ViewBuilder
     private var actionMenu: some View {
-        if let item = activeItem, canShareCurrent || item.libraryFile == nil {
+        let canLinkCurrent = activeItem?.libraryFile.map { file in
+            !model.localAccount && file.size <= FileLinkTarget.maxBytes && (canShareCurrent || file.backup != nil)
+        } ?? false
+        if let item = activeItem, canShareCurrent || canLinkCurrent || item.libraryFile == nil {
             Menu {
                 switch loaded {
                 case .image(_, let bytes, let mime):
@@ -326,6 +342,19 @@ struct FullscreenFilePreviewView: View {
                         Task { await saveChannelAttachment(item) }
                     }
                     .disabled(savingToLibrary)
+                }
+
+                if let file = item.libraryFile {
+                    if canShareCurrent {
+                        Button(String(localized: "Share nearby"), systemImage: "wave.3.right") {
+                            nearbyFile = FileSheetTarget(file: file)
+                        }
+                    }
+                    if !model.localAccount && file.size <= FileLinkTarget.maxBytes && (canShareCurrent || file.backup != nil) {
+                        Button(String(localized: "Share by link"), systemImage: "link") {
+                            linkingFile = FileSheetTarget(file: file)
+                        }
+                    }
                 }
 
                 if canShareCurrent {

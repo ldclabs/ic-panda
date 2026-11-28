@@ -546,10 +546,6 @@ pub enum Decision {
     Wallet(Box<WalletRun>),
     /// One non-idempotent use, executed outside the client lock.
     SecretUse(Box<crate::secrets::SecretRun>),
-    /// Snapshot encryption/upload/publication, executed outside the client lock.
-    SecretShare(Box<crate::secrets::shares::ShareRun>),
-    /// Received content is staged outside the client lock, then committed once.
-    SecretPackageImport(Box<crate::secrets::receiving::ImportRun>),
     /// Source filesystem work delegated to the host, not performed under Client.
     SecretDiscoveryImport(Box<crate::secrets::discovery::ImportWork>),
 }
@@ -762,8 +758,6 @@ impl Client {
         expires_at: u64,
     ) -> Result<Request> {
         if self.is_local() {
-            // Snapshots move between standalone workspaces face to face:
-            // `secret_share_request` admits only nearby shares here.
             ensure(
                 matches!(
                     action,
@@ -771,8 +765,6 @@ impl Client {
                         | Action::SecretDiscoveryImport { .. }
                         | Action::SecretMountConfig { .. }
                         | Action::SecretMountRead { .. }
-                        | Action::SecretPackageImport { .. }
-                        | Action::SecretShare { .. }
                 ),
                 crate::local::only(),
             )?;
@@ -869,6 +861,14 @@ impl Client {
                 {
                     request.state = State::Failed;
                     request.error = Some(crate::error_code(&error));
+                    request.updated_at = now;
+                    self.save_approval(&request)?;
+                }
+                if matches!(
+                    request.action,
+                    Action::SecretShare { .. } | Action::SecretPackageImport { .. }
+                ) {
+                    request.state = State::Expired;
                     request.updated_at = now;
                     self.save_approval(&request)?;
                 }
@@ -1112,8 +1112,6 @@ impl Client {
             Decision::Attest(run) => run.run(&self.hold()).await,
             Decision::Wallet(run) => run.run(&self.hold()).await,
             Decision::SecretUse(run) => run.run(&self.hold()).await,
-            Decision::SecretShare(run) => run.run(&self.hold()).await,
-            Decision::SecretPackageImport(run) => run.run(&self.hold()).await,
             Decision::SecretDiscoveryImport(_) => Err(Error::UnsupportedProtocol),
         }
     }
@@ -1226,8 +1224,6 @@ impl Client {
             && matches!(
                 request.action,
                 Action::SecretDiscoveryImport { .. }
-                    | Action::SecretPackageImport { .. }
-                    | Action::SecretShare { .. }
                     | Action::SecretUse { .. }
                     | Action::SecretProcess { .. }
                     | Action::SecretSsh { .. }
@@ -1286,22 +1282,6 @@ impl Client {
         if matches!(request.action, Action::SecretDiscoveryImport { .. }) {
             return match self.secret_discovery_work(&request) {
                 Ok(work) => Ok(Decision::SecretDiscoveryImport(Box::new(work))),
-                Err(error) => self
-                    .secret_fail_before_send(&request.id, error)
-                    .map(Decision::Done),
-            };
-        }
-        if matches!(request.action, Action::SecretPackageImport { .. }) {
-            return match self.secret_package_run(&mut request, now) {
-                Ok(run) => Ok(Decision::SecretPackageImport(Box::new(run))),
-                Err(error) => self
-                    .secret_fail_before_send(&request.id, error)
-                    .map(Decision::Done),
-            };
-        }
-        if matches!(request.action, Action::SecretShare { .. }) {
-            return match self.secret_share_run(&mut request, now) {
-                Ok(run) => Ok(Decision::SecretShare(Box::new(run))),
                 Err(error) => self
                     .secret_fail_before_send(&request.id, error)
                     .map(Decision::Done),

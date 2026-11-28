@@ -46,7 +46,7 @@ class NearbyShareModelsTest {
           },
           "send": {
             "id": 9,
-            "state": "awaiting_approval",
+            "state": "running",
             "kind": "secret_package",
             "transport": "relay",
             "sas": "654321",
@@ -54,7 +54,6 @@ class NearbyShareModelsTest {
             "qr_bound": true,
             "peer_label": "Carol iPhone",
             "share_job_id": "job-1",
-            "approval_id": "apr-1",
             "progress": {"total_items": 1, "completed_items": 0, "total_bytes": 512, "bytes": 0, "current_name": null},
             "outcome": null,
             "error": null
@@ -71,7 +70,7 @@ class NearbyShareModelsTest {
         assertEquals("report.pdf", recv.pendingPeers.single().files.single().name)
         val send = requireNotNull(parsed.send)
         assertTrue(send.active)
-        assertEquals("apr-1", send.approvalId)
+        assertEquals("job-1", send.shareJobId)
         assertEquals("654321", send.sas)
     }
 }

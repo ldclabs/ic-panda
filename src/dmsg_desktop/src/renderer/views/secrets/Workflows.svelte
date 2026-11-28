@@ -12,7 +12,7 @@
   import { openVault } from './navigation.svelte'
 
   /** What a stored secret is used for, one part at a time; the vault's filters name the parts. */
-  let { open, tab, go, route, account }: { open: (id: string) => void; tab: string; go: (path: string) => void; route: string; account: string } = $props()
+  let { open, tab, go, route, account, onNearbyReceive }: { open: (id: string) => void; tab: string; go: (path: string) => void; route: string; account: string; onNearbyReceive?: () => void } = $props()
   const params = $derived(new URLSearchParams(route.split('?')[1]))
   const itemId = $derived(params.get('item') || '')
 
@@ -35,9 +35,9 @@
         <button class={buttonClass('secondary')} onclick={() => itemId ? openVault(itemId) : go('/vault/sharing')}>{t('back')}</button>
         <Links unlocked vaultOnly {itemId} />
       {:else}
-        <Sharing {open} {account} sourceId={itemId} showLinks={(id) => go('/vault/sharing?' + new URLSearchParams(id ? { item: id, links: '1' } : { links: '1' }))} />
+        <Sharing {account} sourceId={itemId} showLinks={(id) => go('/vault/sharing?' + new URLSearchParams(id ? { item: id, links: '1' } : { links: '1' }))} />
       {/if}
     {/key}
-  {:else if tab === 'receive'}<Receiving {open} />
+  {:else if tab === 'receive'}<Receiving {onNearbyReceive} />
   {:else}<Activity {open} {target} />{/if}
 </section>

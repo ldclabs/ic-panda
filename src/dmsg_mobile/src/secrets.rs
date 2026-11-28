@@ -183,16 +183,23 @@ impl MobileEngine {
             .await
     }
 
-    pub async fn secret_package_import_request(
+    pub async fn secret_package_import(
         &self,
         selection: SecretPackageSelection,
+        operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
-            Box::pin(async move {
-                c.secret_package_request_limited("gui", selection.into(), MAX_PACKAGE_BYTES)
-            })
-        })
-        .await
+        operation
+            .run(self.object(move |c| {
+                Box::pin(async move {
+                    receiving::import_limited(
+                        &c.cooperative_hold(),
+                        selection.into(),
+                        MAX_PACKAGE_BYTES,
+                    )
+                    .await
+                })
+            }))
+            .await
     }
 
     pub async fn secret_share_prepare(
@@ -256,8 +263,15 @@ impl MobileEngine {
             .await
     }
 
-    pub async fn secret_share_request(&self, id: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move { c.secret_share_request("gui", &id) }))
+    pub async fn secret_share_publish(
+        &self,
+        id: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.object(move |c| {
+                Box::pin(async move { shares::publish(&c.cooperative_hold(), &id).await })
+            }))
             .await
     }
 

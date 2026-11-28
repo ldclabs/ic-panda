@@ -38,7 +38,7 @@
 - 握手后每帧为 AES-256-GCM 密文，nonce 为 `direction (1B) || 0x000000 || seq (8B BE)`，AAD 为 `CBOR(["dmsg/nearby-share/frame/v1", sid, direction, seq])`，明文上限 `1 MiB + 64 KiB`。
 - **按块信用窗口**：接收方在 `Accept` 授予初始信用 `W = 4` 块，每消费 2 块回发 `Credit { granted }`，LAN 与 WebSocket 中继共用同一背压流控。
 - **文件分享**：普通文件不走高风险审批；接收方复用 `library::import`（`free_name` 不并入同名文件、独立 `FileKey`、按 `files_max_bytes` 验收，默认 4 GiB，单次会话 ≤ 10 GiB / 64 文件），**逐文件独立提交并回执 `FileAck`**。
-- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、≤ 64 字段、≤ 20 附件、默认全不选、拦截 `dmsg-` 保留条目）。接收方接受后，发送方才创建分享任务并请求高风险 `Action::SecretShare`（绑定 `transcript` 与 6 位码），批准后流式发出；超时、拒绝或取消会终止分享并释放暂存数据，审批历史保留用户的拒绝决定；接收方整包校验后进入现有 `secrets/receiving` 真实无值预览与 `Action::SecretPackageImport` 原子导入。
+- **保险库条目**：复用 `dmsg-secret-package/1`（上限 100 MiB、移动端限 8 MiB、≤ 64 字段、≤ 20 附件、默认预选非空字段/备注与本地可用附件并支持取消勾选、拦截 `dmsg-` 保留条目）。接收方核对 6 位码并接受后，发送方直接创建并发布近场快照任务流式发出（无需审批）；超时或取消会终止分享并释放暂存数据；接收方整包校验后进入现有 `secrets/receiving` 无值预览并直接原子导入。
 
 ## 4. 中继合同（`dmsg-nearby-relay/1`）
 

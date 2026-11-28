@@ -715,6 +715,11 @@
     <ContextMenu.Item class={menuItemClass} disabled={conflicted.has(entry.id)} onSelect={() => finishEditing(() => { nearby = { mode: 'send-vault', entryId: entry.id, snapshot: entry } })} data-testid="vault-row-nearby-share">
       <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('nearbyShare')}</span>
     </ContextMenu.Item>
+    {#if status?.account_kind !== 'local'}
+      <ContextMenu.Item class={menuItemClass} disabled={conflicted.has(entry.id)} onSelect={() => finishEditing(() => go(`/vault/sharing?item=${entry.id}`))} data-testid="vault-row-share">
+        <span class="flex items-center gap-2"><Icon name="send" class="text-faint" />{t('share')}</span>
+      </ContextMenu.Item>
+    {/if}
     <ContextMenu.Separator class="my-1 h-px bg-line" />
     <ContextMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => discard(entry)}>
       <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
@@ -727,7 +732,7 @@
     <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
-      <Filters {workflows} {scope} {workflow} onScope={pickScope} onWorkflow={() => pickScope('workflow:' + (lastWorkflow && workflows.includes(lastWorkflow) ? lastWorkflow : workflows[0]))} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
+      <Filters {workflows} {scope} {workflow} onScope={pickScope} onWorkflow={() => pickScope('workflow:' + (lastWorkflow && workflows.includes(lastWorkflow) ? lastWorkflow : workflows[0]))} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} onNearbyReceive={unlocked ? () => finishEditing(() => { nearby = { mode: 'receive' } }) : undefined} />
     </aside>
 
     {#if workflow}
@@ -740,7 +745,7 @@
         </div>
         <div class="min-h-0 flex-1">
           {#if unlocked}
-            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} /></Page>{/key}
+            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} onNearbyReceive={() => finishEditing(() => { nearby = { mode: 'receive' } })} /></Page>{/key}
           {:else}<Locked {status} testid="vault-locked" />{/if}
         </div>
       </div>
@@ -765,7 +770,7 @@
             <Tooltip content={t('nearbyReceive')}>
               {#snippet children(props)}
                 <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('nearbyReceive')} onclick={() => finishEditing(() => { nearby = { mode: 'receive' } })} data-testid="vault-nearby-receive">
-                  <Icon name="transfer" />
+                  <Icon name="pair" />
                 </button>
               {/snippet}
             </Tooltip>
@@ -801,6 +806,10 @@
             <DropdownMenu.Root>
               <DropdownMenu.Trigger class={iconButtonClass('ghost','md')} aria-label={t('vaultToolsLabel')} title={t('vaultToolsLabel')} data-testid="vault-tools-menu"><Icon name="more"/></DropdownMenu.Trigger>
               <DropdownMenu.Portal><DropdownMenu.Content class={menuContentClass} align="end">
+                <DropdownMenu.Item class={menuItemClass} onSelect={() => finishEditing(() => { nearby = { mode: 'receive' } })} data-testid="vault-tools-nearby-receive">
+                  <span class="flex items-center gap-2"><Icon name="pair" class="text-faint" />{t('nearbyReceive')}</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator class="my-1 h-px bg-line" />
                 <DropdownMenu.Item class={menuItemClass} onSelect={()=>backingUp=true} data-testid="vault-backup-open">{t('vaultBackupTitle')}</DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} onSelect={()=>importing=true} data-testid="vault-import-open">{t('importTitle')}</DropdownMenu.Item>
               </DropdownMenu.Content></DropdownMenu.Portal>

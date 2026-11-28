@@ -86,9 +86,6 @@ import java.io.File
                         }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Visibility, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_preview_verified_contents_49f2c13))
                         }
-                        OutlinedButton(onClick = { confirmation = "share" }, enabled = !state.working("file:open:" + file.id), modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_a_verified_copy_fc77423))
-                        }
                     } else {
                         Notice(str(R.string.text_this_version_has_no_local_copy_restore_its_verified_cloud_backup_4068c35))
                         file.backup?.takeIf { state.session?.accountKind != "local" }?.let { backup ->
@@ -111,6 +108,12 @@ import java.io.File
                         ListRow(str(R.string.text_share_by_link_05aafef), glyph = R.drawable.glyph_link,
                             enabled = file.size <= 100uL * 1024u * 1024u) {
                             client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version))
+                        }
+                    }
+                    if (file.local) {
+                        ListRow(str(R.string.text_share_a_verified_copy_fc77423), icon = Icons.Outlined.Share,
+                            enabled = !state.working("file:open:" + file.id)) {
+                            confirmation = "share"
                         }
                     }
                     if (isCloud && file.local && file.backup == null && file.version == current.file.version) {

@@ -60,12 +60,11 @@ data class NearbySendStatus(
     val qrBound: Boolean,
     val peerLabel: String,
     val shareJobId: String?,
-    val approvalId: String?,
     val progress: NearbyProgress,
     val outcome: NearbySendOutcome?,
     val error: NearbyFailure?,
 ) {
-    val active: Boolean get() = state in setOf("connecting", "awaiting_sas", "awaiting_approval", "awaiting_accept", "running")
+    val active: Boolean get() = state in setOf("connecting", "awaiting_sas", "awaiting_accept", "running")
 }
 
 data class NearbyStatus(val receive: NearbyReceiveStatus?, val send: NearbySendStatus?)
@@ -160,7 +159,6 @@ fun parseNearbyStatus(value: JsonElement): NearbyStatus {
             row.requiredFlag("qr_bound"),
             row.required("peer_label"),
             row.text("share_job_id"),
-            row.text("approval_id"),
             parseNearbyProgress(row["progress"]!!.objectValue()),
             outcome,
             parseNearbyFailure(row["error"]),

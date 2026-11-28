@@ -14,7 +14,7 @@
   import Pill from '../components/page/Pill.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, size, when } from '../rpc'
+  import { call, code, errorText, size, when } from '../rpc'
   import FolderPicker from './files/FolderPicker.svelte'
   import { ROOT } from './files/files'
   import PackageImport from './secrets/PackageImport.svelte'
@@ -105,13 +105,13 @@
   let discoveredPeers = $state<DiscoveredPeer[]>([])
   let selectedPeer = $state<DiscoveredPeer | null>(null)
   let shareIdentity = $state(false)
-  let openedApprovalId = $state<string | null>(null)
 
   // Vault snapshot selection state
   let selectedFields = $state<string[]>([])
   let includeNotes = $state(false)
   let selectedAttachments = $state<string[]>([])
   let attachmentDetails = $state<Record<string, any>>({})
+  let vaultAttachmentsTouched = false
 
   const vaultBlocked = $derived(mode === 'send-vault' && vaultEntryBlocked(vaultEntry, vaultConflict))
   const vaultFields = $derived<Field[]>(
@@ -193,7 +193,6 @@
     if (sendView && (sendView.state === 'failed' || sendView.state === 'cancelled')) {
       sendView = null
       activeSendId = null
-      openedApprovalId = null
     }
   }
 
@@ -261,6 +260,13 @@
               vaultEntry?.revision === entry.revision
             ) {
               attachmentDetails = { ...attachmentDetails, [id]: detail }
+              if (
+                !vaultAttachmentsTouched &&
+                attachmentAvailable(detail) &&
+                !selectedAttachments.includes(id)
+              ) {
+                selectedAttachments = [...selectedAttachments, id]
+              }
             }
           })
           .catch(() => {
@@ -429,7 +435,6 @@
     busy = true
     error = ''
     scanning = false
-    openedApprovalId = null
     sendPending = true
     ignoredSendId = sendView?.id ?? activeSendId
     try {
@@ -478,16 +483,9 @@
     }
   }
 
-  function reopenApproval(id: string) {
-    void bridge(() => window.dmsg.openApproval(id)).catch((e) => {
-      if (alive && open) error = errorText(e)
-    })
-  }
-
   function resetDraft() {
     sendView = null
     activeSendId = null
-    openedApprovalId = null
     error = ''
   }
 
@@ -516,11 +514,11 @@
     discoveredPeers = []
     selectedPeer = null
     shareIdentity = false
-    openedApprovalId = null
     selectedFields = []
     includeNotes = false
     selectedAttachments = []
     attachmentDetails = {}
+    vaultAttachmentsTouched = false
     lastVaultKey = ''
   }
 
@@ -539,6 +537,10 @@
           void startReceive(false, turn)
         } else if (mode === 'send-vault' && vaultEntry) {
           lastVaultKey = `${vaultEntry.id}:${vaultEntry.revision}`
+          selectedFields = ((vaultEntry.item?.fields ?? []) as Field[])
+            .filter((f) => Boolean(f.value))
+            .map((f) => f.id)
+          includeNotes = Boolean(vaultEntry.item?.notes)
           void loadVaultAttachments(vaultEntry, turn)
         }
       } else if (!isOpen && wasOpen) {
@@ -570,22 +572,6 @@
       selectedAttachments = selectedAttachments.filter((id) => validFiles.has(id))
       void loadVaultAttachments(vaultEntry, sessionRev)
     })
-  })
-
-  // Automatically open the approval window once when Vault nearby send waits for approval.
-  $effect(() => {
-    const send = sendView
-    if (
-      open &&
-      mode === 'send-vault' &&
-      send?.state === 'awaiting_approval' &&
-      send.approval_id &&
-      openedApprovalId !== send.approval_id
-    ) {
-      const id = send.approval_id
-      openedApprovalId = id
-      reopenApproval(id)
-    }
   })
 
   onMount(() => {
@@ -838,10 +824,7 @@
             {@render identityNotice(receiveView.outcome.identity)}
           {/if}
           {#if receiveView.outcome?.kind === 'secret_package' && receiveView.outcome.package_preview}
-            <PackageImport
-              received={receiveView.outcome.package_preview}
-              open={(id) => void bridge(() => window.dmsg.openApproval(id))}
-            />
+            <PackageImport received={receiveView.outcome.package_preview} />
           {:else}
             {@const receivedFiles = receiveView.outcome?.files ?? []}
             <Notice tone="ok" testid="nearby-receive-done">
@@ -943,6 +926,7 @@
                     checked={selectedAttachments.includes(id)}
                     disabled={!available}
                     onCheckedChange={(checked) => {
+                      vaultAttachmentsTouched = true
                       clearStaleSendError()
                       selectedAttachments = toggle(selectedAttachments, id, checked)
                     }}
@@ -1104,19 +1088,6 @@
           >
             <Icon name="verified" />{t('nearbyConfirmSas')}
           </button>
-        {:else if sendView.state === 'awaiting_approval'}
-          <Notice tone="info" testid="nearby-awaiting-approval">{t('nearbyAwaitingApprovalHint')}</Notice>
-          {#if sendView.approval_id}
-            <div class="flex justify-start">
-              <button
-                class={buttonClass('secondary', 'sm')}
-                onclick={() => sendView?.approval_id && reopenApproval(sendView.approval_id)}
-                data-testid="nearby-open-approval"
-              >
-                <Icon name="approvals" />{t('nearbyOpenApproval')}
-              </button>
-            </div>
-          {/if}
         {:else if sendView.state === 'awaiting_accept'}
           <Progress label={t('nearbyStateAwaitingAccept')} testid="nearby-send-progress" />
         {:else if sendView.state === 'running'}

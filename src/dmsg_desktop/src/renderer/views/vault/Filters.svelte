@@ -19,7 +19,8 @@
     onWorkflow,
     facets,
     flagged,
-    onAccess
+    onAccess,
+    onNearbyReceive
   }: {
     scope: Scope
     workflows: string[]
@@ -29,6 +30,7 @@
     facets: Facets
     flagged: number
     onAccess?: (tag: string) => void
+    onNearbyReceive?: () => void
   } = $props()
 </script>
 
@@ -79,7 +81,10 @@
   {/if}
   <div class="h-3"></div>
   {#if workflows.length}{@render row(!!workflow, onWorkflow, 'vault-workflows', workflowIcon.policies, t('secretUses'))}{/if}
-  <div class="mt-auto pt-3">
+  <div class="mt-auto grid gap-px pt-3">
+    {#if onNearbyReceive}
+      {@render row(false, onNearbyReceive, 'vault-sidebar-nearby-receive', 'pair', t('nearbyReceive'))}
+    {/if}
     {@render entry('trash', 'trash', t('trash'))}
   </div>
 </nav>

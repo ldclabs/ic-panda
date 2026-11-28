@@ -8,7 +8,7 @@
 use crate::daemon::Daemon;
 use crate::mdns::{self, NearbyAdvert};
 use crate::nearby_awdl::{self, AwdlListener};
-use crate::params::{optional, parse, source, text};
+use crate::params::{optional, parse, text};
 use base64::Engine;
 use dmsg_client::hold::Hold;
 use dmsg_client::nearby::{
@@ -20,7 +20,7 @@ use dmsg_types::{Error, Result, ensure};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::Duration;
 
@@ -136,11 +136,6 @@ impl Nearby {
         view
     }
 
-    /// Wake a waiting Vault nearby sender right after its `SecretShare` approval settles.
-    pub(crate) fn notify_approval_ready(&self, job_id: String) {
-        let _ = self.core.send_approval_ready(job_id);
-    }
-
     /// Tear down all active listeners, mDNS/AWDL advertisements, relay rooms and send tasks.
     pub(crate) async fn cancel_all(&self) {
         {
@@ -162,7 +157,6 @@ impl Nearby {
 
     fn change_hook(&self, daemon: Arc<Daemon>, receiving: bool) -> Arc<dyn Fn() + Send + Sync> {
         let core = self.core.clone();
-        let approving = AtomicBool::new(false);
         let completed = AtomicU64::new(0);
         Arc::new(move || {
             let mut view = core.view();
@@ -194,12 +188,6 @@ impl Nearby {
                 .unwrap_or(0);
             if receiving && committed > completed.fetch_max(committed, Ordering::Relaxed) {
                 daemon.emit("files/changed", json!({"nearby": true}));
-            }
-            // Once more when the wait ends: the send settles or cancels the approval.
-            let awaiting = send_state == "awaiting_approval";
-            let was_awaiting = approving.swap(awaiting, Ordering::Relaxed);
-            if awaiting || was_awaiting {
-                daemon.emit("approval/changed", Value::Null);
             }
             daemon.emit("nearby/changed", view);
         })
@@ -450,7 +438,6 @@ impl Daemon {
                 Ok(dmsg_client::config::environment_name(&c.config().environment).to_string())
             })
             .await?;
-        let approval_source = source(params).unwrap_or("gui").to_string();
         let alias = params["alias"]
             .as_str()
             .map(str::trim)
@@ -540,15 +527,7 @@ impl Daemon {
         let on_change = self.nearby.change_hook(daemon, false);
         self.nearby
             .core
-            .send_start(
-                h,
-                target,
-                payload,
-                alias,
-                share_identity,
-                approval_source,
-                on_change,
-            )
+            .send_start(h, target, payload, alias, share_identity, on_change)
             .await?;
         Ok(self.nearby.view())
     }

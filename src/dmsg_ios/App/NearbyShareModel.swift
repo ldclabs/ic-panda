@@ -109,12 +109,11 @@ final class NearbyShareModel {
         let qrBound: Bool
         let peerLabel: String
         let shareJobId: String?
-        let approvalId: String?
         let progress: Progress
         let outcome: SendOutcome?
         let error: Failure?
         var active: Bool {
-            ["connecting", "awaiting_sas", "awaiting_approval", "awaiting_accept", "running"].contains(state)
+            ["connecting", "awaiting_sas", "awaiting_accept", "running"].contains(state)
         }
     }
 

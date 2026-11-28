@@ -75,7 +75,7 @@ pub enum NearbyCommand {
         #[arg(required = true)]
         files: Vec<String>,
     },
-    /// Send a Vault snapshot to a nearby receiver (requires high-risk SecretShare approval).
+    /// Send a Vault snapshot to a nearby receiver directly after acceptance.
     SendVault {
         /// Receiver `dmsg-nearby/1:...` offer text.
         #[arg(long)]
@@ -265,8 +265,8 @@ pub async fn nearby(remote: &Remote, json_out: bool, cmd: NearbyCommand) -> Resu
             print(json_out, &view, |v| {
                 let mut text = format_status(v);
                 text.push_str(&tr!(
-                    "\nAfter the receiver accepts, complete the high-risk SecretShare approval from `dmsg approvals list`.",
-                    "\n对方接受后，请通过 `dmsg approvals list` 或桌面审批窗口完成保险库高风险分享审批。"
+                    "\nOnce the receiver accepts, the selected Vault snapshot streams directly without approval.",
+                    "\n对方接受后，所选保险库快照将直接加密发送，无需审批。"
                 ));
                 text
             });

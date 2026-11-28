@@ -19,6 +19,8 @@ final class VaultUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.username").firstMatch.exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.expires").firstMatch.exists)
         let review = app.buttons["secret.snapshot.prepare"]
+        XCTAssertTrue(review.isEnabled)
+        credential.tap()
         XCTAssertFalse(review.isEnabled)
         credential.tap()
         XCTAssertTrue(review.isEnabled)

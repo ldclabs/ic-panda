@@ -723,11 +723,11 @@ final class SecretNavigationTests: NavigationTestCase {
         let password = app.switches["secret.snapshot.field.password"]
         let username = app.switches["secret.snapshot.field.username"]
         XCTAssertTrue(password.waitForExistence(timeout: 5))
-        XCTAssertEqual(password.value as? String, "0")
-        XCTAssertEqual(username.value as? String, "0")
-        // The entire row, including the space between its name and checkmark, selects the field.
-        password.tap()
-        XCTAssertEqual(password.value as? String, "1", "The field must be selected before resizing")
+        XCTAssertEqual(password.value as? String, "1")
+        XCTAssertEqual(username.value as? String, "1")
+        // The entire row, including the space between its name and checkmark, toggles the field.
+        username.tap()
+        XCTAssertEqual(username.value as? String, "0", "The field must be toggled before resizing")
         XCUIDevice.shared.orientation = .landscapeLeft
         XCUIDevice.shared.orientation = .portrait
         XCTAssertEqual(password.value as? String, "1")

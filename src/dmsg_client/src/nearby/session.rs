@@ -610,7 +610,7 @@ where
             on_progress(progress.clone());
 
             let (size, sha256) = loop {
-                // Sender may take up to CONFIRM_TIMEOUT to finish high-risk SecretShare approval.
+                // Sender encrypts and stages the snapshot right after acceptance.
                 let next = channel.recv(CONFIRM_TIMEOUT).await?;
                 match next {
                     Body::Identity { .. } if peer_identity.is_none() => {
@@ -934,11 +934,11 @@ where
     })
 }
 
-/// Send an approved `dmsg-secret-package/1` Vault snapshot over a nearby session.
+/// Send a staged `dmsg-secret-package/1` Vault snapshot over a nearby session.
 ///
-/// `await_approved_job` runs after SAS confirmation and receiver acceptance: it
-/// prepares (`secret_nearby_preparation`), creates and completes `Action::SecretShare`
-/// bound to `secrets.transcript`, and returns the approved share job ID.
+/// `stage_job` runs after SAS confirmation and receiver acceptance: it prepares
+/// (`secret_nearby_preparation`), stages the package bound to `secrets.transcript`
+/// via `shares::publish`, and returns the staged share job ID.
 #[allow(clippy::too_many_arguments)]
 pub async fn send_secret_package_after_handshake<H, T, C, CFut, A, AFut, P>(
     h: &H,
@@ -948,7 +948,7 @@ pub async fn send_secret_package_after_handshake<H, T, C, CFut, A, AFut, P>(
     alias: Option<String>,
     share_identity: bool,
     confirm_sas: C,
-    await_approved_job: A,
+    stage_job: A,
     mut on_progress: P,
 ) -> Result<SendOutcome>
 where
@@ -997,8 +997,8 @@ where
         channel.send(&id_frame).await?;
     }
 
-    // Complete high-risk SecretShare approval bound to `secrets.transcript`, then claim staged bytes.
-    let job_id = await_approved_job(&secrets).await?;
+    // Stage the snapshot bound to `secrets.transcript`, then claim its encrypted bytes.
+    let job_id = stage_job(&secrets).await?;
     let transcript_hex = hex::encode(*secrets.transcript);
     let mut manifest = h
         .with(|c| c.secret_nearby_claim(&job_id, &transcript_hex))

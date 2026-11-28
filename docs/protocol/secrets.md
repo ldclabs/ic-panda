@@ -112,7 +112,7 @@ The owner workflows below are implemented; shared team vaults are not. Unit/loca
 
 ## Local development workflows
 
-These are owner control-plane interfaces, absent from the MCP catalog. Actions `secret_process`, `secret_ssh_binding`, `secret_ssh`, `secret_mount_config`, `secret_mount_read`, `secret_share`, `secret_package_import` and `secret_discovery_import` all require high-risk presence approval.
+These are owner control-plane interfaces, absent from the MCP catalog. Actions `secret_process`, `secret_ssh_binding`, `secret_ssh`, `secret_mount_config`, `secret_mount_read` and `secret_discovery_import` all require high-risk presence approval; snapshot sending and receiving run directly for the owner (historical `secret_share` and `secret_package_import` records remain read-only viewable).
 
 ### Process delivery
 
@@ -155,13 +155,13 @@ macOS does not turn file system extensions on by itself: before first use, the p
 
 `secrets/shares/prepare {input, password?}` fixes item_id, revision, field_ids, include_notes, attachment file_id/version_id, expires_in_ms and max_download_sessions. Defaults are one day/one session; accepted ranges are 6 minutes–7 days and 1–100 sessions. Preparation creates independent keys/fixed identity but does not publish. Password derivation runs outside the core lock and passwords are not persisted.
 
-`request {id}` creates approval. list/get default to metadata only; explicit `get {id, include_link:true}` returns a link only after confirmed publication without cancellation. reconcile queries original share ID; revoke revokes it. After publication commit, no second creation or generic recovery replay is allowed. Interrupted unpublished uploads require new approval while retaining upload/share identity and keys.
+`publish {id}` encrypts, uploads and publishes directly without approval. list/get default to metadata only; explicit `get {id, include_link:true}` returns a link only after confirmed publication without cancellation. reconcile queries original share ID; revoke revokes it. After publication commit, no second creation or generic recovery replay is allowed. Interrupted unpublished uploads can retry `publish {id}` directly while retaining upload/share identity and keys.
 
 Outer packaging remains the encrypted share-file format. Inner MIME is `application/vnd.dmsg.secret-package`: four-byte big-endian JSON length, strict JSON manifest and ordered attachments. Manifest ≤256 KiB; package ≤100 MiB, 64 fields and 20 attachments. Unknown/duplicate fields, bad lengths/digests/trailing bytes fail. Include only selected fields/notes/attachments, excluding source account/item/field IDs, tags, authority/history. snapshot_id is independently random; fields use package-local numbering, with verified role suffixes preserving standard-template semantics.
 
 Preparation omits empty fields and notes and requires at least one populated field, note or attachment. Verified previews omit empty values and include an optional `role` for recognized template fields. Clients display the custom label, template role or field type and submit the original package-local field ID.
 
-`secrets/packages/import_preview {link, password?}` accepts only the configured login-site links, persisting a random download session before starting and reusing it on retry. Full verification returns metadata package_id/digest/preview. `import_request {selection}` binds fields, notes, attachment indexes and destination folder; approval atomically commits new Vault IDs, Files, outbox and receipt. Attachments default local-only. Download cache is ciphertext with LDK-sealed key.
+`secrets/packages/import_preview {link, password?}` accepts only the configured login-site links, persisting a random download session before starting and reusing it on retry. Full verification returns metadata package_id/digest/preview. `import {selection}` binds fields, notes, attachment indexes and destination folder, atomically committing new Vault IDs, Files, outbox and receipt directly without approval. Attachments default local-only. Download cache is ciphertext with LDK-sealed key.
 
 Browsers display safely as plain text; users explicitly reveal/copy fields or save individual attachments, with no full plaintext-package download. Copies are independent and survive source edits/revocation. Browser receipt followed by client import uses another session; with the default one-session limit, choose the receiving route before claiming.
 
@@ -189,13 +189,13 @@ CLI: `dmsg secrets references <dmsg-secret://…>`, `dmsg secrets rotation depen
 ## Channel secret snapshots
 
 - `secrets/shares/channel_prepare {channel_id,input}` uses explicit fields/notes/fixed attachments, without link expiry/session count. Read/verify channel control first; pin ID/name/epoch/control head/ACL version and original snapshot/upload/file-version IDs. Preparation uploads nothing.
-- `secrets/shares/request/get/list/reconcile` reuse high-risk owner approval and job states. Recheck account session, sources and channel scope before approval, each encryption/upload segment and commit. Changed control requires new preparation/approval, never automatic delivery to a new membership scope.
+- `secrets/shares/publish/get/list/reconcile` reuse the job state machine and publish directly without approval. Recheck account session, sources and channel scope before start, each encryption/upload segment and commit. Changed control requires a new preparation, never automatic delivery to a new membership scope.
 - Snapshots are ordinary channel files under independent keys. After encrypted chunks/manifest upload, only that epoch's encrypted message carries the key. A dedicated journal bypasses ordinary channel outbox; storage recovery refuses secret_channel. After publication commit, query only the original operation ID, never re-sign/resend/create a second message. Receipt digest must match the original signature before published status.
 - Channel delivery has no share link, session count or content expiry; publish_before only limits starting delivery. Epoch-readable members, including later joiners/history grantees, and their explicitly authorized readers may retain copies. Cancelling a job works only before commit and cannot recall published content. Existing retraction/attachment collection retain their contracts and cannot erase copies.
 - `secrets/packages/channel_preview {channel_id,seq}` reads an attachment only from locally verified channel messages, never caller-injected keys/URLs/manifests. Verify message, upload statement, ciphertext digest, AEAD, full-file digest and inner package before value-free preview; no full plaintext package is exported to disk or Files.
-- `secrets/packages/import_request` uses the original package digest, explicit selection and trusted approval to create new Vault/Files IDs. Repeat receipt of one message converges on one package; repeated imports return the original atomic receipt, but changed selections cannot reuse it. Attachments inherit destination-folder grants.
+- `secrets/packages/import` uses the original package digest and explicit selection to commit new Vault/Files IDs directly. Repeat receipt of one message converges on one package; repeated imports return the original atomic receipt, but changed selections cannot reuse it. Attachments inherit destination-folder grants.
 
-CLI: `dmsg secrets shares channel-prepare <channel_id> <selection.json>` and `dmsg secrets packages channel-preview <channel_id> <seq>`. Desktop use center selects the destination channel; channel snapshots offer import with every field/note/attachment initially unselected. These are owner controls, with no new MCP secret-resolution or delivery-initiation tool.
+CLI: `dmsg secrets shares channel-prepare <channel_id> <selection.json>` and `dmsg secrets packages channel-preview <channel_id> <seq>`. Desktop use center selects the destination channel; channel snapshots offer import with available fields/notes/attachments pre-selected and opt-out before confirming. These are owner controls, with no new MCP secret-resolution or delivery-initiation tool.
 
 ## Verification entry points and boundaries
 

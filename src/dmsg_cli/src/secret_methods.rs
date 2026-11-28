@@ -12,9 +12,9 @@ pub(crate) const METHODS: [&str; 45] = [
     "secrets/discovery/status",
     "secrets/discovery/import_request",
     "secrets/packages/import_preview",
-    "secrets/packages/import_request",
+    "secrets/packages/import",
     "secrets/shares/prepare",
-    "secrets/shares/request",
+    "secrets/shares/publish",
     "secrets/shares/get",
     "secrets/shares/list",
     "secrets/shares/reconcile",
@@ -105,6 +105,15 @@ impl Daemon {
             .map_err(|_| Error::Unavailable("password preparation".into()))??;
             return h.with(|c| c.secret_share_save_preparation(prepared)).await;
         }
+        if method == "secrets/packages/import" {
+            let selection = serde_json::from_value(p["selection"].clone())
+                .map_err(|_| Error::InvalidInput("package selection".into()))?;
+            return dmsg_client::secrets::receiving::import(&self.hold(), selection).await;
+        }
+        if method == "secrets/shares/publish" {
+            let _turn = self.turn("secret-share-upload").await;
+            return dmsg_client::secrets::shares::publish(&self.hold(), &text(p, "id")?).await;
+        }
         if method == "secrets/shares/reconcile" {
             return dmsg_client::secrets::shares::reconcile(&self.hold(), &text(p, "id")?).await;
         }
@@ -124,12 +133,6 @@ impl Daemon {
         }
         let mut c = self.client().lock().await;
         match method {
-            "secrets/packages/import_request" => c.secret_package_request(
-                source(p)?,
-                serde_json::from_value(p["selection"].clone())
-                    .map_err(|_| Error::InvalidInput("package selection".into()))?,
-            ),
-            "secrets/shares/request" => c.secret_share_request(source(p)?, &text(p, "id")?),
             "secrets/shares/get" => c.secret_share_get(&text(p, "id")?, p["include_link"] == true),
             "secrets/shares/list" => c.secret_shares(),
             "secrets/run/request" => c.secret_process_request(

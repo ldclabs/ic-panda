@@ -305,8 +305,10 @@ Object.assign(methods, {
       }
     }
   },
-  'secrets/shares/request': (p) =>
-    makeRequest('secret_share', {
+  'secrets/shares/publish': (p) => ({
+    id: p.id,
+    state: 'published',
+    plan: {
       ...(channelPrepared
         ? {
             channel: {
@@ -316,14 +318,16 @@ Object.assign(methods, {
             expires_at: null,
             max_download_sessions: null
           }
-        : {}),
+        : {
+            expires_at: Date.now() + 86400000,
+            max_download_sessions: 1
+          }),
       title: 'GitHub credential',
       share_id: 'a2'.repeat(32),
       fields: [{ id: 'credential', type: 'concealed', label: 'Token' }],
-      input: { include_notes: false, attachments: [] },
-      expires_at: Date.now() + 86400000,
-      max_download_sessions: 1
-    }),
+      input: { include_notes: false, attachments: [] }
+    }
+  }),
   'secrets/packages/import_preview': () => ({
     package_id: 'a3'.repeat(32),
     digest: 'a4'.repeat(32),
@@ -344,16 +348,13 @@ Object.assign(methods, {
       channel_source: { channel_id: p.channel_id, seq: p.seq }
     }
   },
-  'secrets/packages/import_request': (p) =>
-    makeRequest('secret_package_import', {
-      selection: p.selection,
-      preview: {
-        title: 'Incoming snapshot',
-        fields: [
-          { id: 'f0_credential', type: 'concealed', label: 'Imported token' }
-        ]
-      }
-    })
+  'secrets/packages/import': (p) => ({
+    state: 'done',
+    ids: ['11'.repeat(32)],
+    files_local_only: true,
+    files_inherit_folder_grants: true,
+    selection: p.selection
+  })
 })
 const channelView = () => ({
   id: 'c1'.repeat(32),
@@ -676,43 +677,29 @@ try {
   await pick(main, 'snapshot-source-item', item)
   assert.equal(
     await workflows.getByRole('checkbox', { name: 'Token', exact: true }).isChecked(),
-    false
+    true
   )
-  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
   await main.getByTestId('snapshot-review').click()
-  await approval.waitForFunction(() =>
-    document
-      .querySelector('[data-testid="secret-review"]')
-      ?.textContent.includes('Publish selected snapshot')
-  )
-  assert.match(
-    await approval.getByTestId('secret-review').innerText(),
-    /Recipients can retain plaintext/
-  )
   const prepared = calls
     .filter((c) => c.method === 'secrets/shares/prepare')
     .at(-1).params.input
   assert.deepEqual(prepared.field_ids, ['credential'])
   assert.equal(prepared.include_notes, false)
   assert.deepEqual(prepared.attachments, [])
-  await approve(approval)
+  assert.equal(
+    calls.filter((c) => c.method === 'secrets/shares/publish').length,
+    1
+  )
   await main
     .getByTestId('snapshot-mode')
     .locator('[data-value="channel"]')
     .click()
   await pick(main, 'snapshot-channel', 'c1'.repeat(32))
-  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
   await main.getByTestId('snapshot-review').click()
-  await approval.waitForFunction(() =>
-    document
-      .querySelector('[data-testid="secret-review"]')
-      ?.textContent.includes('Snapshot destination')
+  assert.equal(
+    calls.filter((c) => c.method === 'secrets/shares/publish').length,
+    2
   )
-  assert.match(
-    await approval.getByTestId('secret-review').innerText(),
-    /No link expiry/
-  )
-  await approve(approval)
   await workflow(main, 'health')
   await workflows
     .getByRole('button', { name: 'Inspect dependencies', exact: true })
@@ -736,20 +723,13 @@ try {
   await workflows.getByRole('button', { name: 'Receive and verify' }).click()
   assert.equal(
     await workflows.getByRole('checkbox', { name: 'Imported token', exact: true }).isChecked(),
-    false
+    true
   )
-  await workflows.getByRole('checkbox', { name: 'Imported token', exact: true }).check()
-  await workflows.getByRole('button', { name: 'Request import' }).click()
-  await approval.waitForFunction(() =>
-    document
-      .querySelector('[data-testid="secret-review"]')
-      ?.textContent.includes('Incoming snapshot')
+  await workflows.getByTestId('package-import-submit').click()
+  assert.equal(
+    calls.filter((c) => c.method === 'secrets/packages/import').length,
+    1
   )
-  assert.match(
-    await approval.getByTestId('secret-review').innerText(),
-    /Attachments remain local/
-  )
-  await approve(approval)
   const mount = makeRequest('secret_mount_read', {
     scope: { type: 'macos_file_window', uid: 501, window_ms: 30000 },
     entry: { relative_path: '.env', size: 48, generation: 1 },
@@ -785,18 +765,15 @@ try {
   await receiving.waitFor()
   assert.equal(
     await receiving.getByRole('checkbox', { name: 'Imported token', exact: true }).isChecked(),
-    false
+    true
   )
-  await receiving.getByRole('checkbox', { name: 'Imported token', exact: true }).check()
-  await receiving
-    .getByRole('button', { name: 'Request import', exact: true })
-    .click()
+  await receiving.getByTestId('package-import-submit').click()
   assert.equal(
     calls.filter((c) => c.method === 'secrets/packages/channel_preview').length,
     1
   )
   assert.equal(
-    calls.filter((c) => c.method === 'secrets/packages/import_request').length,
+    calls.filter((c) => c.method === 'secrets/packages/import').length,
     2
   )
   // Workflow regressions use only the fixture: no real credentials or writes.
@@ -923,17 +900,16 @@ try {
   const review = main.getByTestId('snapshot-review')
   await review.waitFor()
   assert.equal(await main.getByTestId('snapshot-source-item').count(), 0)
-  assert.equal(await review.isEnabled(), false)
+  assert.equal(await review.isEnabled(), true)
   assert.equal(await workflows.getByRole('checkbox').count(), 1)
-  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).press('Space')
   const prepare = methods['secrets/shares/prepare']
   let releasePreview
   methods['secrets/shares/prepare'] = async (p) => {
     await new Promise((resolve) => (releasePreview = resolve))
     return prepare(p)
   }
-  const requestCount = () => calls.filter(c => c.method === 'secrets/shares/request').length
-  const before = requestCount()
+  const publishCount = () => calls.filter(c => c.method === 'secrets/shares/publish').length
+  const before = publishCount()
   await review.click()
   await waitForFixture(() => releasePreview)
   await main.getByTestId('snapshot-links').click()
@@ -943,16 +919,14 @@ try {
   methods['secrets/shares/prepare'] = prepare
   await main.getByRole('button', { name: 'Back', exact: true }).last().click()
   await main.getByTestId('vault-share').click()
-  assert.equal(requestCount(), before)
-  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
-  const request = methods['secrets/shares/request']
-  methods['secrets/shares/request'] = () => { throw new Error('fixture request failure') }
+  assert.equal(publishCount(), before)
+  const publish = methods['secrets/shares/publish']
+  methods['secrets/shares/publish'] = () => { throw new Error('fixture publish failure') }
   await review.click()
   await main.getByTestId('workflow-error-action').waitFor()
   const prepares = calls.filter(c => c.method === 'secrets/shares/prepare').length
-  methods['secrets/shares/request'] = request
+  methods['secrets/shares/publish'] = publish
   await review.click()
-  await approve(approval)
   assert.equal(calls.filter(c => c.method === 'secrets/shares/prepare').length, prepares)
 
   // A failed health read does not hide discovery or rotation, and retries locally.

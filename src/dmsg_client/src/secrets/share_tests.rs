@@ -1,6 +1,5 @@
 use super::*;
 use crate::{
-    approval::Decision,
     testing::{TempDir, unlocked},
     vault::{Changes, FieldChange},
 };
@@ -119,7 +118,7 @@ fn assert_no_fixture_plaintext(path: &std::path::Path) {
 }
 
 #[tokio::test]
-async fn snapshot_scope_and_interruption_keep_ids_and_require_fresh_approval() {
+async fn snapshot_scope_and_retry_keep_ids_and_reject_stale_revision_without_approval() {
     let (dir, mut c, id) = fixture();
     assert_no_fixture_plaintext(&dir.0);
     let original = c.share_job(&id).unwrap();
@@ -131,21 +130,14 @@ async fn snapshot_scope_and_interruption_keep_ids_and_require_fresh_approval() {
             .unwrap()
             .contains("SECRET_SNAPSHOT_ONLY")
     );
-    let r = c.secret_share_request("gui", &id).unwrap();
-    let request = r["id"].as_str().unwrap();
-    let run = c
-        .approval_decide(request, r["digest"].as_str().unwrap(), true, "gui", false)
-        .await
-        .unwrap();
-    assert!(matches!(run, Decision::SecretShare(_)));
-    c.running.clear();
-    assert_eq!(c.approvals_reconcile_others().await.unwrap(), 1);
+    let _run = c.secret_share_start(&id).unwrap();
     assert_eq!(
         c.secret_share_get(&id, false).unwrap()["state"],
-        "needs_approval"
+        "encrypting"
     );
-    let retry = c.secret_share_request("gui", &id).unwrap();
-    assert_ne!(retry["id"], r["id"]);
+    assert!(c.approvals(true).unwrap().is_empty());
+    // Resuming an unpublished interrupted job preserves the original plan and key.
+    let _retry = c.secret_share_start(&id).unwrap();
     let resumed = c.share_job(&id).unwrap();
     assert_eq!(resumed.plan, original.plan);
     assert_eq!(resumed.key, original.key);
@@ -158,42 +150,11 @@ async fn snapshot_scope_and_interruption_keep_ids_and_require_fresh_approval() {
         },
     )
     .unwrap();
-    let _ = c
-        .approval_decide(
-            retry["id"].as_str().unwrap(),
-            retry["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await;
     assert_eq!(
-        c.approval(retry["id"].as_str().unwrap()).unwrap()["state"],
-        "failed"
+        publish(&c.hold(), &id).await.unwrap_err(),
+        failure("SECRET_VERSION_STALE")
     );
-}
-
-#[tokio::test]
-async fn a_live_upload_step_keeps_the_reconciler_away_past_its_idle_window() {
-    let (_dir, mut c, id) = fixture();
-    let r = c.secret_share_request("gui", &id).unwrap();
-    let request = r["id"].as_str().unwrap().to_owned();
-    let run = c
-        .approval_decide(&request, r["digest"].as_str().unwrap(), true, "gui", false)
-        .await
-        .unwrap();
-    assert!(matches!(run, Decision::SecretShare(_)));
-    // Approved six minutes ago; a step of the same run just made progress.
-    c.running
-        .insert(request.clone(), now_ms() - 6 * dmsg_types::MINUTE);
-    let job = c.share_job(&id).unwrap();
-    c.share_step(&job, now_ms()).unwrap();
-    assert_eq!(c.approvals_reconcile_others().await.unwrap(), 0);
-    assert_eq!(
-        c.secret_share_get(&id, false).unwrap()["state"],
-        "encrypting"
-    );
-    assert_eq!(c.approval(&request).unwrap()["state"], "executing");
+    assert!(c.approvals(true).unwrap().is_empty());
 }
 
 struct Shared(Arc<Mutex<Client>>);
@@ -227,21 +188,6 @@ async fn lost_publication(channel: bool) {
         &format!("http://{}", listener.local_addr().unwrap()),
     );
     crate::testing::warm(&mut c);
-    let r = c.secret_share_request("gui", &id).unwrap();
-    let run = match c
-        .approval_decide(
-            r["id"].as_str().unwrap(),
-            r["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await
-        .unwrap()
-    {
-        Decision::SecretShare(run) => *run,
-        _ => panic!("share"),
-    };
     let shared = Arc::new(Mutex::new(c));
     let h = Shared(shared.clone());
     let source = shared.clone();
@@ -335,11 +281,12 @@ async fn lost_publication(channel: bool) {
             socket.write_all(format!("HTTP/1.1 {status} Test\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
         }
     });
-    let result = run.run(&h).await.unwrap();
+    let result = publish(&h, &id).await.unwrap();
     assert_eq!(result["state"], "unknown", "{result}");
     assert_eq!(creates.load(Ordering::SeqCst), 1);
+    assert!(publish(&h, &id).await.is_err());
     h.with(|c| {
-        assert!(c.secret_share_request("gui", &id).is_err());
+        assert!(c.approvals(true)?.is_empty());
         Ok(())
     })
     .await
@@ -391,21 +338,17 @@ fn ledger_for_job(c: &Client, id: &str) -> String {
 }
 
 #[tokio::test]
-async fn channel_snapshot_approval_is_fixed_to_membership_and_never_wraps_a_link() {
+async fn channel_snapshot_is_fixed_to_membership_and_never_wraps_a_link() {
     let (_dir, mut c, id) = fixture();
     let (channel, _) = crate::channel::tests::active_channel(&mut c);
     let target = c.snapshot_channel_target(&channel).unwrap();
     let mut job = c.share_job(&id).unwrap();
     job.plan.channel = Some(target.clone());
     c.save_share_job(&job).unwrap();
-    let request = c.secret_share_request("gui", &id).unwrap();
-    assert!(request["detail"]["expires_at"].is_null());
-    assert!(request["detail"]["max_download_sessions"].is_null());
-    assert!(
-        request["detail"]
-            .to_string()
-            .contains("including later joins")
-    );
+    let view = c.secret_share_get(&id, false).unwrap();
+    assert!(view["plan"]["expires_at"].is_null());
+    assert!(view["plan"]["max_download_sessions"].is_null());
+    assert!(view["plan"].to_string().contains("including later joins"));
     let mut stale = target;
     stale.control_head = "ff".repeat(32);
     assert_eq!(
@@ -414,16 +357,10 @@ async fn channel_snapshot_approval_is_fixed_to_membership_and_never_wraps_a_link
     );
     job.plan.channel = Some(stale);
     c.save_share_job(&job).unwrap();
-    assert!(c.secret_share_request("gui", &id).is_err());
-    let result = c
-        .approval_decide(
-            request["id"].as_str().unwrap(),
-            request["digest"].as_str().unwrap(),
-            true,
-            "gui",
-            false,
-        )
-        .await;
-    assert!(!matches!(result, Ok(Decision::SecretShare(_))));
+    assert_eq!(
+        publish(&c.hold(), &id).await.unwrap_err(),
+        Error::PolicyStale
+    );
     assert!(c.channel_outbox(&channel).unwrap().is_empty());
+    assert!(c.approvals(true).unwrap().is_empty());
 }
