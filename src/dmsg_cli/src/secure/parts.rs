@@ -110,7 +110,7 @@ impl Parted<'_> {
                 bytes.len() == INDEX_LEN || bytes.len() == 2 * INDEX_LEN,
                 Error::IntegrityFailed,
             )?;
-            for entry in bytes.chunks_exact(INDEX_LEN) {
+            for entry in bytes.as_chunks::<INDEX_LEN>().0 {
                 let index = Index::parse(entry)?.ok_or(Error::IntegrityFailed)?;
                 if Some(&index) != active {
                     for part in index.names(name) {
