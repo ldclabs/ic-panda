@@ -507,9 +507,8 @@ impl Fixture {
             candid::encode_args(()).unwrap(),
             None,
         );
-        let mut plans = dmsg_protocol::billing::default_plans(1);
-        // Existing execution regressions deliberately use a generous fixture policy.
-        // Commerce-specific tests install and assert the production default separately.
+        // Start on the original catalog so upgrade and exhaustion tests exercise existing accounts.
+        let mut plans = dmsg_test_support::v1_plans();
         if generous {
             plans[0].limits.monthly_execution_units = 1000;
         }

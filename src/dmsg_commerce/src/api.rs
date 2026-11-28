@@ -531,8 +531,8 @@ mod tests {
             plan.catalog_version = next.version;
         }
         assert!(check_policy(next.clone(), at).is_err());
-        next.plans[1].limits.active_channels = 20;
-        next.plans[1].limits.monthly_execution_units = 20;
+        next.plans[1].limits.active_channels += 10;
+        next.plans[1].limits.monthly_execution_units += 10;
         let accepted = check_policy(next.clone(), at).unwrap();
         assert_eq!(accepted.effective_at_ms, at);
 

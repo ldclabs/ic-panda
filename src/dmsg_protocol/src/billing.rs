@@ -107,10 +107,10 @@ pub fn monthly_allowance(month: u32, created_at_ms: u64, segments: &[MonthSegmen
 /// This neither approves deployment prices nor validates a governance version.
 pub fn default_plans(version: u64) -> Vec<PlanVersion> {
     [
-        (PlanId::Free, 0, 104_857_600, 2, 3),
-        (PlanId::Plus, 1000, 1_073_741_824, 10, 10),
-        (PlanId::Pro, 5000, 10_737_418_240, 50, 50),
-        (PlanId::Max, 20000, 107_374_182_400, 200, 200),
+        (PlanId::Free, 0, 268_435_456, 10, 10),
+        (PlanId::Plus, 1000, 1_073_741_824, 100, 100),
+        (PlanId::Pro, 5000, 10_737_418_240, 1_000, 1_000),
+        (PlanId::Max, 20000, 107_374_182_400, 10_000, 10_000),
     ]
     .into_iter()
     .map(

@@ -495,7 +495,7 @@ mod tests {
             schema: 1,
             version: 1,
             effective_at_ms: 0,
-            plans: default_plans(1),
+            plans: dmsg_test_support::v1_plans(),
             storage_products: vec![],
             terms_digest: Hash::new([9; 32]),
         }
@@ -576,13 +576,9 @@ mod tests {
         let mid = start + (end - start) / 2;
         let old = catalog();
         let mut next = old.clone();
-        next.version = 2;
+        next.version = 3;
         next.effective_at_ms = mid;
-        for (p, units) in next.plans.iter_mut().zip([5, 20, 100, 10_000]) {
-            p.catalog_version = 2;
-            p.limits.active_channels = units;
-            p.limits.monthly_execution_units = units;
-        }
+        next.plans = default_plans(next.version);
         for tier in [PlanId::Plus, PlanId::Pro, PlanId::Max] {
             for cash in [false, true] {
                 let mut s = subject(start, end + DAY);
@@ -625,8 +621,8 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(free.view.effective_limits.active_channels, 5);
-        assert_eq!(free.month.allowed_units, 4);
+        assert_eq!(free.view.effective_limits.active_channels, 10);
+        assert_eq!(free.month.allowed_units, 6); // half a month at 3 units, half at 10
         // A later lower offer cannot take away the limits frozen in a contract.
         assert_eq!(
             plan_limits(&plan(&next, &PlanId::Max).unwrap(), &old).unwrap(),

@@ -69,6 +69,12 @@ for (const route of [
   ])
   const hostedAgents = rows.find((row) => row[0] === 'Hosted Agent IDs')
   assert.deepEqual(hostedAgents?.slice(1), ['1', '3', '5', '10'], 'index.html: hosted Agent ID limits')
+  const storage = rows.find((row) => row[0] === 'Encrypted cloud storage')
+  assert.deepEqual(storage?.slice(1), ['256 MiB', '1 GiB', '10 GiB', '100 GiB'], 'index.html: storage quotas')
+  for (const label of ['Active channels', 'Formal signatures / month']) {
+    const limits = rows.find((row) => row[0] === label)
+    assert.deepEqual(limits?.slice(1), ['10', '100', '1,000', '10,000'], `index.html: ${label}`)
+  }
   const backupLimits = rows.find((row) => row[0] === 'Cloud backup file limit')
   assert.deepEqual(
     backupLimits?.slice(1),
@@ -258,6 +264,9 @@ for (const path of ['_/about.html', '_/about.zh.html']) {
   for (const row of document.querySelectorAll('table tbody tr')) {
     const cells = [...row.querySelectorAll('td')].map((cell) => cell.textContent.trim())
     assert.equal(cells.length, 9, `${path}: complete plan comparison`)
+    const units = { Free: '10', Plus: '100', Pro: '1000', Max: '10000' }[cells[0]]
+    assert.deepEqual(cells.slice(6, 8), [units, units], `${path}: ${cells[0]} channels and executions`)
+    if (cells[0] === 'Free') assert.equal(cells[2], '256 MiB', `${path}: Free storage quota`)
     assert.equal(
       cells[5],
       { Free: '1', Plus: '3', Pro: '5', Max: '10' }[cells[0]],

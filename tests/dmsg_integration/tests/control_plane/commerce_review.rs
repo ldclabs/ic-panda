@@ -125,14 +125,9 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
         (None::<u64>,),
     );
     let mut next = catalogs.last().unwrap().clone();
-    next.version += 1;
+    next.version = 3;
     next.effective_at_ms = time(&f.ic) + 31 * DAY;
-    for p in &mut next.plans {
-        p.catalog_version = next.version;
-        if p.plan_id == PlanId::Free {
-            p.limits.monthly_execution_units = 30;
-        }
-    }
+    next.plans = dmsg_protocol::billing::default_plans(next.version);
     let effective = next.effective_at_ms;
     let scheduled: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (next,));
     scheduled.unwrap();
@@ -160,7 +155,7 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
     assert!(refreshed.allowed_units > old.allowed_units);
     let month = month_utc(time(&f.ic)).unwrap();
     let (start, end) = month_bounds(month).unwrap();
-    let expected = (3 * u128::from(effective - start) + 30 * u128::from(end - effective))
+    let expected = (3 * u128::from(effective - start) + 10 * u128::from(end - effective))
         / u128::from(end - start);
     assert_eq!(refreshed.allowed_units, expected as u64);
     let again: Result<ExecutionUsage> = update(

@@ -24,9 +24,9 @@ struct MembershipCatalogue: Decodable {
 
     #if DEBUG
     static let fixture = MembershipCatalogue(plans: zip(MembershipTier.allCases, [
-        Plan.Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5, activeDevices: 2, agentIds: 1, backupMaxFileBytes: 104857600, fileRequestLinks: 0, teamWallets: 0),
-        Plan.Limits(storageBytes: 1073741824, activeChannels: 20, monthlyExecutionUnits: 20, activeDevices: 3, agentIds: 3, backupMaxFileBytes: 104857600, fileRequestLinks: 10, teamWallets: 1),
-        Plan.Limits(storageBytes: 10737418240, activeChannels: 100, monthlyExecutionUnits: 100, activeDevices: 5, agentIds: 5, backupMaxFileBytes: 104857600, fileRequestLinks: 50, teamWallets: 3),
+        Plan.Limits(storageBytes: 268_435_456, activeChannels: 10, monthlyExecutionUnits: 10, activeDevices: 2, agentIds: 1, backupMaxFileBytes: 104857600, fileRequestLinks: 0, teamWallets: 0),
+        Plan.Limits(storageBytes: 1073741824, activeChannels: 100, monthlyExecutionUnits: 100, activeDevices: 3, agentIds: 3, backupMaxFileBytes: 104857600, fileRequestLinks: 10, teamWallets: 1),
+        Plan.Limits(storageBytes: 10737418240, activeChannels: 1000, monthlyExecutionUnits: 1000, activeDevices: 5, agentIds: 5, backupMaxFileBytes: 104857600, fileRequestLinks: 50, teamWallets: 3),
         Plan.Limits(storageBytes: 107374182400, activeChannels: 10000, monthlyExecutionUnits: 10000, activeDevices: 10, agentIds: 10, backupMaxFileBytes: 1048576000, fileRequestLinks: 200, teamWallets: 10)
     ]).map { Plan(planId: $0.0.rawValue, limits: $0.1) })
     #endif

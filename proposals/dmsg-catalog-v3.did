@@ -1,0 +1,59 @@
+// Based on mainnet catalog v2, queried on 2026-11-28.
+// Effective 2026-12-06 16:00 UTC. The updated terms digest requires seven days of notice.
+(record {
+  schema = 1 : nat16;
+  version = 3 : nat64;
+  effective_at_ms = 1_796_572_800_000 : nat64;
+  terms_digest = blob "\53\fc\11\8e\60\7c\f7\50\fb\b2\71\b4\3d\6c\14\70\1c\45\62\8b\ec\54\13\b3\4c\ee\49\66\be\1a\44\8a";
+  storage_products = vec {};
+  plans = vec {
+    record {
+      plan_id = variant { Free };
+      catalog_version = 3 : nat64;
+      terms_version = 1 : nat64;
+      price_cents = 0 : nat64;
+      limits = record {
+        storage_bytes = 268_435_456 : nat64;
+        active_channels = 10 : nat64;
+        monthly_execution_units = 10 : nat64;
+      };
+      weights = record { version = 1 : nat64; ed25519 = 1 : nat64 };
+    };
+    record {
+      plan_id = variant { Plus };
+      catalog_version = 3 : nat64;
+      terms_version = 1 : nat64;
+      price_cents = 1_000 : nat64;
+      limits = record {
+        storage_bytes = 1_073_741_824 : nat64;
+        active_channels = 100 : nat64;
+        monthly_execution_units = 100 : nat64;
+      };
+      weights = record { version = 1 : nat64; ed25519 = 1 : nat64 };
+    };
+    record {
+      plan_id = variant { Pro };
+      catalog_version = 3 : nat64;
+      terms_version = 1 : nat64;
+      price_cents = 5_000 : nat64;
+      limits = record {
+        storage_bytes = 10_737_418_240 : nat64;
+        active_channels = 1000 : nat64;
+        monthly_execution_units = 1000 : nat64;
+      };
+      weights = record { version = 1 : nat64; ed25519 = 1 : nat64 };
+    };
+    record {
+      plan_id = variant { Max };
+      catalog_version = 3 : nat64;
+      terms_version = 1 : nat64;
+      price_cents = 20_000 : nat64;
+      limits = record {
+        storage_bytes = 107_374_182_400 : nat64;
+        active_channels = 10_000 : nat64;
+        monthly_execution_units = 10_000 : nat64;
+      };
+      weights = record { version = 1 : nat64; ed25519 = 1 : nat64 };
+    };
+  };
+})

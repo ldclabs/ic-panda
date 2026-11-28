@@ -17,8 +17,22 @@ use dmsg_types::integration_billing::{
 use dmsg_types::integration_membership::{PandaApplicationTerms, PandaClaimRequest};
 use dmsg_types::{
     AccountId, Environment, Hash, MINUTE,
-    billing::{Catalog, CommerceInit, CommerceLimits},
+    billing::{Catalog, CommerceInit, CommerceLimits, PlanVersion},
 };
+
+/// Original resource limits for tests that start an account on catalog v1.
+pub fn v1_plans() -> Vec<PlanVersion> {
+    let mut plans = default_plans(1);
+    plans[0].limits.storage_bytes = 100 * 1024 * 1024;
+    for (p, (channels, units)) in plans
+        .iter_mut()
+        .zip([(2, 3), (10, 10), (50, 50), (200, 200)])
+    {
+        p.limits.active_channels = channels;
+        p.limits.monthly_execution_units = units;
+    }
+    plans
+}
 
 /// Generous admission limits for fixtures.
 pub fn limits() -> CommerceLimits {

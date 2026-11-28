@@ -35,22 +35,23 @@ struct SubscriptionView: View {
         static var fixture: Self {
             let args = ProcessInfo.processInfo.arguments
             let max = args.contains("--ui-max-subscription"), plus = args.contains("--ui-plus-subscription")
+            let freeLimits = Limits(storageBytes: 268_435_456, activeChannels: 10, monthlyExecutionUnits: 10)
             if args.contains("--ui-promo-subscription") {
-                return Plan(plan: "Plus", source: "Active", limits: Limits(storageBytes: 1_073_741_824, activeChannels: 10, monthlyExecutionUnits: 10), current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(30 * 86400).timeIntervalSince1970 * 1000), method: "Promo", storeEnvironment: nil))
+                return Plan(plan: "Plus", source: "Active", limits: Limits(storageBytes: 1_073_741_824, activeChannels: 100, monthlyExecutionUnits: 100), current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(30 * 86400).timeIntervalSince1970 * 1000), method: "Promo", storeEnvironment: nil))
             }
             if args.contains("--ui-stale-subscription") {
-                return Plan(plan: "Free", source: "Unverifiable", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5),
+                return Plan(plan: "Free", source: "Unverifiable", limits: freeLimits,
                     current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
             }
             if args.contains("--ui-expired-subscription") {
-                return Plan(plan: "Free", source: "Expired", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
+                return Plan(plan: "Free", source: "Expired", limits: freeLimits, current: nil)
             }
             if max || plus || args.contains("--ui-sandbox-subscription") || args.contains("--ui-scheduled-subscription") {
                 return Plan(plan: max ? "Max" : plus ? "Plus" : "Pro", source: "Active",
-                    limits: Limits(storageBytes: max ? 107374182400 : plus ? 1073741824 : 10737418240, activeChannels: max ? 10000 : plus ? 20 : 100, monthlyExecutionUnits: max ? 10000 : plus ? 20 : 100),
+                    limits: Limits(storageBytes: max ? 107374182400 : plus ? 1073741824 : 10737418240, activeChannels: max ? 10000 : plus ? 100 : 1000, monthlyExecutionUnits: max ? 10000 : plus ? 100 : 1000),
                     current: Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
             }
-            return Plan(plan: "Free", source: "Free", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
+            return Plan(plan: "Free", source: "Free", limits: freeLimits, current: nil)
         }
         #endif
     }
@@ -428,7 +429,7 @@ struct SubscriptionView: View {
             plan = Plan.fixture
             catalogueFailed = ProcessInfo.processInfo.arguments.contains("--ui-catalogue-unavailable")
             catalogue = catalogueFailed ? nil : .fixture
-            usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
+            usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 10, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 10) - 1), cloudError: nil, executionError: nil)
             if ProcessInfo.processInfo.arguments.contains("--ui-stale-subscription") {
                 usage = Usage(cloud: usage?.cloud, execution: nil, cloudError: nil, executionError: "MEMBERSHIP_STALE")
             }

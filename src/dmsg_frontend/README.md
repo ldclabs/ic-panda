@@ -32,6 +32,12 @@ copies only an explicit allowlist of public repository documents into `/_/docs/`
 links to other snapshotted documents resolve locally and other relative links
 resolve against the public repository. No private repository is a build input.
 
+Publish the updated membership figures after production catalog v3 takes effect.
+Free storage is 256 MiB. Active channels and monthly execution units are each
+10 for Free, 100 for Plus, 1,000 for Pro and 10,000 for Max. The [catalog v3 proposal](../../proposals/dmsg-catalog-v3.did)
+schedules the increase for 2026-12-06 at 16:00 UTC through SNS function 3033.
+The updated terms digest requires governance execution at least seven days before that time.
+
 The manifest records the base Git revision, whether knowledge inputs have local
 changes, generation time, original-source hashes and published Markdown hashes.
 These are provenance, not proof of production deployment or a fresh review of an

@@ -43,6 +43,7 @@ ic_message_types = { path = "../../src/ic_message_types" }
 dmsg_protocol = { path = "../../src/dmsg_protocol", features = ["cose-pins"] }
 dmsg_runtime = { path = "../../src/dmsg_runtime" }
 dmsg_types = { path = "../../src/dmsg_types" }
+dmsg_test_support = { path = "../dmsg_test_support" }
 pocket-ic.workspace = true
 candid.workspace = true
 cbor2.workspace = true

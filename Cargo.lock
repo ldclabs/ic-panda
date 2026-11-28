@@ -2695,6 +2695,7 @@ dependencies = [
  "dmsg_mobile",
  "dmsg_protocol",
  "dmsg_runtime",
+ "dmsg_test_support",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "flate2",

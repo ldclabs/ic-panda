@@ -4,9 +4,10 @@
   import { reveal } from './motion'
   import membership from './membership.json'
 
-  // Public marketing snapshot, checked 2026-10-28: effective commerce catalog
-  // v2 (uwist-sqaaa-aaaaj-qsjyq-cai), wallet hub get_hub_config
-  // (ghcje-dyaaa-aaaas-qg7va-cai), and dmsg_types::billing::PlanId::device_limit.
+  // Storage, channels and monthly signatures follow catalog v3. Prices were checked
+  // on 2026-11-28 using commerce
+  // catalog v2 (uwist-sqaaa-aaaaj-qsjyq-cai) and wallet hub get_hub_config
+  // (ghcje-dyaaa-aaaas-qg7va-cai). Device limits follow PlanId::device_limit.
   // Backup file limits follow the public cloud contract (2026-11-02).
   // Hosted Agent ID seats follow the per-account policy (2026-11-22).
   // Recheck both services when updating their figures; Rust's default catalog
