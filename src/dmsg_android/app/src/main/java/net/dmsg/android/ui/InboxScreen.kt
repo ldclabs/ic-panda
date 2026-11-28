@@ -44,7 +44,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     val incoming by client.letters.incoming.state.collectAsStateWithLifecycle()
     val unreadConversations = remember(channelListing) { unreadConversationCount(channelListing.valueOrNull().orEmpty()) }
     val unreadLetters = remember(incoming, blocked, state.session?.account) {
-        unreadLetterCount(incoming.valueOrNull().orEmpty(), state.session?.account, blocked.valueOrNull().orEmpty())
+        unreadLetterCount(incoming.valueOrNull().orEmpty(), state.session?.account, blocked.valueOrNull())
     }
     val history by client.letters.history.state.collectAsStateWithLifecycle()
     val saved by client.letters.saved.state.collectAsStateWithLifecycle()
@@ -82,17 +82,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
     val outgoing = history.valueOrNull()?.find { it.id == sent }
     val owner = remember(state.epoch) { client.currentStamp() }
     val location by rememberUpdatedState(LetterLocation(folder.name, search, editing.takeUnless { draftRoute }))
-    val active = LocalPageActive.current
-    var autoMarked by remember(selected, state.epoch) { mutableStateOf(false) }
-    LaunchedEffect(letter?.id, letter?.state, letter?.read, active, state.unlocked, state.concealed) {
-        val target = letter
-        if (active && state.unlocked && !state.concealed && !autoMarked &&
-            target != null && target.state == "visible" && !target.read &&
-            target.sender != state.session?.account) {
-            autoMarked = true
-            client.letters.mark(target, read = true, quiet = true, onError = { autoMarked = false })
-        }
-    }
+    var handledOpen by remember(selected, state.epoch) { mutableStateOf(false) }
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
     Column(Modifier.fillMaxSize()) {
@@ -211,7 +201,12 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                 SelectionContainer {
                     Text(
                         letter?.text ?: outgoing?.text ?: str(R.string.text_message_body_unavailable_6b03555),
-                        modifier = if (letter != null) Modifier.reminderVisible(client, NoticeTarget("inbox", letter.id), revision = letter) else Modifier,
+                        modifier = if (letter?.state == "visible") Modifier.reminderVisible(client, NoticeTarget("inbox", letter.id), revision = letter) {
+                            if (!handledOpen && state.unlocked && !state.concealed) {
+                                handledOpen = true
+                                if (!letter.read && letter.sender != state.session?.account) client.letters.mark(letter, read = true, quiet = true)
+                            }
+                        } else Modifier,
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
@@ -246,7 +241,7 @@ private enum class LetterFolder(val label: Int, val icon: ImageVector) {
                     ListRow(
                         headline = if (letter.read) str(R.string.text_mark_unread_b10bd76) else str(R.string.text_mark_read_20bb0ec),
                         icon = if (letter.read) Icons.Outlined.MarkEmailUnread else Icons.Outlined.MarkEmailRead,
-                    ) { client.letters.mark(letter, read = !letter.read) }
+                    ) { handledOpen = true; client.letters.mark(letter, read = !letter.read) }
                     ListRow(str(R.string.text_allow_another_letter_fee59fb), icon = Icons.AutoMirrored.Outlined.ForwardToInbox) { reopen = true }
                     ListRow(str(R.string.text_invite_to_a_conversation_e66d6f9), icon = Icons.Outlined.PersonAdd) {
                         client.navigation.push(Route("invite-letter-sender", id = letter.sender))

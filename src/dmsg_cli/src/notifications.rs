@@ -138,17 +138,24 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
         // Letters are verified here so an unlocked account's reminder can wait
         // for them. A foreground refresh holds the same turn and commits the
         // same cursor, so this pass leaves it to that refresh.
-        if !h.with(|c| Ok(c.offline_mode())).await.unwrap_or(false)
-            && let Some(_read) = d.try_turn("inbox/read")
-        {
-            let result = dmsg_client::inbox::sync(&h, 2).await;
-            d.note_result("notifications/inbox", &result);
-            if let Ok(report) = &result {
-                if !report.changed.is_empty() {
-                    d.notifications.wake.notify_one();
-                }
-                if report.more {
-                    d.notifications.inbox.notify_one();
+        if !h.with(|c| Ok(c.offline_mode())).await.unwrap_or(true) {
+            let previous = h.with(|c| c.blocked_accounts()).await;
+            let blocks = dmsg_client::safety::sync_blocks(&h).await;
+            d.note_result("notifications/blocks", &blocks);
+            if matches!((previous, blocks), (Ok(before), Ok(after)) if before != after) {
+                d.emit("inbox/changed", Value::Null);
+                d.emit("channel/changed", Value::Null);
+            }
+            if let Some(_read) = d.try_turn("inbox/read") {
+                let result = dmsg_client::inbox::sync(&h, 2).await;
+                d.note_result("notifications/inbox", &result);
+                if let Ok(report) = &result {
+                    if !report.changed.is_empty() {
+                        d.emit("inbox/changed", Value::Null);
+                    }
+                    if report.more {
+                        d.notifications.inbox.notify_one();
+                    }
                 }
             }
         }

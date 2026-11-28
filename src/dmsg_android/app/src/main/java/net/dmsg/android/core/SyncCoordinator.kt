@@ -45,7 +45,14 @@ class SyncCoordinator(private val client: ClientController, private val scope: C
             try {
                 withContext(Dispatchers.IO) {
                     client.operation { operation -> hintsCore.listenHints(object : HintObserver {
-                        override fun connected(connected: Boolean) { scope.launch { if (client.accepts(stamp)) connection.value = connected } }
+                        override fun connected(connected: Boolean) { scope.launch {
+                            if (!client.accepts(stamp)) return@launch
+                            connection.value = connected
+                            if (connected) {
+                                client.safety.syncBlocks()
+                                client.letters.refresh()
+                            }
+                        } }
                         override fun hint(kind: String, resource: String?, news: Boolean) {
                             scope.launch {
                                 if (!client.accepts(stamp)) return@launch

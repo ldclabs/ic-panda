@@ -61,8 +61,7 @@
   let writing = $state(false)
   let replyTo = $state('')
   let ruling = $state(false)
-  let pageVisible = $state(typeof document === 'undefined' || document.visibilityState === 'visible')
-  let autoMarked = new Set<string>()
+  let handledOrder: string | undefined
 
   const unlocked = $derived(status?.state === 'unlocked')
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
@@ -88,11 +87,13 @@
   const boxError = $derived(box === 'sent' ? outgoingError : error)
   const onlyList = $derived(list.length === 0 && !missingNotice)
   const letter = $derived(box === 'sent' ? null : list.find((l) => l.order_id === selected) ?? null)
+  const openOrder = $derived(letter?.order_id)
   const order = $derived(box === 'sent' ? (outgoing.find((o) => o.order_id === selected) ?? null) : null)
   const wanted = $derived(new URLSearchParams(route.split('?')[1] ?? '').get('open'))
   const reportNotice = noticeVisibility(() => letter?.state === 'visible' && unlocked && loaded
     ? { account: status.account, session: status.session, target: { kind: 'inbox', id: letter.order_id } } : null,
-    '[data-testid="letter"] > header')
+    '[data-testid="letter"] > header', markOnOpen)
+  $effect(() => { void openOrder; handledOrder = undefined })
   $effect(() => { void selected; void letters; void loaded; void status?.session; reportNotice() })
 
   const modeLabel: Record<string, Label> = { closed: 'closed', contacts: 'contactsOnly', free: 'free', paid: 'paidOnly' }
@@ -150,7 +151,7 @@
     if (!valid(at) || document.visibilityState !== 'visible' || daemonBlocked()) return
     refreshing = true
     try {
-      const next = await call('inbox/list')
+      const next = await call('inbox/list', { exclude_blocked: true })
       if (!valid(at)) return
       letters = next
       loaded = true
@@ -159,7 +160,7 @@
       if (!valid(at)) return
       error = closed(e, status) ? 'LOCKED' : code(e) === 'RECOVERY_INCOMPLETE' ? 'RECOVERY_INCOMPLETE' : errorText(e)
       if (error === 'LOCKED') letters = outgoing = []
-      else { const cached = await call('inbox/list', { refresh: false }).catch(() => null); if (valid(at) && cached) letters = cached }
+      else { const cached = await call('inbox/list', { refresh: false, exclude_blocked: true }).catch(() => null); if (valid(at) && cached) letters = cached }
     } finally {
       if (valid(at)) refreshing = false
     }
@@ -181,7 +182,7 @@
     if (!valid(at)) return
     void loadOutgoing()
     try {
-      const cached = await call('inbox/list', { refresh: false })
+      const cached = await call('inbox/list', { refresh: false, exclude_blocked: true })
       if (!valid(at)) return
       letters = cached
       const observation = await call<{complete: boolean}>('inbox/status')
@@ -197,7 +198,7 @@
     void sessionKey
     untrack(() => {
       generation += 1
-      autoMarked = new Set()
+      handledOrder = undefined
       letters = outgoing = []
       orders = escrows = orderFailed = {}
       policy = null
@@ -259,16 +260,14 @@
     if (target) untrack(() => void check(target))
   })
 
-  // Opening a visible unread letter marks it read once, keeping notifications and unread counts aligned.
-  $effect(() => {
+  function markOnOpen() {
     const target = letter
-    if (!unlocked || !loaded || !pageVisible || !target || target.state !== 'visible' || target.read || target.sender === status?.account || autoMarked.has(target.order_id)) return
-    autoMarked.add(target.order_id)
-    const at = generation
-    void call('inbox/mark', { order: target.order_id, read: true, archived: target.archived }).catch(() => {
-      if (at === generation) autoMarked.delete(target.order_id)
-    })
-  })
+    if (!target || handledOrder === target.order_id) return
+    handledOrder = target.order_id
+    if (target.read || target.sender === status?.account) return
+    void call('inbox/mark', { order: target.order_id, read: true, archived: target.archived, reopen_contact: false })
+      .catch(() => { /* The manual read action remains available. */ })
+  }
 
   /** The daemon's `inbox/changed` reloads the letters. */
   const mark = (target: any, read: boolean, archived: boolean) => attempt(() => call('inbox/mark', { order: target.order_id, read, archived }))
@@ -303,8 +302,6 @@
     })
 
   onMount(() => {
-    const onVisibility = () => { pageVisible = document.visibilityState === 'visible' }
-    document.addEventListener('visibilitychange', onVisibility)
     const stopContent = watchContent('inbox', () => unlocked ? 'inbox' : null, () => refreshLetters())
     const stop = watchDisplays(['inbox-policy'], (mode) => loadPolicy(mode))
     const off = window.dmsg.onEvent((event) => {
@@ -313,7 +310,7 @@
       const detail = event.data as { method?: string; hint?: boolean } | null
       if (event.type === 'resync' || (event.type === 'inbox/changed' && (detail?.method === 'inbox/configure' || detail?.hint))) void loadPolicy()
     })
-    return () => { alive = false; generation += 1; document.removeEventListener('visibilitychange', onVisibility); off(); stop(); stopContent() }
+    return () => { alive = false; generation += 1; off(); stop(); stopContent() }
   })
 
   const tabClass =

@@ -40,6 +40,7 @@ use dmsg_types::{
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
+use std::collections::BTreeSet;
 use zeroize::Zeroizing;
 
 /// Content kind of an inbox key.
@@ -49,6 +50,7 @@ pub const MAX_LETTER: usize = 6000;
 const JOURNAL: &str = "inbox-job:";
 const LETTER: &str = "inbox-letter:";
 const CURSOR: &str = "inbox-cursor";
+const UNREAD: &str = "inbox-unread";
 
 const POLICY: &str = "dmsg/inbox/policy/v1";
 const CONTACT: &str = "dmsg/inbox/contact/v1";
@@ -227,6 +229,16 @@ pub struct Letter {
     pub signed: Option<String>,
     /// Why an order was aborted.
     pub abort_reason: Option<String>,
+}
+
+impl Letter {
+    fn is_unread(&self, account: &str, blocked: &BTreeSet<String>) -> bool {
+        self.state == "visible"
+            && !self.read
+            && !self.archived
+            && self.sender != account
+            && !blocked.contains(&self.sender)
+    }
 }
 
 /// Most pages of letters [`list`] reads before it gives up.
@@ -874,24 +886,20 @@ impl Client {
                 }
             };
             if cached.as_ref() != Some(&letter) {
-                changed.push((letter.clone(), cursor));
+                changed.push(letter);
             }
             after = cursor;
         }
         // Only what changed is written, in one go.
-        let keys = self.keys()?;
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
+        let blocked = self.blocked_account_set()?;
         self.workspace.store.atomic(|_| {
             let baseline = !self
                 .workspace
                 .store
                 .meta::<bool>("notification:inbox_initialized")?
                 .unwrap_or(false);
-            for (letter, _cursor) in &changed {
-                let name = format!("{LETTER}{}", letter.order_id);
-                self.workspace.put_private(keys, &name, letter)?;
-                self.project_inbox_notification_with_blocked(letter, now, baseline, &blocked)?;
+            for letter in &changed {
+                self.save_letter(letter, now, baseline, &blocked)?;
             }
             self.workspace.store.set_meta(CURSOR, &next)
         })?;
@@ -901,33 +909,43 @@ impl Client {
         Ok(Some(next))
     }
 
-    pub(crate) fn project_inbox_notification(
+    // Called inside the transaction that commits a verified page or a mark acknowledgement.
+    fn save_letter(
         &self,
         letter: &Letter,
-        _cursor: u64,
         now: u64,
         baseline: bool,
+        blocked: &BTreeSet<String>,
     ) -> Result<()> {
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
-        self.project_inbox_notification_with_blocked(letter, now, baseline, &blocked)
+        self.workspace.put_private(
+            self.keys()?,
+            &format!("{LETTER}{}", letter.order_id),
+            letter,
+        )?;
+        self.project_inbox_notification(letter, now, baseline, blocked)?;
+        self.workspace.store.delete_meta(UNREAD)
     }
 
-    pub(crate) fn reconcile_inbox_notifications(&self, now: u64) -> Result<()> {
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
+    pub(crate) fn reconcile_inbox_notifications(
+        &self,
+        now: u64,
+        blocked: &BTreeSet<String>,
+    ) -> Result<()> {
+        let account = self.me()?;
+        let mut unread = 0u64;
         for letter in self.inbox_cached()? {
-            self.project_inbox_notification_with_blocked(&letter, now, true, &blocked)?;
+            unread += u64::from(letter.is_unread(&account, blocked));
+            self.project_inbox_notification(&letter, now, true, blocked)?;
         }
-        Ok(())
+        self.workspace.store.set_meta(UNREAD, &unread)
     }
 
-    fn project_inbox_notification_with_blocked(
+    fn project_inbox_notification(
         &self,
         letter: &Letter,
         now: u64,
         baseline: bool,
-        blocked: &std::collections::BTreeSet<String>,
+        blocked: &BTreeSet<String>,
     ) -> Result<()> {
         use crate::notifications::{self, Item, Target};
         let account = self.account()?.id.to_string();
@@ -946,11 +964,7 @@ impl Client {
         }
         let mut item = Item::new(account.clone(), target, 1, now);
         item.group = notifications::item_id(&account, &Target::Inbox(None));
-        item.open = letter.state == "visible"
-            && !letter.read
-            && !letter.archived
-            && letter.sender != account
-            && !blocked.contains(&letter.sender);
+        item.open = letter.is_unread(&account, blocked);
         item.unread = Some(u64::from(item.open));
         item.quiet = baseline && old.is_none();
         notifications::upsert(&self.workspace.store, item)?;
@@ -962,20 +976,19 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn inbox_unread(&self) -> Result<u64> {
-        let account = self.account()?.id.to_string();
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
-        Ok(self
+        self.keys()?;
+        if let Some(unread) = self.workspace.store.meta(UNREAD)? {
+            return Ok(unread);
+        }
+        let account = self.me()?;
+        let blocked = self.blocked_account_set()?;
+        let unread = self
             .inbox_cached()?
             .iter()
-            .filter(|letter| {
-                letter.state == "visible"
-                    && !letter.read
-                    && !letter.archived
-                    && letter.sender != account
-                    && !blocked.contains(&letter.sender)
-            })
-            .count() as u64)
+            .filter(|l| l.is_unread(&account, &blocked))
+            .count() as u64;
+        self.workspace.store.set_meta(UNREAD, &unread)?;
+        Ok(unread)
     }
 
     /// Previously verified letters on this device, available offline.
@@ -1054,9 +1067,15 @@ pub async fn policy<H: Hold>(h: &H) -> Result<Option<Json>> {
 /// page is retried on the next refresh without skipping any of its letters.
 pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
     let h = operations::Unlocked::new(h).await?;
-    let report = sync(&h, INBOX_PAGES).await?;
-    ensure(!report.more, Error::QuotaExceeded)?;
+    sync_all(&h).await?;
     h.with(|c| c.inbox_cached()).await
+}
+
+/// Finish an inbox refresh and report committed changes without reopening every letter.
+pub async fn sync_all<H: Hold>(h: &H) -> Result<SyncReport> {
+    let report = sync(h, INBOX_PAGES).await?;
+    ensure(!report.more, Error::QuotaExceeded)?;
+    Ok(report)
 }
 
 /// One bounded background pass; each page retains the existing atomic verifier.

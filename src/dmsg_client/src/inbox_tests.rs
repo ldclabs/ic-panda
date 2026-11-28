@@ -457,7 +457,6 @@ fn inbox_unread_and_notifications_exclude_self_non_visible_and_blocked_senders()
     let me = c.account().unwrap().id.to_string();
     let peer = AccountId([5; 12]).to_string();
     let blocked = AccountId([6; 12]).to_string();
-    let keys = c.keys().unwrap();
     let put = |id: &str, sender: &str, state: &str, read: bool, archived: bool| {
         let letter = Letter {
             order_id: id.into(),
@@ -470,10 +469,7 @@ fn inbox_unread_and_notifications_exclude_self_non_visible_and_blocked_senders()
             signed: None,
             abort_reason: None,
         };
-        c.workspace
-            .put_private(keys, &format!("{LETTER}{id}"), &letter)
-            .unwrap();
-        c.project_inbox_notification(&letter, 1, 100, false)
+        c.save_letter(&letter, 100, false, &c.blocked_account_set().unwrap())
             .unwrap();
     };
     put("peer-unread", &peer, "visible", false, false);

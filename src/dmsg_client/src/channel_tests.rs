@@ -2276,8 +2276,20 @@ fn channels_unread_and_projection_align_for_hidden_inactive_and_recent_tail() {
     let _archived = make_channel(0x20, Status::Archived, false, Some((1, 4)), 3);
     let _left = make_channel(0x30, Status::Active, true, Some((1, 4)), 4);
     let hidden_by_pref = make_channel(0x40, Status::Active, false, Some((1, 4)), 5);
+    let rotating = make_channel(0x50, Status::RotationRequired, false, Some((1, 4)), 1);
 
-    assert_eq!(client.channels_unread().unwrap(), 7);
+    assert_eq!(client.channels_unread().unwrap(), 8);
+    let rotating_id =
+        crate::notifications::item_id(&me, &crate::notifications::Target::Channel(rotating));
+    assert!(
+        !client
+            .workspace
+            .store
+            .notification_item(&rotating_id)
+            .unwrap()
+            .unwrap()
+            .muted
+    );
     let projected = client
         .workspace
         .store
@@ -2294,7 +2306,7 @@ fn channels_unread_and_projection_align_for_hidden_inactive_and_recent_tail() {
         .edit_notification_hidden(&hidden_by_pref, true)
         .unwrap();
     assert!(client.channel_view(&hidden_by_pref).unwrap().hidden);
-    assert_eq!(client.channels_unread().unwrap(), 2);
+    assert_eq!(client.channels_unread().unwrap(), 3);
 }
 
 #[test]
@@ -2394,4 +2406,56 @@ fn blocking_an_account_recomputes_channel_unread_and_notifications() {
             .unwrap()
             .open
     );
+
+    // A blocked sender can keep posting after the last eligible notification.
+    // Keep the eligible message beyond the first thousand rows on every recount.
+    let keys = client.keys().unwrap();
+    client
+        .workspace
+        .store
+        .atomic(|_| {
+            for seq in 2..=1002 {
+                let row = Message {
+                    seq,
+                    account: if seq == 1002 {
+                        me.clone()
+                    } else {
+                        peer.clone()
+                    },
+                    ..message.clone()
+                };
+                client
+                    .workspace
+                    .put_private(keys, &format!("{INBOX}{channel}:{seq:020}"), &row)?;
+            }
+            Ok(())
+        })
+        .unwrap();
+    let mut local = client.local(&channel).unwrap();
+    local.message = 1002;
+    client.save_local(&channel, &local).unwrap();
+    client.set_blocked_account(&peer, true).unwrap();
+    assert_eq!(client.channels_unread().unwrap(), 0);
+    client.set_blocked_account(&peer, false).unwrap();
+    assert_eq!(client.channels_unread().unwrap(), 1001);
+    assert_eq!(
+        client
+            .workspace
+            .store
+            .notification_item(&item_id)
+            .unwrap()
+            .unwrap()
+            .version,
+        1001
+    );
+    assert_eq!(client.channel_mark(&channel, 1).unwrap().unread, 1000);
+
+    // Upgrade a persisted count while the same block list is already effective.
+    client.set_blocked_account(&peer, true).unwrap();
+    let key = format!("{LOCAL}{channel}");
+    let mut old: serde_json::Value = serde_json::to_value(client.local(&channel).unwrap()).unwrap();
+    old.as_object_mut().unwrap().remove("recount_unread");
+    old["unread"] = 1000.into();
+    client.workspace.put_private(keys, &key, &old).unwrap();
+    assert_eq!(client.channel_view(&channel).unwrap().unread, 0);
 }

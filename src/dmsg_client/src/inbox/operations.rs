@@ -153,10 +153,9 @@ pub async fn mark_contact<H: Hold>(
             letter.read = read;
             letter.archived = archived;
             let now = now_ms();
-            c.workspace.store.atomic(|_| {
-                c.workspace.put_private(c.keys()?, &name, &letter)?;
-                c.project_inbox_notification(&letter, letter.created_at.max(1), now, false)
-            })?;
+            c.workspace
+                .store
+                .atomic(|_| c.save_letter(&letter, now, false, &c.blocked_account_set()?))?;
         }
         Ok(())
     })

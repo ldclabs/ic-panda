@@ -1950,7 +1950,7 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'letters') {
-    await lettersFlow({ app, main, shots, methods, calls, peer })
+    await lettersFlow({ app, main, shots, methods, calls, peer, emit, waitFor, formMatrix })
     assert.deepEqual(pageErrors, [])
     break smoke
   }

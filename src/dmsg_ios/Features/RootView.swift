@@ -253,8 +253,7 @@ struct ReminderButton: View {
         Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
             Label(NoticeCopy.text("noticeTitle"), systemImage: "clock")
                 .overlay(alignment: .topTrailing) {
-                    let counts = model.notifications.status?.counts
-                    if (counts?.actionable ?? 0) > 0 || (counts?.unread ?? 0) > 0 || counts?.unverified == true {
+                    if model.notifications.status?.hasReminders(for: model.session?.account) == true {
                         Circle().fill(.orange).frame(width: 7, height: 7)
                     }
                 }
@@ -376,7 +375,7 @@ struct AccessView: View {
                     if needsSetup {
                         Button("Switch account") { model.signingIntoAnotherAccount = true }
                             .disabled(model.busy).accessibilityIdentifier("login.switch-account")
-                    } else if model.session?.account != nil, (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
+                    } else if model.notifications.status?.hasReminders(for: model.session?.account) == true {
                         ReminderButton()
                     }
                 }

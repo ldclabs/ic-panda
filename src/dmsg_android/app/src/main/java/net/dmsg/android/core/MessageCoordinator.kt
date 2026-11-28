@@ -330,7 +330,12 @@ class MessageCoordinator(private val client: ClientController, private val scope
         if (channel != null && channel == selected) {
             refresh(channel)
         } else if (channel != null && channel != "*") {
-            client.perform({ core -> client.operation { core.readChannelControls(channel, it) } }, key = "message:hint:$channel", replace = true, quiet = true) {
+            client.perform({ core ->
+                client.operation { core.readChannelControls(channel, it) }
+                if (core.channels().items.any { it.id == channel && it.news && !it.muted && it.status != "left" && it.status != "archived" }) {
+                    client.operation { core.readChannelTail(channel, it) }
+                }
+            }, key = "message:hint:$channel", replace = true, quiet = true) {
                 invalidateDirectory(); browse(); client.notifications.status(); client.notices.refresh(receive = true)
             }
         } else {

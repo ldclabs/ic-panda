@@ -1,11 +1,54 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 
-export async function lettersFlow({ app, main, shots, methods, calls, peer }) {
+export async function lettersFlow({ app, main, shots, methods, calls, peer, emit, waitFor, formMatrix }) {
   await main.evaluate(() => { location.hash = '/inbox' })
   await main.getByTestId('letter-compose').waitFor()
   const native = await app.browserWindow(main)
   await native.evaluate(window => window.setContentSize(760, 540))
+  const list = methods['inbox/list']
+  const mark = methods['inbox/mark']
+  const status = methods['daemon/status']
+  let inboxUnread = 1
+  const archived = { ...list()[0], order_id: 'ab'.repeat(32), archived: true, read: true, text: 'Archived letter' }
+  const marks = () => calls.filter(c => c.method === 'inbox/mark' && c.params.order === archived.order_id)
+  methods['inbox/list'] = () => [...list(), archived]
+  methods['daemon/status'] = () => ({ ...status(), inbox_unread: inboxUnread })
+  methods['inbox/mark'] = p => {
+    if (p.order === archived.order_id) archived.read = p.read
+    return mark(p)
+  }
+  try {
+    emit('inbox/changed')
+    await main.getByTestId('inbox-unread').getByText('1', { exact: true }).waitFor()
+    await main.getByRole('tab', { name: 'Archived' }).click()
+    await main.getByTestId('letter').getByText(archived.text).waitFor()
+    await main.getByTestId('letter-compose').click()
+    archived.read = false
+    emit('inbox/changed')
+    await main.getByTestId('letter-read').waitFor({ state: 'attached' })
+    assert.equal(marks().length, 0)
+    await main.keyboard.press('Escape')
+    await main.getByTestId('letter-dialog').waitFor({ state: 'detached' })
+    await main.getByTestId('inbox-received').click()
+    await main.getByRole('tab', { name: 'Archived' }).focus()
+    await main.keyboard.press('Enter')
+    await waitFor(() => marks().length === 1)
+    assert.deepEqual(marks()[0].params, { order: archived.order_id, read: true, archived: true, reopen_contact: false })
+    emit('inbox/changed')
+    await main.getByTestId('letter-read').waitFor({ state: 'detached' })
+    assert.equal(marks().length, 1)
+    await formMatrix(app, main, shots, 'archived-letter', '[data-testid="letter"]')
+    inboxUnread = 0
+    emit('inbox/changed')
+    await main.getByTestId('inbox-unread').waitFor({ state: 'detached' })
+    await native.evaluate(window => window.setContentSize(760, 540))
+    await main.getByTestId('inbox-received').click()
+  } finally {
+    methods['inbox/list'] = list
+    methods['inbox/mark'] = mark
+    methods['daemon/status'] = status
+  }
   const original = methods['inbox/send']
   const resolve = methods['handle/resolve']
   let resolved = peer

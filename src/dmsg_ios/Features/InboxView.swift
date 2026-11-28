@@ -49,7 +49,7 @@ struct InboxDetail: View {
     @State private var inviting = false
     @State private var reopening = false
     @State private var blocking = false
-    @State private var autoMarked = false
+    @State private var handledOpen = false
 
     init(letter: InboxLetter, changed: @escaping () async -> Void) {
         source = letter
@@ -69,7 +69,13 @@ struct InboxDetail: View {
                     NoticeBar(text: String(localized: "Not delivered"))
                     if let reason = letter.abortReason { DisclosureGroup("Details") { Text(reason).font(.footnote).foregroundStyle(.secondary) } }
                 } else {
-                    Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1)
+                    Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1, ready: letter.state == "visible" && !model.blockedAccounts.contains(letter.sender)) {
+                        guard !handledOpen, !working else { return }
+                        handledOpen = true
+                        if !letter.read && letter.sender != model.session?.account {
+                            await mark(read: true, archived: letter.archived, quiet: true)
+                        }
+                    }
                     ForEach(feedbackScreenshotURLs(letter.text), id: \.absoluteString) { url in
                         Link(destination: url) { Label("Screenshots", systemImage: "photo") }
                     }
@@ -86,6 +92,7 @@ struct InboxDetail: View {
                             Task { await mark(read: letter.read, archived: !letter.archived) }
                         }.accessibilityIdentifier("inbox.archive")
                         Button(LocalizedStringKey(letter.read ? "Mark as unread" : "Mark as read"), systemImage: "envelope.open") {
+                            handledOpen = true
                             Task { await mark(read: !letter.read, archived: letter.archived) }
                         }.accessibilityIdentifier("inbox.read")
                         Button("Invite to a conversation", systemImage: "person.badge.plus") { inviting = true }
@@ -97,14 +104,6 @@ struct InboxDetail: View {
                 }
             }
             .onChange(of: source) { _, value in letter = value }
-            .task(id: "\(letter.id):\(letter.state):\(model.epoch):\(model.unlocked):\(model.concealed)") {
-                guard !autoMarked, model.unlocked, !model.concealed,
-                      letter.state == "visible", !letter.read,
-                      letter.sender != model.session?.account,
-                      !model.blockedAccounts.contains(letter.sender) else { return }
-                autoMarked = true
-                await mark(read: true, archived: letter.archived, quiet: true)
-            }
             .sheet(isPresented: $reporting) { NavigationStack { ReportContentView(target: ReportTarget(kind: "inbox", account: letter.sender, resource: letter.id)) } }
             .sheet(isPresented: $composing) { NavigationStack { LetterComposerView(recipient: letter.sender) } }
             .sheet(isPresented: $inviting) { NavigationStack { InviteLetterSenderView(account: letter.sender) } }
@@ -145,9 +144,7 @@ struct InboxDetail: View {
             await changed()
             await model.notifications.refresh(model)
         } catch {
-            if epoch == model.epoch {
-                if quiet { autoMarked = false } else { model.report(error) }
-            }
+            if !quiet && epoch == model.epoch { model.report(error) }
         }
     }
 }

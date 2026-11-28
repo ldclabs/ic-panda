@@ -15,7 +15,7 @@ import net.dmsg.android.core.NoticeTarget
 import java.util.UUID
 
 /** A real clipped viewport, current window focus and resumed lifecycle are required. */
-internal fun Modifier.reminderVisible(client: ClientController, target: NoticeTarget, through: ULong? = null, revision: Any? = null): Modifier = composed {
+internal fun Modifier.reminderVisible(client: ClientController, target: NoticeTarget, through: ULong? = null, revision: Any? = null, onVisible: () -> Unit = {}): Modifier = composed {
     val owner = remember(target) { UUID.randomUUID().toString() }
     val view = LocalView.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -24,11 +24,14 @@ internal fun Modifier.reminderVisible(client: ClientController, target: NoticeTa
     var visible by remember { mutableStateOf(false) }
     val active by rememberUpdatedState(LocalPageActive.current)
     val currentThrough by rememberUpdatedState(through)
+    val whenVisible by rememberUpdatedState(onVisible)
     DisposableEffect(client, owner) { onDispose { visible = false; client.notifications.hide(owner) } }
     LaunchedEffect(active, visible, focused, lifecycleState, currentThrough, revision) {
         client.notifications.hide(owner)
-        if (active && visible && focused && lifecycleState.isAtLeast(Lifecycle.State.RESUMED))
+        if (active && visible && focused && view.hasWindowFocus() && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)) {
+            whenVisible()
             client.notifications.observed(target, currentThrough, owner) { active && visible && view.hasWindowFocus() && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
+        }
     }
     onGloballyPositioned {
         val bounds = it.boundsInWindow()

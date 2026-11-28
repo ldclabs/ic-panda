@@ -3,9 +3,9 @@ import { onMount } from 'svelte'
 import type { NoticeVisibility } from '../shared/contract'
 
 /** Report loaded business data only when its anchor is in the focused viewport.
- * No business mark/read/ack is performed here. A dialog or page departure clears
- * the native context; asynchronous reads must still use each view's own fence. */
-export function noticeVisibility(read: () => NoticeVisibility | null, selector: string): () => void {
+ * The view can act on that same visibility check. A dialog or page departure
+ * clears the native context. */
+export function noticeVisibility(read: () => NoticeVisibility | null, selector: string, onVisible?: () => void): () => void {
   let alive = false, frame = 0, intersecting = false, last = ''
   let element: Element | null = null
   let observer: IntersectionObserver
@@ -29,6 +29,7 @@ export function noticeVisibility(read: () => NoticeVisibility | null, selector: 
     const key = JSON.stringify(value)
     if (key === last) return
     last = key
+    onVisible?.()
     void window.dmsg.notificationVisible(value).then((accepted) => {
       if (!accepted && last === key) last = ''
     }, () => { if (last === key) last = '' })

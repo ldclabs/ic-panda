@@ -375,8 +375,17 @@ impl Daemon {
             }
             "inbox/status" => return h.with(|c| c.inbox_observation()).await,
             "inbox/list" => {
+                let cached = |c: &Client| {
+                    let mut letters = c.inbox_cached()?;
+                    if params["exclude_blocked"] == true {
+                        let blocked: std::collections::BTreeSet<_> =
+                            c.blocked_accounts()?.into_iter().collect();
+                        letters.retain(|letter| !blocked.contains(&letter.sender));
+                    }
+                    Ok(to_json(&letters))
+                };
                 if params["refresh"] == false {
-                    return h.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
+                    return h.with(|c| cached(c)).await;
                 }
                 let bound = Unlocked::new(&h).await?;
                 let requested = dmsg_client::now_ms();
@@ -389,19 +398,22 @@ impl Daemon {
                     })
                     .await?
                 {
-                    return bound.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
+                    return bound.with(|c| cached(c)).await;
                 }
-                let letters = match inbox::list(&bound).await {
+                let report = match inbox::sync_all(&bound).await {
                     Err(Error::RecoveryIncomplete) => {
                         let generation = bound.with(|c| Ok(c.session_generation())).await?;
                         self.sync_pass(SyncTrigger::Inbox, Some(generation)).await?;
                         // Recheck the original session before receiving a late result.
                         bound.with(|_| Ok(())).await?;
-                        inbox::list(&bound).await?
+                        inbox::sync_all(&bound).await?
                     }
                     result => result?,
                 };
-                return Ok(to_json(&letters));
+                if !report.changed.is_empty() {
+                    self.emit("inbox/changed", Value::Null);
+                }
+                return bound.with(|c| cached(c)).await;
             }
             "inbox/policy" => {
                 if params["refresh"] == false {
@@ -460,11 +472,13 @@ impl Daemon {
                 let order = text(params, "order")?;
                 h.with(|c| Ok(c.session_state())).await?;
                 let _turn = self.turn(&format!("inbox-mark:{order}")).await;
-                return inbox::mark(
+                let archived = params["archived"].as_bool().unwrap_or(false);
+                return inbox::mark_contact(
                     &h,
                     &order,
                     params["read"].as_bool().unwrap_or(true),
-                    params["archived"].as_bool().unwrap_or(false),
+                    archived,
+                    params["reopen_contact"].as_bool().unwrap_or(archived),
                 )
                 .await;
             }

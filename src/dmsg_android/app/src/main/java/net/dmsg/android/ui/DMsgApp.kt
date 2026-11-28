@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
     val noticeStatus by client.notifications.status.state.collectAsStateWithLifecycle()
     val navBadges = remember(channelListing, incomingLetters, blockedListing, state.session?.account) {
         val conversations = unreadConversationCount(channelListing.valueOrNull().orEmpty())
-        val letters = unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blockedListing.valueOrNull().orEmpty())
+        val letters = unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blockedListing.valueOrNull())
         val total = if (conversations > Int.MAX_VALUE - letters) Int.MAX_VALUE else conversations + letters
         if (total > 0) mapOf("messages" to total) else emptyMap()
     }

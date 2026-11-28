@@ -464,7 +464,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.keyboard.press('Escape')
   assert.equal(calls.filter((call) => ['approval/respond', 'inbox/mark', 'plan/notice_ack'].includes(call.method)).length, actions)
 
-  // Inbox detail visibility suppresses only reminder duplication, not mail read state.
+  // Opening an unread letter marks it once and suppresses duplicate presentation.
   const letters = await methods['inbox/list']({ refresh: false })
   const letter = letters.find((letter) => letter.state === 'visible')
   if (letter) {
@@ -487,7 +487,10 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
     model.enqueue(item)
     await waitFor(() => latest('notifications/next')?.params !== undefined)
     assert.equal(await notes(), before)
-    assert.equal(calls.filter((call) => call.method === 'inbox/mark').length, marks)
+    const openedMarks = calls.filter((call) => call.method === 'inbox/mark').slice(marks)
+    assert.deepEqual(openedMarks.map(call => call.params), [
+      { order: letter.order_id, read: true, archived: letter.archived, reopen_contact: false }
+    ])
     if (simulatedFocus) {
       const observed = calls.filter((call) => call.method === 'notifications/observed').length
       await app.evaluate(() => { globalThis.__notificationFocusAllowed = false })

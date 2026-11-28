@@ -74,7 +74,7 @@ import net.dmsg.core.MessageItem
     val channels = listing.valueOrNull().orEmpty()
     val unreadConversations = remember(channels) { unreadConversationCount(channels) }
     val unreadLetters = remember(incomingLetters, blocks, state.session?.account) {
-        unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blocks.valueOrNull().orEmpty())
+        unreadLetterCount(incomingLetters.valueOrNull().orEmpty(), state.session?.account, blocks.valueOrNull())
     }
     val channelById = remember(channels) { channels.associateBy { it.id } }
     val ids = remember(channels) { channels.map { it.id } }
@@ -93,7 +93,7 @@ import net.dmsg.core.MessageItem
             else -> channels.filter { it.name.contains(query, true) }
         }
     }
-    LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks(); client.letters.refresh(network = false) }
+    LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks() }
     LaunchedEffect(search, hasFile, ids, blocked, state.epoch, revision, searchAll) {
         if (searchAll && query.isNotEmpty()) client.search.searchAll(search)
         else if (!searchAll && blocked != null) client.messages.searchDirectory(search, ids, blocked, hasFile)
@@ -342,7 +342,8 @@ import net.dmsg.core.MessageItem
         }
     }
     val timelineReadable = timeline is ReadState.Ready || timeline is ReadState.Stale
-    LaunchedEffect(channel, rows, currentTimeline?.hasAfter, pageActive, noticeFocused, timelineReadable, state.unlocked, state.concealed) {
+    val tailSequence = currentTimeline?.items?.lastOrNull()?.sequence
+    LaunchedEffect(channel, rows, tailSequence, currentTimeline?.hasAfter, pageActive, noticeFocused, timelineReadable, state.unlocked, state.concealed) {
         if (!pageActive || currentTimeline?.hasAfter == true) {
             visibleThrough = null
             client.notifications.hide(noticeOwner)
@@ -352,7 +353,7 @@ import net.dmsg.core.MessageItem
             .distinctUntilChanged().collect { through ->
                 if (through != null && pageActive && noticeFocused && state.unlocked && !state.concealed && timelineReadable) {
                     val effectiveThrough = if (through == rows.lastOrNull()?.sequence) {
-                        currentTimeline?.items?.lastOrNull()?.sequence?.let { maxOf(through, it) } ?: through
+                        maxOf(through, tailSequence ?: through)
                     } else through
                     if (effectiveThrough > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, effectiveThrough)
                     visibleThrough = effectiveThrough

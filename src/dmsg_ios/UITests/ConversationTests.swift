@@ -30,6 +30,27 @@ final class ConversationTests: XCTestCase {
         XCTAssertLessThan(composer(app).frame.minY - last.frame.maxY, 80)
     }
 
+    func testOpeningAtFirstUnreadKeepsLaterMessagesUnreadUntilTheEndIsVisible() {
+        let app = open(["--ui-channel-unread", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        let latest = app.buttons["conversation.latest"]
+        XCTAssertTrue(latest.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["History message 1"].isHittable)
+        let opening = XCTAttachment(screenshot: app.screenshot())
+        opening.name = "First unread message"; opening.lifetime = .keepAlways; add(opening)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let scope = app.buttons["messages.mode.conversations"]
+        XCTAssertEqual(scope.value as? String, "40")
+        app.buttons["channel.row.fixture-channel"].tap()
+        XCTAssertTrue(latest.waitForExistence(timeout: 5)); latest.tap()
+        XCTAssertTrue(latest.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["History message 40"].isHittable)
+        let ending = XCTAttachment(screenshot: app.screenshot())
+        ending.name = "Visible end of the conversation"; ending.lifetime = .keepAlways; add(ending)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(scope.waitForExistence(timeout: 5))
+        XCTAssertEqual(scope.value as? String ?? "", "")
+    }
+
     func testFailedInitialRefreshOffersRetryAndLoadsContent() {
         let app = open(["--ui-channel-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
         let retry = app.buttons["conversation.retry"]

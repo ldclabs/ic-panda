@@ -517,7 +517,10 @@ class ClientController internal constructor(private val application: Application
         if (!state.value.unlocked) return
         synchronization.setAutomatic(syncPreferences[state.value.session?.account] ?: true)
         synchronization.start(); fileWork.start(); systemExports.start()
-        messages.browse(); safety.loadBlocks(); letters.refresh(network = false)
+        // Every completed operation adopts a new snapshot and calls this again.
+        if (messages.channels.state.value is ReadState.Idle) messages.browse()
+        if (safety.blocked.state.value is ReadState.Idle) safety.loadBlocks()
+        if (letters.incoming.state.value is ReadState.Idle) letters.refresh(network = false)
         incoming.checkPending()
         routePendingWorkspace()
     }

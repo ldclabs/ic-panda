@@ -146,6 +146,9 @@ struct Local {
     read: u64,
     /// Others' messages after `read`.
     unread: u64,
+    /// Older workspaces included blocked senders in this cached count.
+    #[serde(default = "legacy_unread_count")]
+    recount_unread: bool,
     /// Latest verified new message by another account, excluding edits/control.
     notification_seq: u64,
     /// Older clients counted unreadable rows. Preserve their existing counts
@@ -167,6 +170,10 @@ struct Local {
     remote_latest: u64,
     /// When that last showed messages this device has yet to read.
     active_at: u64,
+}
+
+fn legacy_unread_count() -> bool {
+    true
 }
 
 impl Local {
@@ -2870,10 +2877,15 @@ impl Client {
     }
 
     fn local(&self, channel: &str) -> Result<Local> {
-        Ok(self
-            .workspace
-            .private(self.keys()?, &format!("{LOCAL}{channel}"))?
-            .unwrap_or_default())
+        let key = format!("{LOCAL}{channel}");
+        let keys = self.keys()?;
+        let mut local: Local = self.workspace.private(keys, &key)?.unwrap_or_default();
+        if local.recount_unread {
+            self.recount_channel_unread(channel, &mut local, &self.blocked_account_set()?)?;
+            local.recount_unread = false;
+            self.workspace.put_private(keys, &key, &local)?;
+        }
+        Ok(local)
     }
 
     fn save_local(&self, channel: &str, local: &Local) -> Result<()> {
@@ -2937,7 +2949,7 @@ impl Client {
             || preference.hidden
             || local.left
             || local.ledger.as_ref().is_some_and(|ledger| {
-                ledger.status != Status::Active || !ledger.members.contains_key(&account)
+                ledger.status == Status::Archived || !ledger.members.contains_key(&account)
             });
         item.muted = inactive || preference.muted;
         item.muted_until = if inactive { None } else { preference.until };
@@ -2952,18 +2964,15 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn reconcile_channel_unread_and_notifications(&self, now: u64) -> Result<()> {
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
+    pub(crate) fn reconcile_channel_unread_and_notifications(
+        &self,
+        now: u64,
+        blocked: &BTreeSet<String>,
+    ) -> Result<()> {
         for channel in self.channel_list()? {
             let mut local = self.local(&channel.id)?;
-            let unread = self.unread_after_with_blocked(&channel.id, local.read, &blocked)?;
-            if local.unread != unread {
-                local.unread = unread;
-                self.save_local_at(&channel.id, &local, now)?;
-            } else {
-                self.project_channel_notification(&channel.id, &local, now)?;
-            }
+            self.recount_channel_unread(&channel.id, &mut local, blocked)?;
+            self.save_local_at(&channel.id, &local, now)?;
         }
         Ok(())
     }
@@ -3606,7 +3615,7 @@ impl Client {
         // messages this one has yet to fetch, which then arrive as read.
         if let Some(seen) = remote["seen"].as_u64().filter(|seen| *seen > local.read) {
             local.read = seen;
-            local.unread = self.unread_after(&channel, seen)?;
+            self.recount_channel_unread(&channel, &mut local, &self.blocked_account_set()?)?;
         }
         local.reported_read = local
             .reported_read
@@ -4744,8 +4753,7 @@ impl Client {
         }
         let reread = reading.range.is_some() && !reading.recent;
         let keys = self.keys()?;
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
+        let blocked = self.blocked_account_set()?;
         // The page's messages and the cursor past them in one write. Another
         // read of the channel may have kept the page first: only what is past
         // the cursor is news, and the cursor never goes back.
@@ -5214,42 +5222,47 @@ impl Client {
     pub fn channel_mark(&self, channel: &str, through: u64) -> Result<ChannelView> {
         let mut local = self.local(channel)?;
         local.read = local.read.max(through.min(local.latest()));
-        local.unread = self.unread_after(channel, local.read)?;
+        self.recount_channel_unread(channel, &mut local, &self.blocked_account_set()?)?;
         self.save_local(channel, &local)?;
         self.channel_view(channel)
     }
 
-    /// Others' unblocked messages kept after `read`.
-    fn unread_after(&self, channel: &str, read: u64) -> Result<u64> {
-        let blocked: std::collections::BTreeSet<String> =
-            self.blocked_accounts()?.into_iter().collect();
-        self.unread_after_with_blocked(channel, read, &blocked)
-    }
-
-    fn unread_after_with_blocked(
+    fn recount_channel_unread(
         &self,
         channel: &str,
-        read: u64,
-        blocked: &std::collections::BTreeSet<String>,
-    ) -> Result<u64> {
+        local: &mut Local,
+        blocked: &BTreeSet<String>,
+    ) -> Result<()> {
         let me = self.me()?;
         let prefix = format!("{INBOX}{channel}:");
-        let after: Vec<Message> = self.workspace.private_after(
-            self.keys()?,
-            &prefix,
-            &format!("{prefix}{read:020}"),
-            1000,
-        )?;
-        Ok(after
-            .iter()
-            .filter(|m| {
-                !m.unreadable
+        let keys = self.keys()?;
+        let mut after = local.read;
+        local.unread = 0;
+        // Every unreadable row has now been excluded, even on an upgraded device.
+        local.notification_count_cutover = Some(0);
+        loop {
+            let page: Vec<Message> = self.workspace.private_after(
+                keys,
+                &prefix,
+                &format!("{prefix}{after:020}"),
+                256,
+            )?;
+            for m in &page {
+                if !m.unreadable
                     && m.account != me
                     && !blocked.contains(&m.account)
                     && !m.amends()
                     && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
-            })
-            .count() as u64)
+                {
+                    local.unread += 1;
+                    local.notification_seq = local.notification_seq.max(m.seq);
+                }
+            }
+            if page.len() < 256 {
+                return Ok(());
+            }
+            after = page[page.len() - 1].seq;
+        }
     }
 
     /// Keep the composer's unsent text on this device.

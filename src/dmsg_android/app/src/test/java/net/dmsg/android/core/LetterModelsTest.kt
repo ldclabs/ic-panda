@@ -41,6 +41,7 @@ class LetterModelsTest {
             Letter("6", "peer", "archived", read = false, archived = true, state = "visible", createdAt = 6u),
         )
         assertEquals(1, unreadLetterCount(letters, account = "me", blocked = setOf("blocked")))
+        assertEquals(0, unreadLetterCount(letters, account = "me", blocked = null))
         assertEquals(2, unreadLetterCount(letters, account = "me", blocked = emptySet()))
 
         fun channel(id: String, unread: ULong, muted: Boolean = false, status: String = "active") = net.dmsg.core.ChannelItem(

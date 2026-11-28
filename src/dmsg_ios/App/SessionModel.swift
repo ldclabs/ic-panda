@@ -39,6 +39,7 @@ final class SessionModel {
     var vaultSearchMeta: [String: VaultSearchMeta] = [:]
     var channels: [ChannelItem] = []
     private(set) var blockedAccounts: Set<String> = []
+    private var blockedAccountsEpoch: UInt64?
     var activeChannel: String?
     private(set) var contentRevision: UInt64 = 0
     private(set) var messageSearchRevision: UInt64 = 0
@@ -186,7 +187,6 @@ final class SessionModel {
     private var cursorReports: [String: Task<Void, Never>] = [:]
     private var pendingCursorChannels: Set<String> = []
     private(set) var unreadLetters: Int = 0
-    private var cachedInboxLetters: [InboxLetter] = []
     private var channelChecked: [String: ContinuousClock.Instant] = [:]
     private var channelReadAhead: [String: ContinuousClock.Instant] = [:]
     private var isForeground: Bool { lifecycle == .active || lifecycle == .resuming }
@@ -453,7 +453,9 @@ final class SessionModel {
         let current = epoch
         do {
             guard let values = try await engine?.blockedAccounts(), current == epoch else { return false }
-            blockedAccounts = Set(values); recomputeUnreadLetters(); return true
+            blockedAccounts = Set(values)
+            blockedAccountsEpoch = current
+            return true
         } catch { return false }
     }
 
@@ -462,12 +464,18 @@ final class SessionModel {
         let current = epoch
         do {
             guard let engine else { return false }
-            _ = try await engine.setBlockedAccount(account: account, blocked: blocked)
+            let accounts = try await engine.setBlockedAccountLocal(account: account, blocked: blocked)
             guard current == epoch else { return false }
-            if blocked { blockedAccounts.insert(account) } else { blockedAccounts.remove(account) }
-            recomputeUnreadLetters()
+            blockedAccounts = Set(accounts)
             await loadChannels()
             await notifications.refresh(self)
+            let synced: [String] = try decode(try await engine.syncBlockedAccounts())
+            guard current == epoch else { return false }
+            if Set(synced) != blockedAccounts {
+                blockedAccounts = Set(synced)
+                await loadChannels()
+                await notifications.refresh(self)
+            }
             return true
         } catch { if current == epoch { report(error) }; return false }
     }
@@ -651,13 +659,18 @@ final class SessionModel {
         return conversations > Int.max - unreadLetters ? Int.max : conversations + unreadLetters
     }
 
-    func updateUnreadLetters(_ letters: [InboxLetter]) {
-        cachedInboxLetters = letters
-        recomputeUnreadLetters()
-    }
-
-    private func recomputeUnreadLetters() {
-        unreadLetters = Self.unreadLetterCount(cachedInboxLetters, account: session?.account, blocked: blockedAccounts)
+    func loadUnreadLetters() async {
+        #if DEBUG
+        if uiTesting {
+            unreadLetters = Self.unreadLetterCount(fixtureInboxLetters, account: session?.account, blocked: blockedAccounts)
+            return
+        }
+        #endif
+        struct Counts: Decodable { let unread: Int }
+        let current = epoch
+        guard let engine, let status = try? await engine.cachedInboxStatus(),
+              let counts: Counts = try? decode(status), current == epoch, !Task.isCancelled else { return }
+        unreadLetters = counts.unread
     }
 
     /// Route a message/inbox target for the currently unlocked account directly
@@ -691,6 +704,15 @@ final class SessionModel {
 
     /// The read position follows to this account's other devices, once reading pauses.
     func channelRead(_ channel: String, through: UInt64) async {
+        #if DEBUG
+        if uiTesting, let i = channels.firstIndex(where: { $0.id == channel }) {
+            let row = channels[i]
+            channels[i] = ChannelItem(id: row.id, name: row.name, unread: UInt64(fixtureChannelMessages.filter { $0.sequence > through && $0.account != session?.account }.count),
+                                      draft: row.draft, preview: row.preview, lastAt: row.lastAt, muted: row.muted, status: row.status,
+                                      canPublish: row.canPublish, canInvite: row.canInvite, pendingSends: row.pendingSends, readThrough: through, news: row.news)
+            return
+        }
+        #endif
         guard let engine else { return }
         let current = epoch
         try? await engine.markRead(channel: channel, through: through)
@@ -802,6 +824,7 @@ final class SessionModel {
             passkeySessionLimitCredential = nil
             epoch &+= 1; viewGeneration &+= 1
             vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
+            unreadLetters = 0
             clearCloudBackups()
         }
         if session?.state != "unlocked" && state.state == "unlocked" { unlockRetryDue = true }
@@ -1011,7 +1034,7 @@ final class SessionModel {
         await checkChannels()
         if let activeChannel { channelHints[activeChannel, default: 0] &+= 1 }
         inboxHints &+= 1
-        await notifications.refresh(self, receive: true)
+        await refreshHintedInbox()
     }
 
     private func receiveHint(kind: String, resource: String?, news: Bool) {
@@ -1059,12 +1082,9 @@ final class SessionModel {
     private func refreshHintedInbox() async {
         guard let engine, unlocked, !concealed else { return }
         let current = epoch
-        if let cached = try? await engine.inbox(refresh: true),
-           let letters: [InboxLetter] = try? decode(cached),
-           current == epoch, !Task.isCancelled {
-            if blockedAccounts.isEmpty { await loadBlockedAccounts() }
-            if current == epoch { updateUnreadLetters(letters) }
-        }
+        _ = try? await engine.inbox(refresh: true)
+        guard current == epoch, !Task.isCancelled else { return }
+        await loadUnreadLetters()
         if current == epoch { await notifications.refresh(self, receive: true) }
     }
 
@@ -1170,15 +1190,11 @@ final class SessionModel {
     func loadChannels() async {
         guard let engine, unlocked else { return }; let current = epoch
         do {
+            if blockedAccountsEpoch != current { await loadBlockedAccounts() }
+            guard current == epoch, !Task.isCancelled else { return }
             let result = try await engine.channels()
             guard current == epoch, !Task.isCancelled else { return }; channels = result.items
-            if blockedAccounts.isEmpty { await loadBlockedAccounts() }
-            guard current == epoch, !Task.isCancelled else { return }
-            if let cached = try? await engine.inbox(refresh: false),
-               let letters: [InboxLetter] = try? decode(cached),
-               current == epoch, !Task.isCancelled {
-                updateUnreadLetters(letters)
-            }
+            await loadUnreadLetters()
         } catch { if current == epoch { reportBackground(error) } }
     }
 
@@ -1383,7 +1399,7 @@ final class SessionModel {
         busyOperation = nil
         privacyShield.show()
         epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
-        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; cachedInboxLetters = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.shutdown() } }
         engine = nil; security?.cancelPresence()
@@ -1425,7 +1441,7 @@ final class SessionModel {
         for task in cursorReports.values { task.cancel() }
         cursorReports.removeAll()
         pendingCursorChannels.removeAll()
-        vault = []; vaultSearchMeta = [:]; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; cachedInboxLetters = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; filesFavoritesOnly = false; filesTag = ""; fileTags = []; fileSearchMeta = [:]; folderSearchMeta = [:]; approvals = []; search = ""
+        vault = []; vaultSearchMeta = [:]; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; unreadLetters = 0; library = .empty; filesListings = [:]; filesSearch = ""; filesFavoritesOnly = false; filesTag = ""; fileTags = []; fileSearchMeta = [:]; folderSearchMeta = [:]; approvals = []; search = ""
         clearCloudBackups()
         notice = nil; error = nil; passkeySessionLimitCredential = nil
         busyOperation = nil
@@ -1644,15 +1660,14 @@ final class SessionModel {
                 return
             }
             // The list is local to read, and the Messages tab's badge counts it.
+            if selectedTab == .messages || blockedAccountsEpoch != current {
+                await loadBlockedAccounts()
+            }
+            guard current == epoch else { return }
             let result = try await engine.channels()
             guard current == epoch else { return }; if channels != result.items { channels = result.items }
-            if selectedTab == .messages || blockedAccounts.isEmpty { await loadBlockedAccounts() }
+            await loadUnreadLetters()
             guard current == epoch else { return }
-            if let cached = try? await engine.inbox(refresh: false),
-               let letters: [InboxLetter] = try? decode(cached),
-               current == epoch {
-                updateUnreadLetters(letters)
-            }
             switch selectedTab {
             case .vault: await loadVault()
             case .messages: break

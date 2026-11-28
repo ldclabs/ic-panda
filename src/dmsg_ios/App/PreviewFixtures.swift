@@ -86,7 +86,8 @@ extension SessionModel {
             ConnectNavigation.shared.pending = ConnectLink(URL(string: "dmsg://connect/request?account=040g2082040g2082040g&request=\(String(repeating: "a", count: 64))")!)
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel") {
-            channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
+            let unread: UInt64 = ProcessInfo.processInfo.arguments.contains("--ui-channel-unread") ? 40 : 0
+            channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: unread, draft: "", preview: "")]
             if ProcessInfo.processInfo.arguments.contains("--ui-channel-readonly") {
                 channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "", lastAt: 0, muted: false, status: "active", canPublish: false, canInvite: false, pendingSends: 0, readThrough: 0, news: false)]
             }
@@ -251,8 +252,9 @@ extension SessionModel {
         try await Task.sleep(for: .milliseconds(200))
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-empty") { return }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-send") { return }
-        if ProcessInfo.processInfo.arguments.contains("--ui-channel-history") {
-            fixtureChannelMessages = (1...5).map { sequence in
+        let unreadThread = ProcessInfo.processInfo.arguments.contains("--ui-channel-unread")
+        if unreadThread || ProcessInfo.processInfo.arguments.contains("--ui-channel-history") {
+            fixtureChannelMessages = (1...(unreadThread ? 40 : 5)).map { sequence in
                 MessageItem(id: "fixture-\(sequence)", sequence: UInt64(sequence), account: "fixture-peer",
                     text: "History message \(sequence)", createdAtMs: 1_793_513_600_000,
                     attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,

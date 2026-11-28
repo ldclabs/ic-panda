@@ -185,7 +185,8 @@ struct ReminderDestinationView: View {
                 }
                 let rows: [InboxLetter] = try model.decode(try await engine.inbox(refresh: true))
                 guard epoch == model.epoch, !Task.isCancelled else { return }
-                model.updateUnreadLetters(rows)
+                await model.loadUnreadLetters()
+                guard epoch == model.epoch, !Task.isCancelled else { return }
                 letter = rows.first { $0.orderId == id }; unavailable = id != nil && letter == nil ? .missing : nil
                 if unavailable == nil, model.openWorkspaceReminder(account: destination.account, target: destination.target, item: item) { return }
             case .approval(let id):

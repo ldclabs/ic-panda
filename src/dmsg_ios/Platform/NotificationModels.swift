@@ -119,6 +119,11 @@ struct ReminderStatus: Decodable {
     struct Account: Decodable, Identifiable { let account: String; let enabled: Bool; let counts: ReminderCounts; var id: String { account } }
     let counts: ReminderCounts; let accounts: [Account]; let badge: UInt64; let enabled: Bool
 
+    func hasReminders(for account: String?) -> Bool {
+        guard let counts = accounts.first(where: { $0.account == account })?.counts else { return false }
+        return counts.actionable > 0 || counts.unread > 0 || counts.unverified
+    }
+
     /// Workspace reminders are independent of the system badge preference.
     func reminderCount(for account: String) -> UInt64 {
         guard let counts = accounts.first(where: { $0.account == account })?.counts else { return 0 }

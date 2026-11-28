@@ -58,9 +58,9 @@ final class InboxUITests: XCTestCase {
         let more = app.buttons["inbox.more"]
         XCTAssertTrue(more.waitForExistence(timeout: 5)); more.tap()
         let read = app.buttons["inbox.read"]
-        XCTAssertTrue(read.waitForExistence(timeout: 5)); read.tap()
+        XCTAssertTrue(read.waitForExistence(timeout: 5)); XCTAssertEqual(read.label, "标为未读"); read.tap()
         more.tap()
-        XCTAssertTrue(read.waitForExistence(timeout: 5)); XCTAssertEqual(read.label, "标为未读")
+        XCTAssertTrue(read.waitForExistence(timeout: 5)); XCTAssertEqual(read.label, "标记为已读")
         app.buttons["inbox.archive"].tap()
         more.tap()
         XCTAssertTrue(app.buttons["恢复"].waitForExistence(timeout: 5))

@@ -508,8 +508,10 @@ struct MessagesView: View {
 
     private func loadLetters(refresh: Bool) async {
         guard model.unlocked, !model.concealed else { return }
+        let epoch = model.epoch
         if refresh { await inbox.refresh(read: readLetters) } else { await inbox.cached(read: readLetters) }
-        model.updateUnreadLetters(inbox.letters)
+        guard epoch == model.epoch, !Task.isCancelled else { return }
+        await model.loadUnreadLetters()
         await model.letters.load(model)
         model.people.request(inbox.letters.map(\.sender) + model.letters.history.map(\.recipient), model: model)
     }

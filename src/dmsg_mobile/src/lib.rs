@@ -1334,7 +1334,11 @@ impl MobileEngine {
                                     .max(v.active_at),
                                 news: v.news,
                                 muted: v.muted,
-                                status: if v.left {
+                                status: if v.left
+                                    || v.ledger
+                                        .as_ref()
+                                        .is_some_and(|l| !l.members.contains_key(&account))
+                                {
                                     "left".into()
                                 } else {
                                     v.ledger
@@ -1776,8 +1780,17 @@ impl MobileEngine {
     }
 
     pub async fn cached_inbox_status(&self) -> Result<ObjectSnapshot> {
-        self.held_object(|h| Box::pin(async { h.with(|c| c.inbox_observation()).await }))
-            .await
+        self.held_object(|h| {
+            Box::pin(async {
+                h.with(|c| {
+                    let mut status = c.inbox_observation()?;
+                    status["unread"] = c.inbox_unread()?.into();
+                    Ok(status)
+                })
+                .await
+            })
+        })
+        .await
     }
 
     pub async fn inbox(&self, refresh: bool) -> Result<ObjectSnapshot> {

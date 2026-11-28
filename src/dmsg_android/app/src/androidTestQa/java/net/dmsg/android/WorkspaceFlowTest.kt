@@ -1655,8 +1655,8 @@ class WorkspaceFlowTest {
     }
 
     @Test fun markingAnOpenLetterUnreadDoesNotImmediatelyMarkItReadAgain() {
-        val letter = net.dmsg.android.core.Letter("ac".repeat(32), "040g2081040g2081040g",
-            "An already read sample letter", true, false, "delivered", 1u)
+        val letter = net.dmsg.android.core.Letter("ac".repeat(32), "040g2082040g2082040g",
+            "An already read sample letter", true, false, "visible", 1u)
         compose.runOnIdle { client.navigation.open("inbox") }
         compose.waitUntil(10_000) {
             client.letters.incoming.value() != null && client.safety.blocked.value() != null &&

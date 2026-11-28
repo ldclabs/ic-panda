@@ -134,6 +134,8 @@ final class NotificationTests: XCTestCase {
         XCTAssertEqual(status.reminderCount(for: "current"), 0)
         XCTAssertEqual(status.reminderCount(for: "other"), 122)
         XCTAssertEqual(status.reminderCount(for: "missing"), 0)
+        XCTAssertTrue(status.hasReminders(for: "current"))
+        XCTAssertFalse(status.hasReminders(for: "missing"))
     }
 
     func testTargetsKeepExactWalletVersionsAndRejectUnknownNavigation() throws {

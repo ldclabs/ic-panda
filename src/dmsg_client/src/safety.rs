@@ -20,11 +20,27 @@ struct Blocks {
 impl Client {
     /// Locally effective blocks, including choices waiting for connectivity.
     pub fn blocked_accounts(&self) -> Result<Vec<String>> {
+        Ok(self.blocked_account_set()?.into_iter().collect())
+    }
+
+    pub(crate) fn blocked_account_set(&self) -> Result<BTreeSet<String>> {
         let value: Blocks = self
             .workspace
             .private(self.keys()?, BLOCKS)?
             .unwrap_or_default();
-        Ok(value.accounts.into_iter().collect())
+        Ok(value.accounts)
+    }
+
+    fn save_blocks(&self, value: &Blocks, changed: bool) -> Result<()> {
+        self.workspace.store.atomic(|_| {
+            self.workspace.put_private(self.keys()?, BLOCKS, value)?;
+            if changed {
+                let now = crate::now_ms();
+                self.reconcile_channel_unread_and_notifications(now, &value.accounts)?;
+                self.reconcile_inbox_notifications(now, &value.accounts)?;
+            }
+            Ok(())
+        })
     }
 
     /// Queue one signed remote block change while applying it locally now.
@@ -49,13 +65,7 @@ impl Client {
         value
             .pending
             .insert(account, (blocked, Hash::new(crate::crypto::random_id())));
-        self.workspace.put_private(self.keys()?, BLOCKS, &value)?;
-        if changed {
-            let now = crate::now_ms();
-            self.reconcile_channel_unread_and_notifications(now)?;
-            self.reconcile_inbox_notifications(now)?;
-        }
-        Ok(())
+        self.save_blocks(&value, changed)
     }
 
     /// Store the exact user-selected report before networking starts.
@@ -193,14 +203,10 @@ pub async fn sync_blocks<H: Hold>(h: &H) -> Result<Vec<String>> {
                     blocks.accounts.remove(target);
                 }
             }
-            let changed = blocks.accounts != previous;
-            c.workspace.put_private(c.keys()?, BLOCKS, &blocks)?;
-            if changed {
-                let now = crate::now_ms();
-                c.reconcile_channel_unread_and_notifications(now)?;
-                c.reconcile_inbox_notifications(now)?;
+            if blocks.accounts != previous {
+                c.save_blocks(&blocks, true)?;
             }
-            c.blocked_accounts()
+            Ok(blocks.accounts.into_iter().collect())
         })
         .await
 }
